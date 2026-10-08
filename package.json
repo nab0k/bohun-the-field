@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node scripts/test-core.mjs && node scripts/test-assets.mjs",
+    "test": "node scripts/test-core.mjs && node scripts/test-assets.mjs && node scripts/test-flows.mjs",
     "preview": "vite preview --port 5175",
     "dev": "vite --port 5174",
     "build": "vite build"

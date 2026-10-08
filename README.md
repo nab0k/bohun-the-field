@@ -95,3 +95,15 @@ The cargo code path (shipment image, mirrored for westward travel, removed on ar
 no cargo artwork is integrated yet.
 
 Local git: `main` in this folder, no remote.
+
+
+## Flows prototype (grey graphics) — `/flows.html`
+
+Whole planet, tilted 45 degrees (equirectangular + vertical squash cos 45), a tilted minimap, ambient traffic along corridors,
+Bohun riding point to point, and the "redirect a flow" mechanic. Grey technical art only; every position is a TEST placeholder.
+- Rules (no Phaser): `src/flows/core.js`; test network: `src/flows/data/network.js`; tests: `scripts/test-flows.mjs` (13 checks).
+- World base: `node scripts/build-world-base.mjs <ne-countries-ukr.geojson>` writes `public/flows/world-tilt-base.svg` (Natural Earth, public
+  domain, Ukrainian representation of borders; not a map of territorial control).
+- Verbs: look (zoom, pan, minimap click, "Вся карта"), choose (click: Bohun rides there, card opens), redirect (source mine/factory ->
+  pick a target -> choose a route option: fast / cheap / no air; max 3 flows). Time and price are conditional units; nothing shoots or destroys.
+- Not done: painted art, the 5-direction sprite sets, space view, the Ukraine detail tier, final placements.

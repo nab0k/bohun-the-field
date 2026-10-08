@@ -1,0 +1,28 @@
+:root { --ink:#0e1210; --ink2:#151b18; --paper:#f1efe8; --muted:#a7a89f; --gold:#c9a24a; --ok:#8fbf86; --line:rgba(241,239,232,.18); --sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif; --mono:ui-monospace,Menlo,monospace; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--ink); color: var(--paper); font-family: var(--sans); font-size: 14px; }
+#stage { position: fixed; inset: 0; }
+#stage canvas { display: block; touch-action: none; }
+.panel { position: fixed; top: 12px; left: 12px; z-index: 5; width: 340px; max-height: calc(100vh - 24px); overflow-y: auto; overscroll-behavior: contain; background: rgba(21,27,24,.96); border: 1px solid var(--line); padding: 0 16px 14px; }
+.top { position: sticky; top: 0; z-index: 2; display: flex; gap: 8px; padding: 12px 0 10px; margin-bottom: 4px; background: rgba(21,27,24,.98); border-bottom: 1px solid var(--line); }
+.top button { flex: 1; text-align: center; }
+h1 { font-size: 19px; margin: 8px 0 6px; } h2 { font-size: 20px; margin: 4px 0; } h3 { font-size: 14px; margin: 12px 0 6px; }
+.lead, .muted, .demo { color: var(--muted); line-height: 1.45; margin: 0 0 10px; }
+.demo { font-size: 12px; margin: 12px 0 0; }
+.counters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.counters div { border: 1px solid var(--line); padding: 8px 10px; display: grid; gap: 2px; }
+.counters span { color: var(--muted); font-size: 12px; } .counters b { font-size: 22px; color: var(--gold); font-weight: 600; }
+.note { margin: 0 0 8px; color: #e9a58f; line-height: 1.4; } .note:empty { display: none; }
+.card, .pick, .options { border: 1px solid var(--gold); background: rgba(201,162,74,.08); padding: 10px 12px; margin-bottom: 10px; }
+.card[hidden], .pick[hidden], .options[hidden] { display: none; }
+.card p { margin: 4px 0; line-height: 1.45; } .tag { font-family: var(--mono); font-size: 11px; letter-spacing: .12em; color: var(--gold); text-transform: uppercase; }
+button { font: inherit; cursor: pointer; background: transparent; color: var(--gold); border: 1px solid var(--gold); padding: 9px 12px; text-align: left; }
+button:hover:not(:disabled), button:focus-visible { background: var(--gold); color: var(--ink); outline: none; }
+button:disabled { color: var(--muted); border-color: var(--line); cursor: not-allowed; }
+button.plain { color: var(--paper); border-color: var(--line); } .card button { margin-top: 6px; }
+.options button.opt { display: block; width: 100%; margin: 6px 0; } .options button small { display: block; color: var(--muted); margin-top: 2px; } .options button:hover small { color: var(--ink); }
+.flows ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; } .flows li { display: flex; gap: 8px; justify-content: space-between; align-items: center; border: 1px solid var(--line); padding: 6px 8px; font-size: 13px; line-height: 1.35; }
+.flows li button { padding: 4px 8px; flex: none; }
+.mini { position: fixed; right: 12px; bottom: 12px; z-index: 4; pointer-events: none; border: 2px solid var(--gold); box-shadow: 0 0 0 1px rgba(0,0,0,.6); }
+.mini span { position: absolute; left: 0; bottom: 100%; margin-bottom: 4px; font-size: 11px; color: var(--paper); background: rgba(14,18,16,.8); padding: 2px 6px; white-space: nowrap; }
+@media (max-width: 720px) { .panel { left: 8px; right: 8px; top: auto; bottom: 8px; width: auto; max-height: 46vh; } .mini { right: 8px; bottom: calc(46vh + 24px); } }

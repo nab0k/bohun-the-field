@@ -1,0 +1,9 @@
+{
+  "width": 8192,
+  "height": 2285,
+  "pxPerDeg": 22.755555555555556,
+  "squash": 0.7071067811865476,
+  "latNorth": 84,
+  "latSouth": -58,
+  "projection": "equirectangular + vertical squash cos45"
+}
