@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>BOHUN / THE FIELD — prototype</title>
+  <meta name="description" content="Vertical-slice prototype: an isometric world as the interface for Bohun Defence." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=PT+Sans+Narrow:wght@400;700&family=PT+Serif:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div id="game" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+
+  <header class="bar">
+    <span class="brand">BOHUN <i>/</i> THE FIELD</span>
+    <span class="hudline">UKRAINE ↔ EUROPE ↔ INTERNATIONAL</span>
+    <span class="tag">PROTOTYPE · NOT PUBLISHED</span>
+  </header>
+
+  <div id="caption" class="caption" role="status" aria-live="polite"></div>
+
+  <main id="story">
+    <section class="panel" data-stop="0" id="s-hero">
+      <p class="eyebrow">01 · HERO</p>
+      <h1>Defence requirements. Capabilities. Opportunities.</h1>
+      <p class="lead">Bohun Defence helps companies navigate defence and dual-use markets across Ukraine and internationally.</p>
+      <div class="pair" role="group" aria-label="What brings you here">
+        <button class="choice" data-emph="need" aria-pressed="false"><b>I NEED SOMETHING</b><span>Find capabilities, companies and partners.</span></button>
+        <button class="choice" data-emph="have" aria-pressed="false"><b>I HAVE SOMETHING</b><span>Explore markets, partnerships and commercial opportunities.</span></button>
+      </div>
+      <p class="hint">Scroll to move through the field.</p>
+    </section>
+
+    <section class="panel" data-stop="0" id="s-sides">
+      <p class="eyebrow">02 · TWO SIDES OF THE MAP</p>
+      <h2>What are you trying to move forward?</h2>
+      <div class="sides">
+        <div class="side">
+          <b>I NEED SOMETHING</b>
+          <p>Looking for a technology, manufacturer, supplier, industrial capability or the right partner?</p>
+          <p>We research the field, identify relevant organisations and help establish the right conversations.</p>
+          <button class="link" data-open="supplier">EXPLORE CAPABILITIES →</button>
+        </div>
+        <div class="side">
+          <b>I HAVE SOMETHING</b>
+          <p>Have a product, technology or capability and need a route into a new market?</p>
+          <p>We help you understand the landscape, find relevant partners and explore practical routes to commercial engagement.</p>
+          <button class="link" data-open="buyer">EXPLORE MARKETS →</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" data-stop="1" id="s-interest">
+      <p class="eyebrow">03 · CURRENT INTEREST</p>
+      <h2>Current interest</h2>
+      <p>We are interested in hearing from companies working across selected defence and dual-use capabilities.</p>
+      <p class="signals">PROPULSION · COMMUNICATIONS · UAS / UGV · COMPONENTS · INDUSTRIAL CAPACITY · SOFTWARE · TESTING &amp; VALIDATION</p>
+      <button class="link" data-open="propulsion">INTRODUCE YOUR CAPABILITY →</button>
+      <p class="muted"><em>Areas of interest evolve as new projects and requirements emerge.</em></p>
+    </section>
+
+    <section class="panel" data-stop="2" id="s-ukraine">
+      <p class="eyebrow">05 · UKRAINE ↔ INTERNATIONAL</p>
+      <h2>Ukraine ↔ International</h2>
+      <p>Defence markets do not move through directories alone.</p>
+      <p>They depend on context, relationships, requirements and an understanding of how each market actually works.</p>
+      <p>Bohun Defence works across Ukraine and international markets, helping companies understand the landscape and find credible routes forward.</p>
+      <button class="link" data-open="ukraine">INTO UKRAINE →</button>
+    </section>
+
+    <section class="panel" data-stop="3" id="s-contact">
+      <p class="eyebrow">10 · FINAL CTA</p>
+      <h2>What are you working on?</h2>
+      <p><b>I NEED SOMETHING</b> — Tell us what you are looking for.</p>
+      <p><b>I HAVE SOMETHING</b> — Tell us what your company can offer.</p>
+      <p>Or just start a conversation.</p>
+      <form id="contact" class="contact" novalidate>
+        <label>NAME<input name="name" autocomplete="name" /></label>
+        <label>COMPANY<input name="company" autocomplete="organization" /></label>
+        <label>EMAIL<input name="email" type="email" autocomplete="email" /></label>
+        <label>WHAT ARE YOU LOOKING FOR OR OFFERING?<textarea name="msg" rows="3"></textarea></label>
+        <button class="cta" type="submit">SEND →</button>
+        <p id="form-note" class="muted">Sensitive information is not required at this stage.</p>
+      </form>
+    </section>
+  </main>
+
+  <aside id="dossier" class="dossier" aria-hidden="true" aria-labelledby="d-title">
+    <button class="x" id="d-close" aria-label="Close file">×</button>
+    <p class="file" id="d-file"></p>
+    <h3 id="d-title"></h3>
+    <div id="d-body"></div>
+    <p class="status">STATUS <b id="d-status"></b></p>
+    <button class="cta" id="d-cta"></button>
+  </aside>
+
+  <div id="toast" class="toast" role="dialog" aria-hidden="true">
+    <p>FIELD CONTROL AVAILABLE</p>
+    <span>Take command of the map: scout, research, connect.</span>
+    <div><button id="t-yes">ENTER</button><button id="t-no" class="ghost">NOT NOW</button></div>
+  </div>
+
+  <div id="hud" class="hud" aria-hidden="true">
+    <div class="hud-top">
+      <span class="hud-mode">FIELD CONTROL</span>
+      <button id="exit">EXIT TO SITE (ESC)</button>
+    </div>
+    <p id="objective" class="objective"></p>
+    <div id="inspect" class="inspect" hidden>
+      <p id="i-sub" class="sub"></p>
+      <h4 id="i-title"></h4>
+      <p id="i-desc"></p>
+      <div id="i-actions" class="actions"></div>
+    </div>
+    <p class="controls">DRAG to pan · WHEEL to zoom · CLICK to inspect</p>
+  </div>
+
+  <noscript><p class="fallback-note">This page needs JavaScript to show the field.</p></noscript>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

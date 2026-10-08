@@ -1,0 +1,228 @@
+{
+  "version": "0.2-draft",
+  "date": "2026-10-07",
+  "overview": {
+    "width": 2200,
+    "height": 1800,
+    "bounds": [
+      [
+        -12,
+        33
+      ],
+      [
+        43,
+        72
+      ]
+    ],
+    "projection": {
+      "type": "geoConicConformal",
+      "parallels": [
+        43,
+        62
+      ],
+      "rotate": [
+        -22,
+        0,
+        0
+      ],
+      "center": [
+        0,
+        52
+      ],
+      "scale": 2123.1257147008555,
+      "translate": [
+        1294.8055977142772,
+        962.1038890091131
+      ]
+    },
+    "nodes": [
+      {
+        "id": "lviv",
+        "label": "Львів",
+        "lonLat": [
+          24.029995,
+          49.83498
+        ],
+        "dossierId": "lviv",
+        "world": [
+          1342.713,
+          1040.596
+        ]
+      },
+      {
+        "id": "warsaw",
+        "label": "Варшава",
+        "lonLat": [
+          21.005347,
+          52.230872
+        ],
+        "dossierId": "warsaw",
+        "world": [
+          1272.542,
+          953.512
+        ]
+      },
+      {
+        "id": "kyiv",
+        "label": "Київ",
+        "lonLat": [
+          30.514682,
+          50.435313
+        ],
+        "dossierId": "kyiv",
+        "world": [
+          1492.712,
+          1007.574
+        ]
+      }
+    ]
+  },
+  "scene": {
+    "width": 2560,
+    "height": 1600,
+    "bounds": [
+      [
+        14,
+        42
+      ],
+      [
+        42,
+        55
+      ]
+    ],
+    "projection": {
+      "type": "geoConicConformal",
+      "parallels": [
+        43,
+        62
+      ],
+      "rotate": [
+        -22,
+        0,
+        0
+      ],
+      "center": [
+        0,
+        52
+      ],
+      "scale": 5353.991493899312,
+      "translate": [
+        870.5180506216466,
+        542.7467650048648
+      ]
+    },
+    "nodes": [
+      {
+        "id": "lviv",
+        "label": "Львів",
+        "lonLat": [
+          24.029995,
+          49.83498
+        ],
+        "dossierId": "lviv",
+        "world": [
+          991.329,
+          740.685
+        ]
+      },
+      {
+        "id": "warsaw",
+        "label": "Варшава",
+        "lonLat": [
+          21.005347,
+          52.230872
+        ],
+        "dossierId": "warsaw",
+        "world": [
+          814.374,
+          521.08
+        ]
+      },
+      {
+        "id": "kyiv",
+        "label": "Київ",
+        "lonLat": [
+          30.514682,
+          50.435313
+        ],
+        "dossierId": "kyiv",
+        "world": [
+          1369.588,
+          657.412
+        ]
+      }
+    ]
+  },
+  "edges": [
+    {
+      "id": "lviv-kyiv",
+      "fromId": "lviv",
+      "toId": "kyiv",
+      "initiallyUnlocked": true,
+      "pathLonLat": [
+        [
+          24.029995,
+          49.83498
+        ],
+        [
+          30.514682,
+          50.435313
+        ]
+      ],
+      "schematic": true
+    },
+    {
+      "id": "lviv-warsaw",
+      "fromId": "lviv",
+      "toId": "warsaw",
+      "initiallyUnlocked": false,
+      "pathLonLat": [
+        [
+          24.029995,
+          49.83498
+        ],
+        [
+          21.005347,
+          52.230872
+        ]
+      ],
+      "schematic": true
+    }
+  ],
+  "euMembers": [
+    "AUT",
+    "BEL",
+    "BGR",
+    "HRV",
+    "CYP",
+    "CZE",
+    "DNK",
+    "EST",
+    "FIN",
+    "FRA",
+    "DEU",
+    "GRC",
+    "HUN",
+    "IRL",
+    "ITA",
+    "LVA",
+    "LTU",
+    "LUX",
+    "MLT",
+    "NLD",
+    "POL",
+    "PRT",
+    "ROU",
+    "SVK",
+    "SVN",
+    "ESP",
+    "SWE"
+  ],
+  "validation": {
+    "euCount": 27,
+    "crimeaInsideUkraine": true,
+    "crimeaOutsideRussia": true,
+    "threeCitiesInsideCountries": true,
+    "dniproPresent": true
+  }
+}

@@ -1,0 +1,85 @@
+# BOHUN / THE FIELD — vertical-slice prototype
+
+Local spike. Not deployed, not connected to any repo or production site.
+
+Stack: Vite + Phaser 3.90 (pinned) + GSAP, vanilla JS. All art is drawn in code (original, deliberately crude).
+
+    npm install
+    npm run dev      # http://localhost:5174
+    npm run build
+
+What it tests
+- Presentation Mode: scrolling moves the camera through the world; HTML overlays hold all real text.
+- I NEED / I HAVE: the visitor state changes the world (highlights, routes).
+- PROPULSION signal -> dossier panel (copy from Homepage Copy v1).
+- Game Mode: click the small figure patrolling next to BOHUN -> "Field control". Select PROPULSION -> RESEARCH
+  -> candidates appear -> QUALIFY one -> ESTABLISH CONTACT -> route drawn. ESC exits.
+- Data: one model in `src/world.js` drives both site and game.
+
+URL helpers: `?mode=game`, `?emph=need|have`, `?dpr=1`, `?renderer=canvas`.
+
+Open items (not decided here)
+- Copy for sections 04/08 and "Tender & procurement landscape" need a legal/claims check.
+- Contact form is not wired.
+- Production stack (Next/React + Phaser) is a hypothesis, not tested.
+- Cross-linking .com <-> .org must respect the NGO Statute section 5.
+
+---
+
+# Game module (HQ section 0.8, Claude's part)
+
+Follows "Bohun world — общий контракт v0.1" (Codex, 7 Oct 2026; pasted by the Founder, not yet stored in the repo).
+Separate from the landing prototype above, which is a draft and is not touched. Owner of these files: Claude:
+`src/game/*`, `game.html`, `scripts/test-core.mjs`. Codex integrates; nobody else edits them meanwhile.
+
+Run: `npm run dev`, open `/game.html`. Logic tests: `npm test` (15 checks, no browser needed).
+
+Contract v0.1 mapping
+- Commands: `moveBohun(destinationId)`, `dispatchCargo(routeId)`, `research(nodeId)`, `resetDemo()`, `setMode('presentation'|'game')`.
+  Each validates availability and returns `{ok}` or `{ok:false, reason}`; repeated clicks never create a second shipment or research.
+- Events (`onEvent(type, payload)`): `bohunDeparted`, `bohunArrived`, `cargoDispatched`, `cargoArrived`, `researchStarted`,
+  `researchCompleted`, `routeUnlocked`, `dossierRequested {dossierId, reason}`, `stateChanged`, plus `modeSet`, `reset`, `rejected {action, reason}`.
+  The game never touches the page: `main.js` (the HTML layer) listens to `dossierRequested` and shows the card.
+- Data: cities and the closed node carry `id`, `label`, `lon`, `lat`, `dossierId`; routes carry `id`, `fromId`, `toId`, `path`, availability
+  (`lockedBy` until researched). Start ids: `lviv`, `kyiv`, `warsaw`, `lviv-kyiv`, `lviv-warsaw`. Route paths are demonstration lines.
+- Geography is the source of truth. `src/game/geo.js` holds the single `geoToWorld(lon, lat)`; no other file computes x/y. It is a
+  PLACEHOLDER (flat, no isometric tilt) until Codex supplies the contract projection.
+- Camera: one owner at a time. `presentation` = the site drives it (the page may set `window.__view.cx/cy/zoomv`; pan and wheel are ignored),
+  `game` = the player does. `resetDemo` keeps the mode.
+- Cargo and resources are fictional (`DEMO CARGO`, a demo counter).
+
+Files
+- `src/game/core.js`: rules and state, no Phaser or DOM. `createGame(scenario, { onEvent })`.
+- `src/game/scenario.js`: TEMPORARY data in contract shape. `src/game/geo.js`: placeholder projection.
+- `src/game/main.js`: temporary view and panel; no geography or borders on purpose; Bohun is a gold triangle.
+
+The three actions
+1. Send Bohun: pick a city, he rides the route, arrival requests that city's dossier. States: waiting, moving, arrived.
+2. Dispatch cargo: pick an open route, a neutral cargo moves, on arrival the demo counter grows. One shipment per route at a time.
+3. Research: start on the closed node, progress shows, completion requests a dossier and unlocks the Lviv-Warsaw route. Repeating does nothing.
+
+Not done / limits
+- Dossiers hold demo text; approved copy is connected during integration. No sprites, no final art, no map.
+- The existing landing scenario (research -> qualify -> contact in `src/scene.js`) is untouched and does not replace these actions.
+- Contract items still open: projection and tilt, scene size, sprite sizes and anchors, frame data. `setMode` only gates input here;
+  the site-side camera wiring is Codex's integration.
+- `game.html` works in the dev server; no multi-page build entry yet.
+- Installed versions: check `npm ls phaser vite gsap` (package.json uses caret ranges; the core needs none of them).
+
+
+## Demonstration UI (Russian, plain language)
+
+`/game.html` now shows the goal, the current step and the result of each of the three steps in plain Russian:
+1. send Bohun Lviv -> Kyiv and open the city card; 2. deliver the demo cargo and raise the counter; 3. research and open Lviv -> Warsaw.
+A pulsing ring on the map marks the target of the current step. Buttons "Вся карта" (whole 2560x1600 scene / back to the cities) and
+"Сначала" (reset) stay at the top of the panel, which scrolls on narrow screens. Technical names (commands, events, camera owner)
+are only inside the collapsed "Для разработчика" block. Background is still the technical SVG and Bohun is still a placeholder
+triangle: no Classic artwork is wired in. Core change: `commands()` additionally returns a reason `code` (additive).
+
+## Bohun sprite (Classic rider, first integration)
+
+`public/assets/bogun/bohun-rider-classic-v1.png` is a byte-identical copy of the Classic original (sha256 and alpha facts in `PROVENANCE.md` next to it;
+metadata, anchor and size target in `src/game/data/rider-sprite.json`). One static pose, anchored on the hooves, visible height 88 screen px on desktop
+(72 on narrow screens) at the initial zoom, mirrored at draw time for westward travel. It slides along the route; there is no gallop animation.
+`npm test` also checks the PNG hash, header and anchor. The image is not redrawn, recoloured or cropped. A 384 px working copy is made in memory only,
+for clean down-scaling.

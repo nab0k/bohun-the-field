@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>BOHUN / THE FIELD — демонстрация (временная графика)</title>
+  <link rel="stylesheet" href="/src/game/game.css" />
+</head>
+<body>
+  <div id="stage"></div>
+
+  <aside class="panel" aria-label="Демонстрация карты">
+    <div class="panel-top">
+      <button id="allmap" type="button">Вся карта</button>
+      <button id="reset" type="button">Сначала</button>
+    </div>
+
+    <h1 class="title">Демонстрация карты</h1>
+    <p class="goal"><b>Цель.</b> Пройти три шага. В конце откроется новый путь: Львов → Варшава.</p>
+    <p id="now" class="now" role="status" aria-live="polite"></p>
+    <p id="note" class="note" role="status" aria-live="polite"></p>
+
+    <ol id="steps" class="steps"></ol>
+
+    <div class="counter"><span>Доставлено демонстрационных грузов</span><b id="counter">0</b></div>
+
+    <section id="more" class="more" hidden>
+      <h2>Что ещё можно</h2>
+      <p class="muted">Из Киева в Варшаву пути нет: чтобы поехать в Варшаву, сначала верните Богуна во Львов.</p>
+      <div id="extras" class="extras"></div>
+    </section>
+
+    <p class="hint">Можно нажимать и прямо на карте: на город, на значок «Груз» или на закрытый узел. Карту можно двигать мышью и приближать колесом.</p>
+
+    <details class="dev">
+      <summary>Для разработчика</summary>
+      <button id="mode" type="button" class="plain"></button>
+      <div id="commands" class="commands"></div>
+      <ol id="log" class="log" aria-label="Журнал событий"></ol>
+    </details>
+  </aside>
+
+  <p id="badge" class="badge">Технический фон · не финальная графика · пути условные, не реальные трассы</p>
+
+  <section id="card" class="card" role="dialog" aria-labelledby="c-title" hidden>
+    <button id="c-close" class="x" type="button" aria-label="Закрыть карточку">×</button>
+    <p id="c-file" class="file"></p>
+    <h2 id="c-title"></h2>
+    <p id="c-body"></p>
+  </section>
+
+  <script type="module" src="/src/game/main.js"></script>
+</body>
+</html>
