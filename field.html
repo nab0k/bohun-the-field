@@ -29,9 +29,11 @@
 
   <div class="right-col">
     <aside class="objective" aria-label="Задача">
-      <div class="label">ЗАДАЧА / 01 <span class="demo-tag">ДЕМО</span></div>
-      <h2>Доставить 3 груза из шахты в банк в Нью-Йорке</h2>
+      <div class="label"><span id="m-label">ЗАДАЧА</span> <span class="demo-tag">ДЕМО</span></div>
+      <h2 id="m-title"></h2>
+      <p id="m-lead" class="lead"></p>
       <ol id="m-steps" class="steps"></ol>
+      <div id="m-actions" class="m-actions"></div>
       <div id="m-progress" class="progress" hidden><i></i><span></span></div>
       <div id="m-result" class="result" hidden></div>
     </aside>
@@ -39,7 +41,7 @@
     <aside id="sel" class="selection" hidden aria-label="Выбранный объект">
       <div class="panel-head"><span>ВЫБРАННЫЙ ОБЪЕКТ</span><button id="sel-close" type="button" aria-label="Закрыть">×</button></div>
       <h2 id="k-name"></h2>
-      <div class="meta"><span id="k-type"></span><span id="k-status"></span></div>
+      <div class="meta"><span id="k-type"></span><span id="k-tag"></span><span id="k-status"></span></div>
       <p id="k-place" class="muted"></p>
       <p id="k-role"></p>
       <div class="command-bar">

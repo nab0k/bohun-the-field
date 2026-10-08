@@ -2,7 +2,8 @@
 // and real geography (public/field/hero-geo.json). All art is drawn in code and is temporary.
 import Phaser from 'phaser';
 import { createFlows, WORLD, MODES, isSource, pointAt, project } from '../flows/core.js';
-import * as data from '../flows/data/network.js';
+import * as base from '../flows/data/network.js';
+import { createScenarios, fieldData as data, CATEGORY, FIT, NEED_HOME, HAVE_HOME, MARKETS } from './scenarios.js';
 import assets from '../game/data/assets.json' with { type: 'json' };
 import { paintHero } from './terrain.js';
 
@@ -19,6 +20,7 @@ const REASON = {
   'no-route': 'Туда нет пути по коридорам.',
   busy: 'Богун ещё в пути.',
 };
+void base;
 const LENS_LINE = { need: 'I NEED SOMETHING · Find capabilities, companies and partners.', have: 'I HAVE SOMETHING · Explore markets, partnerships and commercial opportunities.' };
 const lensHit = (lens, type) => (lens === 'need' ? isSource(type) : type === 'bank' || type === 'port');
 
@@ -26,51 +28,46 @@ const [geo, worldSvg] = await Promise.all([fetch('/field/hero-geo.json').then((r
 // the low-detail world map in the v0.3 palette (same file as the flows page, recoloured on the fly)
 const worldUrl = URL.createObjectURL(new Blob([worldSvg.replace(/#2f6f95/g, '#263d3f').replace(/#e6cf6e/g, '#46553a').replace(/#8fbf78/g, '#39432f').replace(/#cdbd8c/g, '#30342a').replace(/#6b5f3c/g, '#5d604a')], { type: 'image/svg+xml' }));
 
-// ---------- the guided task (same as the flows page): 3 cargoes from the mine to the New York bank ----------
-const M = { source: 'mine-kr', target: 'bank-newyork', need: 3 };
-const STEP_TEXT = ['Нажмите на шахту (мигающее кольцо).', 'Нажмите «Направить поток отсюда».', 'Нажмите на банк в Нью-Йорке.', 'Выберите путь: быстро или дёшево.', 'Дождитесь трёх грузов и сравните.'];
-let mission = { delivered: 0, flowId: null, opt: null, done: false, results: [] };
+// ---------- two guided scenarios, one per lens (rules in ./scenarios.js) ----------
+const SC_TEXT = {
+  need: { label: 'ЗАДАЧА / I NEED', title: 'Найдите поставщика', lead: `Категория: ${CATEGORY}. Вашему заводу в Днепре нужны компоненты.`,
+    steps: ['Нажмите «Исследовать»: найдём, кто работает с этой категорией.', 'Отправьте Богуна к кандидатам (кольца на карте): он проверит каждого.', 'У подходящего нажмите «Направить поток отсюда», затем на ваш завод в Днепре.', 'Дождитесь двух поставок.'] },
+  have: { label: 'ЗАДАЧА / I HAVE', title: 'Выйдите на новый рынок', lead: 'Ваш завод в Запорожье выпускает продукт. Куда его продавать?',
+    steps: ['Выберите рынок: Украина, ЕС или США.', 'Отправьте Богуна к партнёру на этом рынке (кольцо на карте).', 'Нажмите на ваш завод, затем «Направить поток отсюда» и банк рынка.', 'Дождитесь двух поставок и сравните рынки.'] },
+};
 let ui = { selected: null, mode: 'idle', source: null, target: null, lens: 'need', explore: false };
 
-let game, S;
+let game, S, sc;
 const coins = [];
 game = createFlows({ data, seed: 7, bohunStart: data.BOHUN_START, onEvent });
 S = game.state;
+sc = createScenarios(game, { onChange: onScenario });
 // two flows run from the start so the map is alive; the third slot stays free for the visitor's task
 const DEFAULT_FLOWS = [['fac-kharkiv', 'port-odesa', 'cheap'], ['fac-krakow', 'bank-kyiv', 'cheap']];
 const defaultIds = new Set();
 function seedDefaults() { defaultIds.clear(); for (const [a, b, o] of DEFAULT_FLOWS) { const r = game.startFlow(a, b, o); if (r.ok) defaultIds.add(r.flowId); } }
-window.__flows = game; // test hook
+window.__flows = game; window.__sc = sc; // test hooks
 
-function stage() {
-  if (mission.done) return 'done';
-  if (mission.flowId && S.flows.some((f) => f.id === mission.flowId)) return 5;
-  if (ui.mode === 'options' && ui.source === M.source && ui.target === M.target) return 4;
-  if (ui.mode === 'pick' && ui.source === M.source) return 3;
-  if (ui.selected === M.source && ui.mode === 'idle') return 2;
-  return 1;
+function onScenario(type, flowId) {
+  if (type === 'researchStarted') { note('Исследование идёт: ищем, кто работает с ' + CATEGORY + '.'); window.__scene?.fitIds(sc.candidates, 1.5); }
+  if (type === 'researchDone') note('Найдено три кандидата. Отправьте Богуна проверить их.');
+  if (type === 'marketChosen') note('Рынок выбран. Пока Богун не встретился с партнёром на месте, рынок закрыт.');
+  if (type === 'needDone' || type === 'haveDone') setTimeout(() => game.stopFlow(flowId), 0);
 }
-let lastStage = 0;
 
 function onEvent(type, p) {
   if (!S) return;
+  sc?.onEvent(type, p);
   if (type === 'rejected') note(REASON[p.reason] ?? `Нельзя: ${p.reason}`);
-  if (type === 'dossierRequested') { ui.selected = p.nodeId; renderCard(); }
-  if (type === 'cargoArrived') {
-    if (p.bank) window.__scene?.popCoins(p.toId);
-    if (p.flowId === mission.flowId && !mission.done) {
-      mission.delivered += 1;
-      if (mission.delivered >= M.need) {
-        mission.done = true;
-        mission.results.push({ label: mission.opt.label, modes: mission.opt.modes, days: mission.opt.days, price: mission.opt.price, total: mission.opt.price * M.need });
-        const id = mission.flowId; mission.flowId = null;
-        setTimeout(() => game.stopFlow(id), 0);
-      }
-    }
-  }
+  // on arrival open that card, unless the visitor has meanwhile picked something else
+  if (type === 'dossierRequested') { if (!(p.reason === 'arrival' && ui.selected && ui.selected !== p.nodeId)) ui.selected = p.nodeId; renderCard(); }
+  if (type === 'bohunArrived') { const i = sc.info(p.at); if (i?.partner && i.met) note(`Встреча состоялась: рынок «${MARKETS[i.partner].label}» открыт для ваших поставок.`); if (i && 'fit' in i) note(i.verdict); }
+  if (type === 'cargoArrived' && p.bank) window.__scene?.popCoins(p.toId);
   if (type === 'flowStarted' || type === 'flowStopped') renderFlows();
-  if (type === 'reset') { setTimeout(seedDefaults, 0); Object.assign(ui, { selected: null, mode: 'idle', source: null, target: null }); mission = { delivered: 0, flowId: null, opt: null, done: false, results: [] }; renderCard(); renderPick(); renderFlows(); }
+  if (type === 'reset') { setTimeout(seedDefaults, 0); Object.assign(ui, { selected: null, mode: 'idle', source: null, target: null }); renderCard(); renderPick(); renderFlows(); }
 }
+const stageOf = (lens) => (lens === 'need' ? sc.needStage() : sc.haveStage());
+let lastStage = '';
 
 let noteTimer;
 function note(text) { const el = $('#note'); el.textContent = text; clearTimeout(noteTimer); noteTimer = setTimeout(() => (el.textContent = ''), 4500); }
@@ -78,54 +75,74 @@ const short = (place) => place.replace(' (тест)', '');
 const modesText = (modes) => modes.map((m) => MODES[m].label).join(' + ');
 
 // ---------- HTML layer ----------
-const stepEls = STEP_TEXT.map((t, i) => {
-  const li = document.createElement('li');
-  li.innerHTML = '<span class="n"></span><span class="t"></span>';
-  li.querySelector('.n').textContent = String(i + 1);
-  li.querySelector('.t').textContent = t;
-  $('#m-steps').append(li);
-  return li;
-});
 const sig = {};
 const setIf = (key, v, fn) => { if (sig[key] !== v) { sig[key] = v; fn(); } };
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const btn = (label, fn, cls = '') => { const b = el('button', cls, label); b.type = 'button'; b.addEventListener('click', fn); return b; };
 
 function renderMission() {
-  const st = stage();
-  stepEls.forEach((li, i) => { const c = st === 'done' ? 'done' : i + 1 < st ? 'done' : i + 1 === st ? 'current' : ''; setIf('s' + i, c, () => (li.className = c)); });
+  const lens = ui.lens, T = SC_TEXT[lens], st = stageOf(lens);
+  setIf('lens', lens, () => {
+    $('#m-label').textContent = T.label; $('#m-title').textContent = T.title; $('#m-lead').textContent = T.lead;
+    $('#m-steps').replaceChildren(...T.steps.map((t, i) => { const li = el('li'); li.append(el('span', 'n', String(i + 1)), el('span', 't', t)); return li; }));
+    sig.steps = null;
+  });
+  setIf('steps', lens + st, () => [...$('#m-steps').children].forEach((li, i) => (li.className = st === 'done' || i + 1 < st ? 'done' : i + 1 === st ? 'current' : '')));
+  // actions inside the task box
+  const N = sc.need, H = sc.have;
+  setIf('act', `${lens}|${st}|${N.research}|${H.market}`, () => {
+    const box = $('#m-actions'); box.replaceChildren();
+    if (lens === 'need' && st === 1) box.append(btn(N.research === 1 ? 'ИССЛЕДОВАНИЕ ИДЁТ…' : `ИССЛЕДОВАТЬ: ${CATEGORY}`, () => sc.research(), 'primary' + (N.research ? '' : ' hint')));
+    if (lens === 'need' && st === 1 && N.research === 1) box.querySelector('button').disabled = true;
+    if (lens === 'have' && (st === 1 || st === 2)) for (const [k, m] of Object.entries(MARKETS)) box.append(btn(m.label.toUpperCase() + (H.met.has(k) ? ' · ОТКРЫТ' : ''), () => sc.chooseMarket(k), (H.market === k ? 'primary' : '') + (st === 1 ? ' hint' : '')));
+  });
+  // progress
   const prog = $('#m-progress');
-  prog.hidden = st !== 5;
-  if (st === 5) { prog.querySelector('i').style.width = `${(mission.delivered / M.need) * 100}%`; prog.querySelector('span').textContent = `ДОСТАВЛЕНО ${mission.delivered} ИЗ ${M.need}`; }
+  let pv = null, pt = '';
+  if (lens === 'need' && N.research === 1) { pv = sc.researchProgress(); pt = 'ИССЛЕДОВАНИЕ…'; }
+  else if (lens === 'need' && st === 4) { pv = N.delivered / 2; pt = `ПОСТАВОК ${N.delivered} ИЗ 2`; }
+  else if (lens === 'have' && st === 4) { pv = H.delivered / 2; pt = `ПОСТАВОК ${H.delivered} ИЗ 2`; }
+  prog.hidden = pv === null;
+  if (pv !== null) { prog.querySelector('i').style.width = `${pv * 100}%`; prog.querySelector('span').textContent = pt; }
+  // result
   const res = $('#m-result');
   res.hidden = st !== 'done';
-  if (st === 'done') setIf('res', mission.results.length, () => {
-    const last = mission.results.at(-1);
+  if (st === 'done') setIf('res', `${lens}|${H.results.length}`, () => {
     res.replaceChildren();
-    const h = document.createElement('div'); h.innerHTML = '<b>Готово.</b> Три груза доставлены.'; res.append(h);
-    const ul = document.createElement('ul');
-    mission.results.forEach((r, i) => { const li = document.createElement('li'); li.textContent = `Попытка ${i + 1}: «${r.label}» (${modesText(r.modes)}): ≈ ${r.days} усл. дн. на груз, всего ${r.total} усл. ед.`; ul.append(li); });
-    res.append(ul);
-    const tip = document.createElement('div');
-    tip.textContent = mission.results.length < 2 ? 'Попробуйте другой путь и сравните: что для вас важнее, время или цена?' : (() => { const a = mission.results.at(-2), b = last; return b.days < a.days ? 'Этот путь быстрее, но дороже.' : b.days > a.days ? 'Этот путь дольше, но дешевле.' : 'Результат тот же.'; })();
-    res.append(tip);
-    const btn = document.createElement('button'); btn.type = 'button'; btn.textContent = 'ПОПРОБОВАТЬ ДРУГОЙ ПУТЬ';
-    btn.addEventListener('click', () => { mission.done = false; mission.delivered = 0; mission.flowId = null; Object.assign(ui, { selected: null, mode: 'idle', source: null, target: null }); renderCard(); renderPick(); window.__scene?.home(); });
-    res.append(btn);
+    if (lens === 'need') {
+      const h = el('div'); h.innerHTML = '<b>Готово.</b> Поставщик найден, поставки идут.'; res.append(h);
+      res.append(el('div', null, 'Так работает Bohun: исследовать рынок, проверить кандидатов, наладить связь.'));
+      res.append(btn('ПРОЙТИ ЕЩЁ РАЗ', () => { sc.again('need'); ui.selected = null; renderCard(); }));
+    } else {
+      const h = el('div'); h.innerHTML = '<b>Готово.</b> Две поставки дошли до рынка.'; res.append(h);
+      const ul = el('ul');
+      for (const r of H.results) ul.append(el('li', null, `${MARKETS[r.market].label}: «${r.label}» (${modesText(r.modes)}), ≈ ${r.days} усл. дн. и ${r.price} усл. ед. за поставку`));
+      res.append(ul, el('div', null, H.results.length < 2 ? 'Попробуйте другой рынок и сравните время и цену.' : 'Чем дальше рынок, тем важнее партнёр на месте и выбор пути.'));
+      res.append(btn('ДРУГОЙ РЫНОК', () => { sc.again('have'); ui.selected = null; renderCard(); }));
+    }
   });
-  $('#k-flow').classList.toggle('hint', st === 2);
-  if (st !== lastStage) { lastStage = st; window.__scene?.onStage(st); }
+  const k = $('#k-flow'), hintFlow = (lens === 'need' && st === 3 && ui.selected === FIT) || (lens === 'have' && st === 3 && ui.selected === HAVE_HOME);
+  k.classList.toggle('hint', hintFlow);
+  const key = lens + '|' + st;
+  if (key !== lastStage) { lastStage = key; window.__scene?.onStage(lens, st); }
 }
 
 function renderCard() {
   const n = ui.selected && S.world.nodes[ui.selected];
   $('#sel').hidden = !n;
   if (!n) return;
+  const i = sc.info(n.id), b = S.bohun;
   $('#k-type').textContent = data.TYPE_RU[n.type].toUpperCase();
-  const b = S.bohun;
   $('#k-status').textContent = b.status === 'moving' && b.to === n.id ? 'БОГУН В ПУТИ' : b.at === n.id ? 'БОГУН ЗДЕСЬ' : '';
-  $('#k-name').textContent = n.name;
+  let name = n.name, role = data.TYPE_ROLE[n.type], tag = '';
+  if (i?.mine) { name = 'Ваш завод'; role = i.mine === 'need' ? 'Сюда нужны компоненты (сценарий I NEED).' : 'Отсюда вы продаёте продукт (сценарий I HAVE).'; }
+  if (i && 'checked' in i) { name = 'Кандидат'; role = i.verdict; tag = !i.checked ? 'НЕ ПРОВЕРЕН' : i.fit ? 'ПОДХОДИТ' : 'НЕ ПОДХОДИТ'; }
+  if (i?.partner) { name = `Партнёр: ${MARKETS[i.partner].label}`; role = i.met ? 'Встреча состоялась: рынок открыт для ваших поставок.' : 'Местный партнёр (демо). Пока Богун с ним не встретился, этот рынок для вас закрыт.'; tag = i.met ? 'РЫНОК ОТКРЫТ' : 'РЫНОК ЗАКРЫТ'; }
+  $('#k-tag').textContent = tag;
+  $('#k-name').textContent = name;
   $('#k-place').textContent = `${short(n.place)} · ДЕМО: тестовое место`;
-  $('#k-role').textContent = data.TYPE_ROLE[n.type];
-  $('#k-flow').hidden = !isSource(n.type) || ui.mode !== 'idle';
+  $('#k-role').textContent = role;
+  $('#k-flow').hidden = !isSource(n.type) || ui.mode !== 'idle' || (i && i.checked === true && !i.fit) || (i && i.checked === false);
 }
 function renderPick() {
   $('#pick').hidden = ui.mode !== 'pick';
@@ -142,12 +159,12 @@ function renderPick() {
       btn.type = 'button'; btn.className = 'opt';
       btn.append(`${o.label.toUpperCase()}: ${modesText(o.modes)}`);
       const small = document.createElement('small');
-      small.textContent = `≈ ${o.days} усл. дн. и ${o.price} усл. ед. за каждый груз` + (mission.results.some((r) => r.label === o.label) && ui.source === M.source && ui.target === M.target ? '. Этот путь вы уже пробовали' : '');
+      small.textContent = `≈ ${o.days} усл. дн. и ${o.price} усл. ед. за каждый груз`;
       btn.append(small);
       btn.addEventListener('click', () => {
         const r = game.startFlow(ui.source, ui.target, o.id);
         if (r.ok) {
-          if (ui.source === M.source && ui.target === M.target && !mission.done) { mission.flowId = r.flowId; mission.delivered = 0; mission.opt = o; }
+          sc.flowStarted(r.flowId, ui.source, ui.target, o);
           ui.mode = 'idle'; renderPick(); renderCard(); note('Поток запущен: грузы поедут по выбранному пути.');
         }
       });
@@ -184,7 +201,8 @@ function setLens(v) {
   ui.lens = v;
   $('#lens-need').classList.toggle('active', v === 'need'); $('#lens-have').classList.toggle('active', v === 'have');
   $('#lens-line').textContent = LENS_LINE[v];
-  note(v === 'need' ? 'Подсвечены места, где производят: шахты и заводы.' : 'Подсвечены места, куда продают: банки и порты.');
+  note(v === 'need' ? 'Сценарий «Найдите поставщика». Подсвечены места, где производят.' : 'Сценарий «Выйдите на рынок». Подсвечены места, куда продают.');
+  lastStage = '';
 }
 $('#lens-need').addEventListener('click', () => setLens('need'));
 $('#lens-have').addEventListener('click', () => setLens('have'));
@@ -208,10 +226,16 @@ function chooseNode(id) {
   if (ui.mode === 'pick') {
     if (id === ui.source) return note('Выберите другое место.');
     if (!game.routeOptions(ui.source, id).length) return note('Туда нет пути по коридорам.');
+    const c = sc.canFlow(ui.source, id);
+    if (!c.ok && c.reason === 'partner-first') return note(`Рынок «${MARKETS[c.market].label}» пока закрыт: сначала Богун должен встретиться с партнёром на месте.`);
+    if (!c.ok) return;
     ui.target = id; ui.mode = 'options'; renderPick();
     return;
   }
-  ui.selected = id; renderCard(); game.moveBohun(id); renderCard();
+  if (sc.hidden(id)) return;
+  ui.selected = id; renderCard();
+  if (S.bohun.status === 'moving') return note('Богун ещё в пути. Когда доедет, нажмите сюда снова, и он поедет дальше.');
+  game.moveBohun(id); renderCard();
 }
 
 // ---------- drawing helpers (iso boxes, 2:1 footprint, light from the left) ----------
@@ -369,7 +393,8 @@ class FieldScene extends Phaser.Scene {
     this.regionLabels = REGIONS.map(([name, lon, lat, sz]) => { const p = project(lon, lat); return this.add.text(p.x, p.y, name.split('').join(' '), txt(Math.round(12 * sz), '#d8d3b0', { strokeThickness: 0 })).setOrigin(0.5).setDepth(3).setAlpha(0.42); });
     for (const t of [...this.cityLabels, ...this.regionLabels]) t.homeX = t.x;
     this.label = this.add.text(0, 0, '', txt(13, '#fff4c2')).setOrigin(0.5, 1).setDepth(10).setVisible(false);
-    this.hintLabel = this.add.text(0, 0, '', txt(14, '#ffd54a', { strokeThickness: 5 })).setOrigin(0.5, 1).setDepth(11).setVisible(false);
+    this.hintStyle = txt(14, '#ffd54a', { strokeThickness: 5 });
+    this.hintLabel = this.add.text(0, 0, '', this.hintStyle).setOrigin(0.5, 1).setDepth(11).setVisible(false);
     this.bohun = this.add.image(0, 0, 'rider').setOrigin(rider.anchor.x / rider.size[0], rider.anchor.y / rider.size[1]).setDepth(8);
     this.facing = 1; this.targets = new Set(); this.tgt = null;
 
@@ -423,11 +448,36 @@ class FieldScene extends Phaser.Scene {
   focusNode(id, zoom = 3.5) { const n = S.world.nodes[id]; this.fly(n.x, n.y, zoom); }
   worldView() { this.fly(project(31, 0).x, WORLD.height / 2, this.minZoom()); }
   toggleAll() { if (this.all) return this.home(); this.worldView(); this.all = true; }
-  onStage(st) {
-    if (st === 1) this.home();
-    else if (st === 3) { this.worldView(); this.markTargets(); }
-    else if (st === 5) { const f = S.flows.find((x) => x.id === mission.flowId); if (f) this.fitPoints(f.steps.flatMap((s) => s.pts)); }
-    else if (st === 'done') this.worldView();
+  fitIds(ids, pad = 1.4) { this.fitPoints(ids.map((id) => S.world.nodes[id]), pad); }
+  // camera follows the scenario step
+  onStage(lens, st) {
+    const flow = (id) => { const f = S.flows.find((x) => x.id === id); if (f) this.fitPoints(f.steps.flatMap((s) => s.pts)); };
+    if (lens === 'need') {
+      if (st === 1 || st === 'done') this.home();
+      else if (st === 2) this.fitIds([...sc.candidates, NEED_HOME], 1.25);
+      else if (st === 3) this.fitIds([FIT, NEED_HOME], 1.5);
+      else if (st === 4) flow(sc.need.flowId);
+    } else {
+      const m = MARKETS[sc.have.market];
+      if (st === 1) this.home();
+      else if (st === 2) this.fitIds([HAVE_HOME, m.partner], 1.5);
+      else if (st === 3) this.fitIds([HAVE_HOME, m.bank], 1.5);
+      else if (st === 4) flow(sc.have.flowId);
+      else if (st === 'done') this.fitIds([HAVE_HOME, MARKETS[sc.have.results.at(-1).market].bank], 1.5);
+    }
+  }
+  // what to press next, as rings with a label on the map
+  hints() {
+    const lens = ui.lens, st = stageOf(lens), out = [];
+    if (lens === 'need') {
+      if (st === 2) for (const id of sc.candidates) if (!sc.need.visited.has(id)) out.push([id, 'КАНДИДАТ?']);
+      if (st === 3) out.push(ui.mode === 'pick' && ui.source === FIT ? [NEED_HOME, 'ВАШ ЗАВОД'] : ui.mode === 'idle' && ui.selected !== FIT ? [FIT, 'ПОДХОДИТ: НАЖМИТЕ'] : null);
+    } else if (sc.have.market) {
+      const m = MARKETS[sc.have.market];
+      if (st === 2) out.push([m.partner, 'ПАРТНЁР']);
+      if (st === 3) out.push(ui.mode === 'pick' && ui.source === HAVE_HOME ? [m.bank, 'БАНК РЫНКА'] : ui.mode === 'idle' && ui.selected !== HAVE_HOME ? [HAVE_HOME, 'ВАШ ЗАВОД'] : null);
+    }
+    return out.filter(Boolean);
   }
   zoomAt(p, f) {
     const cam = this.cameras.main, w0 = cam.getWorldPoint(p.x, p.y);
@@ -460,11 +510,11 @@ class FieldScene extends Phaser.Scene {
     if (this.inMini(p)) return null;
     const w = this.cameras.main.getWorldPoint(p.x, p.y), k = 1 / this.zoomv, u = this.unit() ;
     let best = null, bd = Math.max(22 * k, 16 * u);
-    for (const n of Object.values(S.world.nodes)) { const d = Math.hypot(w.x - n.x - this.wrapOff(n.x), w.y - (n.y - 6 * u)); if (d < bd) { bd = d; best = n.id; } }
+    for (const n of Object.values(S.world.nodes)) { if (sc.hidden(n.id)) continue; const d = Math.hypot(w.x - n.x - this.wrapOff(n.x), w.y - (n.y - 6 * u)); if (d < bd) { bd = d; best = n.id; } }
     return best;
   }
   unit() { return Phaser.Math.Clamp(this.zoomv / 3.2, 0.5, 1.5) / this.zoomv; } // building scale: grows a little with zoom
-  markTargets() { this.targets = new Set(Object.keys(S.world.nodes).filter((id) => id !== ui.source && game.routeOptions(ui.source, id).length)); }
+  markTargets() { this.targets = new Set(Object.keys(S.world.nodes).filter((id) => id !== ui.source && !sc.hidden(id) && sc.canFlow(ui.source, id).ok && game.routeOptions(ui.source, id).length)); }
   popCoins(nodeId) { const n = S.world.nodes[nodeId]; for (let i = 0; i < 6; i++) coins.push({ x: n.x, y: n.y, age: -i * 0.1, kind: i % 2 }); }
 
   update(time, delta) {
@@ -485,7 +535,8 @@ class FieldScene extends Phaser.Scene {
 
     const L = this.lines, N = this.nodesG, D = this.dyn, Mg = this.miniGfx;
     L.clear(); N.clear(); D.clear(); Mg.clear();
-    const sel = ui.selected, st = stage(), far = this.zoomv < 0.6;
+    sc.tick(Math.min(delta, 1000) / 1000);
+    const sel = ui.selected, far = this.zoomv < 0.6;
     const vw = cam.worldView, pad = 60 * k;
     const sh = (pts) => { const o = this.wrapOff(pts[0].x); return o ? pts.map((q) => ({ x: q.x + o, y: q.y })) : pts; };
     const at = (n) => { const o = this.wrapOff(n.x); return o ? { ...n, x: n.x + o } : n; };
@@ -493,6 +544,7 @@ class FieldScene extends Phaser.Scene {
 
     // corridors in the v0.3 grammar: roads dark with a dashed light centre, rails with ties, sea lanes and air faint
     for (const e0 of Object.values(S.world.edges)) {
+      if (sc.hidden(e0.a) || sc.hidden(e0.b)) continue;
       const e = { ...e0, pts: sh(e0.pts) }, hot = sel && (e.a === sel || e.b === sel);
       if (e.mode === 'road') { L.lineStyle((hot ? 5.4 : 4.4) * k, 0x1b1d14, 0.7); L.strokePoints(e.pts, false, false); L.lineStyle((hot ? 3.2 : 2.6) * k, hot ? 0xb59a5c : 0x7a6a48, 0.95); L.strokePoints(e.pts, false, false); }
       else if (e.mode === 'rail') { if (!far) { L.lineStyle(1.2 * k, hot ? 0xf0d371 : 0x9a927a, 0.85); ties(L, e.pts, 4.5 * k, 2.8 * k); } L.lineStyle((hot ? 2.2 : 1.6) * k, 0x24221c, 1); L.strokePoints(e.pts, false, false); }
@@ -506,11 +558,14 @@ class FieldScene extends Phaser.Scene {
     const smokes = [];
     const nodes = Object.values(S.world.nodes).map(at).sort((a, b) => a.y - b.y);
     for (const n of nodes) {
-      if (!inView(n)) continue;
+      if (!inView(n) || sc.hidden(n.id)) continue;
       const hit = lensHit(ui.lens, n.type), a = hit ? 1 : 0.72;
       if (hit && !far) { N.fillStyle(0xd3b766, 0.16); N.fillEllipse(n.x, n.y + 2 * u, 46 * u, 20 * u); N.lineStyle(1 * k, 0xd3b766, 0.55); N.strokeEllipse(n.x, n.y + 2 * u, 46 * u, 20 * u); }
       if (far) { N.fillStyle(n.type === 'bank' ? 0xf5c542 : n.type === 'port' ? 0x9fc3c4 : isSource(n.type) ? 0xd98c5f : 0xe6e0c7, a); N.fillCircle(n.x, n.y, (hit ? 3.4 : 2.6) * k); N.lineStyle(1 * k, 0x0d100b, 1); N.strokeCircle(n.x, n.y, (hit ? 3.4 : 2.6) * k); }
       else drawBuilding(N, n, u, a, smokes, time);
+      const inf = sc.info(n.id);
+      if (inf && 'checked' in inf && inf.checked && !far) { N.fillStyle(inf.fit ? 0x9fc48a : 0xc9694f, 1); N.fillCircle(n.x + 12 * u, n.y - 20 * u, 4 * u); N.lineStyle(1 * k, 0x0d100b, 1); N.strokeCircle(n.x + 12 * u, n.y - 20 * u, 4 * u); }
+      if (inf?.mine === ui.lens && !far) { N.lineStyle(1.6 * k, 0xd3b766, 1); N.lineBetween(n.x - 14 * u, n.y - 4 * u, n.x - 14 * u, n.y - 30 * u); N.fillStyle(0xd3b766, 1); N.fillTriangle(n.x - 14 * u, n.y - 30 * u, n.x - 4 * u, n.y - 27 * u, n.x - 14 * u, n.y - 24 * u); }
     }
     if (!reduced) for (const s of smokes) for (let i = 0; i < 3; i++) {
       const age = ((time / 1000 + i * 0.62 + s.seed * 0.37) % 1.9) / 1.9;
@@ -528,15 +583,26 @@ class FieldScene extends Phaser.Scene {
       else { D.fillStyle(0xf5c542, a); D.fillCircle(x, y, 6 * k); D.lineStyle(1.2 * k, 0x8d6a28, a); D.strokeCircle(x, y, 6 * k); }
     }
 
+    // fog over the candidates until research lifts it (I NEED scenario only)
+    const fogA = ui.lens === 'need' ? 0.82 * (1 - sc.researchProgress()) : 0;
+    if (fogA > 0.01) for (const id of sc.candidates) { const n = at(S.world.nodes[id]); for (let i = 0; i < 9; i++) { const a = i * 0.7 + (reduced ? 0 : time / 4000), r = 6 + (i % 3) * 5; D.fillStyle(0x10140d, fogA * 0.55); D.fillCircle(n.x + Math.cos(a) * r, n.y + Math.sin(a) * r * 0.55, 14 + (i % 4) * 3); } }
+    if (sc.need.research === 1 && ui.lens === 'need') { const c = at(S.world.nodes[FIT]), r = (time / 6) % 60; D.lineStyle(2 * k, 0xffd54a, 1 - r / 60); D.strokeEllipse(c.x, c.y, r * 4, r * 2); }
+
     // guidance and selection (RTS ground ellipses)
     const pulse = reduced ? 1 : 0.5 + 0.5 * Math.sin(time / 250), gr = far ? 9 * k : 30 * u;
-    let hintId = null, hintText = '';
-    if (st === 1) { hintId = M.source; hintText = 'НАЖМИТЕ СЮДА'; }
-    if (st === 3) { hintId = M.target; hintText = 'НАЖМИТЕ НА БАНК'; }
-    if (hintId) { const n = at(S.world.nodes[hintId]); D.lineStyle(3 * k, 0xffd54a, 0.5 + 0.5 * pulse); D.strokeEllipse(n.x, n.y + 2 * u, (2.2 + 0.25 * pulse) * gr, (1.0 + 0.12 * pulse) * gr); this.hintLabel.setVisible(true).setScale(k).setPosition(n.x, n.y - (far ? 8 * k : 30 * u)).setText(hintText); } else this.hintLabel.setVisible(false);
+    const hints = this.hints(), hintIds = new Set(hints.map((h) => h[0]));
+    this.hintLabels ??= [];
+    hints.forEach(([id, text], i) => {
+      const n = at(S.world.nodes[id]);
+      D.lineStyle(3 * k, 0xffd54a, 0.5 + 0.5 * pulse); D.strokeEllipse(n.x, n.y + 2 * u, (2.2 + 0.25 * pulse) * gr, (1.0 + 0.12 * pulse) * gr);
+      if (!this.hintLabels[i]) { this.hintLabels[i] = this.add.text(0, 0, '', this.hintStyle).setOrigin(0.5, 1).setDepth(11); this.mini.ignore(this.hintLabels[i]); }
+      this.hintLabels[i].setVisible(true).setScale(k).setPosition(n.x, n.y - (far ? 8 * k : 30 * u)).setText(text);
+    });
+    for (let i = hints.length; i < this.hintLabels.length; i++) this.hintLabels[i].setVisible(false);
+    this.hintLabel.setVisible(false);
     if (ui.mode === 'pick') for (const id of this.targets) { const n = at(S.world.nodes[id]); D.lineStyle(2 * k, 0x9fc48a, 0.95); D.strokeEllipse(n.x, n.y + 2 * u, 1.7 * gr, 0.8 * gr); }
     if (ui.mode === 'pick' && ui.source) { const n = at(S.world.nodes[ui.source]); D.lineStyle(3 * k, 0xffd54a, 1); D.strokeEllipse(n.x, n.y + 2 * u, 1.9 * gr, 0.9 * gr); }
-    if (sel && ui.mode !== 'pick' && sel !== hintId) { const n = at(S.world.nodes[sel]); D.lineStyle(2.4 * k, 0xf0d371, 0.7 + 0.3 * pulse); D.strokeEllipse(n.x, n.y + 2 * u, 1.9 * gr, 0.9 * gr); }
+    if (sel && ui.mode !== 'pick' && !hintIds.has(sel)) { const n = at(S.world.nodes[sel]); D.lineStyle(2.4 * k, 0xf0d371, 0.7 + 0.3 * pulse); D.strokeEllipse(n.x, n.y + 2 * u, 1.9 * gr, 0.9 * gr); }
     const hv = this.hover && at(S.world.nodes[this.hover]);
     if (hv) this.label.setVisible(true).setScale(k).setPosition(hv.x, hv.y - (far ? 8 * k : 28 * u)).setText(`${hv.name} · ${short(hv.place)}`.toUpperCase()); else this.label.setVisible(false);
     for (const t of [...this.cityLabels, ...this.regionLabels]) t.x = t.homeX + this.wrapOff(t.homeX);
@@ -545,13 +611,13 @@ class FieldScene extends Phaser.Scene {
 
     const bp = at(game.bohunPos());
     if (S.bohun.status === 'moving') this.facing = bp.ax < 0 ? -1 : 1;
-    const bpx = Phaser.Math.Clamp(26 + this.zoomv * 11, 26, 64), sc = (bpx / rider.visibleBBox.h) * k;
+    const bpx = Phaser.Math.Clamp(26 + this.zoomv * 11, 26, 64), rs = (bpx / rider.visibleBBox.h) * k;
     D.fillStyle(0x0b0e08, 0.45); D.fillEllipse(bp.x, bp.y, 44 * k, 11 * k);
-    this.bohun.setPosition(bp.x, bp.y + (S.bohun.status === 'moving' && !reduced ? Math.sin(time / 90) * 0.8 * k : 0)).setScale(sc * this.facing, sc);
+    this.bohun.setPosition(bp.x, bp.y + (S.bohun.status === 'moving' && !reduced ? Math.sin(time / 90) * 0.8 * k : 0)).setScale(rs * this.facing, rs);
 
-    for (const n of Object.values(S.world.nodes)) { Mg.fillStyle(n.type === 'bank' ? 0xf5c542 : n.type === 'port' ? 0x9fc3c4 : 0xe6e0c7, 1); Mg.fillCircle(n.x, n.y, 16); }
+    for (const n of Object.values(S.world.nodes)) { if (sc.hidden(n.id)) continue; Mg.fillStyle(n.type === 'bank' ? 0xf5c542 : n.type === 'port' ? 0x9fc3c4 : 0xe6e0c7, 1); Mg.fillCircle(n.x, n.y, 16); }
     for (const fl of S.flows) for (const s of fl.steps) { Mg.lineStyle(14, 0xe2c667, 1); Mg.strokePoints(s.pts, false, false); }
-    if (hintId) { const n = S.world.nodes[hintId]; Mg.lineStyle(24, 0xffd54a, 0.5 + 0.5 * pulse); Mg.strokeCircle(n.x, n.y, 90); }
+    for (const [id] of hints) { const n = S.world.nodes[id]; Mg.lineStyle(24, 0xffd54a, 0.5 + 0.5 * pulse); Mg.strokeCircle(n.x, n.y, 90); }
     const bp0 = game.bohunPos(); Mg.fillStyle(0xd3b766, 1); Mg.fillCircle(bp0.x, bp0.y, 22);
     const wv = cam.worldView; Mg.lineStyle(14, 0xd3b766, 1);
     for (const o of [-WORLD.width, 0, WORLD.width]) Mg.strokeRect(wv.x + o, wv.y, wv.width, wv.height); // the frame wraps too

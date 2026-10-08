@@ -29,7 +29,14 @@ body.explore .hero-card { opacity: 0; pointer-events: none; }
 .objective, .selection { background: #11150ee6; border: 1px solid #9a9b7744; padding: 12px 14px; }
 .objective .label, .panel-head, .hud, .flows-head, .selection .meta span { font: 800 9px/1 var(--mono); letter-spacing: .09em; color: #999d82; }
 .demo-tag { color: var(--gold); border: 1px solid #d3b76666; padding: 2px 4px; margin-left: 6px; }
-.objective h2 { font-size: 14px; line-height: 1.35; margin: 9px 0 10px; color: #efe9cc; }
+.objective h2 { font-size: 15px; line-height: 1.3; margin: 9px 0 4px; color: #efe9cc; }
+.objective .lead { margin: 0 0 10px; color: var(--muted); line-height: 1.45; }
+.m-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 6px; margin-top: 8px; }
+.m-actions:empty { display: none; }
+.m-actions button { background: #20271a; border: 1px solid #8d907144; color: #d3d0b5; padding: 10px; font: 800 10px/1.25 var(--mono); letter-spacing: .03em; }
+.m-actions button.primary { border-color: var(--gold); color: #fff; background: #d3b76626; }
+.m-actions button:hover:not(:disabled) { background: var(--gold); color: var(--ink); }
+.m-actions button:disabled { opacity: .6; cursor: default; }
 .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
 .steps li { display: flex; gap: 8px; align-items: flex-start; line-height: 1.4; padding: 6px 8px; border: 1px solid transparent; color: var(--muted); }
 .steps li .n { flex: none; width: 20px; height: 20px; border: 1px solid #8e9172; display: inline-grid; place-items: center; font: 800 10px/1 var(--mono); }
@@ -103,7 +110,7 @@ button.hint { animation: pulse 1.2s infinite; border-color: #ffd54a !important; 
 /* short windows (small browser pane, phone in landscape): the map comes first, panels shrink to the current step */
 @media (max-height: 560px) {
   .hero-card { display: none; }
-  .objective h2 { display: none; }
+  .objective h2, .objective .lead { display: none; }
   .steps li:not(.current) { display: none; }
   .objective { padding: 8px 10px; } .objective .label { margin-bottom: 6px; }
   .right-col { max-height: 46vh; gap: 6px; }

@@ -28,3 +28,55 @@ ok('hero geo: every Ukrainian test node of the network sits inside the hero box'
   }
 });
 console.log(`${n} field checks passed`);
+
+// ---- scenarios (src/field/scenarios.js) driven through the real flows rules ----
+const { createFlows } = await import('../src/flows/core.js');
+const { createScenarios, fieldData, FIT, NEED_HOME, HAVE_HOME, MARKETS } = await import('../src/field/scenarios.js');
+const setup = () => {
+  const changes = [];
+  let sc;
+  const g = createFlows({ data: fieldData, seed: 7, bohunStart: fieldData.BOHUN_START, onEvent: (t, p) => sc?.onEvent(t, p) });
+  sc = createScenarios(g, { onChange: (t, id) => { changes.push(t); if (t.endsWith('Done')) g.stopFlow(id); } });
+  const run = (sec) => { for (let i = 0; i < sec * 20; i++) { g.tick(0.05); sc.tick(0.05); } };
+  const ride = (id) => { assert.equal(g.moveBohun(id).ok, true); run(120); assert.equal(g.state.bohun.at, id); };
+  return { g, sc, run, ride, changes };
+};
+let m = 0;
+const ok2 = (name, fn) => { fn(); m++; console.log('ok  ' + name); };
+ok2('scenario data: extra candidates join the network and reach your factory', () => {
+  const g = createFlows({ data: fieldData, seed: 1, bohunStart: fieldData.BOHUN_START });
+  for (const c of ['cand-brno', 'cand-rzeszow', 'cand-zhytomyr']) assert.ok(g.routeOptions(c, NEED_HOME).length, c);
+  for (const m of Object.values(MARKETS)) assert.ok(g.routeOptions(HAVE_HOME, m.bank).length, m.bank);
+});
+ok2('I NEED: candidates hidden until research; research takes time and runs once', () => {
+  const { sc, run } = setup();
+  assert.equal(sc.hidden(FIT), true); assert.equal(sc.needStage(), 1);
+  assert.equal(sc.research().ok, true); assert.equal(sc.research().reason, 'running');
+  run(1); assert.equal(sc.hidden(FIT), true); run(3);
+  assert.equal(sc.hidden(FIT), false); assert.equal(sc.needStage(), 2); assert.equal(sc.research().reason, 'done');
+});
+ok2('I NEED: checking a wrong candidate does not finish the step; the fitting one does; then two loads finish it', () => {
+  const { g, sc, run, ride } = setup();
+  sc.research(); run(4);
+  ride('cand-zhytomyr'); assert.equal(sc.needStage(), 2); assert.equal(sc.info('cand-zhytomyr').fit, false);
+  assert.equal(sc.canFlow('cand-zhytomyr', NEED_HOME).reason, 'not-fit');
+  ride(FIT); assert.equal(sc.needStage(), 3);
+  const opt = g.routeOptions(FIT, NEED_HOME)[0], r = g.startFlow(FIT, NEED_HOME, opt.id);
+  sc.flowStarted(r.flowId, FIT, NEED_HOME, opt); assert.equal(sc.needStage(), 4);
+  run(120); assert.equal(sc.needStage(), 'done'); assert.equal(g.state.flows.length, 0);
+});
+ok2('I HAVE: market closed until Bohun meets the partner; two loads finish it and the result is recorded', () => {
+  const { g, sc, run, ride } = setup();
+  assert.equal(sc.haveStage(), 1); assert.equal(sc.chooseMarket('eu').ok, true); assert.equal(sc.haveStage(), 2);
+  assert.equal(sc.canFlow(HAVE_HOME, MARKETS.eu.bank).reason, 'partner-first');
+  ride(MARKETS.eu.partner); assert.equal(sc.haveStage(), 3); assert.equal(sc.canFlow(HAVE_HOME, MARKETS.eu.bank).ok, true);
+  const opt = g.routeOptions(HAVE_HOME, MARKETS.eu.bank)[0], r = g.startFlow(HAVE_HOME, MARKETS.eu.bank, opt.id);
+  sc.flowStarted(r.flowId, HAVE_HOME, MARKETS.eu.bank, opt); assert.equal(sc.haveStage(), 4);
+  run(200); assert.equal(sc.haveStage(), 'done'); assert.equal(sc.have.results.length, 1); assert.equal(sc.have.results[0].market, 'eu');
+  assert.equal(sc.again('have').ok, true); assert.equal(sc.haveStage(), 1); assert.ok(sc.have.met.has('eu'));
+});
+ok2('reset clears both scenarios', () => {
+  const { g, sc, run } = setup(); sc.research(); run(4); sc.chooseMarket('us'); g.reset();
+  assert.equal(sc.needStage(), 1); assert.equal(sc.haveStage(), 1); assert.equal(sc.hidden(FIT), true);
+});
+console.log(`${m} scenario checks passed`);
