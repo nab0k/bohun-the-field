@@ -12,7 +12,7 @@ export const MODES = {
   sea: { label: 'Море', speed: 38, cost: 0.45, kind: 'ship' },
   air: { label: 'Воздух', speed: 210, cost: 3.6, kind: 'plane' },
 };
-export const LIMITS = { flows: 3, ambient: 50, perFlowCarriers: 3 };
+export const LIMITS = { flows: 3, ambient: 110, perFlowCarriers: 3 };
 const SOURCE_TYPES = new Set(['mine', 'factory-s', 'factory-m', 'factory-l']);
 export const isSource = (type) => SOURCE_TYPES.has(type);
 
@@ -41,6 +41,15 @@ export function pointAt(pts, d) {
   const l = pts.at(-1); return { x: l.x, y: l.y, ax: 1, ay: 0 };
 }
 
+function hash01(str) { let h = 2166136261; for (const c of str) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0) / 4294967296; }
+// roads and rails bend a little, deterministically per corridor, so they read as roads and not as ruler lines
+function bend(a, b, id) {
+  const len = dist(a, b), n = Math.min(6, Math.floor(len / 38));
+  if (n < 1) return [];
+  const ux = (b.x - a.x) / len, uy = (b.y - a.y) / len, vx = -uy, vy = ux, ph = hash01(id) * 6.283, amp = Math.min(0.1 * len, 15);
+  return Array.from({ length: n }, (_, i) => { const t = (i + 1) / (n + 1), off = Math.sin(t * 6.283 + ph) * amp * Math.sin(t * Math.PI); return { x: a.x + (b.x - a.x) * t + vx * off, y: a.y + (b.y - a.y) * t + vy * off }; });
+}
+
 export function buildWorld(data) {
   const nodes = {};
   for (const n of data.nodes) nodes[n.id] = { ...n, ...project(n.lon, n.lat) };
@@ -48,9 +57,11 @@ export function buildWorld(data) {
   const adj = {};
   for (const n of Object.keys(nodes)) adj[n] = [];
   for (const e of data.edges) {
-    const pts = [nodes[e.a], ...(e.via ?? []).map(([lon, lat]) => project(lon, lat)), nodes[e.b]].map((p) => ({ x: p.x, y: p.y }));
+    const mid = e.via ? e.via.map(([lon, lat]) => project(lon, lat)) : e.mode === 'road' || e.mode === 'rail' ? bend(nodes[e.a], nodes[e.b], e.id) : [];
+    const pts = [nodes[e.a], ...mid, nodes[e.b]].map((p) => ({ x: p.x, y: p.y }));
     const length = polyLen(pts), m = MODES[e.mode];
-    edges[e.id] = { ...e, pts, length, time: length / m.speed, cost: length * m.cost };
+    const c = pointAt(pts, length / 2);
+    edges[e.id] = { ...e, pts, length, time: length / m.speed, cost: length * m.cost, mid: { x: c.x, y: c.y } };
     adj[e.a].push(e.id); adj[e.b].push(e.id);
   }
   return { nodes, edges, adj };
@@ -154,19 +165,38 @@ export function createFlows({ data, seed = 1, onEvent = () => {}, bohunStart } =
     return { ok: true };
   }
 
-  function spawnAmbient() {
+  // ambient traffic: a random walk along corridors of one mode; most of it starts near the camera so the view is alive
+  function spawnAmbient(view) {
     if (S.ambient.length >= LIMITS.ambient) return;
-    const ids = Object.keys(world.edges), e = world.edges[ids[Math.floor(rand() * ids.length)]];
-    const dir = rand() < 0.5;
-    S.ambient.push({ id: S.nextId++, mode: e.mode, kind: e.mode === 'road' && rand() < 0.4 ? 'wagon' : MODES[e.mode].kind, pts: dir ? e.pts : [...e.pts].reverse(), len: e.length, d: 0 });
+    const ids = Object.keys(world.edges);
+    let pool = ids;
+    if (view && rand() < 0.88) {
+      const near = ids.filter((id) => { const e = world.edges[id]; return dist(e.mid, view) < view.r * 1.15 + e.length / 2; });
+      if (near.length) pool = near;
+    }
+    let e = world.edges[pool[Math.floor(rand() * pool.length)]];
+    const mode = e.mode;
+    let fromNode = rand() < 0.5 ? e.a : e.b;
+    const pts = [], used = new Set();
+    for (let hop = 0; hop < 7 && e && (hop < 2 || polyLen(pts) < 140); hop++) { // keep walking until the trip is long enough to be seen
+      const seg = e.a === fromNode ? e.pts : [...e.pts].reverse();
+      pts.push(...(pts.length ? seg.slice(1) : seg));
+      used.add(e.id);
+      const end = e.a === fromNode ? e.b : e.a;
+      const next = world.adj[end].map((id) => world.edges[id]).filter((x) => x.mode === mode && !used.has(x.id));
+      e = next.length ? next[Math.floor(rand() * next.length)] : null;
+      fromNode = end;
+    }
+    const len = polyLen(pts), kind = mode === 'road' && rand() < 0.4 ? 'wagon' : MODES[mode].kind;
+    S.ambient.push({ id: S.nextId++, mode, kind, pts, len, d: view ? rand() * len * 0.5 : 0, speed: MODES[mode].speed * (0.3 + rand() * 0.25) }); // background traffic is calmer than the player's cargo
   }
 
-  function tick(dt) {
+  function tick(dt, view) {
     S.time += dt;
     // ambient traffic: a new mover now and then, capped
     S.spawnClock += dt;
-    while (S.spawnClock >= 0.35) { S.spawnClock -= 0.35; if (rand() < 0.75) spawnAmbient(); }
-    for (const a of S.ambient) a.d += MODES[a.mode].speed * dt;
+    while (S.spawnClock >= 0.08) { S.spawnClock -= 0.08; if (rand() < 0.8) spawnAmbient(view); }
+    for (const a of S.ambient) a.d += a.speed * dt;
     S.ambient = S.ambient.filter((a) => a.d < a.len);
 
     // flows spawn carriers every few seconds

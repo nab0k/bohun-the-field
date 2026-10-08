@@ -19,11 +19,11 @@ const REASON = {
 // ---------- the guided task: deliver 3 cargoes from the mine to the New York bank, compare routes ----------
 const M = { source: 'mine-kr', target: 'bank-newyork', need: 3 };
 const STEP_TEXT = [
-  'Нажмите на шахту: на карте её отмечает мигающее кольцо. Богун приедет к ней.',
-  'Нажмите кнопку «Направить поток отсюда»: так вы решаете, куда поедут грузы.',
-  'Нажмите на банк в Нью-Йорке (карта отдалится, банк отмечен кольцом).',
-  'Выберите путь: быстро и дорого или долго и дёшево.',
-  'Подождите, пока доедут 3 груза. Потом сравните результат.',
+  'Нажмите на шахту (мигающее кольцо).',
+  'Нажмите «Направить поток отсюда».',
+  'Нажмите на банк в Нью-Йорке.',
+  'Выберите путь: быстро или дёшево.',
+  'Дождитесь трёх грузов и сравните.',
 ];
 let mission = { delivered: 0, flowId: null, opt: null, done: false, results: [] };
 let ui = { selected: null, mode: 'idle', source: null, target: null }; // mode: idle | pick | options
@@ -281,7 +281,8 @@ class FlowsScene extends Phaser.Scene {
 
   update(time, delta) {
     let remain = Math.min(delta, 1000) / 1000;
-    while (remain > 1e-6) { const dt = Math.min(0.05, remain); game.tick(dt); remain -= dt; }
+    const wv0 = this.cameras.main.worldView, view = { x: wv0.centerX, y: wv0.centerY, r: Math.max(wv0.width, wv0.height) / 2 };
+    while (remain > 1e-6) { const dt = Math.min(0.05, remain); game.tick(dt, view); remain -= dt; }
     if (this.tgt) {
       const t = this.tgt, e = 0.12;
       this.cx += (t.cx - this.cx) * e; this.cy += (t.cy - this.cy) * e; this.zoomv *= Math.pow(t.zoom / this.zoomv, e);
@@ -304,7 +305,9 @@ class FlowsScene extends Phaser.Scene {
     for (const f of S.flows) for (const s of f.steps) { L.lineStyle(7 * k, 0x101412, 0.55); L.strokePoints(s.pts, false, false); L.lineStyle(4 * k, 0xffd54a, 1); dashed(L, s.pts, 14 * k, 8 * k, off); }
 
     for (const n of Object.values(S.world.nodes)) this.drawNode(D, n, k);
-    for (const a of S.ambient) this.drawMover(D, a.kind, pointAt(a.pts, a.d), k, 0.95, false);
+    const vw = cam.worldView, pad = 30 * k;
+    const inView = (p) => p.x > vw.x - pad && p.x < vw.right + pad && p.y > vw.y - pad && p.y < vw.bottom + pad;
+    for (const a of S.ambient) { const p = pointAt(a.pts, a.d); if (inView(p)) this.drawMover(D, a.kind, p, k, 0.95, false); }
     for (const c of S.carriers) { const s = c.steps[Math.min(c.leg, c.steps.length - 1)]; this.drawMover(D, MODES[s.mode].kind, pointAt(s.pts, c.d), k, 1, true); }
     for (let i = coins.length - 1; i >= 0; i--) {
       const c = coins[i]; c.age += delta / 1000;
@@ -328,7 +331,7 @@ class FlowsScene extends Phaser.Scene {
 
     const bp = game.bohunPos();
     if (S.bohun.status === 'moving') this.facing = bp.ax < 0 ? -1 : 1;
-    const bpx = Phaser.Math.Clamp(24 + this.zoomv * 16, 24, 72), sc = (bpx / rider.visibleBBox.h) * k;
+    const bpx = Phaser.Math.Clamp(22 + this.zoomv * 11, 22, 58), sc = (bpx / rider.visibleBBox.h) * k;
     D.fillStyle(0x0e1210, 0.5); D.fillEllipse(bp.x, bp.y, 46 * k, 11 * k);
     this.bohun.setPosition(bp.x, bp.y).setScale(sc * this.facing, sc);
 

@@ -63,6 +63,13 @@ ok('ambient: traffic appears on its own, never exceeds the cap, uses fitting veh
   assert.ok(g.state.ambient.length > 5); assert.ok(g.state.ambient.length <= LIMITS.ambient);
   for (const a of g.state.ambient) assert.ok([MODES[a.mode].kind, 'wagon'].includes(a.kind));
 });
+ok('ambient: with a camera focus, most traffic lives near it and the view is populated quickly', () => {
+  const g = mk(); const kyiv = g.world.nodes['bank-kyiv']; const view = { x: kyiv.x, y: kyiv.y, r: 160 };
+  for (let i = 0; i < 100; i++) g.tick(0.05, view);
+  const near = g.state.ambient.filter((a) => { const q = a.pts[Math.min(a.pts.length - 1, Math.floor(a.pts.length / 2))]; return Math.hypot(q.x - view.x, q.y - view.y) < view.r * 3; }).length;
+  assert.ok(g.state.ambient.length >= 20, 'busy within 5 seconds: ' + g.state.ambient.length);
+  assert.ok(near / g.state.ambient.length > 0.6, 'near share ' + near + '/' + g.state.ambient.length);
+});
 ok('Bohun: rides to a node, busy while moving, card requested on arrival and when selecting his own node', () => {
   const g = mk(); assert.equal(g.moveBohun('st-lviv').ok, true); assert.equal(g.state.bohun.status, 'moving');
   assert.equal(g.moveBohun('st-kyiv').reason, 'busy'); assert.equal(of('dossierRequested').length, 0);
