@@ -143,3 +143,27 @@ Run: `npm run dev`, open `/field.html`. Checks: `npm test` (+4 field, +5 scenari
 Not done: Classic artwork (all art is code), animation frames, objects 2–3 (air, sea and land vehicles), real placement,
 space zoom-out, Ukrainian detailed level; real-time frame rate in the built-in browser pane was not measured (the pane throttles it);
 a frame costs about 5.5 ms when stepped manually.
+
+---
+
+# /atlas.html — probe A: ready-made map and models (8 Oct 2026)
+
+Decided by Serhii (Notion «Перезапуск», 08.10.2026): entry = I NEED / I HAVE with intent buttons inside; first journeys SELL and BUY;
+probe of ready-made graphics allowed. `/field.html` is left as it was, for comparison.
+
+- Map: MapLibre GL 6 with the OpenFreeMap "liberty" style (free, no key, OpenStreetMap data), globe projection by default
+  (`?projection=mercator` for flat). Its own borders and all its labels are removed; borders are Natural Earth countries_ukr
+  (`public/atlas/countries.geojson`, `node scripts/build-atlas-borders.mjs <ne dir>`, Crimea check in the script and in tests).
+- Objects: deck.gl 9.4 (interleaved MapLibreOverlay) with Kenney CC0 3D models (`public/atlas/models`, PROVENANCE.json; an identity
+  KHR_texture_transform was stripped by `scripts/fix-kenney-glb.mjs` because luma.gl dropped the texture). No aircraft model in the
+  kits: planes are a flat icon. Bohun is still the Classic v1 picture as a billboard (task №2 in Notion replaces it).
+- MapLibre's worker is loaded from a verbatim copy in `public/atlas/vendor/` (`node scripts/copy-maplibre-worker.mjs`): under the
+  Vite dev server the original gets the dev client injected and never answers. A test checks the copy matches the installed version.
+- Journeys: `src/atlas/journeys.js` (framework-free, on top of the unchanged flows core). SELL: product + market, scouting lifts the
+  fog, two experts, monitoring brings three offers, route, two deliveries, summary + form CTA. BUY: need, research reveals five
+  candidates, Bohun checks them until two fit, shortlist, meeting (two rides), deliveries start on their own, summary + form CTA.
+  All actors, experts, verdicts and places are demonstration data.
+
+Run `npm run dev`, open `/atlas.html`. Checks: `npm test` (+7 atlas checks).
+Not verified: real-time smoothness in a normal browser (the built-in pane throttles frames), camera fly-overs in real time,
+phones beyond a 375 px layout check. The public OpenFreeMap instance has no uptime guarantee.

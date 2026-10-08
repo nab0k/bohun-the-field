@@ -1,0 +1,125 @@
+{
+ "source": "Kenney (www.kenney.nl), downloaded 2026-10-08 from kenney.nl/assets/<kit>",
+ "license": "CC0 1.0 (see License.txt in each kit folder)",
+ "files": [
+  {
+   "file": "city-kit-industrial/building-n.glb",
+   "sha256": "0088a570c6b71206a2305163a217ad787ffa5b81441630bb91f1bfb6a43b38f1",
+   "bytes": 109080,
+   "originalSha256": "56b895860fb841ecee3e4d13d0745c6cd838da231af79cd90fb8dc0e32a97a96",
+   "modified": "removed identity KHR_texture_transform (texCoord 0) for luma.gl"
+  },
+  {
+   "file": "city-kit-industrial/building-c.glb",
+   "sha256": "662b1acbe0b1de97b56a481b0756e3d0dd773471bc0680ff246f555294c5fde5",
+   "bytes": 175672,
+   "originalSha256": "94eb05acef8d8e4c1d817eb12e1c2a1287ffed625879170663a8c4f48786b465",
+   "modified": "removed identity KHR_texture_transform (texCoord 0) for luma.gl"
+  },
+  {
+   "file": "city-kit-industrial/building-e.glb",
+   "sha256": "42c28de537b83cae11225960f52e0e3116cf3fa38b2f2afbca29567bc33d1f27",
+   "bytes": 129220,
+   "originalSha256": "d61fed5e9502af9c698367ab69d5bc50b673375929e51c22af247dfb1db6cd16",
+   "modified": "removed identity KHR_texture_transform (texCoord 0) for luma.gl"
+  },
+  {
+   "file": "city-kit-industrial/building-m.glb",
+   "sha256": "4a44059e262697fb2ee0743c890aaf51d8b938423fd78ac58126ac5121c4b74e",
+   "bytes": 138740,
+   "originalSha256": "526881cb1851120a60195f76bd4d8c1963653cdda66e4d1d53f085b3395fb8a9",
+   "modified": "removed identity KHR_texture_transform (texCoord 0) for luma.gl"
+  },
+  {
+   "file": "city-kit-industrial/building-s.glb",
+   "sha256": "dd42c48a12907429de1769983c4f42066275e6c86e083e11d8c1767bce8f5ad0",
+   "bytes": 81012,
+   "originalSha256": "065fbcbeb5e79ab21d8cd71b69b925a41d842e6f61296078619e6682d4487a82",
+   "modified": "removed identity KHR_texture_transform (texCoord 0) for luma.gl"
+  },
+  {
+   "file": "city-kit-industrial/building-h.glb",
+   "sha256": "9ea842858edace5dbfc1cb469b5f25923313d4de3fbb3c63f21e7fa6301fa444",
+   "bytes": 63464,
+   "originalSha256": "5a6a6c6824467972ba00b5a3c3cbb19da6e96673bc4e42daf1f09cfd4d2ed0e1",
+   "modified": "removed identity KHR_texture_transform (texCoord 0) for luma.gl"
+  },
+  {
+   "file": "city-kit-industrial/building-i.glb",
+   "sha256": "d48155e6d4903d330b98428f51567a2bb5c9420770b1b377ee4d405d72822b73",
+   "bytes": 73672,
+   "originalSha256": "12d9be598becf2b6d3758d23aba6c573ca2701fca5e77870d2ee5645647765ca",
+   "modified": "removed identity KHR_texture_transform (texCoord 0) for luma.gl"
+  },
+  {
+   "file": "city-kit-industrial/building-g.glb",
+   "sha256": "0ee58445a55fba6c0fa15f10c8a3e179534903ffb79b1a3aaf3d27228da2fb4f",
+   "bytes": 106764,
+   "originalSha256": "d09d0d53e85989870f39087435f3c8fc788fe68e87589439fa6bf227c2e4a611",
+   "modified": "removed identity KHR_texture_transform (texCoord 0) for luma.gl"
+  },
+  {
+   "file": "city-kit-commercial/building-e.glb",
+   "sha256": "c79ab3cc3e9732f8bfd272d5a8478f9c75807bbbc278893443190f3456beb809",
+   "bytes": 128088,
+   "originalSha256": "edbe5b49858a3c83e72d3cf496129c06082ef3a3d6005769f8883138e275b456",
+   "modified": "removed identity KHR_texture_transform (texCoord 0) for luma.gl"
+  },
+  {
+   "file": "city-kit-commercial/building-b.glb",
+   "sha256": "e55e966d03a58c3289de4f8e8dc54c701cc57b6a4bb0389c5403b803c83c5ada",
+   "bytes": 106288,
+   "originalSha256": "3b5d3ac0799c024781d92bb15971d42f4f8e380554dc5cf6a40c2f07d948947a",
+   "modified": "removed identity KHR_texture_transform (texCoord 0) for luma.gl"
+  },
+  {
+   "file": "city-kit-commercial/building-c.glb",
+   "sha256": "4a2393b3169683da0dd3f63abe6e41766bdc11b04608468b82424645f3b61d26",
+   "bytes": 102668,
+   "originalSha256": "f6887608a95a165503561730252c30506938803731c6546efca12bd47b1666bd",
+   "modified": "removed identity KHR_texture_transform (texCoord 0) for luma.gl"
+  },
+  {
+   "file": "city-kit-commercial/building-d.glb",
+   "sha256": "f2441b62c3cef9e33238a533a67604f7f196ce8d18617daf17bf8beef21ef098",
+   "bytes": 95040,
+   "originalSha256": "40605608e9aca0c98e294acff4af0f74afa417a51d589be490ca98f33ce4c2f5",
+   "modified": "removed identity KHR_texture_transform (texCoord 0) for luma.gl"
+  },
+  {
+   "file": "city-kit-commercial/building-a.glb",
+   "sha256": "fd4c3761fe1d24ee0c88a1aac9d7a6cfa58c83257b3baaacb37cff1b126d82ad",
+   "bytes": 108816,
+   "originalSha256": "5cf220f90ee3f21e7abe38055ca409a48aa8ef1d5ffab6e2deb99e5a5e1ed5e0",
+   "modified": "removed identity KHR_texture_transform (texCoord 0) for luma.gl"
+  },
+  {
+   "file": "car-kit/truck.glb",
+   "sha256": "068f3e5dbff328aa60db95a64d3095523828ed4fe11171d2e030f833cd7e0f4a",
+   "bytes": 176120,
+   "originalSha256": "5e1bc66c343501dd7d5734b57e672dd949bf95d7abdce680c6508cef99d374f8",
+   "modified": "removed identity KHR_texture_transform (texCoord 0) for luma.gl"
+  },
+  {
+   "file": "car-kit/delivery-flat.glb",
+   "sha256": "5b58e6510eb32da7bee6373be909b40babeecd88bc0805e3c54a0ac960fad5d4",
+   "bytes": 214200,
+   "originalSha256": "2973152df7699767692ce890b3a0845a11333a52a23aa74b86a12ed443254c1b",
+   "modified": "removed identity KHR_texture_transform (texCoord 0) for luma.gl"
+  },
+  {
+   "file": "train-kit/train-diesel-a.glb",
+   "sha256": "8fa148ac744bcd1f94c406a3049b11c6b0c634207bfb89e1cafb8369f8fcce27",
+   "bytes": 156240,
+   "originalSha256": "20c6c7c23c005e8cda1c1e922473c0fc9c93fc7c1d1bc5a637d640424f811cc3",
+   "modified": "removed identity KHR_texture_transform (texCoord 0) for luma.gl"
+  },
+  {
+   "file": "watercraft-kit/ship-cargo-a.glb",
+   "sha256": "aca762339e1e44144b049f79ce196cf51447c7dd5fb41fbe7fade0eb8b06cacd",
+   "bytes": 97812,
+   "originalSha256": "db3bbb076894cee821ec9b24951e5537ebbdc5ab5413d6c17ffb7d4e649c14fb",
+   "modified": "removed identity KHR_texture_transform (texCoord 0) for luma.gl"
+  }
+ ]
+}

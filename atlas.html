@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>BOHUN / THE FIELD — проба A (готовая карта и модели)</title>
+  <link rel="stylesheet" href="/src/atlas/atlas.css" />
+</head>
+<body>
+  <div id="map" aria-label="Карта мира. Тяните мышью, колесо — зум, правая кнопка — поворот и наклон."></div>
+
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="Bohun Defence"><span class="mark">↟</span><span>BOHUN / THE FIELD</span><span class="build">проба A</span></a>
+    <nav>
+      <button id="open-need" type="button">I NEED SOMETHING</button>
+      <button id="open-have" type="button">I HAVE SOMETHING</button>
+      <button id="all" type="button" class="ghost">ВСЯ КАРТА</button>
+      <button id="reset" type="button" class="ghost">СНАЧАЛА</button>
+    </nav>
+  </header>
+
+  <section id="entry" class="entry" aria-label="С чего начать">
+    <div class="entry-card">
+      <p class="eyebrow">UKRAINE ↔ EUROPE ↔ INTERNATIONAL</p>
+      <h1>DEFENCE REQUIREMENTS. CAPABILITIES. OPPORTUNITIES.</h1>
+      <p class="lead">Bohun Defence helps companies navigate defence and dual-use markets across Ukraine and internationally.</p>
+      <p class="ask">Что вы хотите сделать? Покажем на карте, как с нами работать.</p>
+      <div class="sides">
+        <div class="side" id="side-need">
+          <h2>I NEED SOMETHING</h2>
+          <p>Find capabilities, companies and partners.</p>
+          <button type="button" class="go" data-journey="buy">КУПИТЬ / НАЙТИ ПОСТАВЩИКА</button>
+          <button type="button" class="soon" disabled>НАЙТИ ПАРТНЁРА <small>скоро</small></button>
+          <button type="button" class="soon" disabled>РАЗОБРАТЬСЯ В РЫНКЕ <small>скоро</small></button>
+        </div>
+        <div class="side" id="side-have">
+          <h2>I HAVE SOMETHING</h2>
+          <p>Explore markets, partnerships and commercial opportunities.</p>
+          <button type="button" class="go" data-journey="sell">ПРОДАТЬ / ВЫЙТИ НА РЫНОК</button>
+          <button type="button" class="soon" disabled>УЧАСТВОВАТЬ В ТЕНДЕРЕ <small>скоро</small></button>
+          <button type="button" class="soon" disabled>НАЙТИ ПАРТНЁРА <small>скоро</small></button>
+        </div>
+      </div>
+      <button id="just-look" type="button" class="link">Просто посмотреть карту</button>
+    </div>
+  </section>
+
+  <aside id="panel" class="panel" hidden aria-label="Сценарий">
+    <div class="panel-head"><span id="j-label"></span><span class="demo-tag">ДЕМО</span><button id="j-close" type="button" aria-label="Закрыть сценарий">×</button></div>
+    <h2 id="j-title"></h2>
+    <ol id="j-steps" class="steps"></ol>
+    <div id="j-body" class="body"></div>
+    <div id="j-progress" class="progress" hidden><i></i><span></span></div>
+  </aside>
+
+  <aside id="card" class="card" hidden aria-label="Объект на карте">
+    <div class="panel-head"><span id="c-type"></span><button id="c-close" type="button" aria-label="Закрыть">×</button></div>
+    <h3 id="c-name"></h3>
+    <p id="c-place" class="muted"></p>
+    <p id="c-text"></p>
+  </aside>
+
+  <p id="note" class="note" role="status" aria-live="polite"></p>
+  <p class="demo">Демонстрация: условные участники, дни и единицы, тестовые места; не реальные поставки и сделки. Границы: Natural Earth (не карта контроля территорий). Карта © OpenStreetMap, OpenFreeMap. Модели: Kenney (CC0).</p>
+
+  <noscript><p class="fallback">Bohun Defence helps companies navigate defence and dual-use markets across Ukraine and internationally.</p></noscript>
+  <script type="module" src="/src/atlas/main.js"></script>
+</body>
+</html>
