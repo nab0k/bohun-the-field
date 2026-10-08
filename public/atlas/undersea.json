@@ -13,7 +13,7 @@
   {
    "name": "Unseenlabs",
    "section": "detect",
-   "about": "обнаружение судов по радиосигналам из космоса",
+   "about": "space-based RF detection of vessels",
    "city": "Rennes",
    "place": "Rennes, France",
    "lon": -1.68,
@@ -23,7 +23,7 @@
   {
    "name": "HawkEye 360",
    "section": "detect",
-   "about": "геолокация радиосигналов из космоса и аналитика",
+   "about": "space-based RF geolocation and analytics",
    "city": "Herndon",
    "place": "Herndon, Virginia, USA",
    "lon": -77.386,
@@ -33,18 +33,18 @@
   {
    "name": "Windward",
    "section": "detect",
-   "about": "морской ИИ: риски, санкции, аномалии",
+   "about": "maritime AI for risk, sanctions and anomalies",
    "city": "London",
    "place": "London, UK",
    "lon": -0.128,
    "lat": 51.507,
    "source": "https://yespress.io/windward.md",
-   "note": "В ранних профилях — Тель-Авив; после покупки FTV Capital (2025) указан Лондон."
+   "note": "Older profiles say Tel Aviv; London since the FTV Capital acquisition (2025)."
   },
   {
    "name": "MarineLabs",
    "section": "detect",
-   "about": "буи с датчиками и прибрежная разведка для портов",
+   "about": "sensor buoys and coastal intelligence for ports",
    "city": "Victoria",
    "place": "Victoria, British Columbia, Canada",
    "lon": -123.365,
@@ -54,7 +54,7 @@
   {
    "name": "Andrenam",
    "section": "detect",
-   "about": "распределённая подводная акустическая сеть с ИИ",
+   "about": "distributed underwater acoustic sensing with AI",
    "city": "Hawthorne",
    "place": "Hawthorne, California, USA",
    "lon": -118.343,
@@ -64,7 +64,7 @@
   {
    "name": "Spear AI",
    "section": "detect",
-   "about": "ИИ-анализ подводной акустики",
+   "about": "AI analytics for underwater acoustics",
    "city": "Washington",
    "place": "Washington, D.C., USA",
    "lon": -77.036,
@@ -74,7 +74,7 @@
   {
    "name": "Indeximate",
    "section": "detect",
-   "about": "мониторинг подводных силовых кабелей",
+   "about": "monitoring of subsea power cables",
    "city": "Hinckley",
    "place": "Hinckley, Leicestershire, UK",
    "lon": -1.373,
@@ -84,7 +84,7 @@
   {
    "name": "Optics11",
    "section": "detect",
-   "about": "оптоволоконные датчики и обнаружение угроз",
+   "about": "fibre-optic sensing and threat detection",
    "city": "Amsterdam",
    "place": "Amsterdam, Netherlands",
    "lon": 4.892,
@@ -94,7 +94,7 @@
   {
    "name": "FEBUS Optics",
    "section": "detect",
-   "about": "распределённые оптоволоконные датчики для протяжённых объектов",
+   "about": "distributed fibre sensing for linear infrastructure",
    "city": "Pau",
    "place": "Pau, France",
    "lon": -0.369,
@@ -104,18 +104,18 @@
   {
    "name": "Orca AI",
    "section": "detect",
-   "about": "компьютерное зрение для судов, предотвращение столкновений",
+   "about": "AI vision for ships, collision avoidance",
    "city": "London",
    "place": "London, UK",
    "lon": -0.128,
    "lat": 51.507,
    "source": "https://www.cbinsights.com/company/orca-ai",
-   "note": "В ранних профилях — Тель-Авив; в свежих источниках Лондон."
+   "note": "Older profiles say Tel Aviv; recent sources say London."
   },
   {
    "name": "Seadronix",
    "section": "detect",
-   "about": "ИИ-ситуационная осведомлённость и автономная навигация судов",
+   "about": "AI situational awareness and autonomous navigation for ships",
    "city": "Ulsan",
    "place": "Ulsan, South Korea",
    "lon": 129.312,
@@ -125,7 +125,7 @@
   {
    "name": "Echodyne",
    "section": "detect",
-   "about": "компактные радары на метаматериалах",
+   "about": "compact metamaterial radar",
    "city": "Kirkland",
    "place": "Kirkland, Washington, USA",
    "lon": -122.207,
@@ -135,7 +135,7 @@
   {
    "name": "ELWAVE",
    "section": "detect",
-   "about": "электрополевые датчики для подводных роботов и объектов",
+   "about": "electric-field sensing for underwater robots and infrastructure",
    "city": "Carquefou",
    "place": "Carquefou, France",
    "lon": -1.492,
@@ -145,7 +145,7 @@
   {
    "name": "Starboard Maritime Intelligence",
    "section": "detect",
-   "about": "мультисенсорная морская осведомлённость, «тёмные» суда",
+   "about": "multisensor maritime awareness, dark-vessel detection",
    "city": "Wellington",
    "place": "Wellington, New Zealand",
    "lon": 174.777,
@@ -155,7 +155,7 @@
   {
    "name": "Ocean Power Technologies",
    "section": "detect",
-   "about": "буи на энергии волн и объединение морских датчиков",
+   "about": "wave-powered buoys and maritime sensor fusion",
    "city": "Pennington",
    "place": "Pennington, New Jersey, USA",
    "lon": -74.791,
@@ -165,7 +165,7 @@
   {
    "name": "Aragon Photonics",
    "section": "detect",
-   "about": "оптоволоконные датчики и ИИ-анализ сигналов",
+   "about": "fibre sensing and AI signal analysis",
    "city": "Zaragoza",
    "place": "Zaragoza, Spain",
    "lon": -0.91,
@@ -175,7 +175,7 @@
   {
    "name": "Saildrone",
    "section": "patrol",
-   "about": "автономные надводные аппараты большой автономности",
+   "about": "long-endurance uncrewed surface vehicles",
    "city": "Alameda",
    "place": "Alameda, Alameda County, California, United States",
    "lon": -122.242,
@@ -185,7 +185,7 @@
   {
    "name": "Open Ocean Robotics",
    "section": "patrol",
-   "about": "надводные дроны на солнечной энергии",
+   "about": "solar-powered uncrewed surface vehicles",
    "city": "Victoria",
    "place": "Victoria, British Columbia, Canada",
    "lon": -123.365,
@@ -195,7 +195,7 @@
   {
    "name": "Seasats",
    "section": "patrol",
-   "about": "малые автономные надводные аппараты",
+   "about": "small autonomous surface vehicles",
    "city": "San Diego",
    "place": "San Diego, California, USA",
    "lon": -117.164,
@@ -205,7 +205,7 @@
   {
    "name": "Saronic Technologies",
    "section": "patrol",
-   "about": "автономные военные катера с модульной нагрузкой",
+   "about": "autonomous naval vessels with modular payloads",
    "city": "Austin",
    "place": "Austin, Texas, USA",
    "lon": -97.744,
@@ -215,7 +215,7 @@
   {
    "name": "Blue Water Autonomy",
    "section": "patrol",
-   "about": "серийные беспилотные океанские корабли",
+   "about": "producible uncrewed ocean-going ships",
    "city": "Boston",
    "place": "Boston, Massachusetts, USA",
    "lon": -71.058,
@@ -225,18 +225,18 @@
   {
    "name": "Ocean Aero",
    "section": "patrol",
-   "about": "гибридный надводно-подводный автономный аппарат",
+   "about": "hybrid surface/subsurface autonomous platform",
    "city": "San Diego",
    "place": "San Diego, California, USA",
    "lon": -117.164,
    "lat": 32.716,
    "source": "https://www.robotics.press/news/ocean-aero-company-profile/",
-   "note": "В статье — «Ocean Aerospace»; найдена компания Ocean Aero с этим описанием. Производство — Галфпорт (Миссисипи)."
+   "note": "The article says “Ocean Aerospace”; the matching company is Ocean Aero. Manufacturing in Gulfport, Mississippi."
   },
   {
    "name": "Sea Machines Robotics",
    "section": "patrol",
-   "about": "автономия для коммерческих и государственных судов",
+   "about": "autonomy for commercial and government vessels",
    "city": "Boston",
    "place": "Boston, Massachusetts, USA",
    "lon": -71.058,
@@ -246,7 +246,7 @@
   {
    "name": "SubSeaSail",
    "section": "patrol",
-   "about": "полупогружные автономные аппараты с добычей энергии",
+   "about": "energy-harvesting semi-submersible autonomous vehicles",
    "city": "San Diego",
    "place": "San Diego, California, USA",
    "lon": -117.164,
@@ -256,29 +256,29 @@
   {
    "name": "Vatn Systems",
    "section": "patrol",
-   "about": "серийные автономные подводные аппараты",
+   "about": "mass-producible autonomous underwater vehicles",
    "city": "Portsmouth",
    "place": "Portsmouth, Rhode Island, USA",
    "lon": -71.25,
    "lat": 41.602,
    "source": "https://www.cbinsights.com/company/vatn-systems",
-   "note": "Производство — Бристоль (Род-Айленд)."
+   "note": "Manufacturing in Bristol, Rhode Island."
   },
   {
    "name": "XOCEAN",
    "section": "inspect",
-   "about": "беспилотные суда для гидрографии и инспекции",
+   "about": "uncrewed vessels for hydrographic survey and inspection",
    "city": "Carlingford",
    "place": "Carlingford, County Louth, Ireland",
    "lon": -6.187,
    "lat": 54.041,
    "source": "https://www.eenewseurope.com/en/xocean-opens-usv-technical-centre-in-ireland",
-   "note": "Техцентр в Ратхоре у Карлингфорда (графство Лаут)."
+   "note": "Technical centre at Rathcor near Carlingford, County Louth."
   },
   {
    "name": "Planys Technologies",
    "section": "inspect",
-   "about": "подводная робототехника и ИИ-инспекция в 3D",
+   "about": "underwater robotics with AI 3D inspection",
    "city": "Chennai",
    "place": "Chennai, India",
    "lon": 80.281,
@@ -288,7 +288,7 @@
   {
    "name": "Tethys Robotics",
    "section": "inspect",
-   "about": "автономный подводный робот для инспекций",
+   "about": "autonomous underwater robot for inspections",
    "city": "Zurich",
    "place": "Zurich, Switzerland",
    "lon": 8.541,
@@ -298,7 +298,7 @@
   {
    "name": "subdron",
    "section": "inspect",
-   "about": "навигация подводных аппаратов и обработка данных инспекций",
+   "about": "underwater navigation and inspection data processing",
    "city": "Lauterach",
    "place": "Lauterach, Austria",
    "lon": 9.731,
@@ -308,29 +308,29 @@
   {
    "name": "Bedrock Ocean Exploration",
    "section": "inspect",
-   "about": "данные о морском дне с автономных аппаратов",
+   "about": "seafloor data from autonomous vehicles",
    "city": "Richmond",
    "place": "Richmond, California, USA",
    "lon": -122.348,
    "lat": 37.936,
    "source": "https://www.cbinsights.com/company/bedrock-ocean-exploration",
-   "note": "Есть офисы в Ричмонде (Калифорния) и Бруклине; источники расходятся, где штаб-квартира."
+   "note": "Offices in Richmond, California, and Brooklyn; sources differ on which is the headquarters."
   },
   {
    "name": "Terradepth",
    "section": "inspect",
-   "about": "флоты подводных аппаратов и данные «от дна до облака»",
+   "about": "AUV fleets and seabed-to-cloud data",
    "city": "Cedar Park",
    "place": "Cedar Park, Texas, USA",
    "lon": -97.828,
    "lat": 30.522,
    "source": "https://www.cbinsights.com/company/sea-proven/people",
-   "note": "Часть источников указывает Остин."
+   "note": "Some sources say Austin."
   },
   {
    "name": "Dive Technologies",
    "section": "inspect",
-   "about": "крупные автономные подводные аппараты (куплена Anduril)",
+   "about": "large autonomous underwater vehicles (acquired by Anduril)",
    "city": "Quincy",
    "place": "Quincy, Massachusetts, USA",
    "lon": -71.004,
@@ -340,7 +340,7 @@
   {
    "name": "Riptide Autonomous Solutions",
    "section": "inspect",
-   "about": "малые подводные аппараты для съёмки (активы у BAE Systems)",
+   "about": "small AUVs for survey (assets now with BAE Systems)",
    "city": "Plymouth",
    "place": "Plymouth, Massachusetts, USA",
    "lon": -70.762,
@@ -350,7 +350,7 @@
   {
    "name": "ScrubMarine",
    "section": "inspect",
-   "about": "роботизированная очистка и инспекция корпусов",
+   "about": "robotic hull cleaning and inspection",
    "city": "Whitehaven",
    "place": "Whitehaven, England",
    "lon": -3.589,
@@ -360,7 +360,7 @@
   {
    "name": "cosma",
    "section": "inspect",
-   "about": "подводные дроны с ИИ-съёмкой в 3D",
+   "about": "underwater drones with AI 3D imaging",
    "city": "Nice",
    "place": "Nice, France",
    "lon": 7.268,
@@ -370,7 +370,7 @@
   {
    "name": "PxGeo",
    "section": "inspect",
-   "about": "морская геофизика на автономных системах Sabertooth",
+   "about": "marine geophysics with Sabertooth autonomous systems",
    "city": "Dubai",
    "place": "Dubai, United Arab Emirates",
    "lon": 55.189,
@@ -380,18 +380,18 @@
   {
    "name": "Impossible Metals",
    "section": "inspect",
-   "about": "глубоководная робототехника",
+   "about": "deep-water robotics",
    "city": "San Jose",
    "place": "San Jose, California, USA",
    "lon": -121.891,
    "lat": 37.336,
    "source": "https://www.miningweekly.com/article/us-autonomous-ocean-miner-plans-advanced-marine-robotics-hub-in-pittsburgh-2026-07-15",
-   "note": "Источники расходятся: Сан-Хосе или Пасадина; с 2026 года центр робототехники в Питтсбурге."
+   "note": "Sources differ between San Jose and Pasadena; a robotics hub in Pittsburgh since 2026."
   },
   {
    "name": "Orpheus Ocean",
    "section": "inspect",
-   "about": "автономный аппарат для любых глубин",
+   "about": "full-ocean-depth autonomous vehicle",
    "city": "New Bedford",
    "place": "New Bedford, Massachusetts, USA",
    "lon": -70.934,
@@ -401,7 +401,7 @@
   {
    "name": "Greensea IQ",
    "section": "repair",
-   "about": "амфибийные подводные наземные аппараты (Bayonet 250)",
+   "about": "amphibious underwater ground vehicles (Bayonet 250)",
    "city": "Richmond",
    "place": "Richmond, Vermont, USA",
    "lon": -72.993,
@@ -411,7 +411,7 @@
   {
    "name": "Kongsberg Ferrotech",
    "section": "repair",
-   "about": "роботы для подводной инспекции и ремонта",
+   "about": "subsea inspection and repair robotics",
    "city": "Kongsberg",
    "place": "Kongsberg, Norway",
    "lon": 9.671,
@@ -421,7 +421,7 @@
   {
    "name": "Eelume",
    "section": "repair",
-   "about": "постоянно живущие под водой роботы для инспекции и работ",
+   "about": "subsea resident robots for inspection and intervention",
    "city": "Trondheim",
    "place": "Trondheim, Norway",
    "lon": 10.395,
@@ -431,7 +431,7 @@
   {
    "name": "CyberRidge",
    "section": "secure",
-   "about": "фотонное шифрование оптоволоконных линий",
+   "about": "photonic-layer encryption for fibre links",
    "city": "Tel Aviv",
    "place": "Tel Aviv, Israel",
    "lon": 34.782,
@@ -441,7 +441,7 @@
   {
    "name": "CSignum",
    "section": "secure",
-   "about": "беспроводная связь через воду для подводных датчиков",
+   "about": "through-water wireless communications for subsea sensors",
    "city": "Bathgate",
    "place": "Bathgate, West Lothian, UK",
    "lon": -3.641,
@@ -451,33 +451,33 @@
   {
    "name": "Absolute Ocean Platform",
    "section": "secure",
-   "about": "облачная платформа данных морского дна (часть Terradepth)",
+   "about": "cloud platform for seabed data (part of Terradepth)",
    "city": "Cedar Park",
    "place": "Cedar Park, Texas, USA",
    "lon": -97.828,
    "lat": 30.522,
    "source": "https://www.cbinsights.com/company/sea-proven/people",
-   "note": "Продукт Terradepth: стоит в той же точке."
+   "note": "A Terradepth product: shown at the same point."
   }
  ],
  "unplaced": [
   {
    "name": "Lume",
    "section": "detect",
-   "about": "оптоволоконные датчики и ИИ для подводного мониторинга",
-   "note": "Похожая компания — Lumetec (Пасадина); совпадение не подтверждено."
+   "about": "fibre sensing and AI for subsea monitoring",
+   "note": "A similar company is Lumetec (Pasadena); the match is not confirmed."
   },
   {
    "name": "ROVing Intelligence",
    "section": "inspect",
-   "about": "инспекция подводных объектов с ROV",
-   "note": "Австралия; город не найден."
+   "about": "ROV-based underwater asset inspection",
+   "note": "Australia; city not found."
   },
   {
    "name": "Unmanned Dynamics",
    "section": "secure",
-   "about": "буи подводного позиционирования AquaGrid и акустические модемы",
-   "note": "Регистрация в Сингапуре и, возможно, Литве; штаб-квартира не подтверждена."
+   "about": "AquaGrid underwater positioning buoys and acoustic modems",
+   "note": "Registered in Singapore and possibly Lithuania; headquarters not confirmed."
   }
  ]
 }

@@ -16,7 +16,7 @@
    "lat": 51.226,
    "product": "land",
    "signal": "INDUSTRIAL CAPACITY",
-   "about": "бронетехника, боеприпасы, системы ПВО",
+   "about": "armoured vehicles, munitions, air defence",
    "web": "https://www.rheinmetall.com/de",
    "source": "https://www.wikidata.org/wiki/Q161544"
   },
@@ -29,7 +29,7 @@
    "lat": 48.05,
    "product": "electronics",
    "signal": "COMMUNICATIONS",
-   "about": "радары, оптроника, РЭБ",
+   "about": "radar, optronics, electronic warfare",
    "web": "https://www.hensoldt.net",
    "source": "https://www.wikidata.org/wiki/Q21236526"
   },
@@ -42,7 +42,7 @@
    "lat": 47.767,
    "product": "missiles",
    "signal": null,
-   "about": "ракеты и системы ПВО",
+   "about": "missiles and air defence systems",
    "web": "https://www.diehl.com/defence/en/",
    "source": "https://www.wikidata.org/wiki/Q464834"
   },
@@ -55,7 +55,7 @@
    "lat": 48.138,
    "product": "land",
    "signal": null,
-   "about": "бронетехника и артиллерия",
+   "about": "armoured vehicles and artillery",
    "web": "https://knds.de/",
    "source": "https://www.wikidata.org/wiki/Q646220"
   },
@@ -68,7 +68,7 @@
    "lat": 48.369,
    "product": "propulsion",
    "signal": "PROPULSION",
-   "about": "трансмиссии для военной техники",
+   "about": "transmissions for military vehicles",
    "web": "https://www.renk.com/",
    "source": "https://www.wikidata.org/wiki/Q2144015"
   },
@@ -81,7 +81,7 @@
    "lat": 48.567,
    "product": "missiles",
    "signal": null,
-   "about": "ракетные системы",
+   "about": "missile systems",
    "web": "http://www.mbda-deutschland.de/",
    "source": "https://www.wikidata.org/wiki/Q322708"
   },
@@ -94,7 +94,7 @@
    "lat": 48.291,
    "product": "smallarms",
    "signal": null,
-   "about": "стрелковое оружие",
+   "about": "small arms",
    "web": "https://hk-usa.com/",
    "source": "https://www.wikidata.org/wiki/Q152815"
   },
@@ -107,7 +107,7 @@
    "lat": 53.076,
    "product": "naval",
    "signal": "COMMUNICATIONS",
-   "about": "морская электроника и сонары",
+   "about": "naval electronics and sonar",
    "web": "http://www.atlas-elektronik.com/",
    "source": "https://www.wikidata.org/wiki/Q176856"
   },
@@ -120,7 +120,7 @@
    "lat": 48.138,
    "product": "software",
    "signal": "SOFTWARE",
-   "about": "программное обеспечение с ИИ для обороны",
+   "about": "AI software for defence",
    "web": "https://helsing.ai/",
    "source": "https://www.wikidata.org/wiki/Q127380521"
   },
@@ -133,7 +133,7 @@
    "lat": 52.517,
    "product": "drones",
    "signal": "UAS / UGV",
-   "about": "беспилотные системы",
+   "about": "uncrewed systems",
    "web": "https://stark-defence.com/de",
    "source": "https://www.wikidata.org/wiki/Q135412119"
   },
@@ -146,7 +146,7 @@
    "lat": 48.211,
    "product": "components",
    "signal": "COMPONENTS",
-   "about": "взрыватели и компоненты",
+   "about": "fuzes and components",
    "web": "https://junghans-defence.com",
    "source": "https://www.wikidata.org/wiki/Q1289850"
   },
@@ -159,7 +159,7 @@
    "lat": 48.138,
    "product": "land",
    "signal": null,
-   "about": "военные грузовики",
+   "about": "military trucks",
    "web": "https://www.rheinmetall.com/de/unternehmen/tochtergesellschaften/rheinmetall-man-military-vehicles",
    "source": "https://www.wikidata.org/wiki/Q2147902"
   },
@@ -172,7 +172,7 @@
    "lat": 47.654,
    "product": "propulsion",
    "signal": "PROPULSION",
-   "about": "трансмиссии и приводы (dual-use)",
+   "about": "transmissions and drives (dual-use)",
    "web": "http://www.zf.com/",
    "source": "https://www.wikidata.org/wiki/Q136119"
   },
@@ -185,7 +185,7 @@
    "lat": 48.138,
    "product": "propulsion",
    "signal": "PROPULSION",
-   "about": "авиационные двигатели",
+   "about": "aircraft engines",
    "web": "https://www.mtu.de",
    "source": "https://www.wikidata.org/wiki/Q128929"
   },
@@ -198,7 +198,7 @@
    "lat": 48.138,
    "product": "electronics",
    "signal": "COMMUNICATIONS",
-   "about": "связь и измерительная техника",
+   "about": "communications and test equipment",
    "web": "https://www.rohde-schwarz.com",
    "source": "https://www.wikidata.org/wiki/Q571907"
   },
@@ -211,7 +211,7 @@
    "lat": 48.11,
    "product": "drones",
    "signal": "UAS / UGV",
-   "about": "беспилотники",
+   "about": "drones",
    "web": "https://quantum-systems.com",
    "source": "https://www.wikidata.org/wiki/Q106298593"
   },
@@ -224,10 +224,10 @@
    "lat": 54.323,
    "product": "naval",
    "signal": null,
-   "about": "подводные лодки и корабли",
+   "about": "submarines and warships",
    "web": "https://www.tkmsgroup.com/",
    "source": "https://www.wikidata.org/wiki/Q551068",
-   "note": "Штаб-квартира в Киле по сайту компании; в Wikidata указан Эссен (головной концерн)."
+   "note": "Headquarters in Kiel per the company website; Wikidata lists Essen (parent group)."
   },
   {
    "id": "Q657096",
@@ -238,7 +238,7 @@
    "lat": 53.169,
    "product": "naval",
    "signal": null,
-   "about": "военные и гражданские суда",
+   "about": "naval and civil vessels",
    "web": "http://www.luerssen.de/",
    "source": "https://www.wikidata.org/wiki/Q657096"
   },
@@ -251,7 +251,7 @@
    "lat": 48.783,
    "product": "missiles",
    "signal": null,
-   "about": "ракетные системы",
+   "about": "missile systems",
    "web": "https://www.mbda-systems.com",
    "source": "https://www.wikidata.org/wiki/Q1475070"
   },
@@ -264,7 +264,7 @@
    "lat": 48.807,
    "product": "electronics",
    "signal": "COMMUNICATIONS",
-   "about": "электроника, связь, радары",
+   "about": "electronics, communications, radar",
    "web": "https://www.thalesgroup.com/",
    "source": "https://www.wikidata.org/wiki/Q1161666"
   },
@@ -277,7 +277,7 @@
    "lat": 48.857,
    "product": "propulsion",
    "signal": "PROPULSION",
-   "about": "двигатели и оборудование для авиации",
+   "about": "aircraft engines and equipment",
    "web": "https://www.safran-group.com",
    "source": "https://www.wikidata.org/wiki/Q1886126"
   },
@@ -290,7 +290,7 @@
    "lat": 48.857,
    "product": "air",
    "signal": null,
-   "about": "военные и деловые самолёты",
+   "about": "military and business aircraft",
    "web": "https://www.dassault-aviation.com",
    "source": "https://www.wikidata.org/wiki/Q460487"
   },
@@ -303,7 +303,7 @@
    "lat": 48.857,
    "product": "naval",
    "signal": null,
-   "about": "военные корабли и подводные лодки",
+   "about": "warships and submarines",
    "web": "https://www.naval-group.com",
    "source": "https://www.wikidata.org/wiki/Q1227511"
   },
@@ -316,7 +316,7 @@
    "lat": 48.805,
    "product": "land",
    "signal": null,
-   "about": "бронетехника и артиллерия",
+   "about": "armoured vehicles and artillery",
    "web": "https://knds.com/fr/filiales/knds-france",
    "source": "https://www.wikidata.org/wiki/Q571665"
   },
@@ -329,7 +329,7 @@
    "lat": 48.783,
    "product": "software",
    "signal": "SOFTWARE",
-   "about": "критические информационные системы",
+   "about": "critical information systems",
    "web": "http://uk.c-s.fr/",
    "source": "https://www.wikidata.org/wiki/Q2932026"
   },
@@ -342,7 +342,7 @@
    "lat": 48.993,
    "product": "propulsion",
    "signal": "PROPULSION",
-   "about": "ракетные двигатели и носители",
+   "about": "rocket engines and launchers",
    "web": "https://www.ariane.group/de/",
    "source": "https://www.wikidata.org/wiki/Q19951610"
   },
@@ -355,7 +355,7 @@
    "lat": 48.805,
    "product": "land",
    "signal": null,
-   "about": "военные автомобили",
+   "about": "military vehicles",
    "web": "https://www.arquus-defense.com",
    "source": "https://www.wikidata.org/wiki/Q3425100"
   },
@@ -368,7 +368,7 @@
    "lat": 43.125,
    "product": "naval",
    "signal": "UAS / UGV",
-   "about": "морские беспилотники и навигация",
+   "about": "maritime drones and navigation",
    "web": "https://www.exail-technologies.com/fr",
    "source": "https://www.wikidata.org/wiki/Q125849806"
   },
@@ -381,7 +381,7 @@
    "lat": 48.857,
    "product": "drones",
    "signal": "UAS / UGV",
-   "about": "дроны (dual-use)",
+   "about": "drones (dual-use)",
    "web": "http://www.parrot.com",
    "source": "https://www.wikidata.org/wiki/Q1894793"
   },
@@ -394,7 +394,7 @@
    "lat": 48.857,
    "product": "munitions",
    "signal": "COMPONENTS",
-   "about": "взрывчатые вещества и пороха",
+   "about": "explosives and propellants",
    "web": "http://www.eurenco.com",
    "source": "https://www.wikidata.org/wiki/Q10491136"
   },
@@ -407,7 +407,7 @@
    "lat": 41.893,
    "product": "air",
    "signal": "INDUSTRIAL CAPACITY",
-   "about": "вертолёты, электроника, авиация",
+   "about": "helicopters, electronics, aerospace",
    "web": "https://www.leonardo.com/",
    "source": "https://www.wikidata.org/wiki/Q910379"
   },
@@ -420,7 +420,7 @@
    "lat": 41.729,
    "product": "propulsion",
    "signal": "PROPULSION",
-   "about": "ракетные двигатели",
+   "about": "rocket motors",
    "web": "https://www.avio.com",
    "source": "https://www.wikidata.org/wiki/Q791069"
   },
@@ -433,7 +433,7 @@
    "lat": 41.727,
    "product": "munitions",
    "signal": null,
-   "about": "боеприпасы",
+   "about": "munitions",
    "web": "https://knds.com/en/subsidiaries/knds-ammo-italy",
    "source": "https://www.wikidata.org/wiki/Q7517941"
   },
@@ -446,7 +446,7 @@
    "lat": 45.539,
    "product": "smallarms",
    "signal": null,
-   "about": "стрелковое оружие",
+   "about": "small arms",
    "web": "https://www.beretta.com/en/",
    "source": "https://www.wikidata.org/wiki/Q324782"
   },
@@ -459,7 +459,7 @@
    "lat": 43.55,
    "product": "naval",
    "signal": null,
-   "about": "подводные аппараты",
+   "about": "underwater vehicles",
    "web": "https://www.drass.tech",
    "source": "https://www.wikidata.org/wiki/Q86755566"
   },
@@ -472,7 +472,7 @@
    "lat": 45.65,
    "product": "naval",
    "signal": "INDUSTRIAL CAPACITY",
-   "about": "судостроение, военные корабли",
+   "about": "shipbuilding, warships",
    "web": "https://www.fincantieri.com",
    "source": "https://www.wikidata.org/wiki/Q1327429"
   },
@@ -485,7 +485,7 @@
    "lat": 46.498,
    "product": "land",
    "signal": null,
-   "about": "военные автомобили",
+   "about": "military vehicles",
    "web": "https://www.idvgroup.com/",
    "source": "https://www.wikidata.org/wiki/Q532299"
   },
@@ -498,7 +498,7 @@
    "lat": 41.893,
    "product": "electronics",
    "signal": "COMMUNICATIONS",
-   "about": "радиоэлектронная борьба",
+   "about": "electronic warfare",
    "web": "https://www.eltgroup.net/",
    "source": "https://www.wikidata.org/wiki/Q105316282"
   },
@@ -511,7 +511,7 @@
    "lat": 45.853,
    "product": "munitions",
    "signal": null,
-   "about": "боеприпасы",
+   "about": "munitions",
    "web": "https://fiocchi.com/",
    "source": "https://www.wikidata.org/wiki/Q3745781"
   },
@@ -524,7 +524,7 @@
    "lat": 51.417,
    "product": "land",
    "signal": "INDUSTRIAL CAPACITY",
-   "about": "государственная оборонная группа",
+   "about": "state defence group",
    "web": "https://grupapgz.pl",
    "source": "https://www.wikidata.org/wiki/Q19401271"
   },
@@ -537,7 +537,7 @@
    "lat": 50.583,
    "product": "land",
    "signal": null,
-   "about": "артиллерия и гусеничная техника",
+   "about": "artillery and tracked vehicles",
    "web": "http://www.hsw.pl",
    "source": "https://www.wikidata.org/wiki/Q4899048"
   },
@@ -550,7 +550,7 @@
    "lat": 52.217,
    "product": "drones",
    "signal": "UAS / UGV",
-   "about": "беспилотники и связь",
+   "about": "drones and communications",
    "web": "https://www.wbgroup.pl/",
    "source": "https://www.wikidata.org/wiki/Q141546805"
   },
@@ -563,7 +563,7 @@
    "lat": 51.117,
    "product": "munitions",
    "signal": null,
-   "about": "боеприпасы и ракеты малой дальности",
+   "about": "munitions and short-range missiles",
    "web": "https://www.mesko.com.pl/",
    "source": "https://www.wikidata.org/wiki/Q9182018"
   },
@@ -576,7 +576,7 @@
    "lat": 51.417,
    "product": "smallarms",
    "signal": null,
-   "about": "стрелковое оружие",
+   "about": "small arms",
    "web": "https://fabrykabroni.pl",
    "source": "https://www.wikidata.org/wiki/Q3064033"
   },
@@ -589,7 +589,7 @@
    "lat": 50.312,
    "product": "land",
    "signal": null,
-   "about": "колёсные бронетранспортёры",
+   "about": "wheeled armoured vehicles",
    "web": "https://www.rosomaksa.pl/",
    "source": "https://www.wikidata.org/wiki/Q9377492"
   },
@@ -602,7 +602,7 @@
    "lat": 52.23,
    "product": "electronics",
    "signal": "COMMUNICATIONS",
-   "about": "радары",
+   "about": "radar",
    "web": "http://www.pitradwar.com",
    "source": "https://www.wikidata.org/wiki/Q9182019"
   },
@@ -615,7 +615,7 @@
    "lat": 50.294,
    "product": "drones",
    "signal": "UAS / UGV",
-   "about": "беспилотники",
+   "about": "drones",
    "web": "http://www.flytronic.pl/",
    "source": "https://www.wikidata.org/wiki/Q16545584"
   },
@@ -628,7 +628,7 @@
    "lat": 54.517,
    "product": "electronics",
    "signal": null,
-   "about": "противодроновые системы и радары",
+   "about": "counter-drone systems and radar",
    "web": "https://apsystems.tech/",
    "source": "https://www.wikidata.org/wiki/Q139882494"
   },
@@ -641,7 +641,7 @@
    "lat": 50.013,
    "product": "smallarms",
    "signal": null,
-   "about": "стрелковое оружие",
+   "about": "small arms",
    "web": "http://www.zmt.tarnow.pl",
    "source": "https://www.wikidata.org/wiki/Q9386292"
   },
@@ -654,7 +654,7 @@
    "lat": 50.433,
    "product": "munitions",
    "signal": null,
-   "about": "боеприпасы",
+   "about": "munitions",
    "web": "https://dezamet.com.pl/",
    "source": "https://www.wikidata.org/wiki/Q9206688"
   },
@@ -667,7 +667,7 @@
    "lat": 50.294,
    "product": "land",
    "signal": null,
-   "about": "танки и гусеничная техника",
+   "about": "tanks and tracked vehicles",
    "web": "https://www.bumar.gliwice.pl/",
    "source": "https://www.wikidata.org/wiki/Q9182020"
   },
@@ -680,7 +680,7 @@
    "lat": 53.083,
    "product": "components",
    "signal": "COMPONENTS",
-   "about": "электромеханические компоненты",
+   "about": "electromechanical components",
    "web": "https://belma.pl/",
    "source": "https://www.wikidata.org/wiki/Q18398025"
   },
@@ -693,7 +693,7 @@
    "lat": 50.087,
    "product": "land",
    "signal": "INDUSTRIAL CAPACITY",
-   "about": "оборонная и промышленная группа",
+   "about": "defence and industrial group",
    "web": "https://csg.com/",
    "source": "https://www.wikidata.org/wiki/Q24708162"
   },
@@ -706,7 +706,7 @@
    "lat": 49.025,
    "product": "smallarms",
    "signal": null,
-   "about": "стрелковое оружие",
+   "about": "small arms",
    "web": "https://www.czfirearms.com/",
    "source": "https://www.wikidata.org/wiki/Q14545884"
   },
@@ -719,7 +719,7 @@
    "lat": 50.087,
    "product": "smallarms",
    "signal": null,
-   "about": "стрелковое оружие и боеприпасы",
+   "about": "small arms and ammunition",
    "web": "https://www.coltczgroup.com",
    "source": "https://www.wikidata.org/wiki/Q55568528"
   },
@@ -732,7 +732,7 @@
    "lat": 50.087,
    "product": "land",
    "signal": null,
-   "about": "бронетехника и модернизация",
+   "about": "armoured vehicles and upgrades",
    "web": "http://www.excaliburarmy.com/",
    "source": "https://www.wikidata.org/wiki/Q36879048"
   },
@@ -745,7 +745,7 @@
    "lat": 50.087,
    "product": "land",
    "signal": null,
-   "about": "военные грузовики",
+   "about": "military trucks",
    "web": null,
    "source": "https://www.wikidata.org/wiki/Q60050968"
   },
@@ -758,7 +758,7 @@
    "lat": 50.039,
    "product": "munitions",
    "signal": "COMPONENTS",
-   "about": "взрывчатые вещества",
+   "about": "explosives",
    "web": "http://www.explosia.cz",
    "source": "https://www.wikidata.org/wiki/Q1443995"
   },
@@ -771,7 +771,7 @@
    "lat": 50.039,
    "product": "electronics",
    "signal": "COMMUNICATIONS",
-   "about": "пассивные радары",
+   "about": "passive radar",
    "web": "https://www.era.aero",
    "source": "https://www.wikidata.org/wiki/Q30258454"
   },
@@ -784,7 +784,7 @@
    "lat": 50.039,
    "product": "electronics",
    "signal": "COMMUNICATIONS",
-   "about": "радары и связь",
+   "about": "radar and communications",
    "web": "https://www.retia.cz/cs/",
    "source": "https://www.wikidata.org/wiki/Q30258769"
   },
@@ -797,7 +797,7 @@
    "lat": 50.039,
    "product": "electronics",
    "signal": null,
-   "about": "радары",
+   "about": "radar",
    "web": null,
    "source": "https://www.wikidata.org/wiki/Q30258402"
   },
@@ -810,7 +810,7 @@
    "lat": 49.605,
    "product": "land",
    "signal": null,
-   "about": "ремонт и производство техники",
+   "about": "vehicle repair and production",
    "web": "http://www.vop.cz/",
    "source": "https://www.wikidata.org/wiki/Q30258814"
   },
@@ -823,7 +823,7 @@
    "lat": 49.456,
    "product": "electronics",
    "signal": "COMPONENTS",
-   "about": "оптика",
+   "about": "optics",
    "web": null,
    "source": "https://www.wikidata.org/wiki/Q133042360"
   },
@@ -836,7 +836,7 @@
    "lat": 49.706,
    "product": "munitions",
    "signal": null,
-   "about": "боеприпасы",
+   "about": "munitions",
    "web": "http://www.sellier-bellot.cz/",
    "source": "https://www.wikidata.org/wiki/Q7448650"
   },
@@ -849,7 +849,7 @@
    "lat": 50.087,
    "product": "air",
    "signal": null,
-   "about": "ремонт и обслуживание авиации",
+   "about": "aircraft maintenance and repair",
    "web": "http://www.lompraha.cz/en/",
    "source": "https://www.wikidata.org/wiki/Q12032407"
   },
@@ -862,7 +862,7 @@
    "lat": 49.195,
    "product": "testing",
    "signal": "TESTING & VALIDATION",
-   "about": "военные исследования и испытания",
+   "about": "military research and testing",
    "web": "http://www.vvubrno.cz/en/",
    "source": "https://www.wikidata.org/wiki/Q30258818"
   },
@@ -875,7 +875,7 @@
    "lat": 50.087,
    "product": "testing",
    "signal": "TESTING & VALIDATION",
-   "about": "испытания и разработка",
+   "about": "testing and development",
    "web": "http://www.vtusp.cz/en/",
    "source": "https://www.wikidata.org/wiki/Q30258816"
   },
@@ -888,7 +888,7 @@
    "lat": 49.289,
    "product": "propulsion",
    "signal": "PROPULSION",
-   "about": "малые газотурбинные двигатели",
+   "about": "small gas turbine engines",
    "web": "http://www.pbsvb.cz/",
    "source": "https://www.wikidata.org/wiki/Q15406761"
   },
@@ -901,7 +901,7 @@
    "lat": 50.587,
    "product": "components",
    "signal": "COMPONENTS",
-   "about": "кристаллы и оптические компоненты",
+   "about": "crystals and optical components",
    "web": "http://www.crytur.com/",
    "source": "https://www.wikidata.org/wiki/Q30258584"
   },
@@ -914,7 +914,7 @@
    "lat": 49.195,
    "product": "software",
    "signal": "SOFTWARE",
-   "about": "распознавание речи",
+   "about": "speech recognition",
    "web": "https://www.phonexia.com/en/",
    "source": "https://www.wikidata.org/wiki/Q41567616"
   },
@@ -927,7 +927,7 @@
    "lat": 49.07,
    "product": "electronics",
    "signal": "COMPONENTS",
-   "about": "авионика и электроника",
+   "about": "avionics and electronics",
    "web": "https://www.mesit.cz/en",
    "source": "https://www.wikidata.org/wiki/Q12034807"
   },
@@ -940,7 +940,7 @@
    "lat": 50.087,
    "product": "munitions",
    "signal": null,
-   "about": "боеприпасы",
+   "about": "munitions",
    "web": "https://www.stvgroup.cz/",
    "source": "https://www.wikidata.org/wiki/Q19308300"
   }
@@ -951,7 +951,7 @@
    "name": "Ukrainian Defense Industry",
    "country": "UA",
    "product": "land",
-   "about": "государственный оборонный концерн",
+   "about": "state defence conglomerate",
    "web": "https://ukroboronprom.com.ua/",
    "source": "https://www.wikidata.org/wiki/Q3739421"
   },
@@ -960,7 +960,7 @@
    "name": "Luch",
    "country": "UA",
    "product": "missiles",
-   "about": "конструкторское бюро, ракетные системы",
+   "about": "design bureau, missile systems",
    "web": "http://luch.kiev.ua",
    "source": "https://www.wikidata.org/wiki/Q12119009"
   },
@@ -969,7 +969,7 @@
    "name": "Kharkiv Morozov Machine Building Design Bureau",
    "country": "UA",
    "product": "land",
-   "about": "бронетехника, конструкторское бюро",
+   "about": "armoured vehicles, design bureau",
    "web": "http://www.morozovkmdb.com/",
    "source": "https://www.wikidata.org/wiki/Q2425254"
   },
@@ -978,7 +978,7 @@
    "name": "Malyshev Factory",
    "country": "UA",
    "product": "land",
-   "about": "бронетехника и тяжёлое машиностроение",
+   "about": "armoured vehicles and heavy engineering",
    "web": "http://www.malyshevplant.com/",
    "source": "https://www.wikidata.org/wiki/Q2630674"
   },
@@ -987,7 +987,7 @@
    "name": "Zbroyar",
    "country": "UA",
    "product": "smallarms",
-   "about": "стрелковое оружие",
+   "about": "small arms",
    "web": "http://zbroyar.ua",
    "source": "https://www.wikidata.org/wiki/Q18965357"
   },
@@ -996,7 +996,7 @@
    "name": "SIA FORT",
    "country": "UA",
    "product": "smallarms",
-   "about": "стрелковое оружие",
+   "about": "small arms",
    "web": null,
    "source": "https://www.wikidata.org/wiki/Q5764127"
   },
@@ -1005,7 +1005,7 @@
    "name": "Mayak",
    "country": "UA",
    "product": "smallarms",
-   "about": "вооружение",
+   "about": "weapons",
    "web": "http://www.mayak.com.ua",
    "source": "https://www.wikidata.org/wiki/Q12122080"
   },
@@ -1014,7 +1014,7 @@
    "name": "Kyiv Arsenal",
    "country": "UA",
    "product": "electronics",
-   "about": "оптика и приборы",
+   "about": "optics and instruments",
    "web": "http://arsenalcdb.com.ua/",
    "source": "https://www.wikidata.org/wiki/Q704574"
   },
@@ -1023,7 +1023,7 @@
    "name": "Neo Drones Tech",
    "country": "UA",
    "product": "drones",
-   "about": "беспилотные системы",
+   "about": "uncrewed systems",
    "web": null,
    "source": "https://www.wikidata.org/wiki/Q139818851"
   },
@@ -1032,7 +1032,7 @@
    "name": "SkyCraft Ukraine",
    "country": "UA",
    "product": "drones",
-   "about": "FPV-дроны",
+   "about": "FPV drones",
    "web": "https://skycraftua.com/",
    "source": "https://www.wikidata.org/wiki/Q139700391"
   },
@@ -1041,7 +1041,7 @@
    "name": "General Chereshnya",
    "country": "UA",
    "product": "drones",
-   "about": "дроны",
+   "about": "drones",
    "web": "https://gencherry.com",
    "source": "https://www.wikidata.org/wiki/Q139732181"
   },
@@ -1050,7 +1050,7 @@
    "name": "Fire Point",
    "country": "UA",
    "product": "drones",
-   "about": "оборонные технологии, дальние дроны",
+   "about": "defence technology, long-range drones",
    "web": "https://firepoint.technology/",
    "source": "https://www.wikidata.org/wiki/Q135991328"
   },
@@ -1059,7 +1059,7 @@
    "name": "Kation",
    "country": "UA",
    "product": "electronics",
-   "about": "электроника",
+   "about": "electronics",
    "web": null,
    "source": "https://www.wikidata.org/wiki/Q130730798"
   },
@@ -1068,7 +1068,7 @@
    "name": "Radar (ex-Communist)",
    "country": "UA",
    "product": "electronics",
-   "about": "радиоэлектроника",
+   "about": "radio electronics",
    "web": "http://www.radar.net.ua/",
    "source": "https://www.wikidata.org/wiki/Q21660550"
   },
@@ -1077,7 +1077,7 @@
    "name": "Orion Radio Works",
    "country": "UA",
    "product": "electronics",
-   "about": "радиосвязь",
+   "about": "radio communications",
    "web": "http://www.orion.te.ua/",
    "source": "https://www.wikidata.org/wiki/Q21590798"
   },
@@ -1086,7 +1086,7 @@
    "name": "LORTA",
    "country": "UA",
    "product": "electronics",
-   "about": "электроника",
+   "about": "electronics",
    "web": "https://ukroboronprom.com.ua/structure/derzavne-pidprijemstvo-lvivskii-derzavnii-zavod-lorta",
    "source": "https://www.wikidata.org/wiki/Q19423989"
   },
@@ -1095,7 +1095,7 @@
    "name": "Kharkiv Schevchenko Plant",
    "country": "UA",
    "product": "electronics",
-   "about": "электроника",
+   "about": "electronics",
    "web": "http://zish.com.ua",
    "source": "https://www.wikidata.org/wiki/Q4496309"
   }

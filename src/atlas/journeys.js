@@ -8,9 +8,9 @@ export const CATEGORIES = ['PROPULSION', 'COMMUNICATIONS', 'UAS / UGV', 'COMPONE
 export const HOME = { sell: 'fac-zap', buy: 'fac-dnipro' };
 
 export const MARKETS = {
-  ua: { label: 'Украина', partner: 'st-kyiv', bank: 'bank-kyiv' },
-  eu: { label: 'ЕС', partner: 'st-frankfurt', bank: 'bank-frankfurt' },
-  us: { label: 'США', partner: 'port-newyork', bank: 'bank-newyork' },
+  ua: { label: 'Ukraine', partner: 'st-kyiv', bank: 'bank-kyiv' },
+  eu: { label: 'EU', partner: 'st-frankfurt', bank: 'bank-frankfurt' },
+  us: { label: 'USA', partner: 'port-newyork', bank: 'bank-newyork' },
 };
 // isolated nodes (no corridors): Bohun rides to them, goods never do
 const EXPERTS = {
@@ -24,28 +24,39 @@ const ACTORS = {
   us: [['act-us-buy', -73.6, 41.8], ['act-us-dist', -74.9, 41.2], ['act-us-test', -75.8, 40.6]],
 };
 export const INSIGHTS = [
-  'Покупатели в этой категории ждут сертификацию и испытания на месте.',
-  'Без местного партнёра входить долго: цикл закупки 6–12 месяцев.',
+  'Buyers in this category expect certification and local testing.',
+  'Without a local partner entry is slow: procurement cycles run 6–12 months.',
 ];
-export const ACTOR_ROLE = { buy: 'Покупатель категории (условный)', dist: 'Дистрибьютор (условный)', test: 'Испытательная площадка (условная)' };
+export const ACTOR_ROLE = { buy: 'Category buyer (illustrative)', dist: 'Distributor (illustrative)', test: 'Test site (illustrative)' };
 export const OFFERS = [
-  { id: 'tender', label: 'Конкурс', text: 'На рынке объявлен конкурс в вашей категории (демо). Bohun поможет собрать заявку.' },
-  { id: 'dist', label: 'Дистрибьютор', text: 'Дистрибьютор готов взять продукт в линейку (демо). Bohun организует знакомство.' },
-  { id: 'pilot', label: 'Пилотный проект', text: 'Покупатель готов к пилоту (демо). Bohun поможет договориться об условиях.' },
+  { id: 'tender', label: 'Tender', text: 'A tender in your category is open on this market (demo). Bohun helps prepare the bid.' },
+  { id: 'dist', label: 'Distributor', text: 'A distributor is ready to add your product (demo). Bohun arranges the introduction.' },
+  { id: 'pilot', label: 'Pilot project', text: 'A buyer is ready for a pilot (demo). Bohun helps agree the terms.' },
 ];
 
 export const CANDIDATES = {
-  'cand-brno': { lon: 16.6, lat: 49.2, place: 'Брно (тест)', fit: false, verdict: 'Не подходит: работает в другой категории.' },
-  'cand-rzeszow': { lon: 22.0, lat: 50.04, place: 'Жешув (тест)', fit: true, verdict: 'Подходит: категория совпадает, мощности есть.' },
-  'cand-zhytomyr': { lon: 28.66, lat: 50.25, place: 'Житомир (тест)', fit: false, verdict: 'Пока не подходит: свободных мощностей сейчас нет.' },
-  'cand-gdansk': { lon: 18.6, lat: 54.35, place: 'Гданьск (тест)', fit: false, verdict: 'Нужна проверка соответствия до любых переговоров.' },
-  'cand-timisoara': { lon: 21.2, lat: 45.75, place: 'Тимишоара (тест)', fit: true, verdict: 'Подходит: опыт в категории, есть свободные мощности.' },
+  'cand-brno': { lon: 16.6, lat: 49.2, place: 'Brno (test)', fit: false, verdict: 'Not a fit: works in a different category.' },
+  'cand-rzeszow': { lon: 22.0, lat: 50.04, place: 'Rzeszów (test)', fit: true, verdict: 'A fit: right category, capacity available.' },
+  'cand-zhytomyr': { lon: 28.66, lat: 50.25, place: 'Zhytomyr (test)', fit: false, verdict: 'Not yet: no free capacity right now.' },
+  'cand-gdansk': { lon: 18.6, lat: 54.35, place: 'Gdańsk (test)', fit: false, verdict: 'Needs a compliance check before any talks.' },
+  'cand-timisoara': { lon: 21.2, lat: 45.75, place: 'Timișoara (test)', fit: true, verdict: 'A fit: category experience and free capacity.' },
 };
 
+export const TYPE_EN = { mine: 'Mine', 'factory-s': 'Small plant', 'factory-m': 'Plant', 'factory-l': 'Large plant', bank: 'Bank', port: 'Port', station: 'Rail station', airfield: 'Airfield', expert: 'Expert', actor: 'Market participant' };
+export const ROLE_EN = {
+  mine: 'Raw materials at the start of the chain.', 'factory-s': 'Production, small volume.', 'factory-m': 'Production, medium volume.', 'factory-l': 'Production, large volume.',
+  bank: 'Where payment for a delivery comes back.', port: 'Transfer hub: sea.', station: 'Transfer hub: rail.', airfield: 'Transfer hub: air.',
+  expert: 'Knows the market from the inside (illustrative).', actor: 'Appears after scouting (illustrative).',
+};
+const PLACE_EN = { 'Кривбас-2': 'Kryvbas-2', Кривбас: 'Kryvbas', Днепр: 'Dnipro', Харьков: 'Kharkiv', Львов: 'Lviv', Киев: 'Kyiv', Одесса: 'Odesa', Варшава: 'Warsaw', Берлин: 'Berlin',
+  Франкфурт: 'Frankfurt', Роттердам: 'Rotterdam', Стамбул: 'Istanbul', Суэц: 'Suez', Аден: 'Aden', Сингапур: 'Singapore', Шанхай: 'Shanghai', 'Нью-Йорк': 'New York',
+  Полтавщина: 'Poltava region', Запорожье: 'Zaporizhzhia', Полтава: 'Poltava', Винница: 'Vinnytsia', Николаев: 'Mykolaiv', Краков: 'Kraków', Бухарест: 'Bucharest', Констанца: 'Constanța' };
+const enPlace = (p) => { const m = p.match(/^(.*) \(тест\)$/); const city = m ? m[1] : p; return (PLACE_EN[city] ?? city) + (m ? ' (test)' : ''); };
+const baseNodes = base.nodes.map((n) => ({ ...n, name: TYPE_EN[n.type], place: enPlace(n.place) }));
 const extraNodes = [
-  ...Object.entries(CANDIDATES).map(([id, c]) => ({ id, type: id === 'cand-brno' ? 'factory-m' : 'factory-s', name: 'Кандидат', place: c.place, lon: c.lon, lat: c.lat })),
-  ...Object.values(EXPERTS).flat().map(([id, lon, lat]) => ({ id, type: 'expert', name: 'Эксперт', place: 'Эксперт по рынку (условный)', lon, lat })),
-  ...Object.entries(ACTORS).flatMap(([, list]) => list.map(([id, lon, lat]) => ({ id, type: 'actor', role: id.split('-')[2], name: ACTOR_ROLE[id.split('-')[2]], place: 'Участник рынка (условный)', lon, lat }))),
+  ...Object.entries(CANDIDATES).map(([id, c]) => ({ id, type: id === 'cand-brno' ? 'factory-m' : 'factory-s', name: 'Candidate', place: c.place, lon: c.lon, lat: c.lat })),
+  ...Object.values(EXPERTS).flat().map(([id, lon, lat]) => ({ id, type: 'expert', name: 'Expert', place: 'Market expert (illustrative)', lon, lat })),
+  ...Object.entries(ACTORS).flatMap(([, list]) => list.map(([id, lon, lat]) => ({ id, type: 'actor', role: id.split('-')[2], name: ACTOR_ROLE[id.split('-')[2]], place: 'Market participant (illustrative)', lon, lat }))),
 ];
 const extraEdges = [
   { id: 'x1', mode: 'road', a: 'cand-brno', b: 'st-krakow' },
@@ -57,27 +68,27 @@ const extraEdges = [
 ];
 export const atlasData = {
   ...base,
-  TYPE_RU: { ...base.TYPE_RU, expert: 'Эксперт', actor: 'Участник рынка' },
-  TYPE_ROLE: { ...base.TYPE_ROLE, expert: 'Знает рынок изнутри (условный).', actor: 'Появляется после разведки (условный).' },
-  nodes: [...base.nodes, ...extraNodes],
+  TYPE_LABEL: TYPE_EN,
+  TYPE_ROLE: ROLE_EN,
+  nodes: [...baseNodes, ...extraNodes],
   edges: [...base.edges, ...extraEdges],
 };
 
 export const SELL_STEPS = [
-  'Выберите, что вы продаёте и на какой рынок.',
-  'Разведка: отправьте Богуна на рынок.',
-  'Эксперты: Богун советуется с двумя экспертами.',
-  'Мониторинг: Богун ищет возможности и приносит предложения.',
-  'Действие: выберите путь, по которому пойдут поставки.',
-  'Сопровождение: дождитесь двух поставок.',
+  'Choose what you sell and which market.',
+  'Scout: send Bohun to the market.',
+  'Experts: Bohun consults two market experts.',
+  'Monitor: Bohun watches the market and brings opportunities.',
+  'Act: choose the route your deliveries take.',
+  'Support: follow the first two deliveries.',
 ];
 export const BUY_STEPS = [
-  'Выберите, что вам нужно.',
-  'Разведка: Bohun ищет, кто это делает.',
-  'Проверка: Богун проверяет кандидатов, пока не найдёт двух подходящих.',
-  'Короткий список: сравните двух и выберите одного.',
-  'Знакомство: Богун организует встречу.',
-  'Поставки: дождитесь двух поставок.',
+  'Choose what you need.',
+  'Map: Bohun finds who makes it.',
+  'Qualify: Bohun checks candidates until two fit.',
+  'Shortlist: compare the two and pick one.',
+  'Engage: Bohun arranges the meeting.',
+  'Support: follow the first two deliveries.',
 ];
 const RESEARCH_SEC = 3, MONITOR_SEC = 4, LOADS = 2;
 

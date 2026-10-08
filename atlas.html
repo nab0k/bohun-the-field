@@ -1,77 +1,77 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>BOHUN / THE FIELD — проба A (готовая карта и модели)</title>
+  <title>BOHUN / THE FIELD</title>
   <link rel="stylesheet" href="/src/atlas/atlas.css" />
 </head>
 <body>
-  <div id="map" aria-label="Карта мира. Тяните мышью, колесо — зум, правая кнопка — поворот и наклон."></div>
+  <div id="map" aria-label="World map. Drag to move, scroll to zoom, right-drag to rotate and tilt."></div>
 
   <header class="topbar">
-    <a class="brand" href="#" aria-label="Bohun Defence"><span class="mark">↟</span><span>BOHUN / THE FIELD</span><span class="build">проба A</span></a>
+    <a class="brand" href="#" aria-label="Bohun Defence"><span class="mark">↟</span><span>BOHUN / THE FIELD</span><span class="build">prototype</span></a>
     <nav>
       <button id="open-need" type="button">I NEED SOMETHING</button>
       <button id="open-have" type="button">I HAVE SOMETHING</button>
-      <label class="look">ВИД <select id="look" aria-label="Вид карты"></select></label>
-      <button id="industry" type="button" class="ghost">ОТРАСЛЬ</button>
-      <button id="sea" type="button" class="ghost">ПОДВОДНАЯ ИНФРАСТРУКТУРА</button>
-      <button id="all" type="button" class="ghost">ВСЯ КАРТА</button>
-      <button id="reset" type="button" class="ghost">СНАЧАЛА</button>
+      <label class="look">MAP <select id="look" aria-label="Map style"></select></label>
+      <button id="industry" type="button" class="ghost">INDUSTRY</button>
+      <button id="sea" type="button" class="ghost">UNDERSEA INFRASTRUCTURE</button>
+      <button id="all" type="button" class="ghost">WORLD</button>
+      <button id="reset" type="button" class="ghost">RESTART</button>
     </nav>
   </header>
 
-  <section id="entry" class="entry" aria-label="С чего начать">
+  <section id="entry" class="entry" aria-label="Where to start">
     <div class="entry-card">
       <p class="eyebrow">UKRAINE ↔ EUROPE ↔ INTERNATIONAL</p>
       <h1>DEFENCE REQUIREMENTS. CAPABILITIES. OPPORTUNITIES.</h1>
       <p class="lead">Bohun Defence helps companies navigate defence and dual-use markets across Ukraine and internationally.</p>
-      <p class="ask">Что вы хотите сделать? Покажем на карте, как с нами работать.</p>
+      <p class="ask">WHAT ARE YOU TRYING TO MOVE FORWARD? Pick one and see on the map how we work together.</p>
       <div class="sides">
         <div class="side" id="side-need">
           <h2>I NEED SOMETHING</h2>
           <p>Find capabilities, companies and partners.</p>
-          <button type="button" class="go" data-journey="buy">КУПИТЬ / НАЙТИ ПОСТАВЩИКА</button>
-          <button type="button" class="soon" disabled>НАЙТИ ПАРТНЁРА <small>скоро</small></button>
-          <button type="button" class="soon" disabled>РАЗОБРАТЬСЯ В РЫНКЕ <small>скоро</small></button>
+          <button type="button" class="go" data-journey="buy">BUY / FIND A SUPPLIER</button>
+          <button type="button" class="soon" disabled>FIND A PARTNER <small>soon</small></button>
+          <button type="button" class="soon" disabled>UNDERSTAND A MARKET <small>soon</small></button>
         </div>
         <div class="side" id="side-have">
           <h2>I HAVE SOMETHING</h2>
           <p>Explore markets, partnerships and commercial opportunities.</p>
-          <button type="button" class="go" data-journey="sell">ПРОДАТЬ / ВЫЙТИ НА РЫНОК</button>
-          <button type="button" class="soon" disabled>УЧАСТВОВАТЬ В ТЕНДЕРЕ <small>скоро</small></button>
-          <button type="button" class="soon" disabled>НАЙТИ ПАРТНЁРА <small>скоро</small></button>
+          <button type="button" class="go" data-journey="sell">SELL / ENTER A MARKET</button>
+          <button type="button" class="soon" disabled>BID FOR A TENDER <small>soon</small></button>
+          <button type="button" class="soon" disabled>FIND A PARTNER <small>soon</small></button>
         </div>
       </div>
-      <button id="just-look" type="button" class="link">Просто посмотреть карту</button>
+      <button id="just-look" type="button" class="link">Just explore the map</button>
     </div>
   </section>
 
-  <aside id="panel" class="panel" hidden aria-label="Сценарий">
-    <div class="panel-head"><span id="j-label"></span><span class="demo-tag">ДЕМО</span><button id="j-close" type="button" aria-label="Закрыть сценарий">×</button></div>
+  <aside id="panel" class="panel" hidden aria-label="Journey">
+    <div class="panel-head"><span id="j-label"></span><span class="demo-tag">DEMO</span><button id="j-close" type="button" aria-label="Close the journey">×</button></div>
     <h2 id="j-title"></h2>
     <ol id="j-steps" class="steps"></ol>
     <div id="j-body" class="body"></div>
     <div id="j-progress" class="progress" hidden><i></i><span></span></div>
   </aside>
 
-  <aside id="card" class="card" hidden aria-label="Объект на карте">
-    <div class="panel-head"><span id="c-type"></span><button id="c-close" type="button" aria-label="Закрыть">×</button></div>
+  <aside id="card" class="card" hidden aria-label="Map object">
+    <div class="panel-head"><span id="c-type"></span><button id="c-close" type="button" aria-label="Close">×</button></div>
     <h3 id="c-name"></h3>
     <p id="c-place" class="muted"></p>
     <p id="c-text"></p>
   </aside>
 
-  <aside id="ind-card" class="card ind" hidden aria-label="Компания по открытым данным">
-    <div class="panel-head"><span>ОТРАСЛЬ · ОТКРЫТЫЕ ДАННЫЕ</span><button id="ind-close" type="button" aria-label="Закрыть">×</button></div>
+  <aside id="ind-card" class="card ind" hidden aria-label="Company from open data">
+    <div class="panel-head"><span>INDUSTRY · OPEN DATA</span><button id="ind-close" type="button" aria-label="Close">×</button></div>
     <h3 id="ind-title"></h3>
     <div id="ind-body"></div>
   </aside>
   <div class="legends"><div id="legend" class="legend" hidden></div><div id="legend-sea" class="legend sea" hidden></div></div>
 
   <p id="note" class="note" role="status" aria-live="polite"></p>
-  <p class="demo">Демонстрация: условные участники, дни и единицы, тестовые места; не реальные поставки и сделки. Границы: Natural Earth (не карта контроля территорий). Карта © OpenStreetMap, OpenFreeMap. Модели: Kenney (CC0).</p>
+  <p class="demo">Demonstration: illustrative actors, notional days and units, test locations; not real deliveries or deals. Borders: Natural Earth (not a map of territorial control). Map © OpenStreetMap, OpenFreeMap. Models: Kenney (CC0).</p>
 
   <noscript><p class="fallback">Bohun Defence helps companies navigate defence and dual-use markets across Ukraine and internationally.</p></noscript>
   <script type="module" src="/src/atlas/main.js"></script>
