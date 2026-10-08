@@ -18,6 +18,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          UPSTREAM_SHA=$(git rev-parse HEAD)
+          git checkout --orphan bohun-original-snapshot
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "Vendor unchanged IsoCity snapshot from ${UPSTREAM_SHA}"
           git remote add bohun "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git push bohun HEAD:refs/heads/vendor/isocity-original
   original-build:
