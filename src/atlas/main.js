@@ -32,7 +32,8 @@ const NODE_MODEL = {
 };
 const CAND_MODEL = M('city-kit-industrial', 'building-g');
 const MOVER_MODEL = { truck: M('car-kit', 'truck'), wagon: M('car-kit', 'delivery-flat'), train: M('train-kit', 'train-diesel-a'), ship: M('watercraft-kit', 'ship-cargo-a') };
-const MODEL_YAW = 180; // Kenney vehicles face -Z; turn them to face the direction of travel
+const MODEL_YAW = 180;
+const SHOW_VEHICLES = params.get('vehicles') === '1'; // Kenney vehicles face -Z; turn them to face the direction of travel
 
 const svg = (body, w = 64, h = 64) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${body}</svg>`)}`;
 const ICON = {
@@ -88,14 +89,32 @@ const LABELS = [
 const REGIONS = [['УКРАИНА', 31.5, 49.3, 18], ['ЧЁРНОЕ МОРЕ', 34.5, 43.2, 13], ['ЕВРОПЕЙСКИЙ СОЮЗ', 12.0, 47.8, 12]];
 
 // ---------- map ----------
+// map looks to compare (?look=...): all use free OpenFreeMap styles; relief adds a public elevation dataset (AWS Terrain Tiles)
+export const LOOKS = {
+  relief: { label: 'Рельеф (сейчас)', base: 'liberty' },
+  hills: { label: 'Рельеф + тени гор', base: 'liberty', hillshade: true },
+  parchment: { label: 'Старая карта', base: 'liberty', parchment: true, hillshade: true },
+  dark: { label: 'Тёмная', base: 'dark' },
+  light: { label: 'Светлая минимальная', base: 'positron' },
+};
+const LOOK = LOOKS[params.get('look')] ? params.get('look') : 'relief';
 async function loadStyle() {
-  const style = await fetch('https://tiles.openfreemap.org/styles/liberty').then((r) => r.json());
+  const L0 = LOOKS[LOOK];
+  const style = await fetch('https://tiles.openfreemap.org/styles/' + L0.base).then((r) => r.json());
   // the basemap's own borders and names are dropped: borders come from Natural Earth (Crimea in Ukraine), names are ours
   style.layers = style.layers.filter((l) => l['source-layer'] !== 'boundary' && l.type !== 'symbol');
   for (const l of style.layers) {
-    if (l.id === 'background') l.paint = { 'background-color': '#d9d2b4' };
-    if (l.id === 'water') l.paint = { ...l.paint, 'fill-color': '#86aab0' };
-    if (l.id === 'natural_earth') l.paint = { ...l.paint, 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 0, 0.85, 7, 0.35] };
+    if (L0.base !== 'liberty') break;
+    if (l.id === 'background') l.paint = { 'background-color': L0.parchment ? '#e8d9b0' : '#d9d2b4' };
+    if (l.id === 'water') l.paint = { ...l.paint, 'fill-color': L0.parchment ? '#a9bdb3' : '#86aab0' };
+    if (l.id === 'natural_earth') l.paint = { ...l.paint, 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 0, 0.85, 7, 0.35], ...(L0.parchment ? { 'raster-saturation': -0.55, 'raster-contrast': 0.1 } : {}) };
+    if (L0.parchment && l.type === 'fill' && /landcover|park|landuse/.test(l.id)) l.paint = { ...l.paint, 'fill-color': '#cfc290', 'fill-opacity': 0.35 };
+    if (L0.parchment && l.type === 'line' && l['source-layer'] === 'transportation') l.minzoom = Math.max(l.minzoom ?? 0, 7);
+  }
+  if (L0.hillshade) {
+    style.sources.dem = { type: 'raster-dem', tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'], encoding: 'terrarium', tileSize: 256, maxzoom: 12, attribution: 'Terrain Tiles: Mapzen, AWS Open Data' };
+    const at = style.layers.findIndex((l) => l.id === 'water');
+    style.layers.splice(at + 1, 0, { id: 'hillshade', type: 'hillshade', source: 'dem', paint: { 'hillshade-exaggeration': L0.parchment ? 0.45 : 0.6, 'hillshade-shadow-color': L0.parchment ? '#6b5a3a' : '#4a4a3a', 'hillshade-highlight-color': '#fff8e0', 'hillshade-accent-color': '#5a4a30' } });
   }
   style.sources.countries = { type: 'geojson', data: '/atlas/countries.geojson' };
   const pt = (t, lon, lat, kind, size) => ({ type: 'Feature', properties: { t, kind, size }, geometry: { type: 'Point', coordinates: [lon, lat] } });
@@ -160,6 +179,7 @@ for (const id of ['ind-cluster', 'ind-point']) { map.on('mouseenter', id, () => 
 const COUNTRY_RU = { DE: 'Германия', FR: 'Франция', IT: 'Италия', PL: 'Польша', CZ: 'Чехия', UA: 'Украина' };
 function showIndustryCard(id) {
   const box = $('#ind-card'); box.hidden = false;
+  box.querySelector('.panel-head span').textContent = 'ОТРАСЛЬ · ОТКРЫТЫЕ ДАННЫЕ';
   const body = $('#ind-body'); body.replaceChildren();
   if (!id) {
     $('#ind-title').textContent = 'Украина';
@@ -185,6 +205,61 @@ $('#ind-close').addEventListener('click', () => { $('#ind-card').hidden = true; 
 $('#legend').replaceChildren(el('b', null, 'ОТРАСЛЬ · ОТКРЫТЫЕ ДАННЫЕ'), ...Object.entries(PRODUCT).filter(([k]) => industry.companies.some((c) => c.product === k)).map(([, [label, color]]) => { const r = el('span', 'lg'); const dot = el('i'); dot.style.background = color; r.append(dot, document.createTextNode(label)); return r; }), el('small', null, 'Не клиенты и не партнёры Bohun'));
 $('#industry').addEventListener('click', () => setIndustry(!industryOn));
 setIndustry(true);
+
+// ---------- thematic layer: undersea infrastructure defence (Serhii's article, 02.01.2026) ----------
+const SECTION = { detect: ['Обнаружение', '#2f8fb0'], patrol: ['Патрулирование', '#3f8f6a'], inspect: ['Инспекция', '#c08a2a'], repair: ['Ремонт', '#b8562f'], secure: ['Защищённая связь', '#7d5aa6'] };
+const sea = await fetch('/atlas/undersea.json').then((r) => r.json());
+const seaByCity = {};
+for (const c of sea.companies) (seaByCity[c.lon + ',' + c.lat] ??= []).push(c);
+const seaFeatures = [];
+for (const list of Object.values(seaByCity)) list.forEach((c, i) => {
+  const r = list.length > 1 ? 0.12 + 0.03 * list.length : 0, a = (i / list.length) * Math.PI * 2 + 0.5;
+  seaFeatures.push({ type: 'Feature', properties: { name: c.name, color: SECTION[c.section][1] }, geometry: { type: 'Point', coordinates: [c.lon + r * Math.cos(a), c.lat + r * Math.sin(a) * 0.7] } });
+});
+map.addSource('sea', { type: 'geojson', data: { type: 'FeatureCollection', features: seaFeatures }, cluster: true, clusterRadius: 34, clusterMaxZoom: 5 });
+map.addLayer({ id: 'sea-cluster', type: 'circle', source: 'sea', filter: ['has', 'point_count'], paint: { 'circle-color': '#0e2a36', 'circle-opacity': 0.9, 'circle-stroke-color': '#7fd0e8', 'circle-stroke-width': 2, 'circle-radius': ['step', ['get', 'point_count'], 13, 5, 17, 10, 21] } });
+map.addLayer({ id: 'sea-count', type: 'symbol', source: 'sea', filter: ['has', 'point_count'], layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['Noto Sans Bold'], 'text-size': 12, 'text-allow-overlap': true }, paint: { 'text-color': '#cff3ff' } });
+map.addLayer({ id: 'sea-point', type: 'circle', source: 'sea', filter: ['!', ['has', 'point_count']], paint: { 'circle-color': ['get', 'color'], 'circle-radius': ['interpolate', ['linear'], ['zoom'], 2, 5, 9, 9], 'circle-stroke-color': '#e8fbff', 'circle-stroke-width': 2 } });
+map.addLayer({ id: 'sea-name', type: 'symbol', source: 'sea', filter: ['!', ['has', 'point_count']], minzoom: 4.5, layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Bold'], 'text-size': 11, 'text-offset': [0, 1.1], 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': '#0e2a36', 'text-halo-color': '#e8fbff', 'text-halo-width': 1.5 } });
+let seaOn = false;
+function setSea(on) {
+  seaOn = on;
+  for (const id of ['sea-cluster', 'sea-count', 'sea-point', 'sea-name']) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+  $('#sea').classList.toggle('active', on); $('#legend-sea').hidden = !on;
+  if (on) map.flyTo({ center: [-30, 40], zoom: innerWidth <= 820 ? 0.9 : 1.6, pitch: 0, bearing: 0, duration: reduced ? 0 : 1600 });
+}
+map.on('click', 'sea-cluster', async (e) => {
+  const f = e.features[0], z = await map.getSource('sea').getClusterExpansionZoom(f.properties.cluster_id);
+  map.easeTo({ center: f.geometry.coordinates, zoom: z + 0.3, duration: reduced ? 0 : 700 });
+});
+map.on('click', 'sea-point', (e) => showSeaCard(e.features[0].properties.name));
+for (const id of ['sea-cluster', 'sea-point']) { map.on('mouseenter', id, () => (map.getCanvas().style.cursor = 'pointer')); map.on('mouseleave', id, () => (map.getCanvas().style.cursor = '')); }
+const link = (text, href) => { const a = el('a', null, text); a.href = href; a.target = '_blank'; a.rel = 'noopener'; return a; };
+function showSeaCard(name) {
+  const box = $('#ind-card'); box.hidden = false;
+  const body = $('#ind-body'); body.replaceChildren();
+  box.querySelector('.panel-head span').textContent = 'ПОДВОДНАЯ ИНФРАСТРУКТУРА';
+  if (!name) {
+    $('#ind-title').textContent = 'Не размещены на карте';
+    const ul = el('ul', 'ind-list');
+    for (const c of sea.unplaced) { const li = el('li'); li.append(el('b', null, c.name), document.createTextNode(` — ${c.about}. ${c.note}`)); ul.append(li); }
+    body.append(ul);
+  } else {
+    const c = sea.companies.find((x) => x.name === name);
+    $('#ind-title').textContent = c.name;
+    body.append(el('p', 'muted', `${SECTION[c.section][0]} · штаб-квартира: ${c.place} (точка — город, не адрес)`));
+    body.append(el('p', null, c.about[0].toUpperCase() + c.about.slice(1) + '.'));
+    if (c.note) body.append(el('p', 'muted', c.note));
+    const links = el('p', 'links'); links.append(link('Статья Сергія Набока', sea.article.url), document.createTextNode(' · '), link('Источник по городу', c.source)); body.append(links);
+  }
+  body.append(el('p', 'notice', 'Открытые данные. Не клиенты и не партнёры Bohun.'));
+}
+$('#legend-sea').replaceChildren(el('b', null, 'ПОДВОДНАЯ ИНФРАСТРУКТУРА'), el('small', 'src', `По статье «${sea.article.title}», 02.01.2026`), ...Object.values(SECTION).map(([label, color]) => { const r = el('span', 'lg'); const dot = el('i'); dot.style.background = color; r.append(dot, document.createTextNode(label)); return r; }), (() => { const b = el('button', 'link', `Ещё ${sea.unplaced.length} без города`); b.type = 'button'; b.addEventListener('click', () => showSeaCard(null)); return b; })(), el('small', null, 'Не клиенты и не партнёры Bohun'));
+$('#sea').addEventListener('click', () => setSea(!seaOn));
+const lookSel = $('#look');
+for (const [k, v] of Object.entries(LOOKS)) { const o = el('option', null, v.label); o.value = k; o.selected = k === LOOK; lookSel.append(o); }
+lookSel.addEventListener('change', () => { const u = new URL(location.href); u.searchParams.set('look', lookSel.value); location.href = u.toString(); });
+setSea(false);
 
 const overlay = new MapLibreOverlay({ interleaved: true, layers: [], getCursor: ({ isHovering }) => (isHovering ? 'pointer' : 'grab'), onClick: (info) => info.object?.id && clickNode(info.object.id) });
 map.addControl(overlay);
@@ -340,7 +415,9 @@ function buyBody() {
 
 // ---------- deck.gl layers ----------
 function layers(now) {
-  const nodes = Object.values(S.world.nodes).filter((n) => !j.hidden(n.id));
+  // far out (whole planet) the 3D scene would be a pile of giant models: show only corridors and flows there
+  const farOut = map.getZoom() < 3.2;
+  const nodes = Object.values(S.world.nodes).filter((n) => !j.hidden(n.id) && !farOut);
   const buildings = nodes.filter((n) => NODE_MODEL[n.type] && !(n.id in CANDIDATES));
   const byModel = {};
   for (const n of buildings) (byModel[NODE_MODEL[n.type]] ??= []).push(n);
@@ -357,13 +434,14 @@ function layers(now) {
 
   // vehicles: background traffic and the visitor's cargo
   const movers = [];
-  for (const a of S.ambient) { const p = pointAt(a.pts, a.d); movers.push({ kind: a.kind, p, mine: false }); }
-  for (const c of S.carriers) { const s = c.steps[Math.min(c.leg, c.steps.length - 1)]; movers.push({ kind: MODES[s.mode].kind, p: pointAt(s.pts, c.d), mine: true }); }
-  for (const [kind, url] of Object.entries(MOVER_MODEL)) {
+  if (!farOut) for (const a of S.ambient) { const p = pointAt(a.pts, a.d); movers.push({ kind: a.kind, p, mine: false }); }
+  if (!farOut) for (const c of S.carriers) { const s = c.steps[Math.min(c.leg, c.steps.length - 1)]; movers.push({ kind: MODES[s.mode].kind, p: pointAt(s.pts, c.d), mine: true }); }
+  // vehicles are switched off (Serhii, 08.10: "убрать движущиеся объекты"); deliveries still run and show as moving flow lines
+  if (SHOW_VEHICLES) for (const [kind, url] of Object.entries(MOVER_MODEL)) {
     const list = movers.filter((m) => m.kind === kind);
     L.push(new ScenegraphLayer({ id: 'm-' + kind, data: list, scenegraph: url, getPosition: (m) => llOf(m.p), getOrientation: (m) => [0, MODEL_YAW - heading(m.p), 90], sizeScale: kind === 'ship' ? 900 : 3500, sizeMinPixels: kind === 'ship' ? 3 : 12, sizeMaxPixels: kind === 'ship' ? 7 : 34, _lighting: 'pbr', updateTriggers: { getPosition: now, getOrientation: now } }));
   }
-  L.push(new IconLayer({ id: 'planes', data: movers.filter((m) => m.kind === 'plane'), getIcon: () => ICON.plane, getPosition: (m) => [...llOf(m.p), 60000], getAngle: (m) => -heading(m.p), getSize: 22, sizeUnits: 'pixels', billboard: false, updateTriggers: { getPosition: now, getAngle: now } }));
+  if (SHOW_VEHICLES) L.push(new IconLayer({ id: 'planes', data: movers.filter((m) => m.kind === 'plane'), getIcon: () => ICON.plane, getPosition: (m) => [...llOf(m.p), 60000], getAngle: (m) => -heading(m.p), getSize: 22, sizeUnits: 'pixels', billboard: false, updateTriggers: { getPosition: now, getAngle: now } }));
 
   // fog until the visitor's research or scouting lifts it
   const fog = [];
@@ -375,7 +453,7 @@ function layers(now) {
   const experts = nodes.filter((n) => n.type === 'expert');
   L.push(new IconLayer({ id: 'experts', data: experts, getIcon: () => ICON.expert, getPosition: (n) => [n.lon, n.lat, 20000], getSize: 34, sizeUnits: 'pixels', pickable: true }));
   const bp = game.bohunPos();
-  L.push(new IconLayer({ id: 'bohun', data: [bp], getIcon: () => ICON.rider, getPosition: (p) => llOf(p), getSize: 84, sizeUnits: 'pixels', updateTriggers: { getPosition: now } }));
+  L.push(new IconLayer({ id: 'bohun', data: farOut ? [] : [bp], getIcon: () => ICON.rider, getPosition: (p) => llOf(p), getSize: 84, sizeUnits: 'pixels', updateTriggers: { getPosition: now } }));
 
   // what to press next: rings and labels
   const hints = hintList();

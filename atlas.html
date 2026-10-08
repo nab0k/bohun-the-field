@@ -14,7 +14,9 @@
     <nav>
       <button id="open-need" type="button">I NEED SOMETHING</button>
       <button id="open-have" type="button">I HAVE SOMETHING</button>
+      <label class="look">ВИД <select id="look" aria-label="Вид карты"></select></label>
       <button id="industry" type="button" class="ghost">ОТРАСЛЬ</button>
+      <button id="sea" type="button" class="ghost">ПОДВОДНАЯ ИНФРАСТРУКТУРА</button>
       <button id="all" type="button" class="ghost">ВСЯ КАРТА</button>
       <button id="reset" type="button" class="ghost">СНАЧАЛА</button>
     </nav>
@@ -66,7 +68,7 @@
     <h3 id="ind-title"></h3>
     <div id="ind-body"></div>
   </aside>
-  <div id="legend" class="legend" hidden></div>
+  <div class="legends"><div id="legend" class="legend" hidden></div><div id="legend-sea" class="legend sea" hidden></div></div>
 
   <p id="note" class="note" role="status" aria-live="polite"></p>
   <p class="demo">Демонстрация: условные участники, дни и единицы, тестовые места; не реальные поставки и сделки. Границы: Natural Earth (не карта контроля территорий). Карта © OpenStreetMap, OpenFreeMap. Модели: Kenney (CC0).</p>

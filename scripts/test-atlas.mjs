@@ -85,3 +85,15 @@ console.log(`${n} atlas checks passed`);
   assert.match(ind.notice, /Not clients or partners of Bohun/);
   console.log(`ok  industry: ${ind.companies.length} companies in the pilot countries with sources; Ukraine ${ind.ukraine.length} names without locations; no Russia or Belarus`);
 }
+{
+  const sea = JSON.parse(fs.readFileSync(new URL('../public/atlas/undersea.json', import.meta.url)));
+  assert.match(sea.article.url, /linkedin\.com\/pulse\/undersea-infrastructure/);
+  for (const c of sea.companies) {
+    assert.ok(['detect', 'patrol', 'inspect', 'repair', 'secure'].includes(c.section), c.name);
+    assert.match(c.source, /^https:\/\//, c.name);
+    assert.ok(Number.isFinite(c.lon) && Number.isFinite(c.lat), c.name);
+    assert.ok(!/Russia|Belarus|Росси|Беларус/.test(c.place), `${c.name}: excluded country`);
+  }
+  assert.equal(sea.companies.length + sea.unplaced.length, 47, 'all 47 companies of the article are accounted for');
+  console.log(`ok  undersea: ${sea.companies.length} placed + ${sea.unplaced.length} unplaced = 47 from the article, each with a source`);
+}
