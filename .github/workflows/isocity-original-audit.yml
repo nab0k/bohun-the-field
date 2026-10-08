@@ -1,0 +1,31 @@
+name: IsoCity original reproducibility audit
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/isocity-original-audit.yml'
+  workflow_dispatch:
+jobs:
+  original-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Clone upstream IsoCity without modifications
+        run: git clone --depth 1 --filter=blob:none https://github.com/amilich/isometric-city.git upstream-isocity
+      - name: Record upstream commit
+        run: git -C upstream-isocity rev-parse HEAD
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install original dependencies
+        working-directory: upstream-isocity
+        run: npm install --no-audit --no-fund
+      - name: Build original
+        working-directory: upstream-isocity
+        run: npm run build
+      - name: Upload build report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: isocity-original-build-log
+          path: upstream-isocity/.next
+          if-no-files-found: ignore
