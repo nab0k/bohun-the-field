@@ -1,9 +1,21 @@
 # BOHUN / THE FIELD
 
-Interactive commercial website for Bohun Defence.
+Interactive commercial website for Bohun Defence. Developed in reviewed, deployable increments.
 
-Development workflow: issue → feature branch → automated checks → pull request → review → merge → deployment.
+- Existing production site: https://bohundefence.com (not modified by this project)
+- Sprint tracking: [Issue #1](https://github.com/nab0k/bohun-the-field/issues/1)
+- Workflow: feature branch → CI → PR → review → merge → GitHub Pages
 
-The existing bohundefence.com website is maintained in a separate repository and is not affected by this project.
+## Local development
 
-All initial map events and routes are illustrative examples, not live operational information.
+Node.js 22 recommended.
+
+```bash
+npm install
+npm run dev
+npm run build
+```
+
+## Prototype scope
+
+This preview uses MapLibre and CARTO Dark Matter map tiles. The six country signals are **illustrative**, not actual requests, tenders, suppliers or routes. See `docs/SPRINT-00.md` for scope and review criteria.
