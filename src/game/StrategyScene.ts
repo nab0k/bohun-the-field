@@ -1,4 +1,4 @@
-import Phaser from 'phaser';
+import * as Phaser from 'phaser';
 
 export type Site = { id: string; label: string; kind: string; description: string };
 const sites: Site[] = [

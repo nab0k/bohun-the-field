@@ -9,7 +9,7 @@ export default function StrategyGame({ onSelect }: { onSelect: (site: Site) => v
     let game: import('phaser').Game | undefined;
     let cancelled = false;
     void (async () => {
-      const Phaser = (await import('phaser')).default;
+      const Phaser = await import('phaser');
       const { StrategyScene } = await import('./StrategyScene');
       if (cancelled || !host.current) return;
       game = new Phaser.Game({
