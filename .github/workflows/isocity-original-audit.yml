@@ -1,0 +1,79 @@
+name: IsoCity original reproducibility audit
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/isocity-original-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  import-original:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Clone complete upstream IsoCity source and history
+        run: git clone --depth 1 https://github.com/amilich/isometric-city.git original
+      - name: Preserve exact upstream snapshot in separate branch
+        working-directory: original
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          UPSTREAM_SHA=$(git rev-parse HEAD)
+          git checkout --orphan bohun-original-snapshot
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "Vendor unchanged IsoCity snapshot from ${UPSTREAM_SHA}"
+          git remote add bohun "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push bohun HEAD:refs/heads/vendor/isocity-original
+  original-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Clone upstream IsoCity without modifications
+        run: git clone --depth 1 --filter=blob:none https://github.com/amilich/isometric-city.git upstream-isocity
+      - name: Record upstream commit
+        run: git -C upstream-isocity rev-parse HEAD
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install original dependencies
+        working-directory: upstream-isocity
+        run: npm install --no-audit --no-fund
+      - name: Inspect font network connectivity
+        run: |
+          curl -IL --max-time 15 'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700' || true
+      - name: Build original
+        working-directory: upstream-isocity
+        run: npm run build
+      - name: Upload build report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: isocity-original-build-log
+          path: upstream-isocity/.next
+          if-no-files-found: ignore
+
+  preview-static-export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout independent web preview branch
+        uses: actions/checkout@v4
+        with:
+          ref: preview/isocity-web
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Exclude multiplayer dynamic routes from static preview
+        run: |
+          rm -rf 'src/app/coop/[roomCode]' 'src/app/coaster/coop/[roomCode]'
+      - name: Install dependencies
+        run: npm ci
+      - name: Build static preview
+        run: npm run build
+      - name: Upload static site
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: isocity-static-preview
+          path: out/
