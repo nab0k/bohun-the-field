@@ -36,6 +36,10 @@ let game, S;
 const coins = [];
 game = createFlows({ data, seed: 7, bohunStart: data.BOHUN_START, onEvent });
 S = game.state;
+// two flows run from the start so the map is alive; the third slot stays free for the visitor's task
+const DEFAULT_FLOWS = [['fac-kharkiv', 'port-odesa', 'cheap'], ['fac-krakow', 'bank-kyiv', 'cheap']];
+const defaultIds = new Set();
+function seedDefaults() { defaultIds.clear(); for (const [a, b, o] of DEFAULT_FLOWS) { const r = game.startFlow(a, b, o); if (r.ok) defaultIds.add(r.flowId); } }
 window.__flows = game; // test hook
 
 function stage() {
@@ -65,7 +69,7 @@ function onEvent(type, p) {
     }
   }
   if (type === 'flowStarted' || type === 'flowStopped') renderFlows();
-  if (type === 'reset') { Object.assign(ui, { selected: null, mode: 'idle', source: null, target: null }); mission = { delivered: 0, flowId: null, opt: null, done: false, results: [] }; renderCard(); renderPick(); renderFlows(); }
+  if (type === 'reset') { setTimeout(seedDefaults, 0); Object.assign(ui, { selected: null, mode: 'idle', source: null, target: null }); mission = { delivered: 0, flowId: null, opt: null, done: false, results: [] }; renderCard(); renderPick(); renderFlows(); }
 }
 
 let noteTimer;
@@ -161,7 +165,7 @@ function renderFlows() {
     const li = document.createElement('li');
     const a = S.world.nodes[f.fromId], b = S.world.nodes[f.toId];
     const t = document.createElement('span');
-    t.textContent = `${short(a.place)} → ${short(b.place)}: ${f.label}, ≈ ${f.days} усл. дн.`;
+    t.textContent = `${short(a.place)} → ${short(b.place)}: ${f.label}, ≈ ${f.days} усл. дн.` + (defaultIds.has(f.id) ? ' · идёт с начала' : '');
     const x = document.createElement('button');
     x.type = 'button'; x.textContent = 'СТОП'; x.setAttribute('aria-label', 'Остановить поток');
     x.addEventListener('click', () => game.stopFlow(f.id));
@@ -174,7 +178,7 @@ $('#o-cancel').addEventListener('click', cancelPick);
 $('#sel-close').addEventListener('click', () => { if (ui.mode !== 'idle') return cancelPick(); ui.selected = null; renderCard(); });
 function cancelPick() { ui.mode = 'idle'; ui.source = ui.target = null; renderPick(); renderCard(); }
 window.addEventListener('keydown', (e) => e.key === 'Escape' && ui.mode !== 'idle' && cancelPick());
-$('#reset').addEventListener('click', () => { game.reset(); window.__scene?.home(); note('Сначала.'); });
+$('#reset').addEventListener('click', () => { setExplore(false); game.reset(); window.__scene?.home(); note('Сначала.'); });
 $('#all').addEventListener('click', () => window.__scene?.toggleAll());
 function setLens(v) {
   ui.lens = v;
@@ -184,16 +188,20 @@ function setLens(v) {
 }
 $('#lens-need').addEventListener('click', () => setLens('need'));
 $('#lens-have').addEventListener('click', () => setLens('have'));
+// the first drag, wheel or minimap click hands the camera to the visitor and folds the hero card away;
+// "СНАЧАЛА" gives it back to the site. The view does not jump when the hero card frees its space.
 function setExplore(on) {
+  if (ui.explore === on) return;
+  const sc = window.__scene, f0 = sc?.free();
   ui.explore = on;
   document.body.classList.toggle('explore', on);
-  $('#explore').setAttribute('aria-pressed', String(on));
-  $('#explore').textContent = on ? 'ВЕРНУТЬ ПРЕЗЕНТАЦИЮ' : 'ДВИГАТЬ КАРТУ';
-  $('#mode-label').textContent = on ? 'РЕЖИМ / КАРТУ ДВИГАЕТЕ ВЫ' : 'РЕЖИМ / ПРЕЗЕНТАЦИЯ';
-  window.__scene?.layout();
-  if (!on) window.__scene?.home();
+  $('#mode-label').textContent = on ? 'КАРТУ ДВИГАЕТЕ ВЫ · КОЛЕСО: ЗУМ' : 'ТЯНИТЕ КАРТУ · КОЛЕСО: ЗУМ';
+  if (!sc) return;
+  sc.layout();
+  const f1 = sc.free(), k = 1 / sc.zoomv;
+  sc.cx += (f1.ox - f0.ox) * k; sc.cy -= (f1.oy - f0.oy) * k;
+  if (sc.tgt) { sc.tgt.cx += (f1.ox - f0.ox) / sc.tgt.zoom; sc.tgt.cy -= (f1.oy - f0.oy) / sc.tgt.zoom; }
 }
-$('#explore').addEventListener('click', () => setExplore(!ui.explore));
 
 window.__choose = (id) => chooseNode(id); // test hook
 function chooseNode(id) {
@@ -340,7 +348,9 @@ class FieldScene extends Phaser.Scene {
   }
   create() {
     window.__scene = this;
-    this.add.image(0, 0, 'world').setOrigin(0, 0).setDisplaySize(WORLD.width, WORLD.height).setDepth(0);
+    const Wd = WORLD.width;
+    this.add.image(0, 0, 'world').setOrigin(0, 0).setDisplaySize(Wd, WORLD.height).setDepth(0);
+    this.copies = [-Wd, Wd].map((o) => this.add.image(o, 0, 'world').setOrigin(0, 0).setDisplaySize(Wd, WORLD.height).setDepth(0));
     const max = this.renderer.getMaxTextureSize?.() ?? 4096, bw = geo.box.x1 - geo.box.x0;
     const res = Math.max(2, Math.min(6, Math.floor(((max - 64) / bw) * 10) / 10));
     const t0 = performance.now();
@@ -348,6 +358,7 @@ class FieldScene extends Phaser.Scene {
     this.paintMs = Math.round(performance.now() - t0); this.heroRes = res;
     this.textures.addCanvas('hero', hero.canvas);
     this.heroImg = this.add.image(geo.box.x0, geo.box.y0, 'hero').setOrigin(0, 0).setDisplaySize(bw, geo.box.y1 - geo.box.y0).setDepth(1);
+    for (const o of [-Wd, Wd]) this.copies.push(this.add.image(geo.box.x0 + o, geo.box.y0, 'hero').setOrigin(0, 0).setDisplaySize(bw, geo.box.y1 - geo.box.y0).setDepth(1));
 
     this.lines = this.add.graphics().setDepth(2);
     this.nodesG = this.add.graphics().setDepth(4);
@@ -356,6 +367,7 @@ class FieldScene extends Phaser.Scene {
     const txt = (size, color, extra = {}) => ({ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: size + 'px', fontStyle: '800', color, stroke: '#0d100b', strokeThickness: 4, resolution: dpr * 2, ...extra });
     this.cityLabels = geo.cities.filter((c) => CITY_RU[c.name]).map((c) => this.add.text(c.x, c.y + 3, CITY_RU[c.name], txt(11, '#d8d3b0')).setOrigin(0.5, 0).setDepth(3).setAlpha(0.8));
     this.regionLabels = REGIONS.map(([name, lon, lat, sz]) => { const p = project(lon, lat); return this.add.text(p.x, p.y, name.split('').join(' '), txt(Math.round(12 * sz), '#d8d3b0', { strokeThickness: 0 })).setOrigin(0.5).setDepth(3).setAlpha(0.42); });
+    for (const t of [...this.cityLabels, ...this.regionLabels]) t.homeX = t.x;
     this.label = this.add.text(0, 0, '', txt(13, '#fff4c2')).setOrigin(0.5, 1).setDepth(10).setVisible(false);
     this.hintLabel = this.add.text(0, 0, '', txt(14, '#ffd54a', { strokeThickness: 5 })).setOrigin(0.5, 1).setDepth(11).setVisible(false);
     this.bohun = this.add.image(0, 0, 'rider').setOrigin(rider.anchor.x / rider.size[0], rider.anchor.y / rider.size[1]).setDepth(8);
@@ -364,21 +376,22 @@ class FieldScene extends Phaser.Scene {
     this.mini = this.cameras.add(0, 0, 10, 10);
     this.mini.setBackgroundColor('#0d100b');
     this.cameras.main.ignore([this.miniGfx]);
-    this.mini.ignore([this.lines, this.nodesG, this.dyn, this.label, this.hintLabel, this.bohun, ...this.cityLabels, ...this.regionLabels]);
+    this.mini.ignore([...this.copies, this.lines, this.nodesG, this.dyn, this.label, this.hintLabel, this.bohun, ...this.cityLabels, ...this.regionLabels]);
     this.layout();
 
-    this.minZoom = () => Math.min(innerWidth / WORLD.width, innerHeight / WORLD.height);
+    this.minZoom = () => innerWidth / WORLD.width; // whole planet across the screen; further out it would repeat
     this.zoomv = 1; this.cx = WORLD.width / 2; this.cy = WORLD.height / 2; this.all = false;
     this.home(true);
     this.drag = null;
     this.input.on('pointerdown', (p) => { this.drag = { x: p.x, y: p.y, moved: false, mini: this.inMini(p) }; });
     this.input.on('pointermove', (p) => this.onMove(p));
     this.input.on('pointerup', (p) => { const d = this.drag; this.drag = null; if (d && !d.moved) this.click(p); });
-    this.input.on('wheel', (p, _o, _dx, dy) => { if (!ui.explore) return this.askExplore(); this.tgt = null; this.zoomAt(p, Math.exp(-dy * 0.0012)); });
+    this.input.on('wheel', (p, _o, _dx, dy) => { if (!ui.explore) setExplore(true); this.tgt = null; this.zoomAt(p, Math.exp(-dy * 0.0012)); });
     this.scale.on('resize', () => this.layout());
     renderFlows(); renderMission();
   }
-  askExplore() { note('Чтобы двигать и приближать карту, нажмите «ДВИГАТЬ КАРТУ» вверху.'); }
+  // nearest copy of a world x to the camera: the planet wraps around east-west
+  wrapOff(x) { return WORLD.width * Math.round((this.cx - x) / WORLD.width); }
 
   // screen areas covered by HTML panels, so the camera centres the scene in what is left
   occupied() {
@@ -398,7 +411,7 @@ class FieldScene extends Phaser.Scene {
     if (this.mini) this.mini.setVisible(getComputedStyle($('#mini')).display !== 'none'); // hidden frame = hidden camera
     if (this.mini) { const r = this.miniRect; this.mini.setViewport(r.x, r.y, r.w, r.h); this.mini.setZoom(r.w / WORLD.width); this.mini.centerOn(WORLD.width / 2, WORLD.height / 2); }
   }
-  fly(cx, cy, zoom, now) { this.tgt = { cx, cy, zoom: Phaser.Math.Clamp(zoom, this.minZoom(), 9) }; this.all = false; if (now || reduced) { Object.assign(this, { cx, cy, zoomv: this.tgt.zoom }); this.tgt = null; } }
+  fly(cx, cy, zoom, now) { cx += this.wrapOff(cx); this.tgt = { cx, cy, zoom: Phaser.Math.Clamp(zoom, this.minZoom(), 9) }; this.all = false; if (now || reduced) { Object.assign(this, { cx, cy, zoomv: this.tgt.zoom }); this.tgt = null; } }
   fitBox(x0, y0, x1, y1, pad = 1.12, now) { const f = this.free(); this.fly((x0 + x1) / 2, (y0 + y1) / 2, Math.min(f.w / ((x1 - x0) * pad), f.h / ((y1 - y0) * pad)), now); }
   fitPoints(pts, pad = 1.35) { const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y); this.fitBox(Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys), pad); }
   // presentation home: Ukraine fills the screen as in v0.3 (panels float over the edges); Crimea always in frame
@@ -408,12 +421,13 @@ class FieldScene extends Phaser.Scene {
     this.fly((a.x + b.x) / 2, (a.y + b.y) / 2, z, now);
   }
   focusNode(id, zoom = 3.5) { const n = S.world.nodes[id]; this.fly(n.x, n.y, zoom); }
-  toggleAll() { if (this.all) return this.home(); this.fly(WORLD.width / 2, WORLD.height / 2, this.minZoom()); this.all = true; }
+  worldView() { this.fly(project(31, 0).x, WORLD.height / 2, this.minZoom()); }
+  toggleAll() { if (this.all) return this.home(); this.worldView(); this.all = true; }
   onStage(st) {
     if (st === 1) this.home();
-    else if (st === 3) { this.fly(WORLD.width / 2, WORLD.height / 2, this.minZoom()); this.markTargets(); }
+    else if (st === 3) { this.worldView(); this.markTargets(); }
     else if (st === 5) { const f = S.flows.find((x) => x.id === mission.flowId); if (f) this.fitPoints(f.steps.flatMap((s) => s.pts)); }
-    else if (st === 'done') this.fly(WORLD.width / 2, WORLD.height / 2, this.minZoom());
+    else if (st === 'done') this.worldView();
   }
   zoomAt(p, f) {
     const cam = this.cameras.main, w0 = cam.getWorldPoint(p.x, p.y);
@@ -432,8 +446,7 @@ class FieldScene extends Phaser.Scene {
     const d = this.drag;
     if (d?.mini && p.isDown) return this.jumpMini(p);
     if (!d || !p.isDown) { this.hover = this.pick(p); return; }
-    if (Math.abs(p.x - d.x) + Math.abs(p.y - d.y) > 8 * dpr) { if (!d.moved && !ui.explore && !d.mini) this.askExplore(); d.moved = true; }
-    if (!ui.explore) return;
+    if (Math.abs(p.x - d.x) + Math.abs(p.y - d.y) > 8 * dpr) { if (!d.moved && !ui.explore && !d.mini) setExplore(true); d.moved = true; }
     if (d.moved && !d.mini) { this.tgt = null; this.cx -= (p.x - p.prevPosition.x) / (this.zoomv * dpr); this.cy -= (p.y - p.prevPosition.y) / (this.zoomv * dpr); this.all = false; }
     const a = this.input.pointer1, b = this.input.pointer2;
     if (a.isDown && b.isDown) {
@@ -447,7 +460,7 @@ class FieldScene extends Phaser.Scene {
     if (this.inMini(p)) return null;
     const w = this.cameras.main.getWorldPoint(p.x, p.y), k = 1 / this.zoomv, u = this.unit() ;
     let best = null, bd = Math.max(22 * k, 16 * u);
-    for (const n of Object.values(S.world.nodes)) { const d = Math.hypot(w.x - n.x, w.y - (n.y - 6 * u)); if (d < bd) { bd = d; best = n.id; } }
+    for (const n of Object.values(S.world.nodes)) { const d = Math.hypot(w.x - n.x - this.wrapOff(n.x), w.y - (n.y - 6 * u)); if (d < bd) { bd = d; best = n.id; } }
     return best;
   }
   unit() { return Phaser.Math.Clamp(this.zoomv / 3.2, 0.5, 1.5) / this.zoomv; } // building scale: grows a little with zoom
@@ -464,7 +477,9 @@ class FieldScene extends Phaser.Scene {
       if (Math.abs(t.cx - this.cx) < 1 && Math.abs(t.cy - this.cy) < 1 && Math.abs(Math.log(t.zoom / this.zoomv)) < 0.01) this.tgt = null;
     }
     const cam = this.cameras.main, k = 1 / this.zoomv, f = this.free(), u = this.unit();
-    this.cx = Phaser.Math.Clamp(this.cx, 0, WORLD.width); this.cy = Phaser.Math.Clamp(this.cy, 0, WORLD.height);
+    const wrapped = ((this.cx % WORLD.width) + WORLD.width) % WORLD.width;
+    if (this.tgt) this.tgt.cx += wrapped - this.cx;
+    this.cx = wrapped; this.cy = Phaser.Math.Clamp(this.cy, 0, WORLD.height);
     cam.setZoom(this.zoomv * dpr); cam.centerOn(this.cx - f.ox * k, this.cy + f.oy * k);
     OW = 0.8 * k;
 
@@ -472,22 +487,24 @@ class FieldScene extends Phaser.Scene {
     L.clear(); N.clear(); D.clear(); Mg.clear();
     const sel = ui.selected, st = stage(), far = this.zoomv < 0.6;
     const vw = cam.worldView, pad = 60 * k;
+    const sh = (pts) => { const o = this.wrapOff(pts[0].x); return o ? pts.map((q) => ({ x: q.x + o, y: q.y })) : pts; };
+    const at = (n) => { const o = this.wrapOff(n.x); return o ? { ...n, x: n.x + o } : n; };
     const inView = (p) => p.x > vw.x - pad && p.x < vw.right + pad && p.y > vw.y - pad && p.y < vw.bottom + pad;
 
     // corridors in the v0.3 grammar: roads dark with a dashed light centre, rails with ties, sea lanes and air faint
-    for (const e of Object.values(S.world.edges)) {
-      const hot = sel && (e.a === sel || e.b === sel);
+    for (const e0 of Object.values(S.world.edges)) {
+      const e = { ...e0, pts: sh(e0.pts) }, hot = sel && (e.a === sel || e.b === sel);
       if (e.mode === 'road') { L.lineStyle((hot ? 5.4 : 4.4) * k, 0x1b1d14, 0.7); L.strokePoints(e.pts, false, false); L.lineStyle((hot ? 3.2 : 2.6) * k, hot ? 0xb59a5c : 0x7a6a48, 0.95); L.strokePoints(e.pts, false, false); }
       else if (e.mode === 'rail') { if (!far) { L.lineStyle(1.2 * k, hot ? 0xf0d371 : 0x9a927a, 0.85); ties(L, e.pts, 4.5 * k, 2.8 * k); } L.lineStyle((hot ? 2.2 : 1.6) * k, 0x24221c, 1); L.strokePoints(e.pts, false, false); }
       else if (e.mode === 'sea') { L.lineStyle((hot ? 2 : 1.4) * k, hot ? 0xf0d371 : 0x9fc3c4, hot ? 0.9 : 0.45); dashed(L, e.pts, 9 * k, 6 * k); }
       else { L.lineStyle((hot ? 1.6 : 1) * k, hot ? 0xf0d371 : 0xe6e0c7, hot ? 0.8 : far ? 0.3 : 0.16); dashed(L, e.pts, 3 * k, 6 * k); }
     }
     const off = (time / 40) * k;
-    for (const fl of S.flows) for (const s of fl.steps) { L.lineStyle(6 * k, 0x0d100b, 0.55); L.strokePoints(s.pts, false, false); L.lineStyle(3.2 * k, 0xe2c667, 1); dashed(L, s.pts, 12 * k, 7 * k, off); }
+    for (const fl of S.flows) for (const s of fl.steps) { const pts = sh(s.pts); L.lineStyle(6 * k, 0x0d100b, 0.55); L.strokePoints(pts, false, false); L.lineStyle(3.2 * k, 0xe2c667, 1); dashed(L, pts, 12 * k, 7 * k, off); }
 
     // nodes: lens ring under, building on top
     const smokes = [];
-    const nodes = Object.values(S.world.nodes).sort((a, b) => a.y - b.y);
+    const nodes = Object.values(S.world.nodes).map(at).sort((a, b) => a.y - b.y);
     for (const n of nodes) {
       if (!inView(n)) continue;
       const hit = lensHit(ui.lens, n.type), a = hit ? 1 : 0.72;
@@ -500,13 +517,13 @@ class FieldScene extends Phaser.Scene {
       D.fillStyle(0xb9b8a8, 0.32 * (1 - age)); D.fillCircle(s.x + age * 6 * u, s.y - age * 15 * u, (1.6 + age * 3.6) * u);
     }
 
-    for (const am of S.ambient) { const p = pointAt(am.pts, am.d); if (inView(p)) drawMover(D, am.kind, p, Phaser.Math.Clamp(this.zoomv / 3, 0.6, 1.4) * k * 1.1, 0.95, false); }
-    for (const c of S.carriers) { const s = c.steps[Math.min(c.leg, c.steps.length - 1)]; drawMover(D, MODES[s.mode].kind, pointAt(s.pts, c.d), Phaser.Math.Clamp(this.zoomv / 3, 0.7, 1.5) * k * 1.3, 1, true); }
+    for (const am of S.ambient) { const p = at(pointAt(am.pts, am.d)); if (inView(p)) drawMover(D, am.kind, p, Phaser.Math.Clamp(this.zoomv / 3, 0.6, 1.4) * k * 1.1, 0.95, false); }
+    for (const c of S.carriers) { const s = c.steps[Math.min(c.leg, c.steps.length - 1)]; drawMover(D, MODES[s.mode].kind, at(pointAt(s.pts, c.d)), Phaser.Math.Clamp(this.zoomv / 3, 0.7, 1.5) * k * 1.3, 1, true); }
     for (let i = coins.length - 1; i >= 0; i--) {
       const c = coins[i]; c.age += delta / 1000;
       if (c.age > 1.4) { coins.splice(i, 1); continue; }
       if (c.age < 0) continue;
-      const a = 1 - c.age / 1.4, y = c.y - 20 * u - c.age * 40 * k, x = c.x + (c.kind ? 8 : -8) * k * c.age;
+      const a = 1 - c.age / 1.4, y = c.y - 20 * u - c.age * 40 * k, x = c.x + this.wrapOff(c.x) + (c.kind ? 8 : -8) * k * c.age;
       if (c.kind) { D.fillStyle(0x6a9f4f, a); D.fillRect(x - 7 * k, y - 4 * k, 14 * k, 8 * k); D.lineStyle(1.2 * k, 0x2f4f22, a); D.strokeRect(x - 7 * k, y - 4 * k, 14 * k, 8 * k); }
       else { D.fillStyle(0xf5c542, a); D.fillCircle(x, y, 6 * k); D.lineStyle(1.2 * k, 0x8d6a28, a); D.strokeCircle(x, y, 6 * k); }
     }
@@ -516,16 +533,17 @@ class FieldScene extends Phaser.Scene {
     let hintId = null, hintText = '';
     if (st === 1) { hintId = M.source; hintText = 'НАЖМИТЕ СЮДА'; }
     if (st === 3) { hintId = M.target; hintText = 'НАЖМИТЕ НА БАНК'; }
-    if (hintId) { const n = S.world.nodes[hintId]; D.lineStyle(3 * k, 0xffd54a, 0.5 + 0.5 * pulse); D.strokeEllipse(n.x, n.y + 2 * u, (2.2 + 0.25 * pulse) * gr, (1.0 + 0.12 * pulse) * gr); this.hintLabel.setVisible(true).setScale(k).setPosition(n.x, n.y - (far ? 8 * k : 30 * u)).setText(hintText); } else this.hintLabel.setVisible(false);
-    if (ui.mode === 'pick') for (const id of this.targets) { const n = S.world.nodes[id]; D.lineStyle(2 * k, 0x9fc48a, 0.95); D.strokeEllipse(n.x, n.y + 2 * u, 1.7 * gr, 0.8 * gr); }
-    if (ui.mode === 'pick' && ui.source) { const n = S.world.nodes[ui.source]; D.lineStyle(3 * k, 0xffd54a, 1); D.strokeEllipse(n.x, n.y + 2 * u, 1.9 * gr, 0.9 * gr); }
-    if (sel && ui.mode !== 'pick' && sel !== hintId) { const n = S.world.nodes[sel]; D.lineStyle(2.4 * k, 0xf0d371, 0.7 + 0.3 * pulse); D.strokeEllipse(n.x, n.y + 2 * u, 1.9 * gr, 0.9 * gr); }
-    const hv = this.hover && S.world.nodes[this.hover];
+    if (hintId) { const n = at(S.world.nodes[hintId]); D.lineStyle(3 * k, 0xffd54a, 0.5 + 0.5 * pulse); D.strokeEllipse(n.x, n.y + 2 * u, (2.2 + 0.25 * pulse) * gr, (1.0 + 0.12 * pulse) * gr); this.hintLabel.setVisible(true).setScale(k).setPosition(n.x, n.y - (far ? 8 * k : 30 * u)).setText(hintText); } else this.hintLabel.setVisible(false);
+    if (ui.mode === 'pick') for (const id of this.targets) { const n = at(S.world.nodes[id]); D.lineStyle(2 * k, 0x9fc48a, 0.95); D.strokeEllipse(n.x, n.y + 2 * u, 1.7 * gr, 0.8 * gr); }
+    if (ui.mode === 'pick' && ui.source) { const n = at(S.world.nodes[ui.source]); D.lineStyle(3 * k, 0xffd54a, 1); D.strokeEllipse(n.x, n.y + 2 * u, 1.9 * gr, 0.9 * gr); }
+    if (sel && ui.mode !== 'pick' && sel !== hintId) { const n = at(S.world.nodes[sel]); D.lineStyle(2.4 * k, 0xf0d371, 0.7 + 0.3 * pulse); D.strokeEllipse(n.x, n.y + 2 * u, 1.9 * gr, 0.9 * gr); }
+    const hv = this.hover && at(S.world.nodes[this.hover]);
     if (hv) this.label.setVisible(true).setScale(k).setPosition(hv.x, hv.y - (far ? 8 * k : 28 * u)).setText(`${hv.name} · ${short(hv.place)}`.toUpperCase()); else this.label.setVisible(false);
+    for (const t of [...this.cityLabels, ...this.regionLabels]) t.x = t.homeX + this.wrapOff(t.homeX);
     for (const t of this.cityLabels) t.setScale(k).setVisible(this.zoomv > 1.3);
     for (const t of this.regionLabels) t.setScale(k).setVisible(this.zoomv > 1.1 && this.zoomv < 7);
 
-    const bp = game.bohunPos();
+    const bp = at(game.bohunPos());
     if (S.bohun.status === 'moving') this.facing = bp.ax < 0 ? -1 : 1;
     const bpx = Phaser.Math.Clamp(26 + this.zoomv * 11, 26, 64), sc = (bpx / rider.visibleBBox.h) * k;
     D.fillStyle(0x0b0e08, 0.45); D.fillEllipse(bp.x, bp.y, 44 * k, 11 * k);
@@ -534,13 +552,16 @@ class FieldScene extends Phaser.Scene {
     for (const n of Object.values(S.world.nodes)) { Mg.fillStyle(n.type === 'bank' ? 0xf5c542 : n.type === 'port' ? 0x9fc3c4 : 0xe6e0c7, 1); Mg.fillCircle(n.x, n.y, 16); }
     for (const fl of S.flows) for (const s of fl.steps) { Mg.lineStyle(14, 0xe2c667, 1); Mg.strokePoints(s.pts, false, false); }
     if (hintId) { const n = S.world.nodes[hintId]; Mg.lineStyle(24, 0xffd54a, 0.5 + 0.5 * pulse); Mg.strokeCircle(n.x, n.y, 90); }
-    Mg.fillStyle(0xd3b766, 1); Mg.fillCircle(bp.x, bp.y, 22);
-    const wv = cam.worldView; Mg.lineStyle(14, 0xd3b766, 1); Mg.strokeRect(wv.x, wv.y, wv.width, wv.height);
+    const bp0 = game.bohunPos(); Mg.fillStyle(0xd3b766, 1); Mg.fillCircle(bp0.x, bp0.y, 22);
+    const wv = cam.worldView; Mg.lineStyle(14, 0xd3b766, 1);
+    for (const o of [-WORLD.width, 0, WORLD.width]) Mg.strokeRect(wv.x + o, wv.y, wv.width, wv.height); // the frame wraps too
     $('#c-delivered').textContent = String(S.delivered); $('#c-coins').textContent = String(S.coins);
     if (S.bohun.status !== this.lastBohun) { this.lastBohun = S.bohun.status; renderCard(); }
     renderMission();
   }
 }
+
+seedDefaults(); // after the HTML helpers above exist
 
 window.__phaser = new Phaser.Game({
   type: Phaser.AUTO, parent: 'stage', backgroundColor: '#0d100b',

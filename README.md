@@ -128,7 +128,11 @@ What is new
   up to 3 flows, ambient traffic, Bohun rides point to point, coins at banks. Object positions are still TEST positions.
 - Objects drawn in code as small iso buildings (mine with headframe, three factory sizes with smoke, bank, port with crane,
   station, airfield); far zoom shows dots.
-- Camera owner: presentation (site) by default, wheel and drag only after "ДВИГАТЬ КАРТУ"; minimap click takes the camera.
+- Camera: drag and wheel/pinch always work; the planet wraps east-west (copies of the static layers at ±world width,
+  dynamic objects drawn at the copy nearest the camera). The first drag, wheel or minimap click folds the hero card away;
+  "СНАЧАЛА" brings it back. "ВСЯ КАРТА" shows the whole planet centred on Ukraine.
+- Two flows run from the start (Kharkiv factory -> Odesa port, Krakow factory -> Kyiv bank); the third slot is the visitor's.
+- Classic task draft for a new Bohun sprite (iso 45 degrees, 5 directions, walk cycle): `handoff/classic-bohun-v2/`.
 - Approved Homepage Copy v1 is used verbatim in the hero card; game UI is Russian for review.
 
 Run: `npm run dev`, open `/field.html`. Checks: `npm test` (+4 field checks). Test hooks: `__choose(id)`, `__flows`, `__scene`.

@@ -4,8 +4,8 @@
 html, body { margin: 0; height: 100%; overflow: hidden; background: #0d100b; color: var(--paper); font-family: var(--sans); font-size: 13px; }
 button { font: inherit; cursor: pointer; }
 #stage { position: fixed; inset: 0; }
-#stage canvas { display: block; touch-action: none; cursor: pointer; }
-body.explore #stage canvas { cursor: grab; } body.explore #stage canvas:active { cursor: grabbing; }
+#stage canvas { display: block; touch-action: none; cursor: grab; }
+#stage canvas:active { cursor: grabbing; }
 .grain { position: fixed; inset: 0; pointer-events: none; z-index: 1; opacity: .06; background-image: repeating-linear-gradient(0deg, #fff0 0, #fff0 2px, #fff 3px); mix-blend-mode: soft-light; }
 
 .topbar { position: fixed; z-index: 50; left: 0; right: 0; top: 0; height: var(--top); display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 18px; background: #0c100bd6; border-bottom: 1px solid #94977733; backdrop-filter: blur(8px); }
@@ -15,8 +15,6 @@ body.explore #stage canvas { cursor: grab; } body.explore #stage canvas:active {
 .topbar nav { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
 .topbar button { border: 1px solid #8b8f7044; background: #151b12; color: #c9c7ae; padding: 8px 10px; font: 800 9px/1 var(--mono); letter-spacing: .05em; }
 .topbar button:hover, .topbar button.active, .topbar button:focus-visible { border-color: var(--gold); color: #fff; outline: none; }
-.topbar .explore { margin-left: 8px; background: var(--gold); color: #12150e; border-color: var(--gold); }
-.topbar .explore[aria-pressed="true"] { background: #151b12; color: var(--gold); }
 .topbar .ghost { color: #a9a891; }
 
 .hero-card { position: fixed; z-index: 12; left: 24px; top: calc(var(--top) + 24px); width: min(430px, calc(100vw - 48px)); padding: 20px 22px 16px; background: linear-gradient(145deg, #12170fee, #1a2015dc); border: 1px solid #999b7955; box-shadow: 0 24px 70px #0009; transition: opacity .3s; }
@@ -92,7 +90,6 @@ button.hint { animation: pulse 1.2s infinite; border-color: #ffd54a !important; 
   .topbar nav { justify-content: flex-start; gap: 4px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
   .topbar button { padding: 7px 6px; font-size: 8px; flex: none; }
   body:not(.explore) .mini { display: none; }
-  .topbar .explore { margin-left: 0; }
   .hero-card { left: 10px; right: 10px; top: calc(var(--top) + 8px); width: auto; padding: 12px 14px; }
   .hero-card h1 { font-size: 20px; margin-bottom: 6px; }
   .hero-card p:not(.eyebrow):not(.lens-line) { display: none; }
