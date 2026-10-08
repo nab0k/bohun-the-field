@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>BOHUN / THE FIELD — v0.4 (вид v0.3, механика «Потоки»)</title>
+  <link rel="stylesheet" href="/src/field/field.css" />
+</head>
+<body>
+  <div id="stage" aria-label="Карта: Украина, Европа и мир. Наклон 45°, север сверху."></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="Bohun Defence"><span class="mark">↟</span><span>BOHUN / THE FIELD</span><span class="build">v0.4</span></a>
+    <nav>
+      <button id="lens-need" class="lens active" type="button" title="Find capabilities, companies and partners.">I NEED SOMETHING</button>
+      <button id="lens-have" class="lens" type="button" title="Explore markets, partnerships and commercial opportunities.">I HAVE SOMETHING</button>
+      <button id="explore" class="explore" type="button" aria-pressed="false">ДВИГАТЬ КАРТУ</button>
+      <button id="all" class="ghost" type="button">ВСЯ КАРТА</button>
+      <button id="reset" class="ghost" type="button">СНАЧАЛА</button>
+    </nav>
+  </header>
+
+  <section id="hero" class="hero-card">
+    <p class="eyebrow">UKRAINE ↔ EUROPE ↔ INTERNATIONAL</p>
+    <h1>DEFENCE REQUIREMENTS.<br>CAPABILITIES.<br>OPPORTUNITIES.</h1>
+    <p>Bohun Defence helps companies navigate defence and dual-use markets across Ukraine and internationally.</p>
+    <p id="lens-line" class="lens-line">I NEED SOMETHING · Find capabilities, companies and partners.</p>
+  </section>
+
+  <div class="right-col">
+    <aside class="objective" aria-label="Задача">
+      <div class="label">ЗАДАЧА / 01 <span class="demo-tag">ДЕМО</span></div>
+      <h2>Доставить 3 груза из шахты в банк в Нью-Йорке</h2>
+      <ol id="m-steps" class="steps"></ol>
+      <div id="m-progress" class="progress" hidden><i></i><span></span></div>
+      <div id="m-result" class="result" hidden></div>
+    </aside>
+
+    <aside id="sel" class="selection" hidden aria-label="Выбранный объект">
+      <div class="panel-head"><span>ВЫБРАННЫЙ ОБЪЕКТ</span><button id="sel-close" type="button" aria-label="Закрыть">×</button></div>
+      <h2 id="k-name"></h2>
+      <div class="meta"><span id="k-type"></span><span id="k-status"></span></div>
+      <p id="k-place" class="muted"></p>
+      <p id="k-role"></p>
+      <div class="command-bar">
+        <button id="k-flow" class="primary" type="button" hidden>НАПРАВИТЬ ПОТОК ОТСЮДА</button>
+      </div>
+      <section id="pick" class="pick" hidden>
+        <p><b>Нажмите на карте, куда направить грузы.</b> Зелёные кольца: туда можно доехать.</p>
+        <button id="pick-cancel" type="button" class="plain">Отмена (Esc)</button>
+      </section>
+      <section id="options" class="options" hidden>
+        <h3 id="o-title"></h3>
+        <p class="muted">Выберите путь. Быстрее обычно дороже, дешевле обычно дольше.</p>
+        <div id="o-list"></div>
+        <button id="o-cancel" type="button" class="plain">Отмена</button>
+      </section>
+    </aside>
+  </div>
+
+  <aside class="hud" aria-label="Состояние">
+    <div class="hud-row">
+      <span id="mode-label">РЕЖИМ / ПРЕЗЕНТАЦИЯ</span>
+      <span>ДОСТАВЛЕНО <b id="c-delivered">0</b></span>
+      <span>МОНЕТЫ <b id="c-coins">0</b></span>
+    </div>
+    <div class="flows">
+      <div class="flows-head">ПОТОКИ <b id="f-count">0</b> / 3</div>
+      <ul id="f-list"></ul>
+    </div>
+    <p id="note" class="note" role="status" aria-live="polite"></p>
+  </aside>
+
+  <div id="mini" class="mini" aria-label="Мини-карта мира"><span>МИР · наклон 45° · клик переносит камеру</span></div>
+  <p class="demo">Демонстрация: условные дни и единицы, места объектов тестовые, не реальные поставки и сделки. Границы: Natural Earth, не карта контроля территорий. Графика временная, нарисована кодом.</p>
+
+  <noscript><p class="fallback">Bohun Defence helps companies navigate defence and dual-use markets across Ukraine and internationally.</p></noscript>
+  <script type="module" src="/src/field/main.js"></script>
+</body>
+</html>
