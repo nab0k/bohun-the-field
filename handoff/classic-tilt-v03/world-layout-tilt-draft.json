@@ -1,0 +1,91 @@
+{
+  "version": "0.3-draft (tilt, NOT approved)",
+  "canvas": [
+    2560,
+    1600
+  ],
+  "tilt": {
+    "type": "orthographic oblique, north up",
+    "squashY": 0.707107,
+    "degrees": 45,
+    "note": "world = (flatX, flatY * squashY); flat canvas is 2560x2263"
+  },
+  "bounds": [
+    [
+      14,
+      41.5
+    ],
+    [
+      42,
+      56.8
+    ]
+  ],
+  "projection": {
+    "type": "geoConicConformal",
+    "parallels": [
+      43,
+      62
+    ],
+    "rotate": [
+      -22,
+      0,
+      0
+    ],
+    "center": [
+      0,
+      52
+    ],
+    "scale": 6482.893031689302,
+    "translate": [
+      779.533427338538,
+      889.3798259732521
+    ]
+  },
+  "nodes": [
+    {
+      "id": "lviv",
+      "lonLat": [
+        24.029995,
+        49.83498
+      ],
+      "flat": [
+        925.817296149803,
+        1129.0533272485636
+      ],
+      "world": [
+        925.817,
+        798.361
+      ]
+    },
+    {
+      "id": "warsaw",
+      "lonLat": [
+        21.005347,
+        52.230872
+      ],
+      "flat": [
+        711.5516861100355,
+        863.1448679245404
+      ],
+      "world": [
+        711.552,
+        610.336
+      ]
+    },
+    {
+      "id": "kyiv",
+      "lonLat": [
+        30.514682,
+        50.435313
+      ],
+      "flat": [
+        1383.8337838640116,
+        1028.2226736379698
+      ],
+      "world": [
+        1383.834,
+        727.063
+      ]
+    }
+  ]
+}
