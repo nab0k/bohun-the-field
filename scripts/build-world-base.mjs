@@ -1,4 +1,4 @@
-// Grey technical world base for the flows prototype. Whole planet, equirectangular + the fixed 45 degree squash (cos 45).
+// Warm placeholder world base for the flows prototype. Whole planet, equirectangular + the fixed 45 degree squash (cos 45).
 // Data: Natural Earth admin_0_countries_ukr (public domain; political representation: not a map of territorial control).
 // Usage: node scripts/build-world-base.mjs <path/to/ne-countries-ukr.geojson>
 import fs from 'node:fs';
@@ -16,7 +16,7 @@ let paths = '', n = 0;
 for (const f of gj.features) {
   const id = f.properties.ADM0_A3;
   if (id === 'ATA') continue; // Antarctica is outside the shown latitude band
-  const fill = id === 'UKR' ? '#b9b878' : eu.has(id) ? '#8fa18a' : '#6a7468';
+  const fill = id === 'UKR' ? '#e6cf6e' : eu.has(id) ? '#8fbf78' : '#cdbd8c';
   const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
   let d = '';
   for (const poly of polys) for (const ring of poly) {
@@ -29,9 +29,9 @@ for (const f of gj.features) {
     }
     if (last && seg.split('L').length > 3) d += seg + 'Z';
   }
-  if (d) paths += `<path d="${d}" fill="${fill}" stroke="#2c3a32" stroke-width="0.8"/>`;
+  if (d) paths += `<path d="${d}" fill="${fill}" stroke="#6b5f3c" stroke-width="0.9"/>`;
 }
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><rect width="100%" height="100%" fill="#182e32"/>${paths}</svg>`;
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><rect width="100%" height="100%" fill="#2f6f95"/>${paths}</svg>`;
 fs.writeFileSync(new URL('../public/flows/world-tilt-base.svg', import.meta.url), svg);
 fs.writeFileSync(new URL('../src/flows/data/world-frame.json', import.meta.url), JSON.stringify({ width: W, height: H, pxPerDeg: PX, squash: SQ, latNorth: LAT_N, latSouth: LAT_S, projection: 'equirectangular + vertical squash cos45' }, null, 2) + '\n');
 console.log(JSON.stringify({ size: [W, H], vertices: n, svgKB: Math.round(svg.length / 1024) }));

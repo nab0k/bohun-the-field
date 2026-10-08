@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>BOHUN / THE FIELD — потоки (серый прототип)</title>
+  <title>BOHUN / THE FIELD — потоки (прототип механики)</title>
   <link rel="stylesheet" href="/src/flows/flows.css" />
 </head>
 <body>
@@ -14,34 +14,43 @@
       <button id="all" type="button">Вся карта</button>
       <button id="reset" type="button">Сначала</button>
     </div>
-    <h1>Потоки · серый прототип</h1>
-    <p class="lead">Мир живёт сам: грузы и техника ездят по коридорам. Нажмите на объект: Богун приедет, откроется карточка. У шахты или завода можно направить поток в другое место и выбрать маршрут.</p>
+    <h1>Потоки</h1>
+    <p class="lead">Мир живёт сам: по рельсам, дорогам, морю и воздуху ездят грузы. <b>Поток</b> — это грузы, которые регулярно едут из шахты или завода в выбранное вами место. Ваша задача — выбрать, каким путём.</p>
+
+    <section class="mission" aria-label="Задача">
+      <h2>Задача: доставить 3 груза из шахты в банк в Нью-Йорке</h2>
+      <ol id="m-steps" class="steps"></ol>
+      <div id="m-progress" class="progress" hidden><i></i><span></span></div>
+      <div id="m-result" class="result" hidden></div>
+    </section>
+
     <div class="counters">
-      <div><span>Доставлено</span><b id="c-delivered">0</b></div>
+      <div><span>Доставлено всего</span><b id="c-delivered">0</b></div>
       <div><span>Монет (демо)</span><b id="c-coins">0</b></div>
     </div>
     <p id="note" class="note" role="status" aria-live="polite"></p>
     <section id="card" class="card" hidden>
       <p id="k-type" class="tag"></p>
-      <h2 id="k-name"></h2>
+      <h3 id="k-name"></h3>
       <p id="k-place" class="muted"></p>
       <p id="k-role"></p>
       <button id="k-flow" type="button" hidden>Направить поток отсюда</button>
     </section>
     <section id="pick" class="pick" hidden>
-      <p><b>Выберите на карте, куда направить поток.</b> Подсвечены доступные места.</p>
+      <p><b>Нажмите на карте, куда направить грузы.</b> Зелёными кольцами отмечены места, куда можно доехать.</p>
       <button id="pick-cancel" type="button" class="plain">Отмена (Esc)</button>
     </section>
     <section id="options" class="options" hidden>
       <h3 id="o-title"></h3>
+      <p class="muted">Выберите путь. Быстрее обычно дороже, дешевле обычно дольше.</p>
       <div id="o-list"></div>
       <button id="o-cancel" type="button" class="plain">Отмена</button>
     </section>
     <section class="flows">
-      <h3>Активные потоки <span id="f-count">0</span> из 3</h3>
+      <h3>Идущие потоки <span id="f-count">0</span> из 3</h3>
       <ul id="f-list"></ul>
     </section>
-    <p class="demo">Всё на экране — демонстрация: условные дни и единицы, места тестовые, не реальные поставки и сделки.</p>
+    <p class="demo">Всё на экране — демонстрация: условные дни и единицы, места тестовые, не реальные поставки и сделки. Нарисованная графика будет позже.</p>
   </aside>
 
   <div id="mini" class="mini" aria-label="Уменьшенная карта мира"><span>Мир · клик переносит камеру</span></div>
