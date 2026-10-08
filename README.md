@@ -167,3 +167,10 @@ probe of ready-made graphics allowed. `/field.html` is left as it was, for compa
 Run `npm run dev`, open `/atlas.html`. Checks: `npm test` (+7 atlas checks).
 Not verified: real-time smoothness in a normal browser (the built-in pane throttles frames), camera fly-overs in real time,
 phones beyond a 375 px layout check. The public OpenFreeMap instance has no uptime guarantee.
+
+## Industry layer (pilot, 8 Oct 2026)
+`public/atlas/industry.json` from `node scripts/build-industry.mjs <scratch dir with raw Wikidata pulls>`: 72 companies in Germany,
+France, Italy, Poland and Czechia (Wikidata, CC0: names, headquarters, coordinates, websites; city-level). The selection, product
+type, signal and short description are Claude's editorial judgement and are labelled so. Ukraine: 17 names without locations
+(decision of 08.10). Russia and Belarus excluded. Shown as clusters, points and cards with source links and the notice
+"Open data. Not clients or partners of Bohun". Button «ОТРАСЛЬ» toggles it. Real companies never take part in the journeys.

@@ -14,6 +14,7 @@
     <nav>
       <button id="open-need" type="button">I NEED SOMETHING</button>
       <button id="open-have" type="button">I HAVE SOMETHING</button>
+      <button id="industry" type="button" class="ghost">ОТРАСЛЬ</button>
       <button id="all" type="button" class="ghost">ВСЯ КАРТА</button>
       <button id="reset" type="button" class="ghost">СНАЧАЛА</button>
     </nav>
@@ -59,6 +60,13 @@
     <p id="c-place" class="muted"></p>
     <p id="c-text"></p>
   </aside>
+
+  <aside id="ind-card" class="card ind" hidden aria-label="Компания по открытым данным">
+    <div class="panel-head"><span>ОТРАСЛЬ · ОТКРЫТЫЕ ДАННЫЕ</span><button id="ind-close" type="button" aria-label="Закрыть">×</button></div>
+    <h3 id="ind-title"></h3>
+    <div id="ind-body"></div>
+  </aside>
+  <div id="legend" class="legend" hidden></div>
 
   <p id="note" class="note" role="status" aria-live="polite"></p>
   <p class="demo">Демонстрация: условные участники, дни и единицы, тестовые места; не реальные поставки и сделки. Границы: Natural Earth (не карта контроля территорий). Карта © OpenStreetMap, OpenFreeMap. Модели: Kenney (CC0).</p>

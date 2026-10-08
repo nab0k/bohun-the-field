@@ -13,6 +13,7 @@ import assets from '../game/data/assets.json' with { type: 'json' };
 import { createJourneys, atlasData as data, CATEGORIES, MARKETS, HOME, CANDIDATES, INSIGHTS, OFFERS, SELL_STEPS, BUY_STEPS } from './journeys.js';
 
 const $ = (s) => document.querySelector(s);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const params = new URLSearchParams(location.search);
 const PROJECTION = params.get('projection') === 'mercator' ? 'mercator' : 'globe';
@@ -120,6 +121,71 @@ window.__map = map;
 await new Promise((r) => map.once('load', r));
 if (PROJECTION === 'globe') map.setProjection({ type: 'globe' });
 
+// ---------- industry layer: real companies from open data (Notion task 08.10.2026) ----------
+const PRODUCT = {
+  land: ['Наземная техника', '#7a6a48'], air: ['Авиация', '#4f7fa8'], naval: ['Флот и морские системы', '#2f6f95'], munitions: ['Боеприпасы и ВВ', '#9a4a32'],
+  missiles: ['Ракеты и ПВО', '#b8562f'], electronics: ['Электроника, радары, связь', '#5b6fb0'], drones: ['Беспилотники', '#3f8f6a'], smallarms: ['Стрелковое оружие', '#6b5a45'],
+  software: ['Программное обеспечение', '#7d5aa6'], propulsion: ['Двигатели и приводы', '#c08a2a'], components: ['Компоненты и материалы', '#8a8a5a'], testing: ['Испытания и исследования', '#4a8a8a'],
+};
+const industry = await fetch('/atlas/industry.json').then((r) => r.json());
+// several companies share one city centre: spread them on a small ring so each stays clickable (the point is the city, not an address)
+const byCity = {};
+for (const c of industry.companies) (byCity[c.lon + ',' + c.lat] ??= []).push(c);
+const indFeatures = [];
+for (const list of Object.values(byCity)) list.forEach((c, i) => {
+  const r = list.length > 1 ? 0.06 + 0.012 * list.length : 0, a = (i / list.length) * Math.PI * 2;
+  indFeatures.push({ type: 'Feature', properties: { id: c.id, name: c.name, product: c.product, color: PRODUCT[c.product][1] }, geometry: { type: 'Point', coordinates: [c.lon + r * Math.cos(a), c.lat + r * Math.sin(a) * 0.65] } });
+});
+map.addSource('industry', { type: 'geojson', data: { type: 'FeatureCollection', features: indFeatures }, cluster: true, clusterRadius: 38, clusterMaxZoom: 6 });
+map.addLayer({ id: 'ind-cluster', type: 'circle', source: 'industry', filter: ['has', 'point_count'], paint: { 'circle-color': '#11150e', 'circle-opacity': 0.88, 'circle-stroke-color': '#d3b766', 'circle-stroke-width': 2, 'circle-radius': ['step', ['get', 'point_count'], 13, 5, 17, 12, 22] } });
+map.addLayer({ id: 'ind-count', type: 'symbol', source: 'industry', filter: ['has', 'point_count'], layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['Noto Sans Bold'], 'text-size': 12, 'text-allow-overlap': true }, paint: { 'text-color': '#ffecaa' } });
+map.addLayer({ id: 'ind-point', type: 'circle', source: 'industry', filter: ['!', ['has', 'point_count']], paint: { 'circle-color': ['get', 'color'], 'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 5, 9, 8], 'circle-stroke-color': '#fff6cf', 'circle-stroke-width': 1.5 } });
+map.addLayer({ id: 'ind-name', type: 'symbol', source: 'industry', filter: ['!', ['has', 'point_count']], minzoom: 6.5, layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Bold'], 'text-size': 11, 'text-offset': [0, 1.1], 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': '#22201a', 'text-halo-color': '#f7efd2', 'text-halo-width': 1.5 } });
+const uaBadge = el('div', 'mk ua', `УКРАИНА: ${industry.ukraine.length} КОМПАНИЙ · БЕЗ МЕСТ`);
+const uaMarker = new maplibregl.Marker({ element: uaBadge, anchor: 'center' }).setLngLat([31.5, 48.2]);
+uaBadge.addEventListener('click', (e) => { e.stopPropagation(); showIndustryCard(null); });
+let industryOn = true;
+function setIndustry(on) {
+  industryOn = on;
+  for (const id of ['ind-cluster', 'ind-count', 'ind-point', 'ind-name']) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+  if (on) uaMarker.addTo(map); else uaMarker.remove();
+  $('#industry').classList.toggle('active', on); $('#legend').hidden = !on;
+}
+map.on('click', 'ind-cluster', async (e) => {
+  const f = e.features[0], z = await map.getSource('industry').getClusterExpansionZoom(f.properties.cluster_id);
+  map.easeTo({ center: f.geometry.coordinates, zoom: z + 0.3, duration: reduced ? 0 : 700 });
+});
+map.on('click', 'ind-point', (e) => showIndustryCard(e.features[0].properties.id));
+for (const id of ['ind-cluster', 'ind-point']) { map.on('mouseenter', id, () => (map.getCanvas().style.cursor = 'pointer')); map.on('mouseleave', id, () => (map.getCanvas().style.cursor = '')); }
+const COUNTRY_RU = { DE: 'Германия', FR: 'Франция', IT: 'Италия', PL: 'Польша', CZ: 'Чехия', UA: 'Украина' };
+function showIndustryCard(id) {
+  const box = $('#ind-card'); box.hidden = false;
+  const body = $('#ind-body'); body.replaceChildren();
+  if (!id) {
+    $('#ind-title').textContent = 'Украина';
+    body.append(el('p', 'muted', 'Места на карте не показываем. Список — по открытым данным (Wikidata), будет дополнен.'));
+    const ul = el('ul', 'ind-list');
+    for (const c of industry.ukraine) { const li = el('li'); const a = el('a', null, c.name); a.href = c.source; a.target = '_blank'; a.rel = 'noopener'; li.append(a, document.createTextNode(` — ${c.about}`)); ul.append(li); }
+    body.append(ul);
+  } else {
+    const c = industry.companies.find((x) => x.id === id);
+    $('#ind-title').textContent = c.name;
+    body.append(el('p', 'muted', `${COUNTRY_RU[c.country]} · ${c.city ?? 'город не указан'} (точка — город, не адрес)`));
+    body.append(el('p', null, `${PRODUCT[c.product][0]}: ${c.about}.`));
+    if (c.signal) body.append(el('p', 'muted', `Категория интереса Bohun: ${c.signal}`));
+    if (c.note) body.append(el('p', 'muted', c.note));
+    const links = el('p', 'links');
+    const src = el('a', null, 'Источник: Wikidata'); src.href = c.source; src.target = '_blank'; src.rel = 'noopener'; links.append(src);
+    if (c.web) { const w = el('a', null, 'Сайт компании'); w.href = c.web; w.target = '_blank'; w.rel = 'noopener'; links.append(document.createTextNode(' · '), w); }
+    body.append(links);
+  }
+  body.append(el('p', 'notice', industry.notice === 'Open data. Not clients or partners of Bohun.' ? 'Открытые данные. Не клиенты и не партнёры Bohun. Тип продукции — оценка по открытому описанию.' : industry.notice));
+}
+$('#ind-close').addEventListener('click', () => { $('#ind-card').hidden = true; });
+$('#legend').replaceChildren(el('b', null, 'ОТРАСЛЬ · ОТКРЫТЫЕ ДАННЫЕ'), ...Object.entries(PRODUCT).filter(([k]) => industry.companies.some((c) => c.product === k)).map(([, [label, color]]) => { const r = el('span', 'lg'); const dot = el('i'); dot.style.background = color; r.append(dot, document.createTextNode(label)); return r; }), el('small', null, 'Не клиенты и не партнёры Bohun'));
+$('#industry').addEventListener('click', () => setIndustry(!industryOn));
+setIndustry(true);
+
 const overlay = new MapLibreOverlay({ interleaved: true, layers: [], getCursor: ({ isHovering }) => (isHovering ? 'pointer' : 'grab'), onClick: (info) => info.object?.id && clickNode(info.object.id) });
 map.addControl(overlay);
 
@@ -187,7 +253,6 @@ $('#j-close').addEventListener('click', () => { ui.journey = null; $('#panel').h
 $('#all').addEventListener('click', () => map.flyTo({ center: [20, 30], zoom: 1.4, pitch: 0, bearing: 0, duration: reduced ? 0 : 1800 }));
 $('#reset').addEventListener('click', () => { game.reset(); ui = { journey: null, cardId: null, sellCat: null, sellMarket: null, buyCat: null }; $('#panel').hidden = true; renderCard(); home(); openEntry(); });
 
-const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 const btn = (label, fn, cls = '', small) => { const b = el('button', cls, label); b.type = 'button'; if (small) b.append(el('small', null, small)); b.addEventListener('click', fn); return b; };
 const sig = { key: null };
 

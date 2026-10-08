@@ -72,3 +72,16 @@ console.log(`${n} atlas checks passed`);
   assert.ok(a.equals(b), 'public/atlas/vendor/maplibre-gl-worker.mjs is stale: run node scripts/copy-maplibre-worker.mjs');
   console.log('ok  maplibre worker copy matches the installed version');
 }
+{
+  const ind = JSON.parse(fs.readFileSync(new URL('../public/atlas/industry.json', import.meta.url)));
+  const ok2 = new Set(['DE', 'FR', 'IT', 'PL', 'CZ']);
+  for (const c of ind.companies) {
+    assert.ok(ok2.has(c.country), `${c.name}: country ${c.country} outside the pilot`);
+    assert.match(c.source, /^https:\/\/www\.wikidata\.org\/wiki\/Q\d+$/, c.name);
+    assert.ok(c.lon > -10 && c.lon < 25 && c.lat > 35 && c.lat < 56, `${c.name}: outside Europe`);
+  }
+  for (const c of ind.ukraine) { assert.equal(c.lon, undefined, `${c.name}: Ukraine must have no location`); assert.equal(c.city, undefined, c.name); }
+  assert.ok(ind.ukraine.length <= 50);
+  assert.match(ind.notice, /Not clients or partners of Bohun/);
+  console.log(`ok  industry: ${ind.companies.length} companies in the pilot countries with sources; Ukraine ${ind.ukraine.length} names without locations; no Russia or Belarus`);
+}
