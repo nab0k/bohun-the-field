@@ -51,3 +51,29 @@ jobs:
           name: isocity-original-build-log
           path: upstream-isocity/.next
           if-no-files-found: ignore
+
+  preview-static-export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout independent web preview branch
+        uses: actions/checkout@v4
+        with:
+          ref: preview/isocity-web
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Exclude multiplayer dynamic routes from static preview
+        run: |
+          rm -rf 'src/app/coop/[roomCode]' 'src/app/coaster/coop/[roomCode]'
+      - name: Install dependencies
+        run: npm ci
+      - name: Build static preview
+        run: npm run build
+      - name: Upload static site
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: isocity-static-preview
+          path: out/
