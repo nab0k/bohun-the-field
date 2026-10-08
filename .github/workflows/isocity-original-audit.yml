@@ -19,6 +19,9 @@ jobs:
       - name: Install original dependencies
         working-directory: upstream-isocity
         run: npm install --no-audit --no-fund
+      - name: Inspect font network connectivity
+        run: |
+          curl -IL --max-time 15 'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700' || true
       - name: Build original
         working-directory: upstream-isocity
         run: npm run build
