@@ -103,3 +103,18 @@ button.hint { animation: pulse 1.2s infinite; border-color: #ffd54a !important; 
   .demo { left: 10px; right: 10px; bottom: 6px; }
 }
 @media (prefers-reduced-motion: reduce) { .grain { display: none; } button.hint { animation: none; } }
+/* short windows (small browser pane, phone in landscape): the map comes first, panels shrink to the current step */
+@media (max-height: 560px) {
+  .hero-card { display: none; }
+  .objective h2 { display: none; }
+  .steps li:not(.current) { display: none; }
+  .objective { padding: 8px 10px; } .objective .label { margin-bottom: 6px; }
+  .right-col { max-height: 46vh; gap: 6px; }
+  .selection h2 { font-size: 16px; margin: 8px 0 6px; }
+  .demo { display: none; }
+}
+@media (max-height: 560px) and (max-width: 820px) {
+  :root { --top: 70px; }
+  .topbar { gap: 4px; padding: 4px 8px; }
+  .brand .build, .brand span:nth-child(2) { font-size: 9px; }
+}

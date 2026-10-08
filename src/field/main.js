@@ -382,18 +382,20 @@ class FieldScene extends Phaser.Scene {
 
   // screen areas covered by HTML panels, so the camera centres the scene in what is left
   occupied() {
-    const narrow = innerWidth <= 820, top = narrow ? 84 : 58;
+    const narrow = innerWidth <= 820, short = innerHeight <= 560, top = narrow ? (short ? 70 : 84) : 58;
+    if (narrow && short) return { left: 0, right: 0, top, bottom: Math.min(innerHeight * 0.46, 140) };
     if (narrow) return { left: 0, right: 0, top: top + (ui.explore ? 70 : 130), bottom: innerHeight * 0.42 + 30 };
-    return { left: ui.explore ? 0 : 478, right: 388, top, bottom: 40 };
+    return { left: ui.explore || short ? 0 : 478, right: 388, top, bottom: 40 };
   }
   free() { const o = this.occupied(); return { w: Math.max(200, innerWidth - o.left - o.right), h: Math.max(160, innerHeight - o.top - o.bottom), ox: (o.left - o.right) / 2, oy: (o.bottom - o.top) / 2 }; }
   layout() {
     const narrow = innerWidth <= 820;
     const wcss = narrow ? Math.min(150, innerWidth * 0.36) : Math.min(300, Math.max(180, innerWidth * 0.22)), hcss = (wcss * WORLD.height) / WORLD.width;
-    const x = innerWidth - wcss - (narrow ? 18 : 32), y = narrow ? 84 + 30 : innerHeight - hcss - 40;
+    const x = innerWidth - wcss - (narrow ? 18 : 32), y = narrow ? (innerHeight <= 560 ? 70 : 84) + 30 : innerHeight - hcss - 40;
     this.miniRect = { x: x * dpr, y: y * dpr, w: wcss * dpr, h: hcss * dpr };
     Object.assign($('#mini').style, { width: wcss + 'px', height: hcss + 'px', left: x + 'px', top: y + 'px' });
     document.documentElement.style.setProperty('--mini-h', hcss + 'px'); document.documentElement.style.setProperty('--mini-w', wcss + 'px');
+    if (this.mini) this.mini.setVisible(getComputedStyle($('#mini')).display !== 'none'); // hidden frame = hidden camera
     if (this.mini) { const r = this.miniRect; this.mini.setViewport(r.x, r.y, r.w, r.h); this.mini.setZoom(r.w / WORLD.width); this.mini.centerOn(WORLD.width / 2, WORLD.height / 2); }
   }
   fly(cx, cy, zoom, now) { this.tgt = { cx, cy, zoom: Phaser.Math.Clamp(zoom, this.minZoom(), 9) }; this.all = false; if (now || reduced) { Object.assign(this, { cx, cy, zoomv: this.tgt.zoom }); this.tgt = null; } }
@@ -420,7 +422,7 @@ class FieldScene extends Phaser.Scene {
     const w1 = cam.getWorldPoint(p.x, p.y);
     this.cx += w0.x - w1.x; this.cy += w0.y - w1.y; this.all = false;
   }
-  inMini(p) { const r = this.miniRect; return p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h; }
+  inMini(p) { const r = this.miniRect; return this.mini.visible && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h; }
   jumpMini(p) {
     if (!ui.explore) setExplore(true);
     const r = this.miniRect; this.tgt = null; this.cx = ((p.x - r.x) / r.w) * WORLD.width; this.cy = ((p.y - r.y) / r.h) * WORLD.height; this.all = false;
