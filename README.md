@@ -83,3 +83,15 @@ metadata, anchor and size target in `src/game/data/rider-sprite.json`). One stat
 (72 on narrow screens) at the initial zoom, mirrored at draw time for westward travel. It slides along the route; there is no gallop animation.
 `npm test` also checks the PNG hash, header and anchor. The image is not redrawn, recoloured or cropped. A 384 px working copy is made in memory only,
 for clean down-scaling.
+
+## Asset intake (for Classic's files)
+
+1. Inspect a candidate: `node scripts/inspect-png.mjs <file.png>` (size, alpha, visible box, ground contacts, suggested anchor; warns about cropped
+   figures and non-transparent corners). The raised foot of a pose must be dropped from the anchor by hand.
+2. Copy the file unchanged into `public/assets/...` and fill its entry in `src/game/data/assets.json` (`rider`, `cargo`, `background`; `null` = not
+   delivered, the built-in placeholder is used). Record the source in a PROVENANCE note.
+3. `npm test` checks every non-null entry against the file (sha256, PNG header, anchor, size). A background entry must be 2560 x 1600 = the world.
+The cargo code path (shipment image, mirrored for westward travel, removed on arrival and on reset) was exercised with a stand-in file and then removed;
+no cargo artwork is integrated yet.
+
+Local git: `main` in this folder, no remote.

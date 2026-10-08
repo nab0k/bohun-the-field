@@ -1,0 +1,62 @@
+{
+  "_readme": "Asset manifest. A null entry means 'not delivered yet': the game then uses its built-in placeholder. Add an entry only for a file that is in public/ and passes `npm test`. Inspect a candidate first: node scripts/inspect-png.mjs <file>.",
+  "rider": {
+    "id": "bohun-rider-classic-v1",
+    "url": "/assets/bogun/bohun-rider-classic-v1.png",
+    "sha256": "8c1e5f9b1f52b1af0c09037817af476a9235b1f9eb5d632db914ee1c6658ffc7",
+    "size": [
+      1254,
+      1254
+    ],
+    "facing": "right",
+    "visibleBBox": {
+      "x0": 54,
+      "y0": 47,
+      "x1": 1188,
+      "y1": 1202,
+      "w": 1135,
+      "h": 1156,
+      "alphaThreshold": 16
+    },
+    "hooves": [
+      {
+        "cx": 264,
+        "lowestY": 1182,
+        "grounded": true
+      },
+      {
+        "cx": 596,
+        "lowestY": 1176,
+        "grounded": true
+      },
+      {
+        "cx": 848,
+        "lowestY": 1201,
+        "grounded": true
+      },
+      {
+        "cx": 989,
+        "lowestY": 1155,
+        "grounded": false
+      }
+    ],
+    "anchor": {
+      "x": 569,
+      "y": 1186,
+      "rule": "x: mean of the three grounded hoof centres; y: mean of their lowest rows"
+    },
+    "screenHeightPx": {
+      "desktop": 88,
+      "narrow": 72,
+      "of": "visible figure (visibleBBox.h), at the initial zoom"
+    },
+    "runtimeTextureSize": 384
+  },
+  "cargo": null,
+  "background": null,
+  "_entries": {
+    "rider": "character sprite: url, sha256, size, anchor {x,y} (ground contact), visibleBBox, screenHeightPx {desktop,narrow}, runtimeTextureSize",
+    "cargo": "same fields as rider; drawn on each shipment, mirrored for westward travel",
+    "background": "url, sha256, size [2560,1600] = world size; replaces the technical SVG, no baked labels, routes or characters"
+  }
+}

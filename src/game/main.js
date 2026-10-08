@@ -2,7 +2,9 @@ import Phaser from 'phaser';
 import { createGame, pointOnPath } from './core.js';
 import { scenario } from './scenario.js';
 import { SCENE } from './geo.js';
-import rider from './data/rider-sprite.json' with { type: 'json' };
+import assets from './data/assets.json' with { type: 'json' };
+
+const rider = assets.rider;
 
 const $ = (s) => document.querySelector(s);
 const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -284,9 +286,12 @@ class View extends Phaser.Scene {
   constructor() { super('view'); }
 
   preload() {
-    this.load.image('rider-src', rider.url);
-    const w = rasterWidth();
-    this.load.svg('base', scenario.scene.background, { width: w, height: Math.round((w * SCENE.height) / SCENE.width) });
+    for (const name of ['rider', 'cargo']) if (assets[name]) this.load.image(`${name}-src`, assets[name].url);
+    if (assets.background) this.load.image('base', assets.background.url);
+    else {
+      const w = rasterWidth();
+      this.load.svg('base', scenario.scene.background, { width: w, height: Math.round((w * SCENE.height) / SCENE.width) });
+    }
   }
 
   create() {
@@ -338,15 +343,13 @@ class View extends Phaser.Scene {
     });
   }
 
-  // Bohun: the Classic rider, one static pose. The PNG is loaded as is; a smaller copy is made in memory only for
-  // clean down-scaling (the figure is shown at ~90 screen px, the file is 1254 px). If the file is missing, a
-  // plain marker is drawn instead.
-  buildRider() {
-    this.riderFacing = 1;
-    this.rider = null;
-    if (!this.textures.exists('rider-src')) return;
-    const src = this.textures.get('rider-src').getSourceImage();
-    const N = rider.runtimeTextureSize;
+  // Delivered PNGs are loaded as is; a smaller copy is made in memory only for clean down-scaling (the figure is
+  // shown at ~90 screen px, the file is >1000 px). Returns false when the file is missing (placeholder is drawn).
+  scaledTexture(name) {
+    const meta = assets[name];
+    if (!meta || !this.textures.exists(`${name}-src`)) return false;
+    const src = this.textures.get(`${name}-src`).getSourceImage();
+    const N = meta.runtimeTextureSize;
     let cur = document.createElement('canvas');
     cur.width = cur.height = src.width;
     cur.getContext('2d').drawImage(src, 0, 0);
@@ -359,18 +362,34 @@ class View extends Phaser.Scene {
       c.drawImage(cur, 0, 0, next.width, next.height);
       cur = next;
     }
-    const tex = this.textures.createCanvas('rider', N, N);
+    const tex = this.textures.createCanvas(name, N, N);
     const ctx = tex.getContext();
     ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(cur, 0, 0, N, N);
     tex.refresh();
-    this.textures.remove('rider-src');
-    this.rider = this.add.image(0, 0, 'rider').setOrigin(rider.anchor.x / rider.size[0], rider.anchor.y / rider.size[1]).setDepth(6);
+    this.textures.remove(`${name}-src`);
+    return true;
   }
 
-  // on-screen height of the visible figure, in screen px
-  riderHeightPx() {
-    return innerWidth <= 720 ? rider.screenHeightPx.narrow : rider.screenHeightPx.desktop;
+  // an image of a delivered sprite, origin on its ground anchor
+  spriteImage(name) {
+    const m = assets[name];
+    return this.add.image(0, 0, name).setOrigin(m.anchor.x / m.size[0], m.anchor.y / m.size[1]).setDepth(name === 'rider' ? 6 : 5);
+  }
+
+  // scale so the visible figure (bbox height) is the target screen height; sizes are screen-constant like all markers
+  spriteScale(name, k) {
+    const m = assets[name];
+    const h = innerWidth <= 720 ? m.screenHeightPx.narrow : m.screenHeightPx.desktop;
+    return (h / m.visibleBBox.h) * (m.size[0] / m.runtimeTextureSize) * k;
+  }
+
+  // Bohun: the Classic rider, one static pose
+  buildRider() {
+    this.riderFacing = 1;
+    this.rider = this.scaledTexture('rider') ? this.spriteImage('rider') : null;
+    this.hasCargoSprite = this.scaledTexture('cargo');
+    this.cargoImgs = new Map();
   }
 
   // part of the screen the panel leaves free
@@ -476,10 +495,23 @@ class View extends Phaser.Scene {
       t.setText(s.state === 'researching' ? `${n.labelRu} · ${Math.round(s.progress * 100)}%` : s.state === 'open' && n.kind === 'site' ? 'Узел открыт' : n.labelRu);
     }
     for (const t of S.transports) {
-      const p = pointOnPath(S.routes[t.routeId].pts, t.t);
-      D.fillStyle(0xe3c33a, 1); D.fillRect(p.x - 6 * k, p.y - 6 * k, 12 * k, 12 * k);
-      D.lineStyle(2 * k, 0x0e1210, 1); D.strokeRect(p.x - 6 * k, p.y - 6 * k, 12 * k, 12 * k);
+      const route = S.routes[t.routeId];
+      const p = pointOnPath(route.pts, t.t);
+      if (this.hasCargoSprite) {
+        let img = this.cargoImgs.get(t.id);
+        if (!img) { img = this.spriteImage('cargo'); this.cargoImgs.set(t.id, img); }
+        const ahead = pointOnPath(route.pts, Math.min(1, t.t + 0.02)), behind = pointOnPath(route.pts, Math.max(0, t.t - 0.02));
+        const face = Math.abs(ahead.x - behind.x) > 0.01 ? (ahead.x < behind.x ? -1 : 1) : 1;
+        const sc = this.spriteScale('cargo', k);
+        D.fillStyle(0x0e1210, 0.45); D.fillEllipse(p.x, p.y, 40 * k, 10 * k);
+        img.setPosition(p.x, p.y).setScale(sc * face, sc);
+      } else {
+        D.fillStyle(0xe3c33a, 1); D.fillRect(p.x - 6 * k, p.y - 6 * k, 12 * k, 12 * k);
+        D.lineStyle(2 * k, 0x0e1210, 1); D.strokeRect(p.x - 6 * k, p.y - 6 * k, 12 * k, 12 * k);
+      }
     }
+    // cargo that arrived or was cancelled by a reset: drop its image
+    for (const [id, img] of this.cargoImgs) if (!S.transports.some((t) => t.id === id)) { img.destroy(); this.cargoImgs.delete(id); }
     const b = S.bogun;
     let bp;
     if (b.status === 'moving') {
@@ -495,8 +527,7 @@ class View extends Phaser.Scene {
         const ahead = pointOnPath(pts, Math.min(1, b.t + 0.02)), behind = pointOnPath(pts, Math.max(0, b.t - 0.02));
         if (Math.abs(ahead.x - behind.x) > 0.01) this.riderFacing = ahead.x < behind.x ? -1 : 1; // the picture faces right
       }
-      // scale so the visible figure (bbox height) is riderHeightPx() screen px; sizes are screen-constant like all markers
-      const sc = (this.riderHeightPx() / rider.visibleBBox.h) * (rider.size[0] / rider.runtimeTextureSize) * k;
+      const sc = this.spriteScale('rider', k);
       this.rider.setPosition(bp.x, bp.y).setScale(sc * this.riderFacing, sc);
     } else {
       D.fillStyle(0xc9a24a, 1); D.fillTriangle(bp.x, bp.y - 26 * k, bp.x + 11 * k, bp.y - 3 * k, bp.x - 11 * k, bp.y - 3 * k);
