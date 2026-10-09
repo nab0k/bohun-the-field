@@ -2,3 +2,6 @@ node_modules/
 dist/
 .claude/
 .DS_Store
+
+# local secrets (API keys, tokens): never commit
+.env.local
