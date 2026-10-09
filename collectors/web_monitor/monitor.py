@@ -83,8 +83,28 @@ def discover(source, robots):
                 raise ValueError("off-domain redirect")
             if body.lstrip().startswith("<?xml") or "<urlset" in body or "<sitemapindex" in body:
                 xml = ET.fromstring(body)
-                # Deliberately only direct urlset; sitemap indexes need vetted per-site adapters.
-                if xml.tag.endswith("urlset"):
+                if xml.tag.endswith("sitemapindex"):
+                    maps = [el.text.strip() for el in xml.iter() if el.tag.endswith("loc") and el.text]
+                    selected = [u for u in maps if same_site(u, base) and KEYWORDS.search(urllib.parse.urlsplit(u).path)][:3]
+                    if not selected:
+                        selected = [u for u in maps if same_site(u, base)][:2]
+                    for child_url in selected:
+                        try:
+                            child_body, child_final = get(child_url, robots)
+                            if not same_site(child_final, base):
+                                raise ValueError("off-domain sitemap redirect")
+                            child_xml = ET.fromstring(child_body)
+                            if child_xml.tag.endswith("urlset"):
+                                for loc in child_xml.iter():
+                                    if loc.tag.endswith("loc") and loc.text:
+                                        u = loc.text.strip().split("#")[0]
+                                        if same_site(u, base) and KEYWORDS.search(urllib.parse.urlsplit(u).path):
+                                            found[u] = None
+                            else:
+                                failures.append("nested_sitemap_index_not_supported")
+                        except Exception as exc:
+                            failures.append(f"child_sitemap:{type(exc).__name__}")
+                elif xml.tag.endswith("urlset"):
                     for loc in xml.iter():
                         if loc.tag.endswith("loc") and loc.text:
                             u = loc.text.strip().split("#")[0]
