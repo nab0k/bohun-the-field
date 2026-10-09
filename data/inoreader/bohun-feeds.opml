@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Defence news feeds for bohundefence.com (09.10.2026). Every URL was checked to return a working RSS feed on 09.10.2026.
+     Import into Inoreader: Preferences > Import/Export > Import OPML. The site reads ONLY folders starting with BOHUN_. -->
+<opml version="2.0">
+  <head><title>Bohun Defence feeds</title></head>
+  <body>
+    <outline text="BOHUN_DEFENCE_NEWS" title="BOHUN_DEFENCE_NEWS">
+      <outline type="rss" text="Defense News" title="Defense News" xmlUrl="https://www.defensenews.com/arc/outboundfeeds/rss/?outputType=xml" htmlUrl="https://www.defensenews.com"/>
+      <outline type="rss" text="Breaking Defense" title="Breaking Defense" xmlUrl="https://breakingdefense.com/feed/" htmlUrl="https://breakingdefense.com"/>
+      <outline type="rss" text="Defense One" title="Defense One" xmlUrl="https://www.defenseone.com/rss/all/" htmlUrl="https://www.defenseone.com"/>
+      <outline type="rss" text="The War Zone" title="The War Zone" xmlUrl="https://www.twz.com/feed" htmlUrl="https://www.twz.com"/>
+      <outline type="rss" text="C4ISRNET" title="C4ISRNET" xmlUrl="https://www.c4isrnet.com/arc/outboundfeeds/rss/?outputType=xml" htmlUrl="https://www.c4isrnet.com"/>
+      <outline type="rss" text="Naval News" title="Naval News" xmlUrl="https://www.navalnews.com/feed/" htmlUrl="https://www.navalnews.com"/>
+      <outline type="rss" text="Army Technology" title="Army Technology" xmlUrl="https://www.army-technology.com/feed/" htmlUrl="https://www.army-technology.com"/>
+      <outline type="rss" text="Airforce Technology" title="Airforce Technology" xmlUrl="https://www.airforce-technology.com/feed/" htmlUrl="https://www.airforce-technology.com"/>
+      <outline type="rss" text="Naval Technology" title="Naval Technology" xmlUrl="https://www.naval-technology.com/feed/" htmlUrl="https://www.naval-technology.com"/>
+    </outline>
+    <outline text="BOHUN_EUROPE_INDUSTRY" title="BOHUN_EUROPE_INDUSTRY">
+      <outline type="rss" text="European Defence Review" title="European Defence Review" xmlUrl="https://www.edrmagazine.eu/feed" htmlUrl="https://www.edrmagazine.eu"/>
+      <outline type="rss" text="Defence Industry Europe" title="Defence Industry Europe" xmlUrl="https://defence-industry.eu/feed/" htmlUrl="https://defence-industry.eu"/>
+      <outline type="rss" text="European Security &amp; Defence" title="European Security &amp; Defence" xmlUrl="https://euro-sd.com/feed/" htmlUrl="https://euro-sd.com"/>
+      <outline type="rss" text="Defence24" title="Defence24" xmlUrl="https://defence24.com/rss" htmlUrl="https://defence24.com"/>
+    </outline>
+    <outline text="BOHUN_CAPITAL" title="BOHUN_CAPITAL">
+      <outline type="rss" text="Tectonic" title="Tectonic" xmlUrl="https://www.tectonicdefense.com/feed/" htmlUrl="https://www.tectonicdefense.com"/>
+      <outline type="rss" text="Sifted" title="Sifted" xmlUrl="https://sifted.eu/feed" htmlUrl="https://sifted.eu"/>
+    </outline>
+    <outline text="BOHUN_UKRAINE" title="BOHUN_UKRAINE">
+      <outline type="rss" text="Ukrinform" title="Ukrinform" xmlUrl="https://www.ukrinform.net/rss/block-lastnews" htmlUrl="https://www.ukrinform.net"/>
+    </outline>
+  </body>
+</opml>
