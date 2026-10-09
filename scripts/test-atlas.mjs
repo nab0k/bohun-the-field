@@ -97,3 +97,10 @@ console.log(`${n} atlas checks passed`);
   assert.equal(sea.companies.length + sea.unplaced.length, 47, 'all 47 companies of the article are accounted for');
   console.log(`ok  undersea: ${sea.companies.length} placed + ${sea.unplaced.length} unplaced = 47 from the article, each with a source`);
 }
+{
+  const { subsolar } = await import('../src/atlas/night.js');
+  const june = subsolar(new Date(Date.UTC(2026, 5, 21, 12, 0))), dec = subsolar(new Date(Date.UTC(2026, 11, 21, 0, 0)));
+  assert.ok(Math.abs(june.lat - 23.44) < 0.3 && Math.abs(june.lon) < 1.5, JSON.stringify(june));
+  assert.ok(Math.abs(dec.lat + 23.44) < 0.3 && Math.abs(Math.abs(dec.lon) - 180) < 1.5, JSON.stringify(dec));
+  console.log('ok  night: the sun is over the Tropic of Cancer at noon UTC on 21 June and over the Tropic of Capricorn at midnight on 21 December');
+}

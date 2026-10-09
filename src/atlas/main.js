@@ -10,6 +10,7 @@ import { PathStyleExtension } from '@deck.gl/extensions';
 import { createFlows, MODES, pointAt } from '../flows/core.js';
 import frame from '../flows/data/world-frame.json' with { type: 'json' };
 import assets from '../game/data/assets.json' with { type: 'json' };
+import { createNight } from './night.js';
 import { createJourneys, atlasData as data, CATEGORIES, MARKETS, HOME, CANDIDATES, INSIGHTS, OFFERS, SELL_STEPS, BUY_STEPS } from './journeys.js';
 
 const $ = (s) => document.querySelector(s);
@@ -144,6 +145,18 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bott
 window.__map = map;
 await new Promise((r) => map.once('load', r));
 if (PROJECTION === 'globe') map.setProjection({ type: 'globe' });
+
+// night side with city lights (NASA Black Marble), redrawn every 5 minutes as the Earth turns; ?night=0 switches it off
+let nightOn = params.get('night') !== '0';
+createNight().then((night) => {
+  map.addSource('night', { type: 'canvas', canvas: night.canvas, coordinates: night.coordinates, animate: false });
+  map.addLayer({ id: 'night', type: 'raster', source: 'night', paint: { 'raster-opacity': 0.88, 'raster-fade-duration': 0 }, layout: { visibility: nightOn ? 'visible' : 'none' } }, 'eu-tint');
+  const refresh = () => { night.draw(new Date()); const src = map.getSource('night'); src.play(); requestAnimationFrame(() => src.pause()); };
+  setInterval(refresh, 5 * 60 * 1000);
+  window.__night = { refresh, draw: night.draw };
+  $('#night').addEventListener('click', () => { nightOn = !nightOn; map.setLayoutProperty('night', 'visibility', nightOn ? 'visible' : 'none'); $('#night').classList.toggle('active', nightOn); });
+  $('#night').classList.toggle('active', nightOn);
+});
 
 // ---------- industry layer: real companies from open data (Notion task 08.10.2026) ----------
 const PRODUCT = {
