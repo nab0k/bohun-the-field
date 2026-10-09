@@ -18,6 +18,7 @@
       <button id="night" type="button" class="ghost">NIGHT</button>
       <button id="industry" type="button" class="ghost">INDUSTRY</button>
       <button id="sea" type="button" class="ghost">UNDERSEA INFRASTRUCTURE</button>
+      <button id="companies" type="button" class="ghost">COMPANIES</button>
       <button id="live" type="button" class="ghost">LIVE</button>
       <button id="scale" type="button" class="ghost">SCALE DEMO</button>
       <button id="all" type="button" class="ghost">WORLD</button>
@@ -74,8 +75,8 @@
   <div class="legends"><div id="legend" class="legend" hidden></div><div id="legend-sea" class="legend sea" hidden></div><div id="legend-live" class="legend live" hidden></div></div>
 
   <aside id="scale-panel" class="scale-panel" hidden aria-label="Scale demo">
-    <div class="panel-head"><span>SCALE DEMO · 30,000 GENERATED POINTS</span></div>
-    <p class="muted">Test data, not real companies. Zoom in: countries → clusters → points → objects.</p>
+    <div class="panel-head"><span id="scale-title">SCALE DEMO · 30,000 GENERATED POINTS</span></div>
+    <p id="scale-note" class="muted">Test data, not real companies.</p>
     <details><summary>Categories</summary><div id="scale-filters" class="scale-filters"></div></details>
     <p id="scale-count" class="scale-count"></p>
     <ol id="scale-list" class="scale-list"></ol>

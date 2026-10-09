@@ -141,3 +141,20 @@ console.log(`${n} atlas checks passed`);
   assert.ok(!pl.some((p) => /Kiev|Odessa|Dnepr|Kirovograd/.test(p.name)), 'Ukrainian names in Ukrainian transliteration');
   console.log(`ok  places: ${caps.length} capitals, the 24 oblast centres of Ukraine and Simferopol, in Ukrainian transliteration`);
 }
+{
+  const at = JSON.parse(fs.readFileSync(new URL('../public/atlas/companies-at.json', import.meta.url)));
+  const gj = JSON.parse(fs.readFileSync(new URL('../public/atlas/countries.geojson', import.meta.url)));
+  const aut = gj.features.find((f) => f.properties.a3 === 'AUT').geometry;
+  const rings = (aut.type === 'Polygon' ? [aut.coordinates] : aut.coordinates).map((p) => p[0]);
+  const inRing = ([x, y], r) => { let ins = false; for (let i = 0, k = r.length - 1; i < r.length; k = i++) { const [xi, yi] = r[i], [xk, yk] = r[k]; if ((yi > y) !== (yk > y) && x < ((xk - xi) * (y - yi)) / (yk - yi) + xi) ins = !ins; } return ins; };
+  const cats = ['land', 'air', 'naval', 'munitions', 'missiles', 'electronics', 'drones', 'smallarms', 'software', 'propulsion', 'components', 'testing'];
+  assert.equal(at.companies.length, 50);
+  for (const c of at.companies) {
+    assert.ok(cats.includes(c.cat), `${c.name}: category`);
+    assert.match(c.source, /^https:\/\//, `${c.name}: source`);
+    assert.ok(c.city && rings.some((r) => inRing([c.lon, c.lat], r) || r.some(([ax, ay], i) => { const [bx, by] = r[(i + 1) % r.length], dx = bx - ax, dy = by - ay, t = Math.max(0, Math.min(1, ((c.lon - ax) * dx + (c.lat - ay) * dy) / (dx * dx + dy * dy || 1))); return Math.hypot(c.lon - ax - t * dx, c.lat - ay - t * dy) < 0.1; })), `${c.name}: ${c.city} is in Austria (borders are simplified, ~10 km tolerance)`);
+    if (c.flags.includes('CHINA')) assert.ok(c.parent, `${c.name}: Chinese group named`);
+  }
+  assert.ok(!JSON.stringify(at).includes('notion.'), 'no Notion links in the public file');
+  console.log(`ok  companies Austria: ${at.companies.length} from the catalogue, each with a source, city inside Austria, Chinese control named`);
+}

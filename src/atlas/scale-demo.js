@@ -63,8 +63,12 @@ export function generate(countries, categories) {
   return out;
 }
 
-export function createScaleDemo(map, { maplibregl, countries, categories, onCard, $ }) {
-  const all = generate(countries, categories);
+// options for real data: data (records with id, name, a3, cat, lon, lat …), prefix (ids of sources and layers), title and note
+// for the panel, card(record) for the click card, subtitle(record) for the list, namesFrom (zoom from which every name shows)
+export function createScaleDemo(map, { maplibregl, countries, categories, onCard, $, data, prefix = 'scale', title, note, card: cardFn, subtitle, namesFrom = 9.5 }) {
+  const P = prefix;
+  const all = data ?? generate(countries, categories);
+  const byId = new Map(all.map((c) => [String(c.id), c]));
   const shown = new Set(Object.keys(categories));
   const catKeys = Object.keys(categories);
   const props = (c) => ({ id: c.id, name: c.name, cat: c.cat, color: categories[c.cat][1], big: c.size === 'L', s: c.size === 'L' ? 1 : c.size === 'M' ? 0.8 : 0.65 });
@@ -78,18 +82,18 @@ export function createScaleDemo(map, { maplibregl, countries, categories, onCard
     return [{ type: 'FeatureCollection', features: polys }, { type: 'FeatureCollection', features: pts }];
   };
   const [cPoly, cPts] = countryFc();
-  map.addSource('scale-countries', { type: 'geojson', data: cPoly });
-  map.addSource('scale-country-pts', { type: 'geojson', data: cPts });
-  map.addSource('scale', { type: 'geojson', data: fc(all), cluster: true, clusterRadius: 52, clusterMaxZoom: 7, clusterProperties: Object.fromEntries(catKeys.map((k) => [k, ['+', ['case', ['==', ['get', 'cat'], k], 1, 0]]])) });
+  map.addSource(`${P}-countries`, { type: 'geojson', data: cPoly });
+  map.addSource(`${P}-country-pts`, { type: 'geojson', data: cPts });
+  map.addSource(`${P}`, { type: 'geojson', data: fc(all), cluster: true, clusterRadius: 52, clusterMaxZoom: 7, clusterProperties: Object.fromEntries(catKeys.map((k) => [k, ['+', ['case', ['==', ['get', 'cat'], k], 1, 0]]])) });
   const before = 'label-city';
-  map.addLayer({ id: 'scale-country-fill', type: 'fill', source: 'scale-countries', maxzoom: 3.4, paint: { 'fill-color': ['interpolate', ['linear'], ['get', 'n'], 1, '#efe2a8', 300, '#d9b24c', 1500, '#a8741f', 6000, '#5c3d0c'], 'fill-opacity': ['interpolate', ['linear'], ['zoom'], 2.6, 0.62, 3.4, 0] } }, before);
-  map.addLayer({ id: 'scale-country-dot', type: 'circle', source: 'scale-country-pts', maxzoom: 3, paint: { 'circle-color': '#11150e', 'circle-opacity': 0.88, 'circle-stroke-color': '#d3b766', 'circle-stroke-width': 1.5, 'circle-radius': ['interpolate', ['linear'], ['get', 'n'], 10, 9, 500, 14, 5000, 24] } });
-  map.addLayer({ id: 'scale-country-n', type: 'symbol', source: 'scale-country-pts', maxzoom: 3, layout: { 'text-field': ['number-format', ['get', 'n'], { locale: 'en' }], 'text-font': ['Noto Sans Bold'], 'text-size': 11, 'text-allow-overlap': true }, paint: { 'text-color': '#ffecaa' } });
+  map.addLayer({ id: `${P}-country-fill`, type: 'fill', source: `${P}-countries`, maxzoom: 3.4, paint: { 'fill-color': ['interpolate', ['linear'], ['get', 'n'], 1, '#efe2a8', 300, '#d9b24c', 1500, '#a8741f', 6000, '#5c3d0c'], 'fill-opacity': ['interpolate', ['linear'], ['zoom'], 2.6, 0.62, 3.4, 0] } }, before);
+  map.addLayer({ id: `${P}-country-dot`, type: 'circle', source: `${P}-country-pts`, maxzoom: 3, paint: { 'circle-color': '#11150e', 'circle-opacity': 0.88, 'circle-stroke-color': '#d3b766', 'circle-stroke-width': 1.5, 'circle-radius': ['interpolate', ['linear'], ['get', 'n'], 10, 9, 500, 14, 5000, 24] } });
+  map.addLayer({ id: `${P}-country-n`, type: 'symbol', source: `${P}-country-pts`, maxzoom: 3, layout: { 'text-field': ['number-format', ['get', 'n'], { locale: 'en' }], 'text-font': ['Noto Sans Bold'], 'text-size': 11, 'text-allow-overlap': true }, paint: { 'text-color': '#ffecaa' } });
   // region level: clusters (the ring by category is drawn as HTML markers below)
-  map.addLayer({ id: 'scale-cluster', type: 'circle', source: 'scale', minzoom: 3, filter: ['has', 'point_count'], paint: { 'circle-opacity': 0, 'circle-radius': ['step', ['get', 'point_count'], 16, 100, 22, 1000, 30] } });
+  map.addLayer({ id: `${P}-cluster`, type: 'circle', source: `${P}`, minzoom: 3, filter: ['has', 'point_count'], paint: { 'circle-opacity': 0, 'circle-radius': ['step', ['get', 'point_count'], 16, 100, 22, 1000, 30] } });
   // city and close levels: single points; names of the larger ones first, then all
-  map.addLayer({ id: 'scale-point', type: 'circle', source: 'scale', minzoom: 3, filter: ['!', ['has', 'point_count']], paint: { 'circle-color': ['get', 'color'], 'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, ['case', ['get', 'big'], 5, 3.5], 9, ['case', ['get', 'big'], 8, 5.5], 13, ['case', ['get', 'big'], 11, 8]], 'circle-stroke-color': '#fff6cf', 'circle-stroke-width': 1.2 } });
-  map.addLayer({ id: 'scale-name', type: 'symbol', source: 'scale', minzoom: 7.5, filter: ['all', ['!', ['has', 'point_count']], ['any', ['get', 'big'], ['>=', ['zoom'], 9.5]]], layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Bold'], 'text-size': 10, 'text-offset': [0, 1], 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': '#22201a', 'text-halo-color': '#f7efd2', 'text-halo-width': 1.4 } });
+  map.addLayer({ id: `${P}-point`, type: 'circle', source: `${P}`, minzoom: 3, filter: ['!', ['has', 'point_count']], paint: { 'circle-color': ['get', 'color'], 'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, ['case', ['get', 'big'], 5, 3.5], 9, ['case', ['get', 'big'], 8, 5.5], 13, ['case', ['get', 'big'], 11, 8]], 'circle-stroke-color': '#fff6cf', 'circle-stroke-width': 1.2 } });
+  map.addLayer({ id: `${P}-name`, type: 'symbol', source: `${P}`, minzoom: 7.5, filter: ['all', ['!', ['has', 'point_count']], ['any', ['get', 'big'], ['>=', ['zoom'], namesFrom]]], layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Bold'], 'text-size': 10, 'text-offset': [0, 1], 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': '#22201a', 'text-halo-color': '#f7efd2', 'text-halo-width': 1.4 } });
 
   // ring markers for clusters: one SVG donut per cluster on screen, cached by cluster id
   const markers = new Map(); let onScreen = new Map();
@@ -104,23 +108,23 @@ export function createScaleDemo(map, { maplibregl, countries, categories, onCard
       a0 = a1;
     }
     const d = document.createElement('div');
-    d.className = 'scale-cluster';
+    d.className = 'scale-cluster'; // CSS class
     d.innerHTML = `<svg width="${w}" height="${w}" viewBox="0 0 ${w} ${w}">${segs}<circle cx="${r}" cy="${r}" r="${r0}" fill="#11150e" fill-opacity="0.9"/><text x="${r}" y="${r}" dy="0.35em" text-anchor="middle" fill="#ffecaa" font-family="ui-monospace, monospace" font-weight="800" font-size="${total >= 1000 ? 11 : 10}">${p.point_count_abbreviated}</text></svg>`;
     return d;
   }
   function syncDonuts() {
     const next = new Map();
-    if (state.on && map.getZoom() >= 3) for (const f of map.querySourceFeatures('scale', { filter: ['has', 'point_count'] })) {
+    if (state.on && map.getZoom() >= 3) for (const f of map.querySourceFeatures(`${P}`, { filter: ['has', 'point_count'] })) {
       const id = f.properties.cluster_id; if (next.has(id)) continue;
       let m = markers.get(id);
-      if (!m) { const elm = donut(f.properties); m = new maplibregl.Marker({ element: elm }).setLngLat(f.geometry.coordinates); elm.addEventListener('click', async (e) => { e.stopPropagation(); const z = await map.getSource('scale').getClusterExpansionZoom(id); map.easeTo({ center: f.geometry.coordinates, zoom: z + 0.3 }); }); markers.set(id, m); }
+      if (!m) { const elm = donut(f.properties); m = new maplibregl.Marker({ element: elm }).setLngLat(f.geometry.coordinates); elm.addEventListener('click', async (e) => { e.stopPropagation(); const z = await map.getSource(`${P}`).getClusterExpansionZoom(id); map.easeTo({ center: f.geometry.coordinates, zoom: z + 0.3 }); }); markers.set(id, m); }
       next.set(id, m);
       if (!onScreen.has(id)) m.addTo(map);
     }
     for (const [id, m] of onScreen) if (!next.has(id)) m.remove();
     onScreen = next;
   }
-  map.on('render', () => { if (map.isSourceLoaded('scale')) syncDonuts(); });
+  map.on('render', () => { if (map.isSourceLoaded(`${P}`)) syncDonuts(); });
 
   // the list of companies in view (largest first) and the counter
   function syncList() {
@@ -128,45 +132,46 @@ export function createScaleDemo(map, { maplibregl, countries, categories, onCard
     const b = map.getBounds();
     const inView = all.filter((c) => shown.has(c.cat) && b.contains([c.lon, c.lat]));
     const order = { L: 0, M: 1, S: 2 };
-    inView.sort((a, c) => order[a.size] - order[c.size] || a.id - c.id);
+    inView.sort((a, c) => (order[a.size] ?? 3) - (order[c.size] ?? 3) || String(a.name).localeCompare(c.name));
     $('#scale-count').textContent = `${inView.length.toLocaleString('en')} companies in view`;
     const ul = $('#scale-list'); ul.replaceChildren();
     for (const c of inView.slice(0, 40)) {
       const li = document.createElement('li'), btn = document.createElement('button'); btn.type = 'button';
       btn.innerHTML = `<i style="background:${categories[c.cat][1]}"></i><b></b><small></small>`;
-      btn.querySelector('b').textContent = c.name; btn.querySelector('small').textContent = `${categories[c.cat][0]} · ${c.a3} · ${c.size}`;
+      btn.querySelector('b').textContent = c.name; btn.querySelector('small').textContent = subtitle ? subtitle(c) : `${categories[c.cat][0]} · ${c.a3} · ${c.size}`;
       btn.addEventListener('click', () => { map.flyTo({ center: [c.lon, c.lat], zoom: 11, pitch: 45 }); card(c); });
       li.append(btn); ul.append(li);
     }
   }
   map.on('moveend', syncList);
-  const card = (c) => onCard({ head: 'SCALE DEMO · GENERATED POINT', title: c.name, rows: [['Category', categories[c.cat][0]], ['Type', c.type], ['Size', c.size], ['Country', c.a3]], note: 'Test data generated for the scale demo. Not a real company.' });
-  map.on('click', 'scale-point', (e) => card(all[e.features[0].properties.id]));
-    map.on('click', 'scale-country-dot', (e) => map.flyTo({ center: e.features[0].geometry.coordinates, zoom: 4.6 }));
-  for (const id of ['scale-point', 'scale-country-dot']) { map.on('mouseenter', id, () => (map.getCanvas().style.cursor = 'pointer')); map.on('mouseleave', id, () => (map.getCanvas().style.cursor = '')); }
+  const card = (c) => cardFn ? onCard(cardFn(c)) : onCard({ head: 'SCALE DEMO · GENERATED POINT', title: c.name, rows: [['Category', categories[c.cat][0]], ['Type', c.type], ['Size', c.size], ['Country', c.a3]], note: 'Test data generated for the scale demo. Not a real company.' });
+  map.on('click', `${P}-point`, (e) => card(byId.get(String(e.features[0].properties.id))));
+    map.on('click', `${P}-country-dot`, (e) => map.flyTo({ center: e.features[0].geometry.coordinates, zoom: 4.6 }));
+  for (const id of [`${P}-point`, `${P}-country-dot`]) { map.on('mouseenter', id, () => (map.getCanvas().style.cursor = 'pointer')); map.on('mouseleave', id, () => (map.getCanvas().style.cursor = '')); }
 
   // category filters
   function applyFilter() {
     const list = all.filter((c) => shown.has(c.cat));
-    map.getSource('scale').setData(fc(list));
-    const [p, q] = countryFc(); map.getSource('scale-countries').setData(p); map.getSource('scale-country-pts').setData(q);
+    map.getSource(`${P}`).setData(fc(list));
+    const [p, q] = countryFc(); map.getSource(`${P}-countries`).setData(p); map.getSource(`${P}-country-pts`).setData(q);
     for (const m of markers.values()) m.remove(); markers.clear(); onScreen = new Map();
     syncList();
   }
-  const LAYERS = ['scale-country-fill', 'scale-country-dot', 'scale-country-n', 'scale-cluster', 'scale-point', 'scale-name'];
+  const LAYERS = [`${P}-country-fill`, `${P}-country-dot`, `${P}-country-n`, `${P}-cluster`, `${P}-point`, `${P}-name`];
   const state = { on: false };
   function setOn(on) {
     state.on = on;
     for (const id of LAYERS) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
     $('#scale-panel').hidden = !on;
+    if (on) { $('#scale-filters').replaceChildren(filterBox); $('#scale-title').textContent = title ?? 'SCALE DEMO · 30,000 GENERATED POINTS'; $('#scale-note').textContent = note ?? 'Test data, not real companies. Zoom in: countries → clusters → points.'; }
     if (!on) { for (const m of onScreen.values()) m.remove(); onScreen = new Map(); } else syncList();
   }
-  const filters = $('#scale-filters');
-  for (const k of catKeys) {
+  const filterBox = document.createElement('div');
+  for (const k of catKeys.filter((k) => all.some((c) => c.cat === k))) {
     const lab = document.createElement('label'), cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = true;
     cb.addEventListener('change', () => { if (cb.checked) shown.add(k); else shown.delete(k); applyFilter(); });
     const dot = document.createElement('i'); dot.style.background = categories[k][1];
-    lab.append(cb, dot, document.createTextNode(categories[k][0])); filters.append(lab);
+    lab.append(cb, dot, document.createTextNode(categories[k][0])); filterBox.append(lab);
   }
-  return { all, setOn, state };
+  return { all, setOn, state, prefix: P };
 }

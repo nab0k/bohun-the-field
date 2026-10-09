@@ -302,10 +302,12 @@ function showLiveCard(c) {
   box.querySelector('.panel-head span').textContent = c.head;
   $('#ind-title').textContent = c.title;
   const body = $('#ind-body'); body.replaceChildren();
+  if (c.warn) body.append(el('p', 'warn', c.warn));
+  if (c.text) body.append(el('p', null, c.text));
   const dl = el('dl', 'rows');
   for (const [k, v] of c.rows) dl.append(el('dt', null, k), el('dd', null, v));
   body.append(dl);
-  if (c.source) { const src = el('p', 'links'); src.append(document.createTextNode('Source: '), link(c.source, c.sourceUrl)); body.append(src); }
+  if (c.source) { const src = el('p', 'links'); src.append(document.createTextNode('Source: '), link(c.source, c.sourceUrl)); for (const [t, u] of c.links ?? []) src.append(document.createTextNode(' · '), link(t, u)); body.append(src); }
   body.append(el('p', 'notice', c.note ?? 'Public open data, shown as received. Nothing is shown over Ukraine or the Black Sea.'));
 }
 const live = await createLive(map, { ukraineGeometry: countries.features.find((f) => f.properties.a3 === 'UKR').geometry, onCard: showLiveCard });
@@ -334,7 +336,34 @@ setLive(params.get('live') === '1');
 // ---------- scale demo (?demo=scale): 30,000 generated points with four levels of detail (src/atlas/scale-demo.js) ----------
 const scale = createScaleDemo(map, { maplibregl, countries, categories: PRODUCT, onCard: showLiveCard, $ });
 scale.setOn(false);
+
+// ---------- companies from the research catalogue (Notion DB | Companies: accepted + Publishable), first country Austria ----------
+// built by scripts/build-companies.mjs; the point is the city centre, companies of one city are spread on a small ring
+const atData = await fetch('/atlas/companies-at.json').then((r) => r.json());
+const ringed = (list) => { const g = {}; for (const c of list) (g[c.lon + ',' + c.lat] ??= []).push(c); return Object.values(g).flatMap((cs) => cs.map((c, i) => { const r = cs.length > 1 ? 0.012 + 0.003 * cs.length : 0, a = (i / cs.length) * Math.PI * 2; return { ...c, lon: c.lon + (r * Math.cos(a)) / Math.cos((c.lat * Math.PI) / 180), lat: c.lat + r * Math.sin(a) }; })); };
+const FLAG_EN = { 'OWNERSHIP OPEN': 'Ownership not fully confirmed', 'SOURCE CONFLICT': 'Sources disagree on some details', 'LEGAL REVIEW': 'Under legal review', 'NO CITY': 'City not confirmed' };
+const companies = createScaleDemo(map, {
+  maplibregl, countries, categories: PRODUCT, onCard: showLiveCard, $, data: ringed(atData.companies), prefix: 'co-at', namesFrom: 7,
+  title: `AUSTRIA · ${atData.companies.length} COMPANIES · OPEN DATA`,
+  note: 'From the Bohun research catalogue, public sources only. Not clients or partners of Bohun. A point is the city centre, not an address.',
+  subtitle: (c) => `${PRODUCT[c.cat][0]} · ${c.city}`,
+  card: (c) => ({
+    head: 'INDUSTRY · OPEN DATA', title: c.name, text: c.about,
+    warn: c.flags.includes('CHINA') ? `Controlled by a Chinese group: ${c.parent.replace(/\.$/, '')}.` : null,
+    rows: [['Category', PRODUCT[c.cat][0]], ['City', `${c.city} (city centre, not the address)`], ...(c.parent && !c.flags.includes('CHINA') ? [['Group', c.parent]] : []), ['Confidence', c.confidence], ...c.flags.filter((f) => FLAG_EN[f]).map((f) => ['Note', FLAG_EN[f]])],
+    source: new URL(c.source).hostname.replace(/^www\./, ''), sourceUrl: c.source, links: c.web ? [['Company website', c.web]] : [],
+    note: 'Open data. Not clients or partners of Bohun.',
+  }),
+});
+function setCompanies(on) {
+  if (on && scale.state.on) setScale(false);
+  companies.setOn(on); $('#companies').classList.toggle('active', on);
+}
+$('#companies').addEventListener('click', () => setCompanies(!companies.state.on));
+setCompanies(!SHOW.scale);
+
 function setScale(on) {
+  if (on && companies.state.on) setCompanies(false);
   scale.setOn(on); $('#scale').classList.toggle('active', on);
   if (on) { setIndustry(false); $('#entry').hidden = true; map.flyTo({ center: [10, 35], zoom: innerWidth <= 820 ? 0.9 : 1.6, pitch: 0, bearing: 0, duration: reduced ? 0 : 1600 }); }
 }
