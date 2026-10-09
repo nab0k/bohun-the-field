@@ -147,6 +147,67 @@ def discover(source, robots):
             break
     return candidates, failures
 
+class ArticleMetadata(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.meta = {}
+        self.canonical = None
+        self.title = ""
+        self.in_title = False
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        if tag == "meta":
+            key = (a.get("property") or a.get("name") or "").lower()
+            if key and a.get("content"):
+                self.meta[key] = a["content"].strip()
+        if tag == "link" and "canonical" in a.get("rel", "").lower().split():
+            self.canonical = a.get("href")
+        if tag == "title":
+            self.in_title = True
+    def handle_data(self, data):
+        if self.in_title:
+            self.title += data
+    def handle_endtag(self, tag):
+        if tag == "title":
+            self.in_title = False
+
+def audit_candidate(item, base, robots):
+    """Inspect public HTML metadata; fail closed on ambiguity and access errors."""
+    result = {"url": item["url"], "classification": item["quality"], "verified": False}
+    if item["quality"] != "possible_article":
+        result["reason"] = "not_article_shaped"
+        return result
+    try:
+        body, final = get(item["url"], robots)
+        if not same_site(final, base):
+            raise ValueError("off_domain_redirect")
+        parser = ArticleMetadata()
+        parser.feed(body)
+        title = parser.meta.get("og:title") or parser.meta.get("twitter:title") or parser.title.strip()
+        date = next((parser.meta[k] for k in ("article:published_time", "datepublished", "date", "dc.date.issued", "pubdate") if parser.meta.get(k)), None)
+        canonical = urllib.parse.urljoin(final, parser.canonical) if parser.canonical else final
+        if not same_site(canonical, base):
+            raise ValueError("off_domain_canonical")
+        result.update({"title": title[:240], "published_at_raw": date, "canonical_url": canonical})
+        if not title or not date:
+            result["reason"] = "missing_title_or_publication_date"
+        else:
+            try:
+                normalized = dt.datetime.fromisoformat(date.replace("Z", "+00:00"))
+                if normalized.tzinfo is None:
+                    result["reason"] = "date_without_timezone"
+                elif normalized > dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=1):
+                    result["reason"] = "future_publication_date"
+                else:
+                    result["verified"] = True
+                    result["reason"] = "metadata_title_date_canonical_present"
+                    result["published_at"] = normalized.isoformat()
+            except ValueError:
+                result["reason"] = "unparseable_publication_date"
+    except Exception as exc:
+        result["reason"] = "fetch_" + type(exc).__name__
+    return result
+
 def db_write(source, candidates):
     import psycopg
     from psycopg.types.json import Jsonb
@@ -183,6 +244,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--apply",action="store_true",help="Write unverified candidate URLs to Supabase")
     ap.add_argument("--report-candidates",action="store_true",help="Show classified candidate URLs")
+    ap.add_argument("--audit-metadata",action="store_true",help="Fetch up to 3 possible articles per source and inspect metadata")
     ap.add_argument("--source-index",type=int,default=None,help=argparse.SUPPRESS)
     ap.add_argument("--per-source-timeout",type=int,default=45,help="Hard wall-clock seconds per source (default 45)")
     ap.add_argument("--sources",default=str(Path(__file__).with_name("sources.json")))
@@ -196,6 +258,13 @@ def main():
             return
         candidates, failures = discover(source, {})
         new = 0
+        if args.audit_metadata:
+            robots = {}
+            checked = 0
+            for item in candidates:
+                if item["quality"] == "possible_article" and checked < 3:
+                    print("AUDIT " + json.dumps({"source": source["name"], **audit_candidate(item, source["url"], robots)}, ensure_ascii=False), flush=True)
+                    checked += 1
         if args.report_candidates:
             for item in candidates:
                 print("CANDIDATE " + json.dumps({"source": source["name"], **item}, ensure_ascii=False), flush=True)
@@ -212,6 +281,8 @@ def main():
                    "--source-index", str(index)]
         if args.report_candidates:
             command.append("--report-candidates")
+        if args.audit_metadata:
+            command.append("--audit-metadata")
         try:
             proc = subprocess.run(command, capture_output=True, text=True,
                                   timeout=args.per_source_timeout, check=False)
@@ -223,6 +294,10 @@ def main():
             if args.report_candidates:
                 for line in proc.stdout.splitlines():
                     if line.startswith("CANDIDATE "):
+                        print(line, flush=True)
+            if args.audit_metadata:
+                for line in proc.stdout.splitlines():
+                    if line.startswith("AUDIT "):
                         print(line, flush=True)
             result = json.loads(proc.stdout.strip().splitlines()[-1])
             count = result["candidates"]
