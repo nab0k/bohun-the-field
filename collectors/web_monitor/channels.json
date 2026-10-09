@@ -1,0 +1,72 @@
+[
+  {
+    "source": "DARPA",
+    "url": "https://www.darpa.mil/news",
+    "kind": "html_listing",
+    "status": "seed_unverified",
+    "enabled": true
+  },
+  {
+    "source": "Defense Innovation Unit",
+    "url": "https://www.diu.mil/latest",
+    "kind": "html_listing",
+    "status": "seed_unverified",
+    "enabled": true
+  },
+  {
+    "source": "DGA",
+    "url": "https://www.defense.gouv.fr/dga/actualites",
+    "kind": "html_listing",
+    "status": "seed_unverified",
+    "enabled": true
+  },
+  {
+    "source": "Polish Ministry of National Defence",
+    "url": "https://www.gov.pl/web/obrona-narodowa/aktualnosci5",
+    "kind": "html_listing",
+    "status": "seed_unverified",
+    "enabled": true
+  },
+  {
+    "source": "National Defence Canada",
+    "url": "https://www.canada.ca/en/department-national-defence/news.html",
+    "kind": "html_listing",
+    "status": "seed_unverified",
+    "enabled": true
+  },
+  {
+    "source": "Australian Department of Defence",
+    "url": "https://www.defence.gov.au/news-events",
+    "kind": "html_listing",
+    "status": "seed_unverified",
+    "enabled": true
+  },
+  {
+    "source": "Australian Department of Defence",
+    "url": "https://www.defence.gov.au/news-events/releases",
+    "kind": "html_listing",
+    "status": "seed_unverified",
+    "enabled": true
+  },
+  {
+    "source": "NATO",
+    "url": "https://www.nato.int/en/news-and-events/news",
+    "kind": "html_listing",
+    "status": "seed_unverified",
+    "enabled": true
+  },
+  {
+    "source": "European Defence Agency",
+    "url": "https://eda.europa.eu/news-and-events/news",
+    "kind": "html_listing",
+    "status": "seed_unverified",
+    "enabled": true
+  },
+  {
+    "source": "European Defence Agency",
+    "url": "https://eda.europa.eu/news-and-events/press-office/latest-press-releases",
+    "kind": "html_listing",
+    "status": "seed_unverified",
+    "enabled": true
+  }
+]
