@@ -114,3 +114,11 @@ console.log(`${n} atlas checks passed`);
   for (const [k, [lon, lat]] of Object.entries(shown)) assert.ok(!ex(lon, lat), `${k} must stay visible`);
   console.log(`ok  live: nothing over Ukraine (with margin) or the Black Sea; ${Object.keys(shown).length} nearby places stay visible`);
 }
+{
+  const { OBJECTS, isoIcon } = await import('../src/atlas/iso.js');
+  const main = fs.readFileSync(new URL('../src/atlas/main.js', import.meta.url), 'utf8');
+  const map = Object.fromEntries([...main.match(/const NODE_ISO = \{([^}]+)\}/)[1].matchAll(/'?([a-z-]+)'?: \['([a-z]+)'/g)].map((m) => [m[1], m[2]]));
+  for (const n of atlasData.nodes) if (!['expert'].includes(n.type)) assert.ok(map[n.type] && OBJECTS[map[n.type]], `node type ${n.type} has an isometric object`);
+  for (const k of Object.keys(OBJECTS)) for (const st of ['A', 'C']) { const ic = isoIcon(k, st); assert.match(decodeURIComponent(ic.url), /<polygon/); assert.ok(ic.anchorY > 0 && ic.anchorY < ic.height); }
+  console.log(`ok  iso: every map node type has one of ${Object.keys(OBJECTS).length} isometric objects, in styles A and C`);
+}

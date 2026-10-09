@@ -12,6 +12,7 @@ import frame from '../flows/data/world-frame.json' with { type: 'json' };
 import assets from '../game/data/assets.json' with { type: 'json' };
 import { createNight } from './night.js';
 import { createLive } from './live.js';
+import { isoIcon } from './iso.js';
 import { createJourneys, atlasData as data, CATEGORIES, MARKETS, HOME, CANDIDATES, INSIGHTS, OFFERS, SELL_STEPS, BUY_STEPS } from './journeys.js';
 
 const $ = (s) => document.querySelector(s);
@@ -25,18 +26,17 @@ const toLL = (x, y) => [x / frame.pxPerDeg - 180, frame.latNorth - y / (frame.px
 const llOf = (p) => toLL(p.x, p.y);
 const heading = (p) => { const [a0, b0] = toLL(p.x, p.y), [a1, b1] = toLL(p.x + p.ax, p.y + p.ay); return (Math.atan2((a1 - a0) * Math.cos((b0 * Math.PI) / 180), b1 - b0) * 180) / Math.PI; };
 
-// ---------- models (Kenney CC0; see public/atlas/models/PROVENANCE.json) ----------
+// ---------- map objects: our own vector isometric drawings (src/atlas/iso.js), replacing the Kenney buildings (09.10.2026) ----------
+// node type → object and relative size; candidates are suppliers' factories
+const NODE_ISO = { mine: ['mine', 0.9], 'factory-s': ['factory', 0.85], 'factory-m': ['factory', 1], 'factory-l': ['factory', 1.15], bank: ['bank', 1], port: ['port', 1.1], station: ['station', 0.95], airfield: ['airfield', 1.05], actor: ['office', 1] };
+const CAND_ISO = ['factory', 1];
+// Vehicles (?vehicles=1 only) still use Kenney CC0 models; see public/atlas/models/PROVENANCE.json
 const M = (kit, name) => `/atlas/models/${kit}/${name}.glb`;
-const NODE_MODEL = {
-  mine: M('city-kit-industrial', 'building-n'), 'factory-s': M('city-kit-industrial', 'building-c'), 'factory-m': M('city-kit-industrial', 'building-e'),
-  'factory-l': M('city-kit-industrial', 'building-m'), bank: M('city-kit-commercial', 'building-e'), port: M('city-kit-industrial', 'building-s'),
-  station: M('city-kit-industrial', 'building-h'), airfield: M('city-kit-industrial', 'building-i'), actor: M('city-kit-commercial', 'building-b'),
-};
-const CAND_MODEL = M('city-kit-industrial', 'building-g');
 const MOVER_MODEL = { truck: M('car-kit', 'truck'), wagon: M('car-kit', 'delivery-flat'), train: M('train-kit', 'train-diesel-a'), ship: M('watercraft-kit', 'ship-cargo-a') };
 const MODEL_YAW = 180;
 const SHOW_VEHICLES = params.get('vehicles') === '1'; // Kenney vehicles face -Z; turn them to face the direction of travel
 
+const ISO_ICON = Object.fromEntries(['factory', 'port', 'warehouse', 'bank', 'lab', 'office', 'mine', 'station', 'airfield'].map((k) => [k, isoIcon(k, params.get('look') === 'dark' ? 'C' : 'A')]));
 const svg = (body, w = 64, h = 64) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${body}</svg>`)}`;
 const ICON = {
   expert: { url: svg('<circle cx="32" cy="32" r="29" fill="#11150e" stroke="#d3b766" stroke-width="4"/><circle cx="32" cy="24" r="9" fill="#efe9cc"/><path d="M15 50c3-11 10-15 17-15s14 4 17 15" fill="#efe9cc"/>'), width: 64, height: 64, anchorY: 32 },
@@ -316,6 +316,32 @@ function setLive(on) { live.setOn(on); $('#live').classList.toggle('active', on)
 $('#live').addEventListener('click', () => setLive(!live.state.on));
 setLive(params.get('live') === '1');
 
+// isometric objects as MapLibre symbols (deck.gl billboard icons get stretched on the globe); the anchor is the footprint centre
+const loadImg = (url) => new Promise((ok, fail) => { const im = new Image(); im.onload = () => ok(im); im.onerror = fail; im.src = url; });
+for (const ic of Object.values(ISO_ICON)) map.addImage(ic.id, await loadImg(ic.url), { pixelRatio: 2 });
+map.addSource('objects', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+const ISO_IMG_H = ISO_ICON.factory.height / 2, ISO_ANCHOR_DY = ISO_ICON.factory.anchorY / 2 - ISO_IMG_H / 2;
+map.addLayer({ id: 'objects', type: 'symbol', source: 'objects', layout: {
+  'icon-image': ['get', 'icon'], 'icon-offset': [0, -ISO_ANCHOR_DY], 'icon-allow-overlap': true, 'icon-ignore-placement': true,
+  'icon-size': ['interpolate', ['linear'], ['zoom'], 2.6, ['*', 0.32, ['get', 's']], 5, ['*', 0.62, ['get', 's']], 8, ['*', 1, ['get', 's']], 11, ['*', 1.3, ['get', 's']]],
+  'symbol-sort-key': ['-', 0, ['get', 'lat']], // southern objects are drawn over northern ones, as in an isometric scene
+} }, 'label-city'); // under the city names, so the names stay readable
+map.on('click', 'objects', (e) => clickNode(e.features[0].properties.id));
+map.on('mouseenter', 'objects', () => (map.getCanvas().style.cursor = 'pointer'));
+map.on('mouseleave', 'objects', () => (map.getCanvas().style.cursor = ''));
+// Bohun as an HTML marker (deck.gl billboard icons get stretched on the globe); anchored at the grounded hooves
+const RIDER_H = 84, rk = RIDER_H / assets.rider.size[1];
+const riderEl = el('img', 'rider'); riderEl.src = assets.rider.url; riderEl.alt = 'Bohun'; riderEl.style.height = RIDER_H + 'px'; riderEl.style.pointerEvents = 'none';
+const riderMarker = new maplibregl.Marker({ element: riderEl, anchor: 'top-left', offset: [-assets.rider.anchor.x * rk, -assets.rider.anchor.y * rk] });
+let objectsKey = '';
+function syncObjects(list) {
+  const key = list.map((n) => n.id).join();
+  if (key === objectsKey) return;
+  objectsKey = key;
+  const isoOf = (n) => (n.id in CANDIDATES ? CAND_ISO : NODE_ISO[n.type]);
+  map.getSource('objects').setData({ type: 'FeatureCollection', features: list.map((n) => ({ type: 'Feature', properties: { id: n.id, icon: ISO_ICON[isoOf(n)[0]].id, s: isoOf(n)[1], lat: n.lat }, geometry: { type: 'Point', coordinates: [n.lon, n.lat] } })) });
+}
+
 const overlay = new MapLibreOverlay({ interleaved: true, layers: [], getCursor: ({ isHovering }) => (isHovering ? 'pointer' : 'grab'), onClick: (info) => info.object?.id && clickNode(info.object.id) });
 map.addControl(overlay);
 
@@ -470,12 +496,10 @@ function buyBody() {
 
 // ---------- deck.gl layers ----------
 function layers(now) {
-  // far out (whole planet) the 3D scene would be a pile of giant models: show only corridors and flows there
-  const farOut = map.getZoom() < 3.2;
+  // far out (whole planet) the objects would be a pile: show only corridors and flows there
+  const zoom = map.getZoom(), farOut = zoom < 2.6;
   const nodes = Object.values(S.world.nodes).filter((n) => !j.hidden(n.id) && !farOut);
-  const buildings = nodes.filter((n) => NODE_MODEL[n.type] && !(n.id in CANDIDATES));
-  const byModel = {};
-  for (const n of buildings) (byModel[NODE_MODEL[n.type]] ??= []).push(n);
+  const buildings = nodes.filter((n) => NODE_ISO[n.type] && !(n.id in CANDIDATES));
   const cands = nodes.filter((n) => n.id in CANDIDATES);
   const pulse = reduced ? 1 : 0.5 + 0.5 * Math.sin(now / 260);
 
@@ -484,8 +508,7 @@ function layers(now) {
     new PathLayer({ id: 'corridors', data: edges, getPath: (e) => e.pts.map(llOf), getColor: (e) => (e.mode === 'rail' ? [70, 64, 52, 200] : e.mode === 'road' ? [140, 116, 74, 220] : [70, 120, 140, 150]), getWidth: (e) => (e.mode === 'sea' ? 1.5 : 2.5), widthUnits: 'pixels', getDashArray: (e) => (e.mode === 'sea' ? [6, 4] : e.mode === 'rail' ? [2, 1.5] : [0, 0]), dashJustified: true, extensions: [new PathStyleExtension({ dash: true })], parameters: { depthTest: false } }),
     new PathLayer({ id: 'flows', data: S.flows.flatMap((f) => f.steps.map((s) => ({ f, s }))), getPath: (d) => d.s.pts.map(llOf), getColor: [226, 176, 40, 255], getWidth: 4, widthUnits: 'pixels', getDashArray: [5, 3], extensions: [new PathStyleExtension({ dash: true })], parameters: { depthTest: false } }),
   ];
-  for (const [url, list] of Object.entries(byModel)) L.push(new ScenegraphLayer({ id: 'b-' + url, data: list, scenegraph: url, getPosition: (n) => [n.lon, n.lat], getOrientation: [0, 30, 90], sizeScale: 9000, sizeMinPixels: 26, sizeMaxPixels: 84, _lighting: 'pbr', pickable: true }));
-  L.push(new ScenegraphLayer({ id: 'cands', data: cands, scenegraph: CAND_MODEL, getPosition: (n) => [n.lon, n.lat], getOrientation: [0, 30, 90], sizeScale: 9000, sizeMinPixels: 30, sizeMaxPixels: 92, _lighting: 'pbr', pickable: true }));
+  syncObjects([...buildings, ...cands]);
 
   // vehicles: background traffic and the visitor's cargo
   const movers = [];
@@ -508,7 +531,7 @@ function layers(now) {
   const experts = nodes.filter((n) => n.type === 'expert');
   L.push(new IconLayer({ id: 'experts', data: experts, getIcon: () => ICON.expert, getPosition: (n) => [n.lon, n.lat, 20000], getSize: 34, sizeUnits: 'pixels', pickable: true }));
   const bp = game.bohunPos();
-  L.push(new IconLayer({ id: 'bohun', data: farOut ? [] : [bp], getIcon: () => ICON.rider, getPosition: (p) => llOf(p), getSize: 84, sizeUnits: 'pixels', updateTriggers: { getPosition: now } }));
+  if (farOut) riderMarker.remove(); else riderMarker.setLngLat(llOf(bp)).addTo(map);
 
   // what to press next: rings and labels
   const hints = hintList();
