@@ -1,0 +1,98 @@
+[
+  {
+    "name": "DARPA",
+    "country": "US",
+    "url": "https://www.darpa.mil/",
+    "enabled": true,
+    "discovery": "sitemap_and_html",
+    "status": "candidate_unverified"
+  },
+  {
+    "name": "Defense Innovation Unit",
+    "country": "US",
+    "url": "https://www.diu.mil/",
+    "enabled": true,
+    "discovery": "sitemap_and_html",
+    "status": "candidate_unverified"
+  },
+  {
+    "name": "Bundeswehr",
+    "country": "DE",
+    "url": "https://www.bundeswehr.de/",
+    "enabled": true,
+    "discovery": "sitemap_and_html",
+    "status": "candidate_unverified"
+  },
+  {
+    "name": "BAAINBw",
+    "country": "DE",
+    "url": "https://www.bundeswehr.de/",
+    "enabled": true,
+    "discovery": "sitemap_and_html",
+    "status": "candidate_unverified"
+  },
+  {
+    "name": "Ministère des Armées",
+    "country": "FR",
+    "url": "https://www.defense.gouv.fr/",
+    "enabled": true,
+    "discovery": "sitemap_and_html",
+    "status": "candidate_unverified"
+  },
+  {
+    "name": "DGA",
+    "country": "FR",
+    "url": "https://www.defense.gouv.fr/dga",
+    "enabled": true,
+    "discovery": "sitemap_and_html",
+    "status": "candidate_unverified"
+  },
+  {
+    "name": "Polish Ministry of National Defence",
+    "country": "PL",
+    "url": "https://www.gov.pl/web/obrona-narodowa",
+    "enabled": true,
+    "discovery": "sitemap_and_html",
+    "status": "candidate_unverified"
+  },
+  {
+    "name": "National Defence Canada",
+    "country": "CA",
+    "url": "https://www.canada.ca/en/department-national-defence.html",
+    "enabled": true,
+    "discovery": "sitemap_and_html",
+    "status": "candidate_unverified"
+  },
+  {
+    "name": "Australian Department of Defence",
+    "country": "AU",
+    "url": "https://www.defence.gov.au/",
+    "enabled": true,
+    "discovery": "sitemap_and_html",
+    "status": "candidate_unverified"
+  },
+  {
+    "name": "Japan ATLA",
+    "country": "JP",
+    "url": "https://www.mod.go.jp/atla/",
+    "enabled": true,
+    "discovery": "sitemap_and_html",
+    "status": "candidate_unverified"
+  },
+  {
+    "name": "NATO",
+    "country": "INT",
+    "url": "https://www.nato.int/",
+    "enabled": true,
+    "discovery": "sitemap_and_html",
+    "status": "candidate_unverified"
+  },
+  {
+    "name": "European Defence Agency",
+    "country": "EU",
+    "url": "https://eda.europa.eu/",
+    "enabled": true,
+    "discovery": "sitemap_and_html",
+    "status": "candidate_unverified"
+  }
+]
