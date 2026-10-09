@@ -12,7 +12,6 @@ import frame from '../flows/data/world-frame.json' with { type: 'json' };
 import assets from '../game/data/assets.json' with { type: 'json' };
 import { createNight } from './night.js';
 import { createLive } from './live.js';
-import { isoIcon } from './iso.js';
 import { createScaleDemo } from './scale-demo.js';
 import { createJourneys, atlasData as data, CATEGORIES, MARKETS, HOME, CANDIDATES, INSIGHTS, OFFERS, SELL_STEPS, BUY_STEPS } from './journeys.js';
 
@@ -27,17 +26,18 @@ const toLL = (x, y) => [x / frame.pxPerDeg - 180, frame.latNorth - y / (frame.px
 const llOf = (p) => toLL(p.x, p.y);
 const heading = (p) => { const [a0, b0] = toLL(p.x, p.y), [a1, b1] = toLL(p.x + p.ax, p.y + p.ay); return (Math.atan2((a1 - a0) * Math.cos((b0 * Math.PI) / 180), b1 - b0) * 180) / Math.PI; };
 
-// ---------- map objects: our own vector isometric drawings (src/atlas/iso.js), replacing the Kenney buildings (09.10.2026) ----------
-// node type → object and relative size; candidates are suppliers' factories
-const NODE_ISO = { mine: ['mine', 0.9], 'factory-s': ['factory', 0.85], 'factory-m': ['factory', 1], 'factory-l': ['factory', 1.15], bank: ['bank', 1], port: ['port', 1.1], station: ['station', 0.95], airfield: ['airfield', 1.05], actor: ['office', 1] };
-const CAND_ISO = ['factory', 1];
+// ---------- map objects: plain points coloured by type (Serhii, 09.10.2026: no isometric objects, no 3D buildings) ----------
+const NODE_KIND = {
+  mine: ['Mine', '#7a6a48', 0.9], 'factory-s': ['Factory', '#9a4a32', 0.85], 'factory-m': ['Factory', '#9a4a32', 1], 'factory-l': ['Factory', '#9a4a32', 1.2],
+  bank: ['Bank', '#c08a2a', 1], port: ['Port', '#2f6f95', 1.1], station: ['Rail hub', '#5b6fb0', 0.95], airfield: ['Airfield', '#4f7fa8', 1], actor: ['Market actor', '#3f8f6a', 1],
+};
+const CAND_KIND = ['Candidate supplier', '#d3b766', 1];
 // Vehicles (?vehicles=1 only) still use Kenney CC0 models; see public/atlas/models/PROVENANCE.json
 const M = (kit, name) => `/atlas/models/${kit}/${name}.glb`;
 const MOVER_MODEL = { truck: M('car-kit', 'truck'), wagon: M('car-kit', 'delivery-flat'), train: M('train-kit', 'train-diesel-a'), ship: M('watercraft-kit', 'ship-cargo-a') };
 const MODEL_YAW = 180;
 const SHOW_VEHICLES = params.get('vehicles') === '1'; // Kenney vehicles face -Z; turn them to face the direction of travel
 
-const ISO_ICON = Object.fromEntries(['factory', 'port', 'warehouse', 'bank', 'lab', 'office', 'mine', 'station', 'airfield'].map((k) => [k, isoIcon(k, params.get('look') === 'dark' ? 'C' : 'A')]));
 const svg = (body, w = 64, h = 64) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${body}</svg>`)}`;
 const ICON = {
   expert: { url: svg('<circle cx="32" cy="32" r="29" fill="#11150e" stroke="#d3b766" stroke-width="4"/><circle cx="32" cy="24" r="9" fill="#efe9cc"/><path d="M15 50c3-11 10-15 17-15s14 4 17 15" fill="#efe9cc"/>'), width: 64, height: 64, anchorY: 32 },
@@ -318,7 +318,7 @@ $('#live').addEventListener('click', () => setLive(!live.state.on));
 setLive(params.get('live') === '1');
 
 // ---------- scale demo (?demo=scale): 30,000 generated points with four levels of detail (src/atlas/scale-demo.js) ----------
-const scale = createScaleDemo(map, { maplibregl, countries, categories: PRODUCT, isoIconId: (k) => ISO_ICON[k].id, onCard: showLiveCard, $ });
+const scale = createScaleDemo(map, { maplibregl, countries, categories: PRODUCT, onCard: showLiveCard, $ });
 scale.setOn(false);
 function setScale(on) {
   scale.setOn(on); $('#scale').classList.toggle('active', on);
@@ -327,16 +327,12 @@ function setScale(on) {
 $('#scale').addEventListener('click', () => setScale(!scale.state.on));
 if (params.get('demo') === 'scale') setScale(true);
 
-// isometric objects as MapLibre symbols (deck.gl billboard icons get stretched on the globe); the anchor is the footprint centre
-const loadImg = (url) => new Promise((ok, fail) => { const im = new Image(); im.onload = () => ok(im); im.onerror = fail; im.src = url; });
-for (const ic of Object.values(ISO_ICON)) map.addImage(ic.id, await loadImg(ic.url), { pixelRatio: 2 });
+// demo actors as plain points (MapLibre layers draw correctly on the globe), under the city names
 map.addSource('objects', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-const ISO_IMG_H = ISO_ICON.factory.height / 2, ISO_ANCHOR_DY = ISO_ICON.factory.anchorY / 2 - ISO_IMG_H / 2;
-map.addLayer({ id: 'objects', type: 'symbol', source: 'objects', layout: {
-  'icon-image': ['get', 'icon'], 'icon-offset': [0, -ISO_ANCHOR_DY], 'icon-allow-overlap': true, 'icon-ignore-placement': true,
-  'icon-size': ['interpolate', ['linear'], ['zoom'], 2.6, ['*', 0.32, ['get', 's']], 5, ['*', 0.62, ['get', 's']], 8, ['*', 1, ['get', 's']], 11, ['*', 1.3, ['get', 's']]],
-  'symbol-sort-key': ['-', 0, ['get', 'lat']], // southern objects are drawn over northern ones, as in an isometric scene
-} }, 'label-city'); // under the city names, so the names stay readable
+map.addLayer({ id: 'objects', type: 'circle', source: 'objects', paint: {
+  'circle-color': ['get', 'color'], 'circle-stroke-color': '#fff6cf', 'circle-stroke-width': 1.5,
+  'circle-radius': ['interpolate', ['linear'], ['zoom'], 2.6, ['*', 3.5, ['get', 's']], 6, ['*', 6, ['get', 's']], 10, ['*', 9, ['get', 's']]],
+} }, 'label-city');
 map.on('click', 'objects', (e) => clickNode(e.features[0].properties.id));
 map.on('mouseenter', 'objects', () => (map.getCanvas().style.cursor = 'pointer'));
 map.on('mouseleave', 'objects', () => (map.getCanvas().style.cursor = ''));
@@ -349,8 +345,8 @@ function syncObjects(list) {
   const key = list.map((n) => n.id).join();
   if (key === objectsKey) return;
   objectsKey = key;
-  const isoOf = (n) => (n.id in CANDIDATES ? CAND_ISO : NODE_ISO[n.type]);
-  map.getSource('objects').setData({ type: 'FeatureCollection', features: list.map((n) => ({ type: 'Feature', properties: { id: n.id, icon: ISO_ICON[isoOf(n)[0]].id, s: isoOf(n)[1], lat: n.lat }, geometry: { type: 'Point', coordinates: [n.lon, n.lat] } })) });
+  const kindOf = (n) => (n.id in CANDIDATES ? CAND_KIND : NODE_KIND[n.type]);
+  map.getSource('objects').setData({ type: 'FeatureCollection', features: list.map((n) => ({ type: 'Feature', properties: { id: n.id, color: kindOf(n)[1], s: kindOf(n)[2] }, geometry: { type: 'Point', coordinates: [n.lon, n.lat] } })) });
 }
 
 const overlay = new MapLibreOverlay({ interleaved: true, layers: [], getCursor: ({ isHovering }) => (isHovering ? 'pointer' : 'grab'), onClick: (info) => info.object?.id && clickNode(info.object.id) });
@@ -510,7 +506,7 @@ function layers(now) {
   // far out (whole planet) the objects would be a pile: show only corridors and flows there
   const zoom = map.getZoom(), farOut = zoom < 2.6;
   const nodes = Object.values(S.world.nodes).filter((n) => !j.hidden(n.id) && !farOut);
-  const buildings = nodes.filter((n) => NODE_ISO[n.type] && !(n.id in CANDIDATES));
+  const buildings = nodes.filter((n) => NODE_KIND[n.type] && !(n.id in CANDIDATES));
   const cands = nodes.filter((n) => n.id in CANDIDATES);
   const pulse = reduced ? 1 : 0.5 + 0.5 * Math.sin(now / 260);
 

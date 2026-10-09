@@ -3,7 +3,7 @@
 //   world   (zoom < 3)  — countries shaded by the number of companies, one count per country
 //   region  (3 … 7)     — clusters with a ring split by product category
 //   city    (7 … 9.5)   — single points coloured by category, names of the larger ones
-//   close   (≥ 9.5)     — our isometric objects by type (factory, office, lab, warehouse)
+//   close   (≥ 9.5)     — the same points, larger, every name shown (no isometric objects: Serhii, 09.10.2026)
 // plus category filters and a list of the companies in view. The same machinery will carry the real database.
 // Rules kept even for test data: nothing in Ukraine, Russia, Belarus, China or North Korea.
 const N = 30000;
@@ -30,7 +30,7 @@ const CITIES = [
   [103.82, 1.35, 'SGP', 3], [151.21, -33.87, 'AUS', 4], [138.6, -34.93, 'AUS', 3], [144.96, -37.81, 'AUS', 3], [153.03, -27.47, 'AUS', 2], [115.86, -31.95, 'AUS', 2], [149.13, -35.28, 'AUS', 2], [174.76, -36.85, 'NZL', 1],
   [-46.63, -23.55, 'BRA', 2], [-45.89, -23.18, 'BRA', 2], [18.42, -33.92, 'ZAF', 1], [28.19, -25.75, 'ZAF', 2],
 ];
-const TYPES = [['factory', 0.58], ['office', 0.2], ['lab', 0.12], ['warehouse', 0.1]];
+const TYPES = [['factory', 0.58], ['office', 0.2], ['lab', 0.12], ['warehouse', 0.1]]; // shown in the card
 const SIZE = [['S', 0.62], ['M', 0.28], ['L', 0.1]];
 
 function rng(seed) { return () => { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
@@ -63,11 +63,11 @@ export function generate(countries, categories) {
   return out;
 }
 
-export function createScaleDemo(map, { maplibregl, countries, categories, isoIconId, onCard, $ }) {
+export function createScaleDemo(map, { maplibregl, countries, categories, onCard, $ }) {
   const all = generate(countries, categories);
   const shown = new Set(Object.keys(categories));
   const catKeys = Object.keys(categories);
-  const props = (c) => ({ id: c.id, name: c.name, cat: c.cat, color: categories[c.cat][1], icon: isoIconId(c.type), big: c.size === 'L', s: c.size === 'L' ? 1 : c.size === 'M' ? 0.8 : 0.65 });
+  const props = (c) => ({ id: c.id, name: c.name, cat: c.cat, color: categories[c.cat][1], big: c.size === 'L', s: c.size === 'L' ? 1 : c.size === 'M' ? 0.8 : 0.65 });
   const fc = (list) => ({ type: 'FeatureCollection', features: list.map((c) => ({ type: 'Feature', properties: props(c), geometry: { type: 'Point', coordinates: [c.lon, c.lat] } })) });
 
   // world level: countries shaded by count, a count bubble per country
@@ -87,10 +87,9 @@ export function createScaleDemo(map, { maplibregl, countries, categories, isoIco
   map.addLayer({ id: 'scale-country-n', type: 'symbol', source: 'scale-country-pts', maxzoom: 3, layout: { 'text-field': ['number-format', ['get', 'n'], { locale: 'en' }], 'text-font': ['Noto Sans Bold'], 'text-size': 11, 'text-allow-overlap': true }, paint: { 'text-color': '#ffecaa' } });
   // region level: clusters (the ring by category is drawn as HTML markers below)
   map.addLayer({ id: 'scale-cluster', type: 'circle', source: 'scale', minzoom: 3, filter: ['has', 'point_count'], paint: { 'circle-opacity': 0, 'circle-radius': ['step', ['get', 'point_count'], 16, 100, 22, 1000, 30] } });
-  // city level: single points; close: isometric objects
-  map.addLayer({ id: 'scale-point', type: 'circle', source: 'scale', minzoom: 3, maxzoom: 9.5, filter: ['!', ['has', 'point_count']], paint: { 'circle-color': ['get', 'color'], 'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, ['case', ['get', 'big'], 5, 3.5], 9, ['case', ['get', 'big'], 8, 5.5]], 'circle-stroke-color': '#fff6cf', 'circle-stroke-width': 1 } });
-  map.addLayer({ id: 'scale-name', type: 'symbol', source: 'scale', minzoom: 7.5, maxzoom: 9.5, filter: ['all', ['!', ['has', 'point_count']], ['get', 'big']], layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Bold'], 'text-size': 10, 'text-offset': [0, 1], 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': '#22201a', 'text-halo-color': '#f7efd2', 'text-halo-width': 1.4 } });
-  map.addLayer({ id: 'scale-iso', type: 'symbol', source: 'scale', minzoom: 9.5, filter: ['!', ['has', 'point_count']], layout: { 'icon-image': ['get', 'icon'], 'icon-size': ['interpolate', ['linear'], ['zoom'], 9.5, ['*', 0.55, ['get', 's']], 13, ['*', 1.1, ['get', 's']]], 'icon-allow-overlap': true, 'symbol-sort-key': ['-', 0, ['get', 'id']], 'text-field': ['step', ['zoom'], '', 11, ['get', 'name']], 'text-font': ['Noto Sans Bold'], 'text-size': 10, 'text-offset': [0, 0.8], 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': '#22201a', 'text-halo-color': '#f7efd2', 'text-halo-width': 1.4 } });
+  // city and close levels: single points; names of the larger ones first, then all
+  map.addLayer({ id: 'scale-point', type: 'circle', source: 'scale', minzoom: 3, filter: ['!', ['has', 'point_count']], paint: { 'circle-color': ['get', 'color'], 'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, ['case', ['get', 'big'], 5, 3.5], 9, ['case', ['get', 'big'], 8, 5.5], 13, ['case', ['get', 'big'], 11, 8]], 'circle-stroke-color': '#fff6cf', 'circle-stroke-width': 1.2 } });
+  map.addLayer({ id: 'scale-name', type: 'symbol', source: 'scale', minzoom: 7.5, filter: ['all', ['!', ['has', 'point_count']], ['any', ['get', 'big'], ['>=', ['zoom'], 9.5]]], layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Bold'], 'text-size': 10, 'text-offset': [0, 1], 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': '#22201a', 'text-halo-color': '#f7efd2', 'text-halo-width': 1.4 } });
 
   // ring markers for clusters: one SVG donut per cluster on screen, cached by cluster id
   const markers = new Map(); let onScreen = new Map();
@@ -143,9 +142,8 @@ export function createScaleDemo(map, { maplibregl, countries, categories, isoIco
   map.on('moveend', syncList);
   const card = (c) => onCard({ head: 'SCALE DEMO · GENERATED POINT', title: c.name, rows: [['Category', categories[c.cat][0]], ['Type', c.type], ['Size', c.size], ['Country', c.a3]], note: 'Test data generated for the scale demo. Not a real company.' });
   map.on('click', 'scale-point', (e) => card(all[e.features[0].properties.id]));
-  map.on('click', 'scale-iso', (e) => card(all[e.features[0].properties.id]));
-  map.on('click', 'scale-country-dot', (e) => map.flyTo({ center: e.features[0].geometry.coordinates, zoom: 4.6 }));
-  for (const id of ['scale-point', 'scale-iso', 'scale-country-dot']) { map.on('mouseenter', id, () => (map.getCanvas().style.cursor = 'pointer')); map.on('mouseleave', id, () => (map.getCanvas().style.cursor = '')); }
+    map.on('click', 'scale-country-dot', (e) => map.flyTo({ center: e.features[0].geometry.coordinates, zoom: 4.6 }));
+  for (const id of ['scale-point', 'scale-country-dot']) { map.on('mouseenter', id, () => (map.getCanvas().style.cursor = 'pointer')); map.on('mouseleave', id, () => (map.getCanvas().style.cursor = '')); }
 
   // category filters
   function applyFilter() {
@@ -155,7 +153,7 @@ export function createScaleDemo(map, { maplibregl, countries, categories, isoIco
     for (const m of markers.values()) m.remove(); markers.clear(); onScreen = new Map();
     syncList();
   }
-  const LAYERS = ['scale-country-fill', 'scale-country-dot', 'scale-country-n', 'scale-cluster', 'scale-point', 'scale-name', 'scale-iso'];
+  const LAYERS = ['scale-country-fill', 'scale-country-dot', 'scale-country-n', 'scale-cluster', 'scale-point', 'scale-name'];
   const state = { on: false };
   function setOn(on) {
     state.on = on;

@@ -115,12 +115,11 @@ console.log(`${n} atlas checks passed`);
   console.log(`ok  live: nothing over Ukraine (with margin) or the Black Sea; ${Object.keys(shown).length} nearby places stay visible`);
 }
 {
-  const { OBJECTS, isoIcon } = await import('../src/atlas/iso.js');
   const main = fs.readFileSync(new URL('../src/atlas/main.js', import.meta.url), 'utf8');
-  const map = Object.fromEntries([...main.match(/const NODE_ISO = \{([^}]+)\}/)[1].matchAll(/'?([a-z-]+)'?: \['([a-z]+)'/g)].map((m) => [m[1], m[2]]));
-  for (const n of atlasData.nodes) if (!['expert'].includes(n.type)) assert.ok(map[n.type] && OBJECTS[map[n.type]], `node type ${n.type} has an isometric object`);
-  for (const k of Object.keys(OBJECTS)) for (const st of ['A', 'C']) { const ic = isoIcon(k, st); assert.match(decodeURIComponent(ic.url), /<polygon/); assert.ok(ic.anchorY > 0 && ic.anchorY < ic.height); }
-  console.log(`ok  iso: every map node type has one of ${Object.keys(OBJECTS).length} isometric objects, in styles A and C`);
+  const kinds = new Set([...main.match(/const NODE_KIND = \{([\s\S]+?)\n\};/)[1].matchAll(/'?([a-z-]+)'?: \['/g)].map((m) => m[1]));
+  for (const n of atlasData.nodes) if (n.type !== 'expert') assert.ok(kinds.has(n.type), `node type ${n.type} has a point style`);
+  assert.ok(!/iso\.js|ScenegraphLayer\(\{ id: 'b-/.test(main), 'no isometric objects or 3D buildings on the map');
+  console.log('ok  map objects: every node type is a plain point; no isometric objects or 3D buildings');
 }
 {
   const { generate } = await import('../src/atlas/scale-demo.js');
