@@ -370,6 +370,68 @@ function setScale(on) {
 $('#scale').addEventListener('click', () => setScale(!scale.state.on));
 if (SHOW.scale) setScale(true); else $('#scale').hidden = true;
 
+// ---------- left panel: layer switches drive the (hidden) topbar buttons, so every layer keeps one code path ----------
+for (const lab of document.querySelectorAll('.layer[data-for]')) {
+  const btn = $('#' + lab.dataset.for), cb = lab.querySelector('input');
+  const sync = () => { cb.checked = btn.classList.contains('active'); };
+  cb.addEventListener('change', () => { if (cb.checked !== btn.classList.contains('active')) btn.click(); sync(); });
+  new MutationObserver(sync).observe(btn, { attributes: true, attributeFilter: ['class'] }); sync();
+}
+if (SHOW.scale) $('.layer[data-for="scale"]').hidden = false;
+$('#n-companies').textContent = `${atData.companies.length} · Austria`;
+
+// ---------- search: companies, capitals and Ukrainian centres, countries ----------
+const norm = (t) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const countryFeature = Object.fromEntries(countries.features.map((f) => [f.properties.a3, f]));
+const INDEX = [
+  ...atData.companies.map((c) => ({ kind: 'company', id: c.id, name: c.name, sub: `${PRODUCT[c.cat][0]} · ${c.city}`, color: PRODUCT[c.cat][1], key: norm(`${c.name} ${c.city} ${c.about}`) })),
+  ...places.map((p) => ({ kind: 'place', name: p.name, sub: p.kind === 'capital' ? `Capital · ${countryFeature[p.a3]?.properties.name ?? p.a3}` : p.oblast ?? 'Ukraine', lon: p.lon, lat: p.lat, key: norm(p.name) })),
+  ...countries.features.map((f) => ({ kind: 'country', a3: f.properties.a3, name: f.properties.name, sub: atData.companies.some((c) => c.a3 === f.properties.a3) ? `Country · ${atData.companies.filter((c) => c.a3 === f.properties.a3).length} companies` : 'Country', key: norm(f.properties.name) })),
+];
+const qIn = $('#q'), qOut = $('#q-results');
+let qHits = [], qOn = 0;
+function bboxOf(g) { let w = 180, s0 = 90, e = -180, n = -90; for (const poly of g.type === 'Polygon' ? [g.coordinates] : g.coordinates) for (const [x, y] of poly[0]) { w = Math.min(w, x); e = Math.max(e, x); s0 = Math.min(s0, y); n = Math.max(n, y); } return [[w, s0], [e, n]]; }
+function go(h) {
+  qOut.hidden = true; qIn.value = h.name; qIn.blur();
+  $('#entry').hidden = true;
+  if (h.kind === 'company') { if (!companies.state.on) setCompanies(true); companies.select(h.id, { fly: true }); }
+  else if (h.kind === 'place') map.flyTo({ center: [h.lon, h.lat], zoom: 9, pitch: 0, duration: 1400 });
+  else if (atData.companies.some((c) => c.a3 === h.a3)) { if (!companies.state.on) setCompanies(true); companies.showCountry(h.a3); }
+  else map.fitBounds(bboxOf(countryFeature[h.a3].geometry), { padding: 60, maxZoom: 6, pitch: 0, duration: 1400 });
+}
+function renderHits() {
+  qOut.replaceChildren();
+  if (!qHits.length) { const li = el('li', 'none', 'Nothing found. Try a company, a city or a country.'); qOut.append(li); }
+  qHits.forEach((h, i) => {
+    const li = el('li'), b = el('button'); b.type = 'button'; b.classList.toggle('on', i === qOn);
+    const dot = el('i', h.kind === 'company' ? null : h.kind); if (h.color) dot.style.background = h.color;
+    b.append(dot, el('b', null, h.name), el('small', null, h.sub));
+    b.addEventListener('mousedown', (e) => { e.preventDefault(); go(h); });
+    li.append(b); qOut.append(li);
+  });
+  qOut.hidden = false;
+}
+qIn.addEventListener('input', () => {
+  const t = norm(qIn.value.trim());
+  if (t.length < 2) { qOut.hidden = true; return; }
+  const rank = (h) => (h.key.startsWith(t) ? 0 : norm(h.name).includes(t) ? 1 : 2) + (h.kind === 'company' ? 0 : 0.5);
+  qHits = INDEX.filter((h) => h.key.includes(t)).sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name)).slice(0, 12);
+  qOn = 0; renderHits();
+});
+qIn.addEventListener('keydown', (e) => {
+  if (qOut.hidden) return;
+  if (e.key === 'ArrowDown') { qOn = Math.min(qOn + 1, qHits.length - 1); renderHits(); e.preventDefault(); }
+  else if (e.key === 'ArrowUp') { qOn = Math.max(qOn - 1, 0); renderHits(); e.preventDefault(); }
+  else if (e.key === 'Enter' && qHits[qOn]) go(qHits[qOn]);
+  else if (e.key === 'Escape') { qOut.hidden = true; }
+});
+qIn.addEventListener('blur', () => setTimeout(() => (qOut.hidden = true), 120));
+// keys: "/" focuses search, Esc closes the company card
+addEventListener('keydown', (e) => {
+  if (e.key === '/' && document.activeElement !== qIn) { e.preventDefault(); qIn.focus(); }
+  else if (e.key === 'Escape' && document.activeElement !== qIn) { for (const l of [companies, scale]) if (l.state.on && l.state.selected) l.back(); }
+});
+
 // demo actors as plain points (MapLibre layers draw correctly on the globe), under the city names
 map.addSource('objects', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
 map.addLayer({ id: 'objects', type: 'circle', source: 'objects', paint: {

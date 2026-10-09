@@ -63,40 +63,56 @@ export function generate(countries, categories) {
   return out;
 }
 
-// options for real data: data (records with id, name, a3, cat, lon, lat …), prefix (ids of sources and layers), title and note
-// for the panel, card(record) for the click card, subtitle(record) for the list, namesFrom (zoom from which every name shows)
-export function createScaleDemo(map, { maplibregl, countries, categories, onCard, $, data, prefix = 'scale', title, note, card: cardFn, subtitle, namesFrom = 9.5 }) {
+// A data layer with levels of detail and its own right-hand panel (list, country view, company card).
+// Options: data (records with id, name, a3, cat, lon, lat …; generated test data when absent), prefix (ids of sources and
+// layers), title and note for the panel, card(record) → { head, title, text, warn, rows, source, sourceUrl, links, note },
+// subtitle(record) for list rows, namesFrom (zoom from which every name shows), countryName(a3).
+// Usability (Serhii, 10.10.2026): category chips in the left panel, hover tips, highlight of the chosen company,
+// the card inside the panel with "back to list", a click on a country opens its view with a summary and a breadcrumb.
+export function createScaleDemo(map, { maplibregl, countries, categories, $, data, prefix = 'scale', title, note, card: cardFn, subtitle, namesFrom = 9.5 }) {
   const P = prefix;
   const all = data ?? generate(countries, categories);
   const byId = new Map(all.map((c) => [String(c.id), c]));
-  const shown = new Set(Object.keys(categories));
-  const catKeys = Object.keys(categories);
-  const props = (c) => ({ id: c.id, name: c.name, cat: c.cat, color: categories[c.cat][1], big: c.size === 'L', s: c.size === 'L' ? 1 : c.size === 'M' ? 0.8 : 0.65 });
+  const catKeys = Object.keys(categories).filter((k) => all.some((c) => c.cat === k));
+  const shown = new Set(catKeys);
+  const countryName = Object.fromEntries(countries.features.map((f) => [f.properties.a3, f.properties.name]));
+  const state = { on: false, country: null, selected: null, hover: null, view: 'list' };
+  const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
+  const visible = () => all.filter((c) => shown.has(c.cat));
+  const props = (c) => ({ id: String(c.id), name: c.name, cat: c.cat, color: categories[c.cat][1], big: c.size === 'L' });
   const fc = (list) => ({ type: 'FeatureCollection', features: list.map((c) => ({ type: 'Feature', properties: props(c), geometry: { type: 'Point', coordinates: [c.lon, c.lat] } })) });
+  const label = (c) => (subtitle ? subtitle(c) : `${categories[c.cat][0]} · ${c.a3} · ${c.size}`);
+  const defaultCard = (c) => ({ head: 'SCALE DEMO · GENERATED POINT', title: c.name, rows: [['Category', categories[c.cat][0]], ['Type', c.type], ['Size', c.size], ['Country', countryName[c.a3] ?? c.a3]], note: 'Test data generated for the scale demo. Not a real company.' });
+  const cardOf = (c) => (cardFn ? cardFn(c) : defaultCard(c));
 
-  // world level: countries shaded by count, a count bubble per country
+  // ---------- map layers ----------
   const countryFc = () => {
-    const n = {}; for (const c of all) if (shown.has(c.cat)) n[c.a3] = (n[c.a3] ?? 0) + 1;
+    const n = {}; for (const c of visible()) n[c.a3] = (n[c.a3] ?? 0) + 1;
     const polys = countries.features.filter((f) => n[f.properties.a3]).map((f) => ({ ...f, properties: { ...f.properties, n: n[f.properties.a3] } }));
-    const pts = polys.map((f) => ({ type: 'Feature', properties: { name: f.properties.name, n: f.properties.n }, geometry: { type: 'Point', coordinates: labelPoint(f.geometry) } }));
+    const pts = polys.map((f) => ({ type: 'Feature', properties: { a3: f.properties.a3, name: f.properties.name, n: f.properties.n }, geometry: { type: 'Point', coordinates: labelPoint(f.geometry) } }));
     return [{ type: 'FeatureCollection', features: polys }, { type: 'FeatureCollection', features: pts }];
   };
   const [cPoly, cPts] = countryFc();
   map.addSource(`${P}-countries`, { type: 'geojson', data: cPoly });
   map.addSource(`${P}-country-pts`, { type: 'geojson', data: cPts });
-  map.addSource(`${P}`, { type: 'geojson', data: fc(all), cluster: true, clusterRadius: 52, clusterMaxZoom: 7, clusterProperties: Object.fromEntries(catKeys.map((k) => [k, ['+', ['case', ['==', ['get', 'cat'], k], 1, 0]]])) });
+  map.addSource(P, { type: 'geojson', data: fc(all), cluster: true, clusterRadius: 52, clusterMaxZoom: 7, clusterProperties: Object.fromEntries(catKeys.map((k) => [k, ['+', ['case', ['==', ['get', 'cat'], k], 1, 0]]])) });
   const before = 'label-city';
+  map.addLayer({ id: `${P}-country-hit`, type: 'fill', source: `${P}-countries`, paint: { 'fill-color': '#000', 'fill-opacity': 0 } }, before); // clicks on a country
+  map.addLayer({ id: `${P}-country-line`, type: 'line', source: `${P}-countries`, filter: ['==', ['get', 'a3'], ''], paint: { 'line-color': '#b8932e', 'line-width': 2.5 } }, before);
   map.addLayer({ id: `${P}-country-fill`, type: 'fill', source: `${P}-countries`, maxzoom: 3.4, paint: { 'fill-color': ['interpolate', ['linear'], ['get', 'n'], 1, '#efe2a8', 300, '#d9b24c', 1500, '#a8741f', 6000, '#5c3d0c'], 'fill-opacity': ['interpolate', ['linear'], ['zoom'], 2.6, 0.62, 3.4, 0] } }, before);
   map.addLayer({ id: `${P}-country-dot`, type: 'circle', source: `${P}-country-pts`, maxzoom: 3, paint: { 'circle-color': '#11150e', 'circle-opacity': 0.88, 'circle-stroke-color': '#d3b766', 'circle-stroke-width': 1.5, 'circle-radius': ['interpolate', ['linear'], ['get', 'n'], 10, 9, 500, 14, 5000, 24] } });
   map.addLayer({ id: `${P}-country-n`, type: 'symbol', source: `${P}-country-pts`, maxzoom: 3, layout: { 'text-field': ['number-format', ['get', 'n'], { locale: 'en' }], 'text-font': ['Noto Sans Bold'], 'text-size': 11, 'text-allow-overlap': true }, paint: { 'text-color': '#ffecaa' } });
-  // region level: clusters (the ring by category is drawn as HTML markers below)
-  map.addLayer({ id: `${P}-cluster`, type: 'circle', source: `${P}`, minzoom: 3, filter: ['has', 'point_count'], paint: { 'circle-opacity': 0, 'circle-radius': ['step', ['get', 'point_count'], 16, 100, 22, 1000, 30] } });
-  // city and close levels: single points; names of the larger ones first, then all
-  map.addLayer({ id: `${P}-point`, type: 'circle', source: `${P}`, minzoom: 3, filter: ['!', ['has', 'point_count']], paint: { 'circle-color': ['get', 'color'], 'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, ['case', ['get', 'big'], 5, 3.5], 9, ['case', ['get', 'big'], 8, 5.5], 13, ['case', ['get', 'big'], 11, 8]], 'circle-stroke-color': '#fff6cf', 'circle-stroke-width': 1.2 } });
-  map.addLayer({ id: `${P}-name`, type: 'symbol', source: `${P}`, minzoom: 7.5, filter: ['all', ['!', ['has', 'point_count']], ['any', ['get', 'big'], ['>=', ['zoom'], namesFrom]]], layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Bold'], 'text-size': 10, 'text-offset': [0, 1], 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': '#22201a', 'text-halo-color': '#f7efd2', 'text-halo-width': 1.4 } });
+  map.addLayer({ id: `${P}-cluster`, type: 'circle', source: P, minzoom: 3, filter: ['has', 'point_count'], paint: { 'circle-opacity': 0, 'circle-radius': ['step', ['get', 'point_count'], 16, 100, 22, 1000, 30] } });
+  map.addLayer({ id: `${P}-sel`, type: 'circle', source: P, minzoom: 3, filter: ['in', ['get', 'id'], ['literal', []]], paint: { 'circle-color': 'rgba(0,0,0,0)', 'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 10, 13, 16], 'circle-stroke-color': '#e2b84a', 'circle-stroke-width': 3 } });
+  map.addLayer({ id: `${P}-point`, type: 'circle', source: P, minzoom: 3, filter: ['!', ['has', 'point_count']], paint: { 'circle-color': ['get', 'color'], 'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, ['case', ['get', 'big'], 5, 4], 9, ['case', ['get', 'big'], 8, 6], 13, ['case', ['get', 'big'], 11, 8]], 'circle-stroke-color': '#fff6cf', 'circle-stroke-width': 1.2 } });
+  map.addLayer({ id: `${P}-name`, type: 'symbol', source: P, minzoom: Math.min(7.5, namesFrom), filter: ['all', ['!', ['has', 'point_count']], ['any', ['get', 'big'], ['>=', ['zoom'], namesFrom]]], layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Bold'], 'text-size': 10, 'text-offset': [0, 1], 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': '#22201a', 'text-halo-color': '#f7efd2', 'text-halo-width': 1.4 } });
+  const LAYERS = [`${P}-country-hit`, `${P}-country-line`, `${P}-country-fill`, `${P}-country-dot`, `${P}-country-n`, `${P}-cluster`, `${P}-sel`, `${P}-point`, `${P}-name`];
+  const syncSel = () => map.setFilter(`${P}-sel`, ['in', ['get', 'id'], ['literal', [state.selected, state.hover].filter(Boolean).map(String)]]);
+  const syncCountryLine = () => map.setFilter(`${P}-country-line`, ['==', ['get', 'a3'], state.country ?? '']);
 
-  // ring markers for clusters: one SVG donut per cluster on screen, cached by cluster id
+  // ---------- cluster rings (HTML markers, one per cluster on screen) ----------
   const markers = new Map(); let onScreen = new Map();
+  const tip = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 12, className: 'map-tip', maxWidth: '260px' });
   function donut(p) {
     const total = p.point_count, r = total >= 1000 ? 30 : total >= 100 ? 23 : 17, r0 = r - 6, w = r * 2;
     let a0 = -Math.PI / 2, segs = '';
@@ -108,70 +124,169 @@ export function createScaleDemo(map, { maplibregl, countries, categories, onCard
       a0 = a1;
     }
     const d = document.createElement('div');
-    d.className = 'scale-cluster'; // CSS class
+    d.className = 'scale-cluster';
     d.innerHTML = `<svg width="${w}" height="${w}" viewBox="0 0 ${w} ${w}">${segs}<circle cx="${r}" cy="${r}" r="${r0}" fill="#11150e" fill-opacity="0.9"/><text x="${r}" y="${r}" dy="0.35em" text-anchor="middle" fill="#ffecaa" font-family="ui-monospace, monospace" font-weight="800" font-size="${total >= 1000 ? 11 : 10}">${p.point_count_abbreviated}</text></svg>`;
     return d;
   }
+  function clusterTip(p, ll) {
+    const top = catKeys.filter((k) => p[k]).sort((a, b) => p[b] - p[a]).slice(0, 3).map((k) => `<span><i style="background:${categories[k][1]}"></i>${esc(categories[k][0])} · ${p[k]}</span>`).join('');
+    tip.setLngLat(ll).setHTML(`<b>${p.point_count.toLocaleString('en')} companies</b>${top}<small>Click to zoom in</small>`).addTo(map);
+  }
   function syncDonuts() {
     const next = new Map();
-    if (state.on && map.getZoom() >= 3) for (const f of map.querySourceFeatures(`${P}`, { filter: ['has', 'point_count'] })) {
+    if (state.on && map.getZoom() >= 3) for (const f of map.querySourceFeatures(P, { filter: ['has', 'point_count'] })) {
       const id = f.properties.cluster_id; if (next.has(id)) continue;
       let m = markers.get(id);
-      if (!m) { const elm = donut(f.properties); m = new maplibregl.Marker({ element: elm }).setLngLat(f.geometry.coordinates); elm.addEventListener('click', async (e) => { e.stopPropagation(); const z = await map.getSource(`${P}`).getClusterExpansionZoom(id); map.easeTo({ center: f.geometry.coordinates, zoom: z + 0.3 }); }); markers.set(id, m); }
+      if (!m) {
+        const elm = donut(f.properties), ll = f.geometry.coordinates, p = f.properties;
+        m = new maplibregl.Marker({ element: elm }).setLngLat(ll);
+        elm.addEventListener('click', async (e) => { e.stopPropagation(); tip.remove(); const z = await map.getSource(P).getClusterExpansionZoom(id); map.easeTo({ center: ll, zoom: z + 0.3 }); });
+        elm.addEventListener('mouseenter', () => clusterTip(p, ll)); elm.addEventListener('mouseleave', () => tip.remove());
+        markers.set(id, m);
+      }
       next.set(id, m);
       if (!onScreen.has(id)) m.addTo(map);
     }
     for (const [id, m] of onScreen) if (!next.has(id)) m.remove();
     onScreen = next;
   }
-  map.on('render', () => { if (map.isSourceLoaded(`${P}`)) syncDonuts(); });
+  map.on('render', () => { if (state.on && map.isSourceLoaded(P)) syncDonuts(); });
 
-  // the list of companies in view (largest first) and the counter
+  // ---------- hover tips and clicks ----------
+  map.on('mouseenter', `${P}-point`, (e) => {
+    map.getCanvas().style.cursor = 'pointer';
+    const c = byId.get(String(e.features[0].properties.id)); if (!c) return;
+    state.hover = String(c.id); syncSel(); highlightRow();
+    tip.setLngLat([c.lon, c.lat]).setHTML(`<b>${esc(c.name)}</b><span><i style="background:${categories[c.cat][1]}"></i>${esc(label(c))}</span>`).addTo(map);
+  });
+  map.on('mouseleave', `${P}-point`, () => { map.getCanvas().style.cursor = ''; state.hover = null; syncSel(); highlightRow(); tip.remove(); });
+  map.on('click', `${P}-point`, (e) => select(e.features[0].properties.id));
+  map.on('click', `${P}-country-dot`, (e) => showCountry(e.features[0].properties.a3));
+  map.on('click', `${P}-country-hit`, (e) => {
+    if (map.queryRenderedFeatures(e.point, { layers: [`${P}-point`] }).length) return; // a company was clicked
+    const a3 = e.features[0].properties.a3;
+    if (a3 !== state.country) showCountry(a3);
+  });
+  map.on('mouseenter', `${P}-country-dot`, () => (map.getCanvas().style.cursor = 'pointer'));
+  map.on('mouseleave', `${P}-country-dot`, () => (map.getCanvas().style.cursor = ''));
+
+  // ---------- right panel: breadcrumb, list or country summary, company card ----------
+  const panel = $('#scale-panel');
+  function frame() {
+    panel.innerHTML = `<div class="panel-head"><span class="sp-title"></span></div>
+      <nav class="crumbs" aria-label="Where you are"></nav>
+      <div class="sp-list"><p class="muted sp-note"></p><div class="sp-summary"></div><p class="scale-count"></p><ol class="scale-list"></ol></div>
+      <div class="sp-card" hidden><button type="button" class="back">← Back to list</button><div class="sp-card-body"></div></div>`;
+    panel.querySelector('.sp-title').textContent = title ?? 'SCALE DEMO · 30,000 GENERATED POINTS';
+    panel.querySelector('.sp-note').textContent = note ?? 'Test data, not real companies.';
+    panel.querySelector('.back').addEventListener('click', () => select(null));
+  }
+  const q = (s) => panel.querySelector(s);
+  function crumbs() {
+    const nav = q('.crumbs'); nav.replaceChildren();
+    const a = document.createElement('button'); a.type = 'button'; a.textContent = 'World';
+    a.addEventListener('click', () => showCountry(null));
+    nav.append(a);
+    if (state.country) { nav.append(document.createTextNode(' › ')); const b = document.createElement('b'); b.textContent = countryName[state.country] ?? state.country; nav.append(b); }
+  }
+  function listRows() {
+    if (state.country) return visible().filter((c) => c.a3 === state.country);
+    const b = map.getBounds(); return visible().filter((c) => b.contains([c.lon, c.lat]));
+  }
   function syncList() {
     if (!state.on) return;
-    const b = map.getBounds();
-    const inView = all.filter((c) => shown.has(c.cat) && b.contains([c.lon, c.lat]));
-    const order = { L: 0, M: 1, S: 2 };
-    inView.sort((a, c) => (order[a.size] ?? 3) - (order[c.size] ?? 3) || String(a.name).localeCompare(c.name));
-    $('#scale-count').textContent = `${inView.length.toLocaleString('en')} companies in view`;
-    const ul = $('#scale-list'); ul.replaceChildren();
-    for (const c of inView.slice(0, 40)) {
-      const li = document.createElement('li'), btn = document.createElement('button'); btn.type = 'button';
+    crumbs();
+    const rows = listRows(), order = { L: 0, M: 1, S: 2 };
+    rows.sort((a, c) => (order[a.size] ?? 3) - (order[c.size] ?? 3) || String(a.name).localeCompare(c.name));
+    q('.scale-count').textContent = state.country ? `${rows.length.toLocaleString('en')} companies in ${countryName[state.country]}` : `${rows.length.toLocaleString('en')} companies in view`;
+    // country summary: one bar per category
+    const sum = q('.sp-summary'); sum.replaceChildren();
+    if (state.country && rows.length) {
+      const n = {}; for (const c of rows) n[c.cat] = (n[c.cat] ?? 0) + 1;
+      const max = Math.max(...Object.values(n));
+      for (const k of catKeys.filter((k) => n[k]).sort((a, b) => n[b] - n[a])) {
+        const r = document.createElement('div'); r.className = 'bar';
+        r.innerHTML = `<span>${esc(categories[k][0])}</span><i style="width:${(n[k] / max) * 100}%;background:${categories[k][1]}"></i><b>${n[k]}</b>`;
+        sum.append(r);
+      }
+    }
+    const ul = q('.scale-list'); ul.replaceChildren();
+    for (const c of rows.slice(0, 60)) {
+      const li = document.createElement('li'), btn = document.createElement('button'); btn.type = 'button'; btn.dataset.id = String(c.id);
       btn.innerHTML = `<i style="background:${categories[c.cat][1]}"></i><b></b><small></small>`;
-      btn.querySelector('b').textContent = c.name; btn.querySelector('small').textContent = subtitle ? subtitle(c) : `${categories[c.cat][0]} · ${c.a3} · ${c.size}`;
-      btn.addEventListener('click', () => { map.flyTo({ center: [c.lon, c.lat], zoom: 11, pitch: 45 }); card(c); });
+      btn.querySelector('b').textContent = c.name; btn.querySelector('small').textContent = label(c);
+      btn.addEventListener('click', () => select(c.id, { fly: true }));
+      btn.addEventListener('mouseenter', () => { state.hover = String(c.id); syncSel(); });
+      btn.addEventListener('mouseleave', () => { state.hover = null; syncSel(); });
       li.append(btn); ul.append(li);
     }
+    if (rows.length > 60) { const li = document.createElement('li'); li.className = 'more'; li.textContent = `…and ${(rows.length - 60).toLocaleString('en')} more. Zoom in or filter by category.`; ul.append(li); }
+    highlightRow();
   }
-  map.on('moveend', syncList);
-  const card = (c) => cardFn ? onCard(cardFn(c)) : onCard({ head: 'SCALE DEMO · GENERATED POINT', title: c.name, rows: [['Category', categories[c.cat][0]], ['Type', c.type], ['Size', c.size], ['Country', c.a3]], note: 'Test data generated for the scale demo. Not a real company.' });
-  map.on('click', `${P}-point`, (e) => card(byId.get(String(e.features[0].properties.id))));
-    map.on('click', `${P}-country-dot`, (e) => map.flyTo({ center: e.features[0].geometry.coordinates, zoom: 4.6 }));
-  for (const id of [`${P}-point`, `${P}-country-dot`]) { map.on('mouseenter', id, () => (map.getCanvas().style.cursor = 'pointer')); map.on('mouseleave', id, () => (map.getCanvas().style.cursor = '')); }
+  function highlightRow() { if (!state.on) return; for (const b of panel.querySelectorAll('.scale-list button')) b.classList.toggle('on', b.dataset.id === state.hover || b.dataset.id === state.selected); }
+  function renderCard(c) {
+    const d = cardOf(c), box = q('.sp-card-body'); box.replaceChildren();
+    const el = (t, cls, txt) => { const e = document.createElement(t); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+    const lnk = (t, u) => { const a = el('a', null, t); a.href = u; a.target = '_blank'; a.rel = 'noopener'; return a; };
+    box.append(el('p', 'eyebrow', d.head), el('h3', null, d.title));
+    if (d.warn) box.append(el('p', 'warn', d.warn));
+    if (d.text) box.append(el('p', null, d.text));
+    const dl = el('dl', 'rows'); for (const [k, v] of d.rows ?? []) dl.append(el('dt', null, k), el('dd', null, v)); box.append(dl);
+    if (d.source) { const p = el('p', 'links'); p.append(document.createTextNode('Source: '), lnk(d.source, d.sourceUrl)); for (const [t, u] of d.links ?? []) p.append(document.createTextNode(' · '), lnk(t, u)); box.append(p); }
+    if (d.note) box.append(el('p', 'notice', d.note));
+  }
+  function select(id, { fly = false } = {}) {
+    const c = id == null ? null : byId.get(String(id));
+    state.selected = c ? String(c.id) : null; state.view = c ? 'card' : 'list';
+    syncSel(); tip.remove();
+    q('.sp-list').hidden = !!c; q('.sp-card').hidden = !c;
+    if (c) { renderCard(c); if (fly) map.flyTo({ center: [c.lon, c.lat], zoom: Math.max(map.getZoom(), 10), duration: 1200 }); }
+    else syncList();
+  }
+  function showCountry(a3) {
+    state.country = a3; syncCountryLine();
+    if (state.selected) select(null); else syncList();
+    const pad = innerWidth <= 820 ? 40 : { top: 90, bottom: 60, left: 340, right: 340 };
+    if (a3) {
+      const pts = all.filter((c) => c.a3 === a3);
+      if (pts.length) {
+        const b = pts.reduce((bb, c) => bb.extend([c.lon, c.lat]), new maplibregl.LngLatBounds([pts[0].lon, pts[0].lat], [pts[0].lon, pts[0].lat]));
+        map.fitBounds(b, { padding: pad, maxZoom: 7.5, pitch: 0, bearing: 0, duration: 1400 });
+      }
+    } else map.flyTo({ zoom: Math.min(map.getZoom(), 3.2), pitch: 0, bearing: 0, duration: 1200 });
+  }
+  map.on('moveend', () => { if (state.on && state.view === 'list' && !state.country) syncList(); });
 
-  // category filters
+  // ---------- category chips (left panel) ----------
+  const chipsBox = document.createElement('div'); chipsBox.className = 'chips-box';
+  const chip = {};
   function applyFilter() {
-    const list = all.filter((c) => shown.has(c.cat));
-    map.getSource(`${P}`).setData(fc(list));
-    const [p, q] = countryFc(); map.getSource(`${P}-countries`).setData(p); map.getSource(`${P}-country-pts`).setData(q);
+    map.getSource(P).setData(fc(visible()));
+    const [p, qq] = countryFc(); map.getSource(`${P}-countries`).setData(p); map.getSource(`${P}-country-pts`).setData(qq);
     for (const m of markers.values()) m.remove(); markers.clear(); onScreen = new Map();
-    syncList();
+    for (const k of catKeys) chip[k].classList.toggle('off', !shown.has(k));
+    if (state.selected && !shown.has(byId.get(state.selected).cat)) select(null); else syncList();
   }
-  const LAYERS = [`${P}-country-fill`, `${P}-country-dot`, `${P}-country-n`, `${P}-cluster`, `${P}-point`, `${P}-name`];
-  const state = { on: false };
+  const counts = {}; for (const c of all) counts[c.cat] = (counts[c.cat] ?? 0) + 1;
+  for (const k of catKeys.sort((a, b) => counts[b] - counts[a])) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.title = 'Click: show or hide. Double-click: only this category.';
+    b.innerHTML = `<i style="background:${categories[k][1]}"></i><span></span><small>${counts[k].toLocaleString('en')}</small>`;
+    b.querySelector('span').textContent = categories[k][0];
+    let t; // single click toggles, double click keeps only this category
+    b.addEventListener('click', () => { clearTimeout(t); t = setTimeout(() => { if (shown.has(k)) shown.delete(k); else shown.add(k); applyFilter(); }, 220); });
+    b.addEventListener('dblclick', () => { clearTimeout(t); const only = shown.size === 1 && shown.has(k); shown.clear(); for (const x of catKeys) if (only || x === k) shown.add(x); applyFilter(); });
+    chip[k] = b; chipsBox.append(b);
+  }
+  const allBtn = document.createElement('button'); allBtn.type = 'button'; allBtn.className = 'link'; allBtn.textContent = 'Show all categories';
+  allBtn.addEventListener('click', () => { for (const k of catKeys) shown.add(k); applyFilter(); });
+  chipsBox.append(allBtn);
+
   function setOn(on) {
     state.on = on;
     for (const id of LAYERS) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
-    $('#scale-panel').hidden = !on;
-    if (on) { $('#scale-filters').replaceChildren(filterBox); $('#scale-title').textContent = title ?? 'SCALE DEMO · 30,000 GENERATED POINTS'; $('#scale-note').textContent = note ?? 'Test data, not real companies. Zoom in: countries → clusters → points.'; }
-    if (!on) { for (const m of onScreen.values()) m.remove(); onScreen = new Map(); } else syncList();
+    panel.hidden = !on; tip.remove();
+    if (on) { frame(); $('#cat-chips').replaceChildren(chipsBox); state.view = 'list'; state.selected = null; syncSel(); syncList(); }
+    else { for (const m of onScreen.values()) m.remove(); onScreen = new Map(); if ($('#cat-chips').firstChild === chipsBox) $('#cat-chips').replaceChildren(); }
   }
-  const filterBox = document.createElement('div');
-  for (const k of catKeys.filter((k) => all.some((c) => c.cat === k))) {
-    const lab = document.createElement('label'), cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = true;
-    cb.addEventListener('change', () => { if (cb.checked) shown.add(k); else shown.delete(k); applyFilter(); });
-    const dot = document.createElement('i'); dot.style.background = categories[k][1];
-    lab.append(cb, dot, document.createTextNode(categories[k][0])); filterBox.append(lab);
-  }
-  return { all, setOn, state, prefix: P };
+  return { all, setOn, state, prefix: P, select, showCountry, countryName, back: () => select(null) };
 }
