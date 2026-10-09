@@ -98,7 +98,7 @@ const LABELS = [
   ['Istanbul', 28.98, 41.01], ['New York', -74.0, 40.71], ['Shanghai', 121.47, 31.23], ['Singapore', 103.82, 1.35],
   ['Prague', 14.42, 50.09], ['Brno', 16.61, 49.2], ['Paris', 2.35, 48.86], ['Rome', 12.48, 41.89], ['Munich', 11.58, 48.14], ['London', -0.13, 51.51],
 ];
-const REGIONS = [['UKRAINE', 31.5, 49.3, 18], ['BLACK SEA', 34.5, 43.2, 13], ['EUROPEAN UNION', 12.0, 47.8, 12]];
+const REGIONS = [['UKRAINE', 33.0, 48.95, 18], ['BLACK SEA', 34.5, 43.2, 13], ['EUROPEAN UNION', 12.0, 47.8, 12]];
 
 // ---------- map ----------
 // map looks to compare (?look=...): all use free OpenFreeMap styles; relief adds a public elevation dataset (AWS Terrain Tiles)
@@ -110,6 +110,8 @@ export const LOOKS = {
   light: { label: 'Light minimal', base: 'positron' },
 };
 const LOOK = LOOKS[params.get('look')] ? params.get('look') : 'relief';
+// capitals of the world and the 24 oblast centres of Ukraine (scripts/build-places.mjs, Natural Earth)
+const places = (await fetch('/atlas/places.json').then((r) => r.json())).places;
 async function loadStyle() {
   const L0 = LOOKS[LOOK];
   const style = await fetch('https://tiles.openfreemap.org/styles/' + L0.base).then((r) => r.json());
@@ -130,15 +132,21 @@ async function loadStyle() {
   }
   style.sources.countries = { type: 'geojson', data: '/atlas/countries.geojson' };
   const pt = (t, lon, lat, kind, size) => ({ type: 'Feature', properties: { t, kind, size }, geometry: { type: 'Point', coordinates: [lon, lat] } });
-  style.sources.labels = { type: 'geojson', data: { type: 'FeatureCollection', features: [...LABELS.map(([t, lon, lat]) => pt(t, lon, lat, 'city', 12)), ...REGIONS.map(([t, lon, lat, size]) => pt(t, lon, lat, 'region', size))] } };
+  // the demo journeys keep their own city list; otherwise the map names capitals and Ukraine's oblast centres
+  const cityPts = SHOW.journeys ? LABELS.map(([t, lon, lat]) => pt(t, lon, lat, 'city', 12)) : places.map((p) => ({ ...pt(p.name, p.lon, p.lat, p.kind === 'capital' ? 'capital' : 'ua', p.kind === 'capital' ? 12 : 11), properties: { t: p.name, kind: p.kind === 'capital' ? 'capital' : 'ua', size: p.kind === 'capital' ? 12 : 11, rank: p.pop ?? 0 } }));
+  style.sources.labels = { type: 'geojson', data: { type: 'FeatureCollection', features: [...cityPts, ...REGIONS.map(([t, lon, lat, size]) => pt(t, lon, lat, 'region', size))] } };
   style.layers.push(
     { id: 'eu-tint', type: 'fill', source: 'countries', filter: ['==', ['get', 'cls'], 'eu'], paint: { 'fill-color': '#5f7f3a', 'fill-opacity': 0.08 } },
     { id: 'ua-tint', type: 'fill', source: 'countries', filter: ['==', ['get', 'a3'], 'UKR'], paint: { 'fill-color': '#e2c667', 'fill-opacity': 0.14 } },
     { id: 'borders', type: 'line', source: 'countries', paint: { 'line-color': '#6b6650', 'line-width': ['interpolate', ['linear'], ['zoom'], 1, 0.4, 6, 1.1], 'line-opacity': 0.7, 'line-dasharray': [3, 2] } },
     { id: 'ua-glow', type: 'line', source: 'countries', filter: ['==', ['get', 'a3'], 'UKR'], paint: { 'line-color': '#fff6cf', 'line-width': 6, 'line-opacity': 0.45, 'line-blur': 3 } },
     { id: 'ua-border', type: 'line', source: 'countries', filter: ['==', ['get', 'a3'], 'UKR'], paint: { 'line-color': '#b8932e', 'line-width': 2 } },
-    { id: 'label-region', type: 'symbol', source: 'labels', filter: ['==', ['get', 'kind'], 'region'], layout: { 'text-field': ['get', 't'], 'text-font': ['Noto Sans Bold'], 'text-size': ['get', 'size'], 'text-letter-spacing': 0.4, 'text-allow-overlap': true }, paint: { 'text-color': '#5b5334', 'text-opacity': 0.7, 'text-halo-color': '#efe6c4', 'text-halo-width': 1.2 } },
-    { id: 'label-city', type: 'symbol', source: 'labels', filter: ['==', ['get', 'kind'], 'city'], minzoom: 3, layout: { 'text-field': ['get', 't'], 'text-font': ['Noto Sans Bold'], 'text-size': 12, 'text-offset': [0, 1.4], 'text-anchor': 'top' }, paint: { 'text-color': '#2a281c', 'text-halo-color': '#f4ecd0', 'text-halo-width': 1.6 } },
+    { id: 'label-region', type: 'symbol', source: 'labels', minzoom: 3, filter: ['==', ['get', 'kind'], 'region'], layout: { 'text-field': ['get', 't'], 'text-font': ['Noto Sans Bold'], 'text-size': ['get', 'size'], 'text-letter-spacing': 0.4, 'text-allow-overlap': true }, paint: { 'text-color': '#5b5334', 'text-opacity': 0.7, 'text-halo-color': '#efe6c4', 'text-halo-width': 1.2 } },
+    // capitals from the world view, the biggest first (labels that collide are dropped); Ukraine's oblast centres from zoom 4.5
+    { id: 'place-dot', type: 'circle', source: 'labels', minzoom: 1.5, filter: ['==', ['get', 'kind'], 'capital'], paint: { 'circle-color': '#2a281c', 'circle-radius': ['interpolate', ['linear'], ['zoom'], 1.5, 2.2, 6, 3.6], 'circle-stroke-color': '#f4ecd0', 'circle-stroke-width': 1.6 } },
+    { id: 'place-dot-ua', type: 'circle', source: 'labels', minzoom: 4.5, filter: ['==', ['get', 'kind'], 'ua'], paint: { 'circle-color': '#5b5334', 'circle-radius': ['interpolate', ['linear'], ['zoom'], 4.5, 2.2, 7, 3], 'circle-stroke-color': '#f4ecd0', 'circle-stroke-width': 1.2 } },
+    { id: 'label-ua', type: 'symbol', source: 'labels', minzoom: 4.5, filter: ['==', ['get', 'kind'], 'ua'], layout: { 'text-field': ['get', 't'], 'text-font': ['Noto Sans Bold'], 'text-size': 11, 'text-offset': [0, 0.6], 'text-anchor': 'top' }, paint: { 'text-color': '#3d3926', 'text-halo-color': '#f4ecd0', 'text-halo-width': 1.6 } },
+    { id: 'label-city', type: 'symbol', source: 'labels', minzoom: SHOW.journeys ? 3 : 1.5, filter: ['in', ['get', 'kind'], ['literal', ['city', 'capital']]], layout: { 'text-field': ['get', 't'], 'text-font': ['Noto Sans Bold'], 'text-size': ['interpolate', ['linear'], ['zoom'], 2, 10, 6, 12], 'text-offset': [0, 0.7], 'text-anchor': 'top', 'symbol-sort-key': ['-', 0, ['coalesce', ['get', 'rank'], 0]] }, paint: { 'text-color': '#2a281c', 'text-halo-color': '#f4ecd0', 'text-halo-width': 1.6 } },
   );
   return style;
 }

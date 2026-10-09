@@ -1,0 +1,1811 @@
+{
+ "generator": "scripts/build-places.mjs",
+ "source": "Natural Earth 1:50m populated places (public domain), Admin-0 capitals; Ukrainian oblast centres listed in the script",
+ "counts": {
+  "capitals": 202,
+  "uaCentres": 24
+ },
+ "places": [
+  {
+   "name": "Tokyo",
+   "kind": "capital",
+   "a3": "JPN",
+   "pop": 35676000,
+   "lon": 139.7495,
+   "lat": 35.687
+  },
+  {
+   "name": "Mexico City",
+   "kind": "capital",
+   "a3": "MEX",
+   "pop": 19028000,
+   "lon": -99.1329,
+   "lat": 19.4444
+  },
+  {
+   "name": "Dhaka",
+   "kind": "capital",
+   "a3": "BGD",
+   "pop": 12797394,
+   "lon": 90.4066,
+   "lat": 23.725
+  },
+  {
+   "name": "Buenos Aires",
+   "kind": "capital",
+   "a3": "ARG",
+   "pop": 12795000,
+   "lon": -58.4325,
+   "lat": -34.6107
+  },
+  {
+   "name": "Cairo",
+   "kind": "capital",
+   "a3": "EGY",
+   "pop": 11893000,
+   "lon": 31.248,
+   "lat": 30.0519
+  },
+  {
+   "name": "Beijing",
+   "kind": "capital",
+   "a3": "CHN",
+   "pop": 11106000,
+   "lon": 116.3942,
+   "lat": 39.9017
+  },
+  {
+   "name": "Manila",
+   "kind": "capital",
+   "a3": "PHL",
+   "pop": 11100000,
+   "lon": 120.9803,
+   "lat": 14.6061
+  },
+  {
+   "name": "Moscow",
+   "kind": "capital",
+   "a3": "RUS",
+   "pop": 10452000,
+   "lon": 37.6136,
+   "lat": 55.7541
+  },
+  {
+   "name": "Paris",
+   "kind": "capital",
+   "a3": "FRA",
+   "pop": 9904000,
+   "lon": 2.353,
+   "lat": 48.8581
+  },
+  {
+   "name": "Seoul",
+   "kind": "capital",
+   "a3": "KOR",
+   "pop": 9796000,
+   "lon": 126.9978,
+   "lat": 37.5683
+  },
+  {
+   "name": "Jakarta",
+   "kind": "capital",
+   "a3": "IDN",
+   "pop": 9125000,
+   "lon": 106.8275,
+   "lat": -6.1725
+  },
+  {
+   "name": "London",
+   "kind": "capital",
+   "a3": "GBR",
+   "pop": 8567000,
+   "lon": -0.1187,
+   "lat": 51.5019
+  },
+  {
+   "name": "Lima",
+   "kind": "capital",
+   "a3": "PER",
+   "pop": 8012000,
+   "lon": -77.052,
+   "lat": -12.0461
+  },
+  {
+   "name": "Tehran",
+   "kind": "capital",
+   "a3": "IRN",
+   "pop": 7873000,
+   "lon": 51.4224,
+   "lat": 35.6739
+  },
+  {
+   "name": "Kinshasa",
+   "kind": "capital",
+   "a3": "COD",
+   "pop": 7843000,
+   "lon": 15.313,
+   "lat": -4.3278
+  },
+  {
+   "name": "Bogota",
+   "kind": "capital",
+   "a3": "COL",
+   "pop": 7772000,
+   "lon": -74.0853,
+   "lat": 4.5984
+  },
+  {
+   "name": "Taipei",
+   "kind": "capital",
+   "a3": "TWN",
+   "pop": 6900273,
+   "lon": 121.5683,
+   "lat": 25.0358
+  },
+  {
+   "name": "Bangkok",
+   "kind": "capital",
+   "a3": "THA",
+   "pop": 6704000,
+   "lon": 100.5147,
+   "lat": 13.7519
+  },
+  {
+   "name": "Santiago",
+   "kind": "capital",
+   "a3": "CHL",
+   "pop": 5720000,
+   "lon": -70.6505,
+   "lat": -33.4402
+  },
+  {
+   "name": "Madrid",
+   "kind": "capital",
+   "a3": "ESP",
+   "pop": 5567000,
+   "lon": -3.6853,
+   "lat": 40.402
+  },
+  {
+   "name": "Singapore",
+   "kind": "capital",
+   "a3": "SGP",
+   "pop": 5183700,
+   "lon": 103.8539,
+   "lat": 1.295
+  },
+  {
+   "name": "Luanda",
+   "kind": "capital",
+   "a3": "AGO",
+   "pop": 5172900,
+   "lon": 13.2325,
+   "lat": -8.8363
+  },
+  {
+   "name": "Baghdad",
+   "kind": "capital",
+   "a3": "IRQ",
+   "pop": 5054000,
+   "lon": 44.3919,
+   "lat": 33.3406
+  },
+  {
+   "name": "Khartoum",
+   "kind": "capital",
+   "a3": "SDN",
+   "pop": 4754000,
+   "lon": 32.5322,
+   "lat": 15.59
+  },
+  {
+   "name": "Riyadh",
+   "kind": "capital",
+   "a3": "SAU",
+   "pop": 4465000,
+   "lon": 46.7205,
+   "lat": 24.6345
+  },
+  {
+   "name": "Hanoi",
+   "kind": "capital",
+   "a3": "VNM",
+   "pop": 4378000,
+   "lon": 105.8481,
+   "lat": 21.0353
+  },
+  {
+   "name": "Washington,  D.C.",
+   "kind": "capital",
+   "a3": "USA",
+   "pop": 4338000,
+   "lon": -77.0114,
+   "lat": 38.9015
+  },
+  {
+   "name": "Yangon",
+   "kind": "capital",
+   "a3": "MMR",
+   "pop": 4088000,
+   "lon": 96.1647,
+   "lat": 16.7853
+  },
+  {
+   "name": "Abidjan",
+   "kind": "capital",
+   "a3": "CIV",
+   "pop": 3802000,
+   "lon": -4.0202,
+   "lat": 5.3231
+  },
+  {
+   "name": "Brasília",
+   "kind": "capital",
+   "a3": "BRA",
+   "pop": 3716996,
+   "lon": -47.918,
+   "lat": -15.7814
+  },
+  {
+   "name": "Ankara",
+   "kind": "capital",
+   "a3": "TUR",
+   "pop": 3716000,
+   "lon": 32.8624,
+   "lat": 39.9292
+  },
+  {
+   "name": "Johannesburg",
+   "kind": "capital",
+   "a3": "ZAF",
+   "pop": 3435000,
+   "lon": 28.0281,
+   "lat": -26.1681
+  },
+  {
+   "name": "Berlin",
+   "kind": "capital",
+   "a3": "DEU",
+   "pop": 3406000,
+   "lon": 13.3996,
+   "lat": 52.5238
+  },
+  {
+   "name": "Algiers",
+   "kind": "capital",
+   "a3": "DZA",
+   "pop": 3354000,
+   "lon": 3.0486,
+   "lat": 36.765
+  },
+  {
+   "name": "Rome",
+   "kind": "capital",
+   "a3": "ITA",
+   "pop": 3339000,
+   "lon": 12.4813,
+   "lat": 41.8979
+  },
+  {
+   "name": "Pyongyang",
+   "kind": "capital",
+   "a3": "PRK",
+   "pop": 3300000,
+   "lon": 125.7527,
+   "lat": 39.0214
+  },
+  {
+   "name": "Kabul",
+   "kind": "capital",
+   "a3": "AFG",
+   "pop": 3277000,
+   "lon": 69.1813,
+   "lat": 34.5186
+  },
+  {
+   "name": "Athens",
+   "kind": "capital",
+   "a3": "GRC",
+   "pop": 3242000,
+   "lon": 23.7314,
+   "lat": 37.9853
+  },
+  {
+   "name": "Cape Town",
+   "kind": "capital",
+   "a3": "ZAF",
+   "pop": 3215000,
+   "lon": 18.433,
+   "lat": -33.9181
+  },
+  {
+   "name": "Addis Ababa",
+   "kind": "capital",
+   "a3": "ETH",
+   "pop": 3100000,
+   "lon": 38.6981,
+   "lat": 9.0353
+  },
+  {
+   "name": "Nairobi",
+   "kind": "capital",
+   "a3": "KEN",
+   "pop": 3010000,
+   "lon": 36.8147,
+   "lat": -1.2814
+  },
+  {
+   "name": "Caracas",
+   "kind": "capital",
+   "a3": "VEN",
+   "pop": 2985000,
+   "lon": -66.919,
+   "lat": 10.5029
+  },
+  {
+   "name": "Dar es Salaam",
+   "kind": "capital",
+   "a3": "TZA",
+   "pop": 2930000,
+   "lon": 39.2664,
+   "lat": -6.7981
+  },
+  {
+   "name": "Lisbon",
+   "kind": "capital",
+   "a3": "PRT",
+   "pop": 2812000,
+   "lon": -9.1468,
+   "lat": 38.7247
+  },
+  {
+   "name": "Kyiv",
+   "kind": "capital",
+   "a3": "UKR",
+   "pop": 2709000,
+   "lon": 30.5147,
+   "lat": 50.4353,
+   "note": "Capital of Ukraine and centre of Kyiv Oblast"
+  },
+  {
+   "name": "Dakar",
+   "kind": "capital",
+   "a3": "SEN",
+   "pop": 2604000,
+   "lon": -17.4751,
+   "lat": 14.7178
+  },
+  {
+   "name": "Damascus",
+   "kind": "capital",
+   "a3": "SYR",
+   "pop": 2466000,
+   "lon": 36.2981,
+   "lat": 33.502
+  },
+  {
+   "name": "Tunis",
+   "kind": "capital",
+   "a3": "TUN",
+   "pop": 2412500,
+   "lon": 10.1797,
+   "lat": 36.8028
+  },
+  {
+   "name": "Vienna",
+   "kind": "capital",
+   "a3": "AUT",
+   "pop": 2400000,
+   "lon": 16.3647,
+   "lat": 48.202
+  },
+  {
+   "name": "Tripoli",
+   "kind": "capital",
+   "a3": "LBY",
+   "pop": 2189000,
+   "lon": 13.18,
+   "lat": 32.8925
+  },
+  {
+   "name": "Tashkent",
+   "kind": "capital",
+   "a3": "UZB",
+   "pop": 2184000,
+   "lon": 69.2688,
+   "lat": 41.3038
+  },
+  {
+   "name": "Havana",
+   "kind": "capital",
+   "a3": "CUB",
+   "pop": 2174000,
+   "lon": -82.3661,
+   "lat": 23.1339
+  },
+  {
+   "name": "Santo Domingo",
+   "kind": "capital",
+   "a3": "DOM",
+   "pop": 2154000,
+   "lon": -69.9297,
+   "lat": 18.4707
+  },
+  {
+   "name": "Baku",
+   "kind": "capital",
+   "a3": "AZE",
+   "pop": 2122300,
+   "lon": 49.8603,
+   "lat": 40.3972
+  },
+  {
+   "name": "Accra",
+   "kind": "capital",
+   "a3": "GHA",
+   "pop": 2121000,
+   "lon": -0.2187,
+   "lat": 5.552
+  },
+  {
+   "name": "Kuwait City",
+   "kind": "capital",
+   "a3": "KWT",
+   "pop": 2063000,
+   "lon": 47.9764,
+   "lat": 29.3717
+  },
+  {
+   "name": "Sanaa",
+   "kind": "capital",
+   "a3": "YEM",
+   "pop": 2008000,
+   "lon": 44.2046,
+   "lat": 15.3567
+  },
+  {
+   "name": "Port-au-Prince",
+   "kind": "capital",
+   "a3": "HTI",
+   "pop": 1998000,
+   "lon": -72.338,
+   "lat": 18.543
+  },
+  {
+   "name": "Bucharest",
+   "kind": "capital",
+   "a3": "ROU",
+   "pop": 1942000,
+   "lon": 26.098,
+   "lat": 44.4353
+  },
+  {
+   "name": "Asunción",
+   "kind": "capital",
+   "a3": "PRY",
+   "pop": 1870000,
+   "lon": -57.6258,
+   "lat": -25.2907
+  },
+  {
+   "name": "Beirut",
+   "kind": "capital",
+   "a3": "LBN",
+   "pop": 1846000,
+   "lon": 35.5078,
+   "lat": 33.8739
+  },
+  {
+   "name": "Minsk",
+   "kind": "capital",
+   "a3": "BLR",
+   "pop": 1805000,
+   "lon": 27.5647,
+   "lat": 53.9019
+  },
+  {
+   "name": "Brussels",
+   "kind": "capital",
+   "a3": "BEL",
+   "pop": 1743000,
+   "lon": 4.3314,
+   "lat": 50.8353
+  },
+  {
+   "name": "Warsaw",
+   "kind": "capital",
+   "a3": "POL",
+   "pop": 1707000,
+   "lon": 21.0053,
+   "lat": 52.2309
+  },
+  {
+   "name": "Rabat",
+   "kind": "capital",
+   "a3": "MAR",
+   "pop": 1705000,
+   "lon": -6.8364,
+   "lat": 34.0253
+  },
+  {
+   "name": "Quito",
+   "kind": "capital",
+   "a3": "ECU",
+   "pop": 1701000,
+   "lon": -78.502,
+   "lat": -0.213
+  },
+  {
+   "name": "Antananarivo",
+   "kind": "capital",
+   "a3": "MDG",
+   "pop": 1697000,
+   "lon": 47.5147,
+   "lat": -18.9147
+  },
+  {
+   "name": "Budapest",
+   "kind": "capital",
+   "a3": "HUN",
+   "pop": 1679000,
+   "lon": 19.0814,
+   "lat": 47.502
+  },
+  {
+   "name": "Yaoundé",
+   "kind": "capital",
+   "a3": "CMR",
+   "pop": 1611000,
+   "lon": 11.5147,
+   "lat": 3.8686
+  },
+  {
+   "name": "La Paz",
+   "kind": "capital",
+   "a3": "BOL",
+   "pop": 1590000,
+   "lon": -68.1519,
+   "lat": -16.496
+  },
+  {
+   "name": "Abuja",
+   "kind": "capital",
+   "a3": "NGA",
+   "pop": 1576000,
+   "lon": 7.4895,
+   "lat": 9.0546
+  },
+  {
+   "name": "Harare",
+   "kind": "capital",
+   "a3": "ZWE",
+   "pop": 1572000,
+   "lon": 31.0428,
+   "lat": -17.8158
+  },
+  {
+   "name": "Montevideo",
+   "kind": "capital",
+   "a3": "URY",
+   "pop": 1513000,
+   "lon": -56.1868,
+   "lat": -34.9054
+  },
+  {
+   "name": "Bamako",
+   "kind": "capital",
+   "a3": "MLI",
+   "pop": 1494000,
+   "lon": -8.002,
+   "lat": 12.652
+  },
+  {
+   "name": "Conakry",
+   "kind": "capital",
+   "a3": "GIN",
+   "pop": 1494000,
+   "lon": -13.6822,
+   "lat": 9.5335
+  },
+  {
+   "name": "Phnom Penh",
+   "kind": "capital",
+   "a3": "KHM",
+   "pop": 1466000,
+   "lon": 104.9147,
+   "lat": 11.552
+  },
+  {
+   "name": "Lomé",
+   "kind": "capital",
+   "a3": "TGO",
+   "pop": 1452000,
+   "lon": 1.2208,
+   "lat": 6.1339
+  },
+  {
+   "name": "Doha",
+   "kind": "capital",
+   "a3": "QAT",
+   "pop": 1450000,
+   "lon": 51.533,
+   "lat": 25.2866
+  },
+  {
+   "name": "Kuala Lumpur",
+   "kind": "capital",
+   "a3": "MYS",
+   "pop": 1448000,
+   "lon": 101.6887,
+   "lat": 3.1398
+  },
+  {
+   "name": "Maputo",
+   "kind": "capital",
+   "a3": "MOZ",
+   "pop": 1446000,
+   "lon": 32.5872,
+   "lat": -25.9533
+  },
+  {
+   "name": "San Salvador",
+   "kind": "capital",
+   "a3": "SLV",
+   "pop": 1433000,
+   "lon": -89.2156,
+   "lat": 13.7033
+  },
+  {
+   "name": "Kampala",
+   "kind": "capital",
+   "a3": "UGA",
+   "pop": 1420000,
+   "lon": 32.5814,
+   "lat": 0.3186
+  },
+  {
+   "name": "Brazzaville",
+   "kind": "capital",
+   "a3": "COG",
+   "pop": 1355000,
+   "lon": 15.2827,
+   "lat": -4.2572
+  },
+  {
+   "name": "Pretoria",
+   "kind": "capital",
+   "a3": "ZAF",
+   "pop": 1338000,
+   "lon": 28.2275,
+   "lat": -25.705
+  },
+  {
+   "name": "Lusaka",
+   "kind": "capital",
+   "a3": "ZMB",
+   "pop": 1328000,
+   "lon": 28.2814,
+   "lat": -15.4147
+  },
+  {
+   "name": "San José",
+   "kind": "capital",
+   "a3": "CRI",
+   "pop": 1284000,
+   "lon": -84.0788,
+   "lat": 9.9304
+  },
+  {
+   "name": "Panama City",
+   "kind": "capital",
+   "a3": "PAN",
+   "pop": 1281000,
+   "lon": -79.535,
+   "lat": 8.97
+  },
+  {
+   "name": "Stockholm",
+   "kind": "capital",
+   "a3": "SWE",
+   "pop": 1264000,
+   "lon": 18.0663,
+   "lat": 59.3241
+  },
+  {
+   "name": "Sofia",
+   "kind": "capital",
+   "a3": "BGR",
+   "pop": 1185000,
+   "lon": 23.3147,
+   "lat": 42.6853
+  },
+  {
+   "name": "Prague",
+   "kind": "capital",
+   "a3": "CZE",
+   "pop": 1162000,
+   "lon": 14.4229,
+   "lat": 50.087
+  },
+  {
+   "name": "Ouagadougou",
+   "kind": "capital",
+   "a3": "BFA",
+   "pop": 1149000,
+   "lon": -1.5267,
+   "lat": 12.3723
+  },
+  {
+   "name": "Ottawa",
+   "kind": "capital",
+   "a3": "CAN",
+   "pop": 1145000,
+   "lon": -75.702,
+   "lat": 45.4186
+  },
+  {
+   "name": "Helsinki",
+   "kind": "capital",
+   "a3": "FIN",
+   "pop": 1115000,
+   "lon": 24.9325,
+   "lat": 60.1638
+  },
+  {
+   "name": "Yerevan",
+   "kind": "capital",
+   "a3": "ARM",
+   "pop": 1102000,
+   "lon": 44.5116,
+   "lat": 40.1831
+  },
+  {
+   "name": "Mogadishu",
+   "kind": "capital",
+   "a3": "SOM",
+   "pop": 1100000,
+   "lon": 45.3647,
+   "lat": 2.0686
+  },
+  {
+   "name": "Tbilisi",
+   "kind": "capital",
+   "a3": "GEO",
+   "pop": 1100000,
+   "lon": 44.7888,
+   "lat": 41.727
+  },
+  {
+   "name": "Belgrade",
+   "kind": "capital",
+   "a3": "SRB",
+   "pop": 1099000,
+   "lon": 20.466,
+   "lat": 44.8206
+  },
+  {
+   "name": "Dushanbe",
+   "kind": "capital",
+   "a3": "TJK",
+   "pop": 1086244,
+   "lon": 68.7739,
+   "lat": 38.56
+  },
+  {
+   "name": "København",
+   "kind": "capital",
+   "a3": "DNK",
+   "pop": 1085000,
+   "lon": 12.5615,
+   "lat": 55.6805
+  },
+  {
+   "name": "Amman",
+   "kind": "capital",
+   "a3": "JOR",
+   "pop": 1060000,
+   "lon": 35.9314,
+   "lat": 31.952
+  },
+  {
+   "name": "Dublin",
+   "kind": "capital",
+   "a3": "IRL",
+   "pop": 1059000,
+   "lon": -6.257,
+   "lat": 53.3467
+  },
+  {
+   "name": "Monrovia",
+   "kind": "capital",
+   "a3": "LBR",
+   "pop": 1041000,
+   "lon": -10.7997,
+   "lat": 6.3146
+  },
+  {
+   "name": "Amsterdam",
+   "kind": "capital",
+   "a3": "NLD",
+   "pop": 1031000,
+   "lon": 4.9147,
+   "lat": 52.3519
+  },
+  {
+   "name": "Jerusalem",
+   "kind": "capital",
+   "a3": "ISR",
+   "pop": 1029300,
+   "lon": 35.2066,
+   "lat": 31.7784
+  },
+  {
+   "name": "Guatemala City",
+   "kind": "capital",
+   "a3": "GTM",
+   "pop": 1024000,
+   "lon": -90.5289,
+   "lat": 14.6231
+  },
+  {
+   "name": "N'Djamena",
+   "kind": "capital",
+   "a3": "TCD",
+   "pop": 989000,
+   "lon": 15.0472,
+   "lat": 12.115
+  },
+  {
+   "name": "Tegucigalpa",
+   "kind": "capital",
+   "a3": "HND",
+   "pop": 946000,
+   "lon": -87.2195,
+   "lat": 14.104
+  },
+  {
+   "name": "Kingston",
+   "kind": "capital",
+   "a3": "JAM",
+   "pop": 937700,
+   "lon": -76.7674,
+   "lat": 17.9771
+  },
+  {
+   "name": "Naypyidaw",
+   "kind": "capital",
+   "a3": "MMR",
+   "pop": 930000,
+   "lon": 96.1167,
+   "lat": 19.7685
+  },
+  {
+   "name": "Djibouti",
+   "kind": "capital",
+   "a3": "DJI",
+   "pop": 923000,
+   "lon": 43.148,
+   "lat": 11.595
+  },
+  {
+   "name": "Managua",
+   "kind": "capital",
+   "a3": "NIC",
+   "pop": 920000,
+   "lon": -86.2704,
+   "lat": 12.155
+  },
+  {
+   "name": "Niamey",
+   "kind": "capital",
+   "a3": "NER",
+   "pop": 915000,
+   "lon": 2.1147,
+   "lat": 13.5187
+  },
+  {
+   "name": "Tirana",
+   "kind": "capital",
+   "a3": "ALB",
+   "pop": 895350,
+   "lon": 19.8189,
+   "lat": 41.3275
+  },
+  {
+   "name": "Kathmandu",
+   "kind": "capital",
+   "a3": "NPL",
+   "pop": 895000,
+   "lon": 85.3147,
+   "lat": 27.7186
+  },
+  {
+   "name": "Ulaanbaatar",
+   "kind": "capital",
+   "a3": "MNG",
+   "pop": 885000,
+   "lon": 106.9147,
+   "lat": 47.9186
+  },
+  {
+   "name": "Kigali",
+   "kind": "capital",
+   "a3": "RWA",
+   "pop": 860000,
+   "lon": 30.0586,
+   "lat": -1.9516
+  },
+  {
+   "name": "Bishkek",
+   "kind": "capital",
+   "a3": "KGZ",
+   "pop": 837000,
+   "lon": 74.5833,
+   "lat": 42.875
+  },
+  {
+   "name": "Oslo",
+   "kind": "capital",
+   "a3": "NOR",
+   "pop": 835000,
+   "lon": 10.748,
+   "lat": 59.9186
+  },
+  {
+   "name": "Bangui",
+   "kind": "capital",
+   "a3": "CAF",
+   "pop": 831925,
+   "lon": 18.5583,
+   "lat": 4.3666
+  },
+  {
+   "name": "Freetown",
+   "kind": "capital",
+   "a3": "SLE",
+   "pop": 827000,
+   "lon": -13.2362,
+   "lat": 8.472
+  },
+  {
+   "name": "Islamabad",
+   "kind": "capital",
+   "a3": "PAK",
+   "pop": 780000,
+   "lon": 73.0806,
+   "lat": 33.6894
+  },
+  {
+   "name": "Cotonou",
+   "kind": "capital",
+   "a3": "BEN",
+   "pop": 762000,
+   "lon": 2.4044,
+   "lat": 6.363
+  },
+  {
+   "name": "Vientiane",
+   "kind": "capital",
+   "a3": "LAO",
+   "pop": 754000,
+   "lon": 102.6,
+   "lat": 17.9667
+  },
+  {
+   "name": "Riga",
+   "kind": "capital",
+   "a3": "LVA",
+   "pop": 742572,
+   "lon": 24.1,
+   "lat": 56.95
+  },
+  {
+   "name": "Nouakchott",
+   "kind": "capital",
+   "a3": "MRT",
+   "pop": 742144,
+   "lon": -15.9753,
+   "lat": 18.0864
+  },
+  {
+   "name": "Muscat",
+   "kind": "capital",
+   "a3": "OMN",
+   "pop": 734697,
+   "lon": 58.3783,
+   "lat": 23.5852
+  },
+  {
+   "name": "Ashgabat",
+   "kind": "capital",
+   "a3": "TKM",
+   "pop": 727700,
+   "lon": 58.3833,
+   "lat": 37.95
+  },
+  {
+   "name": "Zagreb",
+   "kind": "capital",
+   "a3": "HRV",
+   "pop": 722526,
+   "lon": 16,
+   "lat": 45.8
+  },
+  {
+   "name": "Sarajevo",
+   "kind": "capital",
+   "a3": "BIH",
+   "pop": 696731,
+   "lon": 18.383,
+   "lat": 43.85
+  },
+  {
+   "name": "Chișinău",
+   "kind": "capital",
+   "a3": "MDA",
+   "pop": 688134,
+   "lon": 28.8577,
+   "lat": 47.005
+  },
+  {
+   "name": "Lilongwe",
+   "kind": "capital",
+   "a3": "MWI",
+   "pop": 646750,
+   "lon": 33.7833,
+   "lat": -13.9833
+  },
+  {
+   "name": "Asmara",
+   "kind": "capital",
+   "a3": "ERI",
+   "pop": 620802,
+   "lon": 38.9333,
+   "lat": 15.3333
+  },
+  {
+   "name": "Abu Dhabi",
+   "kind": "capital",
+   "a3": "ARE",
+   "pop": 603492,
+   "lon": 54.3666,
+   "lat": 24.4667
+  },
+  {
+   "name": "Port Louis",
+   "kind": "capital",
+   "a3": "MUS",
+   "pop": 595491,
+   "lon": 57.5,
+   "lat": -20.1666
+  },
+  {
+   "name": "Libreville",
+   "kind": "capital",
+   "a3": "GAB",
+   "pop": 578156,
+   "lon": 9.458,
+   "lat": 0.3854
+  },
+  {
+   "name": "Manama",
+   "kind": "capital",
+   "a3": "BHR",
+   "pop": 563920,
+   "lon": 50.5831,
+   "lat": 26.2361
+  },
+  {
+   "name": "Vilnius",
+   "kind": "capital",
+   "a3": "LTU",
+   "pop": 542366,
+   "lon": 25.3166,
+   "lat": 54.6834
+  },
+  {
+   "name": "Skopje",
+   "kind": "capital",
+   "a3": "MKD",
+   "pop": 494087,
+   "lon": 21.4335,
+   "lat": 42
+  },
+  {
+   "name": "Hargeisa",
+   "kind": "capital",
+   "a3": "SOL",
+   "pop": 477876,
+   "lon": 44.0653,
+   "lat": 9.56
+  },
+  {
+   "name": "Pristina",
+   "kind": "capital",
+   "a3": "KOS",
+   "pop": 465186,
+   "lon": 21.166,
+   "lat": 42.6667
+  },
+  {
+   "name": "Bloemfontein",
+   "kind": "capital",
+   "a3": "ZAF",
+   "pop": 463064,
+   "lon": 26.2299,
+   "lat": -29.12
+  },
+  {
+   "name": "Bratislava",
+   "kind": "capital",
+   "a3": "SVK",
+   "pop": 423737,
+   "lon": 17.117,
+   "lat": 48.15
+  },
+  {
+   "name": "Bissau",
+   "kind": "capital",
+   "a3": "GNB",
+   "pop": 403339,
+   "lon": -15.5984,
+   "lat": 11.865
+  },
+  {
+   "name": "Tallinn",
+   "kind": "capital",
+   "a3": "EST",
+   "pop": 394024,
+   "lon": 24.728,
+   "lat": 59.4339
+  },
+  {
+   "name": "Wellington",
+   "kind": "capital",
+   "a3": "NZL",
+   "pop": 393400,
+   "lon": 174.7772,
+   "lat": -41.2921
+  },
+  {
+   "name": "Valletta",
+   "kind": "capital",
+   "a3": "MLT",
+   "pop": 368250,
+   "lon": 14.5147,
+   "lat": 35.8997
+  },
+  {
+   "name": "Maseru",
+   "kind": "capital",
+   "a3": "LSO",
+   "pop": 361324,
+   "lon": 27.4833,
+   "lat": -29.3167
+  },
+  {
+   "name": "Nur-Sultan",
+   "kind": "capital",
+   "a3": "KAZ",
+   "pop": 345604,
+   "lon": 71.4278,
+   "lat": 51.1811
+  },
+  {
+   "name": "Bujumbura",
+   "kind": "capital",
+   "a3": "BDI",
+   "pop": 331700,
+   "lon": 29.36,
+   "lat": -3.3761
+  },
+  {
+   "name": "Canberra",
+   "kind": "capital",
+   "a3": "AUS",
+   "pop": 327700,
+   "lon": 149.129,
+   "lat": -35.283
+  },
+  {
+   "name": "New Delhi",
+   "kind": "capital",
+   "a3": "IND",
+   "pop": 317797,
+   "lon": 77.2,
+   "lat": 28.6
+  },
+  {
+   "name": "Ljubljana",
+   "kind": "capital",
+   "a3": "SVN",
+   "pop": 314807,
+   "lon": 14.515,
+   "lat": 46.0553
+  },
+  {
+   "name": "Bandar Seri Begawan",
+   "kind": "capital",
+   "a3": "BRN",
+   "pop": 296500,
+   "lon": 114.9333,
+   "lat": 4.8833
+  },
+  {
+   "name": "Port-of-Spain",
+   "kind": "capital",
+   "a3": "TTO",
+   "pop": 294934,
+   "lon": -61.517,
+   "lat": 10.652
+  },
+  {
+   "name": "Port Moresby",
+   "kind": "capital",
+   "a3": "PNG",
+   "pop": 283733,
+   "lon": 147.1925,
+   "lat": -9.4647
+  },
+  {
+   "name": "Bern",
+   "kind": "capital",
+   "a3": "CHE",
+   "pop": 275329,
+   "lon": 7.467,
+   "lat": 46.9167
+  },
+  {
+   "name": "Windhoek",
+   "kind": "capital",
+   "a3": "NAM",
+   "pop": 268132,
+   "lon": 17.0835,
+   "lat": -22.57
+  },
+  {
+   "name": "Georgetown",
+   "kind": "capital",
+   "a3": "GUY",
+   "pop": 264350,
+   "lon": -58.167,
+   "lat": 6.802
+  },
+  {
+   "name": "Paramaribo",
+   "kind": "capital",
+   "a3": "SUR",
+   "pop": 254169,
+   "lon": -55.167,
+   "lat": 5.835
+  },
+  {
+   "name": "Dili",
+   "kind": "capital",
+   "a3": "TLS",
+   "pop": 234331,
+   "lon": 125.5795,
+   "lat": -8.5594
+  },
+  {
+   "name": "Nassau",
+   "kind": "capital",
+   "a3": "BHS",
+   "pop": 227940,
+   "lon": -77.35,
+   "lat": 25.0834
+  },
+  {
+   "name": "Sucre",
+   "kind": "capital",
+   "a3": "BOL",
+   "pop": 224838,
+   "lon": -65.2595,
+   "lat": -19.041
+  },
+  {
+   "name": "Nicosia",
+   "kind": "capital",
+   "a3": "CYP",
+   "pop": 224300,
+   "lon": 33.3666,
+   "lat": 35.1667
+  },
+  {
+   "name": "Colombo",
+   "kind": "capital",
+   "a3": "LKA",
+   "pop": 217000,
+   "lon": 79.8578,
+   "lat": 6.932
+  },
+  {
+   "name": "Gaborone",
+   "kind": "capital",
+   "a3": "BWA",
+   "pop": 208411,
+   "lon": 25.9119,
+   "lat": -24.6463
+  },
+  {
+   "name": "Yamoussoukro",
+   "kind": "capital",
+   "a3": "CIV",
+   "pop": 206499,
+   "lon": -5.2755,
+   "lat": 6.8184
+  },
+  {
+   "name": "Bridgetown",
+   "kind": "capital",
+   "a3": "BRB",
+   "pop": 191152,
+   "lon": -59.6165,
+   "lat": 13.102
+  },
+  {
+   "name": "Suva",
+   "kind": "capital",
+   "a3": "FJI",
+   "pop": 175399,
+   "lon": 178.4417,
+   "lat": -18.133
+  },
+  {
+   "name": "Reykjavík",
+   "kind": "capital",
+   "a3": "ISL",
+   "pop": 166212,
+   "lon": -21.9365,
+   "lat": 64.1435
+  },
+  {
+   "name": "Malabo",
+   "kind": "capital",
+   "a3": "GNQ",
+   "pop": 155963,
+   "lon": 8.7833,
+   "lat": 3.75
+  },
+  {
+   "name": "Podgorica",
+   "kind": "capital",
+   "a3": "MNE",
+   "pop": 145850,
+   "lon": 19.2663,
+   "lat": 42.466
+  },
+  {
+   "name": "Moroni",
+   "kind": "capital",
+   "a3": "COM",
+   "pop": 128698,
+   "lon": 43.2402,
+   "lat": -11.7042
+  },
+  {
+   "name": "Praia",
+   "kind": "capital",
+   "a3": "CPV",
+   "pop": 113364,
+   "lon": -23.5167,
+   "lat": 14.9167
+  },
+  {
+   "name": "Malé",
+   "kind": "capital",
+   "a3": "MDV",
+   "pop": 112927,
+   "lon": 73.5089,
+   "lat": 4.172
+  },
+  {
+   "name": "Juba",
+   "kind": "capital",
+   "a3": "SSD",
+   "pop": 111975,
+   "lon": 31.58,
+   "lat": 4.83
+  },
+  {
+   "name": "Luxembourg",
+   "kind": "capital",
+   "a3": "LUX",
+   "pop": 107260,
+   "lon": 6.13,
+   "lat": 49.6117
+  },
+  {
+   "name": "Thimphu",
+   "kind": "capital",
+   "a3": "BTN",
+   "pop": 98676,
+   "lon": 89.639,
+   "lat": 27.473
+  },
+  {
+   "name": "Mbabane",
+   "kind": "capital",
+   "a3": "SWZ",
+   "pop": 90138,
+   "lon": 31.1333,
+   "lat": -26.3167
+  },
+  {
+   "name": "São Tomé",
+   "kind": "capital",
+   "a3": "STP",
+   "pop": 88219,
+   "lon": 6.7297,
+   "lat": 0.3375
+  },
+  {
+   "name": "Honiara",
+   "kind": "capital",
+   "a3": "SLB",
+   "pop": 76328,
+   "lon": 159.9498,
+   "lat": -9.438
+  },
+  {
+   "name": "Apia",
+   "kind": "capital",
+   "a3": "WSM",
+   "pop": 61916,
+   "lon": -171.7686,
+   "lat": -13.8357
+  },
+  {
+   "name": "Andorra",
+   "kind": "capital",
+   "a3": "AND",
+   "pop": 53998,
+   "lon": 1.5266,
+   "lat": 42.5108
+  },
+  {
+   "name": "Kingstown",
+   "kind": "capital",
+   "a3": "VCT",
+   "pop": 49485,
+   "lon": -61.2202,
+   "lat": 13.1558
+  },
+  {
+   "name": "Port Vila",
+   "kind": "capital",
+   "a3": "VUT",
+   "pop": 44040,
+   "lon": 168.3166,
+   "lat": -17.7334
+  },
+  {
+   "name": "Banjul",
+   "kind": "capital",
+   "a3": "GMB",
+   "pop": 43094,
+   "lon": -16.5917,
+   "lat": 13.4539
+  },
+  {
+   "name": "Nuku'alofa",
+   "kind": "capital",
+   "a3": "TON",
+   "pop": 42620,
+   "lon": -175.2206,
+   "lat": -21.1385
+  },
+  {
+   "name": "Castries",
+   "kind": "capital",
+   "a3": "LCA",
+   "pop": 37963,
+   "lon": -60.9929,
+   "lat": 14.0079
+  },
+  {
+   "name": "Monaco",
+   "kind": "capital",
+   "a3": "MCO",
+   "pop": 36371,
+   "lon": 7.4069,
+   "lat": 43.7396
+  },
+  {
+   "name": "Vaduz",
+   "kind": "capital",
+   "a3": "LIE",
+   "pop": 36281,
+   "lon": 9.5167,
+   "lat": 47.1337
+  },
+  {
+   "name": "Saint John's",
+   "kind": "capital",
+   "a3": "ATG",
+   "pop": 35499,
+   "lon": -61.85,
+   "lat": 17.118
+  },
+  {
+   "name": "Saint George's",
+   "kind": "capital",
+   "a3": "GRD",
+   "pop": 33734,
+   "lon": -61.7416,
+   "lat": 12.0526
+  },
+  {
+   "name": "Victoria",
+   "kind": "capital",
+   "a3": "SYC",
+   "pop": 33576,
+   "lon": 55.45,
+   "lat": -4.6166
+  },
+  {
+   "name": "San Marino",
+   "kind": "capital",
+   "a3": "SMR",
+   "pop": 29579,
+   "lon": 12.4418,
+   "lat": 43.9361
+  },
+  {
+   "name": "Tarawa",
+   "kind": "capital",
+   "a3": "KIR",
+   "pop": 28802,
+   "lon": 173.0176,
+   "lat": 1.3382
+  },
+  {
+   "name": "Majuro",
+   "kind": "capital",
+   "a3": "MHL",
+   "pop": 25400,
+   "lon": 171.38,
+   "lat": 7.103
+  },
+  {
+   "name": "Roseau",
+   "kind": "capital",
+   "a3": "DMA",
+   "pop": 23336,
+   "lon": -61.387,
+   "lat": 15.301
+  },
+  {
+   "name": "Basseterre",
+   "kind": "capital",
+   "a3": "KNA",
+   "pop": 21887,
+   "lon": -62.717,
+   "lat": 17.302
+  },
+  {
+   "name": "Belmopan",
+   "kind": "capital",
+   "a3": "BLZ",
+   "pop": 15220,
+   "lon": -88.7671,
+   "lat": 17.252
+  },
+  {
+   "name": "Melekeok",
+   "kind": "capital",
+   "a3": "PLW",
+   "pop": 7026,
+   "lon": 134.6265,
+   "lat": 7.4874
+  },
+  {
+   "name": "Funafuti",
+   "kind": "capital",
+   "a3": "TUV",
+   "pop": 4749,
+   "lon": 179.2166,
+   "lat": -8.5167
+  },
+  {
+   "name": "Palikir",
+   "kind": "capital",
+   "a3": "FSM",
+   "pop": 4645,
+   "lon": 158.15,
+   "lat": 6.9166
+  },
+  {
+   "name": "Vatican City",
+   "kind": "capital",
+   "a3": "VAT",
+   "pop": 832,
+   "lon": 12.4534,
+   "lat": 41.9033
+  },
+  {
+   "name": "Vinnytsia",
+   "kind": "ua-centre",
+   "a3": "UKR",
+   "oblast": "Vinnytsia Oblast",
+   "lon": 28.468,
+   "lat": 49.233
+  },
+  {
+   "name": "Lutsk",
+   "kind": "ua-centre",
+   "a3": "UKR",
+   "oblast": "Volyn Oblast",
+   "lon": 25.325,
+   "lat": 50.747
+  },
+  {
+   "name": "Dnipro",
+   "kind": "ua-centre",
+   "a3": "UKR",
+   "oblast": "Dnipropetrovsk Oblast",
+   "lon": 35.046,
+   "lat": 48.465
+  },
+  {
+   "name": "Donetsk",
+   "kind": "ua-centre",
+   "a3": "UKR",
+   "oblast": "Donetsk Oblast",
+   "lon": 37.805,
+   "lat": 48.016
+  },
+  {
+   "name": "Zhytomyr",
+   "kind": "ua-centre",
+   "a3": "UKR",
+   "oblast": "Zhytomyr Oblast",
+   "lon": 28.658,
+   "lat": 50.254
+  },
+  {
+   "name": "Uzhhorod",
+   "kind": "ua-centre",
+   "a3": "UKR",
+   "oblast": "Zakarpattia Oblast",
+   "lon": 22.288,
+   "lat": 48.621
+  },
+  {
+   "name": "Zaporizhzhia",
+   "kind": "ua-centre",
+   "a3": "UKR",
+   "oblast": "Zaporizhzhia Oblast",
+   "lon": 35.139,
+   "lat": 47.838
+  },
+  {
+   "name": "Ivano-Frankivsk",
+   "kind": "ua-centre",
+   "a3": "UKR",
+   "oblast": "Ivano-Frankivsk Oblast",
+   "lon": 24.711,
+   "lat": 48.922
+  },
+  {
+   "name": "Kropyvnytskyi",
+   "kind": "ua-centre",
+   "a3": "UKR",
+   "oblast": "Kirovohrad Oblast",
+   "lon": 32.262,
+   "lat": 48.508
+  },
+  {
+   "name": "Luhansk",
+   "kind": "ua-centre",
+   "a3": "UKR",
+   "oblast": "Luhansk Oblast",
+   "lon": 39.307,
+   "lat": 48.574
+  },
+  {
+   "name": "Lviv",
+   "kind": "ua-centre",
+   "a3": "UKR",
+   "oblast": "Lviv Oblast",
+   "lon": 24.031,
+   "lat": 49.842
+  },
+  {
+   "name": "Mykolaiv",
+   "kind": "ua-centre",
+   "a3": "UKR",
+   "oblast": "Mykolaiv Oblast",
+   "lon": 31.995,
+   "lat": 46.975
+  },
+  {
+   "name": "Odesa",
+   "kind": "ua-centre",
+   "a3": "UKR",
+   "oblast": "Odesa Oblast",
+   "lon": 30.733,
+   "lat": 46.483
+  },
+  {
+   "name": "Poltava",
+   "kind": "ua-centre",
+   "a3": "UKR",
+   "oblast": "Poltava Oblast",
+   "lon": 34.551,
+   "lat": 49.589
+  },
+  {
+   "name": "Rivne",
+   "kind": "ua-centre",
+   "a3": "UKR",
+   "oblast": "Rivne Oblast",
+   "lon": 26.251,
+   "lat": 50.619
+  },
+  {
+   "name": "Sumy",
+   "kind": "ua-centre",
+   "a3": "UKR",
+   "oblast": "Sumy Oblast",
+   "lon": 34.798,
+   "lat": 50.907
+  },
+  {
+   "name": "Ternopil",
+   "kind": "ua-centre",
+   "a3": "UKR",
+   "oblast": "Ternopil Oblast",
+   "lon": 25.594,
+   "lat": 49.553
+  },
+  {
+   "name": "Kharkiv",
+   "kind": "ua-centre",
+   "a3": "UKR",
+   "oblast": "Kharkiv Oblast",
+   "lon": 36.23,
+   "lat": 49.994
+  },
+  {
+   "name": "Kherson",
+   "kind": "ua-centre",
+   "a3": "UKR",
+   "oblast": "Kherson Oblast",
+   "lon": 32.617,
+   "lat": 46.636
+  },
+  {
+   "name": "Khmelnytskyi",
+   "kind": "ua-centre",
+   "a3": "UKR",
+   "oblast": "Khmelnytskyi Oblast",
+   "lon": 26.987,
+   "lat": 49.422
+  },
+  {
+   "name": "Cherkasy",
+   "kind": "ua-centre",
+   "a3": "UKR",
+   "oblast": "Cherkasy Oblast",
+   "lon": 32.062,
+   "lat": 49.444
+  },
+  {
+   "name": "Chernivtsi",
+   "kind": "ua-centre",
+   "a3": "UKR",
+   "oblast": "Chernivtsi Oblast",
+   "lon": 25.94,
+   "lat": 48.292
+  },
+  {
+   "name": "Chernihiv",
+   "kind": "ua-centre",
+   "a3": "UKR",
+   "oblast": "Chernihiv Oblast",
+   "lon": 31.289,
+   "lat": 51.498
+  }
+ ]
+}

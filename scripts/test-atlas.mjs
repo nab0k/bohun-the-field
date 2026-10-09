@@ -130,3 +130,13 @@ console.log(`${n} atlas checks passed`);
   assert.deepEqual(generate(gj, { a: ['A', '#000'], b: ['B', '#111'] }).slice(0, 3), all.slice(0, 3), 'the demo data is the same on every load');
   console.log(`ok  scale demo: 30,000 generated points in ${new Set(all.map((c) => c.a3)).size} countries, none in excluded countries, reproducible`);
 }
+{
+  const pl = JSON.parse(fs.readFileSync(new URL('../public/atlas/places.json', import.meta.url))).places;
+  const caps = pl.filter((p) => p.kind === 'capital'), ua = pl.filter((p) => p.kind === 'ua-centre');
+  assert.ok(caps.length >= 190, `capitals: ${caps.length}`);
+  assert.equal(caps.find((c) => c.a3 === 'UKR')?.name, 'Kyiv');
+  assert.equal(ua.length + 1, 24, '24 oblast centres of Ukraine, Kyiv counted as the capital');
+  for (const n of ['Odesa', 'Dnipro', 'Kropyvnytskyi', 'Zaporizhzhia', 'Kharkiv', 'Kherson', 'Donetsk', 'Luhansk']) assert.ok(ua.some((p) => p.name === n), n);
+  assert.ok(!pl.some((p) => /Kiev|Odessa|Dnepr|Kirovograd/.test(p.name)), 'Ukrainian names in Ukrainian transliteration');
+  console.log(`ok  places: ${caps.length} capitals and the 24 oblast centres of Ukraine in Ukrainian transliteration`);
+}
