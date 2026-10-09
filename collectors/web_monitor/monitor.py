@@ -174,8 +174,8 @@ class ArticleMetadata(HTMLParser):
 def audit_candidate(item, base, robots):
     """Inspect public HTML metadata; fail closed on ambiguity and access errors."""
     result = {"url": item["url"], "classification": item["quality"], "verified": False}
-    if item["quality"] != "possible_article":
-        result["reason"] = "not_article_shaped"
+    if item["quality"] == "index":
+        result["reason"] = "section_index_not_audited"
         return result
     try:
         body, final = get(item["url"], robots)
@@ -244,11 +244,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--apply",action="store_true",help="Write unverified candidate URLs to Supabase")
     ap.add_argument("--report-candidates",action="store_true",help="Show classified candidate URLs")
-    ap.add_argument("--audit-metadata",action="store_true",help="Fetch up to 3 possible articles per source and inspect metadata")
+    ap.add_argument("--audit-metadata",action="store_true",help="Inspect up to 3 article-shaped or review candidates per source")
     ap.add_argument("--source-index",type=int,default=None,help=argparse.SUPPRESS)
     ap.add_argument("--per-source-timeout",type=int,default=45,help="Hard wall-clock seconds per source (default 45)")
     ap.add_argument("--sources",default=str(Path(__file__).with_name("sources.json")))
     args = ap.parse_args()
+    if args.audit_metadata and args.per_source_timeout < 90:
+        args.per_source_timeout = 90
     if args.apply:
         ap.error("--apply is disabled until verified article extraction is implemented")
     sources = json.loads(Path(args.sources).read_text())
@@ -262,7 +264,7 @@ def main():
             robots = {}
             checked = 0
             for item in candidates:
-                if item["quality"] == "possible_article" and checked < 3:
+                if item["quality"] in ("possible_article", "review") and checked < 3:
                     print("AUDIT " + json.dumps({"source": source["name"], **audit_candidate(item, source["url"], robots)}, ensure_ascii=False), flush=True)
                     checked += 1
         if args.report_candidates:
