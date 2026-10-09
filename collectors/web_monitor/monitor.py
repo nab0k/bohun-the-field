@@ -7,6 +7,7 @@ import json
 import os
 import re
 import sys
+import subprocess
 import time
 import urllib.parse
 import urllib.request
@@ -138,26 +139,55 @@ def db_write(source, candidates):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--apply",action="store_true",help="Write unverified candidate URLs to Supabase")
+    ap.add_argument("--source-index",type=int,default=None,help=argparse.SUPPRESS)
+    ap.add_argument("--per-source-timeout",type=int,default=45,help="Hard wall-clock seconds per source (default 45)")
     ap.add_argument("--sources",default=str(Path(__file__).with_name("sources.json")))
     args = ap.parse_args()
     sources = json.loads(Path(args.sources).read_text())
-    robots = {}
+    if args.source_index is not None:
+        source = sources[args.source_index]
+        if not source.get("enabled"):
+            return
+        candidates, failures = discover(source, {})
+        new = db_write(source, candidates) if args.apply and candidates else 0
+        print(json.dumps({"name": source["name"], "candidates": len(candidates),
+                          "inserted": new, "warnings": failures}, ensure_ascii=False), flush=True)
+        return
+
+    enabled = [(i, src) for i, src in enumerate(sources) if src.get("enabled")]
     errors = 0
     total = 0
-    for source in sources:
-        if not source.get("enabled"):
-            continue
+    found = 0
+    for index, source in enabled:
+        command = [sys.executable, str(Path(__file__).resolve()), "--sources", args.sources,
+                   "--source-index", str(index)]
+        if args.apply:
+            command.append("--apply")
         try:
-            candidates, failures = discover(source, robots)
-            new = db_write(source,candidates) if args.apply and candidates else 0
-            total += new
-            print(f"SOURCE {source['name']}: candidates={len(candidates)} inserted={new} warnings={','.join(failures) or 'none'}",flush=True)
-            if not candidates:
+            proc = subprocess.run(command, capture_output=True, text=True,
+                                  timeout=args.per_source_timeout, check=False)
+            if proc.returncode != 0:
                 errors += 1
-        except Exception as exc:
+                print(f"SOURCE {source['name']}: ERROR=worker_exit_{proc.returncode} "
+                      f"detail={proc.stderr[-300:].strip()!r}", flush=True)
+                continue
+            result = json.loads(proc.stdout.strip().splitlines()[-1])
+            count = result["candidates"]
+            found += count
+            total += result["inserted"]
+            print(f"SOURCE {source['name']}: candidates={count} inserted={result['inserted']} "
+                  f"warnings={','.join(result['warnings']) or 'none'}", flush=True)
+            if not count:
+                errors += 1
+        except subprocess.TimeoutExpired:
             errors += 1
-            print(f"SOURCE {source['name']}: ERROR={type(exc).__name__}",flush=True)
-    print(f"SUMMARY sources={len(sources)} inserted={total} sources_without_candidates_or_failed={errors} mode={'apply' if args.apply else 'dry-run'}")
+            print(f"SOURCE {source['name']}: ERROR=source_timeout_{args.per_source_timeout}s", flush=True)
+        except (ValueError, KeyError, IndexError) as exc:
+            errors += 1
+            print(f"SOURCE {source['name']}: ERROR=invalid_worker_result_{type(exc).__name__}", flush=True)
+    print(f"SUMMARY sources_checked={len(enabled)} candidates={found} inserted={total} "
+          f"sources_without_candidates_or_failed={errors} "
+          f"mode={'apply' if args.apply else 'dry-run'}", flush=True)
     if errors and args.apply:
         sys.exit(2)
 
