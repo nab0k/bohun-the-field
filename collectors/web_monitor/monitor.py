@@ -147,6 +147,52 @@ def discover(source, robots):
             break
     return candidates, failures
 
+
+def discover_channels(source, robots, channels):
+    """Discover candidates from explicitly configured publication listings, not global sitemaps."""
+    found = {}
+    failures = []
+    active = [c for c in channels if c.get("enabled") and c.get("source") == source["name"]]
+    for channel in active:
+        url = channel["url"]
+        if not same_site(url, source["url"]):
+            failures.append("channel_off_host")
+            continue
+        try:
+            body, final = get(url, robots)
+            if not same_site(final, source["url"]):
+                raise ValueError("off_host_redirect")
+            parser = Links()
+            parser.feed(body)
+            listing_path = urllib.parse.urlsplit(final).path.rstrip("/")
+            for href, label in parser.links:
+                candidate = urllib.parse.urljoin(final, href).split("#")[0]
+                if not same_site(candidate, source["url"]):
+                    continue
+                path = urllib.parse.urlsplit(candidate).path.rstrip("/")
+                # A candidate must be below the listing or match an explicit
+                # article URL shape. A section page is never an article.
+                under_listing = path.startswith(listing_path + "/")
+                article_shape = bool(ARTICLE_PATH.search(path) or DATE_PATH.search(path))
+                if not (under_listing or article_shape):
+                    continue
+                if path == listing_path or ASSET_PATH.search(path):
+                    continue
+                quality = classify_candidate(candidate, source["url"])
+                if quality in ("reject", "index"):
+                    continue
+                found[candidate] = {"url": candidate,
+                                    "title": (label.strip() or path.rsplit("/", 1)[-1].replace("-", " "))[:180],
+                                    "quality": quality,
+                                    "channel_url": url}
+                if len(found) >= LIMIT:
+                    break
+        except Exception as exc:
+            failures.append("channel:" + type(exc).__name__)
+        if len(found) >= LIMIT:
+            break
+    return list(found.values()), failures
+
 class ArticleMetadata(HTMLParser):
     def __init__(self):
         super().__init__()
@@ -248,6 +294,8 @@ def main():
     ap.add_argument("--source-index",type=int,default=None,help=argparse.SUPPRESS)
     ap.add_argument("--per-source-timeout",type=int,default=45,help="Hard wall-clock seconds per source (default 45)")
     ap.add_argument("--sources",default=str(Path(__file__).with_name("sources.json")))
+    ap.add_argument("--channels",default=str(Path(__file__).with_name("channels.json")))
+    ap.add_argument("--discovery-mode",choices=("channels","legacy"),default="channels")
     args = ap.parse_args()
     if args.audit_metadata and args.per_source_timeout < 90:
         args.per_source_timeout = 90
@@ -258,7 +306,11 @@ def main():
         source = sources[args.source_index]
         if not source.get("enabled"):
             return
-        candidates, failures = discover(source, {})
+        channels = json.loads(Path(args.channels).read_text())
+        if args.discovery_mode == "channels":
+            candidates, failures = discover_channels(source, {}, channels)
+        else:
+            candidates, failures = discover(source, {})
         new = 0
         if args.audit_metadata:
             robots = {}
@@ -280,7 +332,8 @@ def main():
     found = 0
     for index, source in enabled:
         command = [sys.executable, str(Path(__file__).resolve()), "--sources", args.sources,
-                   "--source-index", str(index)]
+                   "--source-index", str(index), "--channels", args.channels,
+                   "--discovery-mode", args.discovery_mode]
         if args.report_candidates:
             command.append("--report-candidates")
         if args.audit_metadata:
@@ -317,7 +370,7 @@ def main():
             print(f"SOURCE {source['name']}: ERROR=invalid_worker_result_{type(exc).__name__}", flush=True)
     print(f"SUMMARY sources_checked={len(enabled)} candidates={found} inserted={total} "
           f"sources_without_candidates_or_failed={errors} "
-          f"mode={'apply' if args.apply else 'dry-run'}", flush=True)
+          f"mode={'apply' if args.apply else 'dry-run'} discovery={args.discovery_mode}", flush=True)
     if errors and args.apply:
         sys.exit(2)
 
