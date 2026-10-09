@@ -2,8 +2,8 @@ name: Bohundefence Web Monitor (pilot)
 on:
   workflow_dispatch:
     inputs:
-      apply:
-        description: "Write candidate URLs to Supabase (unverified, not publishable)"
+      audit_metadata:
+        description: "Read-only metadata audit of up to 3 article candidates per source"
         type: boolean
         default: false
   schedule:
@@ -24,11 +24,9 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install "psycopg[binary]"
       - name: Discover public pages
-        env:
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.apply }}" = "true" ]; then
-            python collectors/web_monitor/monitor.py --apply
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.audit_metadata }}" = "true" ]; then
+            python collectors/web_monitor/monitor.py --audit-metadata
           else
             python collectors/web_monitor/monitor.py
           fi
