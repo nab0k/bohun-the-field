@@ -19,6 +19,22 @@ from pathlib import Path
 UA = "BohundefenceWebMonitor/1.0 (+public-source-monitor)"
 KEYWORDS = re.compile(r"(news|press|article|release|story|stories|actualit|presse|nachricht|meldung|aktualn|communiqu|innovation|publication|media|nieuws)", re.I)
 LIMIT = 30
+ARTICLE_PATH = re.compile(r"/(?:news|press-releases?|articles?|stories|actualites|communiques|nachrichten)/[^/?#]+", re.I)
+DATE_PATH = re.compile(r"/20\\d{2}/(?:0?[1-9]|1[0-2])/(?:[0-3]?\\d)/")
+INDEX_PATH = re.compile(r"/(?:news|press|media|publications|innovation|updates|events|topics|tags?)/?$", re.I)
+ASSET_PATH = re.compile(r"\\.(?:pdf|jpg|jpeg|png|svg|zip|docx?|xlsx?|xml|json)$", re.I)
+
+def classify_candidate(url, base):
+    """Heuristic only. An article-shaped URL is NOT a verified publication."""
+    path = urllib.parse.urlsplit(url).path
+    if not same_site(url, base) or ASSET_PATH.search(path):
+        return "reject"
+    if path in ("", "/") or INDEX_PATH.search(path):
+        return "index"
+    if ARTICLE_PATH.search(path) or DATE_PATH.search(path):
+        return "possible_article"
+    return "review"
+
 MAX_BYTES = 2_000_000
 
 class Links(HTMLParser):
@@ -121,7 +137,14 @@ def discover(source, robots):
                         found[u] = title.strip() or None
         except Exception as exc:
             failures.append(f"{urllib.parse.urlsplit(target).path}: {type(exc).__name__}")
-    candidates = [{"url":u, "title":t or u.rstrip("/").split("/")[-1].replace("-", " ").replace("_", " ")[:180]} for u,t in list(found.items())[:LIMIT]]
+    candidates = []
+    for u, t in found.items():
+        quality = classify_candidate(u, base)
+        if quality == "reject":
+            continue
+        candidates.append({"url": u, "title": (t or u.rstrip("/").split("/")[-1].replace("-", " ").replace("_", " "))[:180], "quality": quality})
+        if len(candidates) >= LIMIT:
+            break
     return candidates, failures
 
 def db_write(source, candidates):
@@ -159,19 +182,25 @@ def db_write(source, candidates):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--apply",action="store_true",help="Write unverified candidate URLs to Supabase")
+    ap.add_argument("--report-candidates",action="store_true",help="Show classified candidate URLs")
     ap.add_argument("--source-index",type=int,default=None,help=argparse.SUPPRESS)
     ap.add_argument("--per-source-timeout",type=int,default=45,help="Hard wall-clock seconds per source (default 45)")
     ap.add_argument("--sources",default=str(Path(__file__).with_name("sources.json")))
     args = ap.parse_args()
+    if args.apply:
+        ap.error("--apply is disabled until verified article extraction is implemented")
     sources = json.loads(Path(args.sources).read_text())
     if args.source_index is not None:
         source = sources[args.source_index]
         if not source.get("enabled"):
             return
         candidates, failures = discover(source, {})
-        new = db_write(source, candidates) if args.apply and candidates else 0
+        new = 0
+        if args.report_candidates:
+            for item in candidates:
+                print("CANDIDATE " + json.dumps({"source": source["name"], **item}, ensure_ascii=False), flush=True)
         print(json.dumps({"name": source["name"], "candidates": len(candidates),
-                          "inserted": new, "warnings": failures}, ensure_ascii=False), flush=True)
+                          "inserted": new, "warnings": failures, "quality": {k: sum(x["quality"] == k for x in candidates) for k in ("possible_article", "review", "index")}}, ensure_ascii=False), flush=True)
         return
 
     enabled = [(i, src) for i, src in enumerate(sources) if src.get("enabled")]
@@ -181,8 +210,8 @@ def main():
     for index, source in enabled:
         command = [sys.executable, str(Path(__file__).resolve()), "--sources", args.sources,
                    "--source-index", str(index)]
-        if args.apply:
-            command.append("--apply")
+        if args.report_candidates:
+            command.append("--report-candidates")
         try:
             proc = subprocess.run(command, capture_output=True, text=True,
                                   timeout=args.per_source_timeout, check=False)
@@ -191,12 +220,16 @@ def main():
                 print(f"SOURCE {source['name']}: ERROR=worker_exit_{proc.returncode} "
                       f"detail={proc.stderr[-300:].strip()!r}", flush=True)
                 continue
+            if args.report_candidates:
+                for line in proc.stdout.splitlines():
+                    if line.startswith("CANDIDATE "):
+                        print(line, flush=True)
             result = json.loads(proc.stdout.strip().splitlines()[-1])
             count = result["candidates"]
             found += count
             total += result["inserted"]
             print(f"SOURCE {source['name']}: candidates={count} inserted={result['inserted']} "
-                  f"warnings={','.join(result['warnings']) or 'none'}", flush=True)
+                  f"quality={result.get('quality', {})} warnings={','.join(result['warnings']) or 'none'}", flush=True)
             if not count:
                 errors += 1
         except subprocess.TimeoutExpired:
