@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import { initialCampaign, startProject, advanceWeek } from '../src/coalition/engine.js';
+const initial = initialCampaign();
+const started = startProject(initial, 'research', 'org:demo');
+assert.equal(started.ok, true);
+assert.equal(initial.budget, 100, 'state is immutable');
+assert.equal(started.state.budget, 75);
+assert.equal(startProject(started.state, 'pilot', 'org:demo').ok, true);
+assert.equal(startProject(initial, 'invalid', 'org:demo').ok, false);
+assert.equal(startProject(initial, 'research', '').ok, false);
+let s = advanceWeek(started.state);
+assert.equal(s.knowledge, 0);
+s = advanceWeek(s);
+assert.equal(s.knowledge, 12);
+assert.equal(s.trust, 43);
+assert.equal(s.projects.length, 0);
+assert.equal(s.history.at(-1).event, 'completed');
+console.log('Coalition engine: 9 assertions passed');
