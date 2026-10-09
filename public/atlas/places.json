@@ -3,7 +3,8 @@
  "source": "Natural Earth 1:50m populated places (public domain), Admin-0 capitals; Ukrainian oblast centres listed in the script",
  "counts": {
   "capitals": 202,
-  "uaCentres": 24
+  "uaCentres": 25,
+  "note": "24 oblast centres (Kyiv as capital) + Simferopol"
  },
  "places": [
   {
@@ -1806,6 +1807,14 @@
    "oblast": "Chernihiv Oblast",
    "lon": 31.289,
    "lat": 51.498
+  },
+  {
+   "name": "Simferopol",
+   "kind": "ua-centre",
+   "a3": "UKR",
+   "oblast": "Autonomous Republic of Crimea",
+   "lon": 34.1,
+   "lat": 44.952
   }
  ]
 }

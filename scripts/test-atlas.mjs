@@ -135,8 +135,9 @@ console.log(`${n} atlas checks passed`);
   const caps = pl.filter((p) => p.kind === 'capital'), ua = pl.filter((p) => p.kind === 'ua-centre');
   assert.ok(caps.length >= 190, `capitals: ${caps.length}`);
   assert.equal(caps.find((c) => c.a3 === 'UKR')?.name, 'Kyiv');
-  assert.equal(ua.length + 1, 24, '24 oblast centres of Ukraine, Kyiv counted as the capital');
+  assert.equal(ua.length + 1, 25, '24 oblast centres of Ukraine (Kyiv counted as the capital) and Simferopol');
+  assert.equal(ua.find((p) => p.name === 'Simferopol')?.oblast, 'Autonomous Republic of Crimea');
   for (const n of ['Odesa', 'Dnipro', 'Kropyvnytskyi', 'Zaporizhzhia', 'Kharkiv', 'Kherson', 'Donetsk', 'Luhansk']) assert.ok(ua.some((p) => p.name === n), n);
   assert.ok(!pl.some((p) => /Kiev|Odessa|Dnepr|Kirovograd/.test(p.name)), 'Ukrainian names in Ukrainian transliteration');
-  console.log(`ok  places: ${caps.length} capitals and the 24 oblast centres of Ukraine in Ukrainian transliteration`);
+  console.log(`ok  places: ${caps.length} capitals, the 24 oblast centres of Ukraine and Simferopol, in Ukrainian transliteration`);
 }

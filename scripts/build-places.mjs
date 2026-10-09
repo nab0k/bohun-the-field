@@ -1,6 +1,7 @@
 // Builds public/atlas/places.json: every national capital (Natural Earth "Admin-0 capital", public domain) and the 24 oblast
 // centres of Ukraine (Serhii, 09.10.2026). Ukrainian names use the official Ukrainian transliteration (Kyiv, Odesa, Dnipro…).
 // Kyiv is both the capital and the centre of Kyiv Oblast, so it is listed once, as the capital.
+// Plus Simferopol, capital of the Autonomous Republic of Crimea (Serhii, 09.10.2026).
 // Usage: node scripts/build-places.mjs
 import fs from 'node:fs';
 
@@ -14,6 +15,7 @@ const UA_CENTRES = [ // [name, lon, lat, oblast]
   ['Sumy', 34.798, 50.907, 'Sumy'], ['Ternopil', 25.594, 49.553, 'Ternopil'], ['Kharkiv', 36.23, 49.994, 'Kharkiv'],
   ['Kherson', 32.617, 46.636, 'Kherson'], ['Khmelnytskyi', 26.987, 49.422, 'Khmelnytskyi'], ['Cherkasy', 32.062, 49.444, 'Cherkasy'],
   ['Chernivtsi', 25.94, 48.292, 'Chernivtsi'], ['Chernihiv', 31.289, 51.498, 'Chernihiv'],
+  ['Simferopol', 34.1, 44.952, null], // Autonomous Republic of Crimea
 ];
 
 const ne = await fetch(NE).then((r) => { if (!r.ok) throw new Error(`Natural Earth → ${r.status}`); return r.json(); });
@@ -24,10 +26,10 @@ const capitals = ne.features.filter((f) => f.properties.featurecla === 'Admin-0 
 const kyiv = capitals.find((c) => c.a3 === 'UKR');
 if (!kyiv || kyiv.name !== 'Kyiv') throw new Error('Kyiv must be the capital of Ukraine in the source, spelled Kyiv');
 kyiv.note = 'Capital of Ukraine and centre of Kyiv Oblast';
-const ua = UA_CENTRES.map(([name, lon, lat, oblast]) => ({ name, kind: 'ua-centre', a3: 'UKR', oblast: `${oblast} Oblast`, lon, lat }));
+const ua = UA_CENTRES.map(([name, lon, lat, oblast]) => ({ name, kind: 'ua-centre', a3: 'UKR', oblast: oblast ? `${oblast} Oblast` : 'Autonomous Republic of Crimea', lon, lat }));
 const places = [...capitals.sort((a, b) => b.pop - a.pop), ...ua];
 fs.writeFileSync(new URL('../public/atlas/places.json', import.meta.url), JSON.stringify({
   generator: 'scripts/build-places.mjs', source: 'Natural Earth 1:50m populated places (public domain), Admin-0 capitals; Ukrainian oblast centres listed in the script',
-  counts: { capitals: capitals.length, uaCentres: ua.length + 1 }, places,
+  counts: { capitals: capitals.length, uaCentres: ua.length + 1, note: '24 oblast centres (Kyiv as capital) + Simferopol' }, places,
 }, null, 1) + '\n');
-console.log(`places: ${capitals.length} capitals + ${ua.length} Ukrainian oblast centres (+ Kyiv as capital = 24)`);
+console.log(`places: ${capitals.length} capitals + ${ua.length} Ukrainian regional centres (+ Kyiv as capital = 24 oblast centres and Simferopol)`);
