@@ -104,3 +104,13 @@ console.log(`${n} atlas checks passed`);
   assert.ok(Math.abs(dec.lat + 23.44) < 0.3 && Math.abs(Math.abs(dec.lon) - 180) < 1.5, JSON.stringify(dec));
   console.log('ok  night: the sun is over the Tropic of Cancer at noon UTC on 21 June and over the Tropic of Capricorn at midnight on 21 December');
 }
+{
+  const { makeExclusion } = await import('../src/atlas/live.js');
+  const gj = JSON.parse(fs.readFileSync(new URL('../public/atlas/countries.geojson', import.meta.url)));
+  const ex = makeExclusion(gj.features.find((f) => f.properties.a3 === 'UKR').geometry);
+  const hidden = { Kyiv: [30.52, 50.45], Lviv: [24.03, 49.84], Kharkiv: [36.23, 49.99], 'Sevastopol (Crimea)': [33.52, 44.6], 'Odesa coast': [30.75, 46.45], 'mid Black Sea': [34.0, 43.5], 'Sea of Azov': [36.5, 46.2], 'near the Polish–Ukrainian border': [23.9, 50.6] };
+  const shown = { Warsaw: [21.01, 52.23], 'Rzeszów': [22.0, 50.04], Bucharest: [26.1, 44.43], 'Istanbul airport': [28.74, 41.26], Helsinki: [24.94, 60.17], 'Gulf of Finland': [26.0, 60.0], Berlin: [13.4, 52.52], Ankara: [32.85, 39.93] };
+  for (const [k, [lon, lat]] of Object.entries(hidden)) assert.ok(ex(lon, lat), `${k} must be hidden`);
+  for (const [k, [lon, lat]] of Object.entries(shown)) assert.ok(!ex(lon, lat), `${k} must stay visible`);
+  console.log(`ok  live: nothing over Ukraine (with margin) or the Black Sea; ${Object.keys(shown).length} nearby places stay visible`);
+}

@@ -5,3 +5,4 @@ dist/
 
 # local secrets (API keys, tokens): never commit
 .env.local
+data/inoreader/private/

@@ -11,6 +11,7 @@ import { createFlows, MODES, pointAt } from '../flows/core.js';
 import frame from '../flows/data/world-frame.json' with { type: 'json' };
 import assets from '../game/data/assets.json' with { type: 'json' };
 import { createNight } from './night.js';
+import { createLive } from './live.js';
 import { createJourneys, atlasData as data, CATEGORIES, MARKETS, HOME, CANDIDATES, INSIGHTS, OFFERS, SELL_STEPS, BUY_STEPS } from './journeys.js';
 
 const $ = (s) => document.querySelector(s);
@@ -278,6 +279,39 @@ const lookSel = $('#look');
 for (const [k, v] of Object.entries(LOOKS)) { const o = el('option', null, v.label); o.value = k; o.selected = k === LOOK; lookSel.append(o); }
 lookSel.addEventListener('change', () => { const u = new URL(location.href); u.searchParams.set('look', lookSel.value); location.href = u.toString(); });
 setSea(false);
+
+// ---------- live layer: aircraft, ships, trains from free open APIs (src/atlas/live.js); off by default, ?live=1 turns it on ----------
+const countries = await fetch('/atlas/countries.geojson').then((r) => r.json());
+function showLiveCard(c) {
+  const box = $('#ind-card'); box.hidden = false;
+  box.querySelector('.panel-head span').textContent = c.head;
+  $('#ind-title').textContent = c.title;
+  const body = $('#ind-body'); body.replaceChildren();
+  const dl = el('dl', 'rows');
+  for (const [k, v] of c.rows) dl.append(el('dt', null, k), el('dd', null, v));
+  body.append(dl);
+  const src = el('p', 'links'); src.append(document.createTextNode('Source: '), link(c.source, c.sourceUrl)); body.append(src);
+  body.append(el('p', 'notice', 'Public open data, shown as received. Nothing is shown over Ukraine or the Black Sea.'));
+}
+const live = await createLive(map, { ukraineGeometry: countries.features.find((f) => f.properties.a3 === 'UKR').geometry, onCard: showLiveCard });
+window.__live = live;
+const LIVE_KIND = { air: ['Aircraft', '#f2b632'], ais: ['Ships · Baltic Sea', '#2f9fb8'], rail: ['Trains · Finland', '#c8452f'] };
+const liveRows = {};
+const liveStatus = el('small', 'src');
+$('#legend-live').replaceChildren(el('b', null, 'LIVE TRAFFIC · OPEN DATA'), ...Object.entries(LIVE_KIND).map(([k, [label, color]]) => {
+  const r = el('label', 'lg toggle'); const cb = el('input'); cb.type = 'checkbox'; cb.checked = true;
+  cb.addEventListener('change', () => live.setShow(k, cb.checked));
+  const dot = el('i'); dot.style.background = color; const n = el('span', 'n');
+  r.append(cb, dot, document.createTextNode(label), n); liveRows[k] = n; return r;
+}), liveStatus, el('small', 'src', 'Aircraft: adsb.lol (ODbL). Ships, trains: Fintraffic / digitraffic.fi (CC BY 4.0).'), el('small', null, 'Nothing is shown over Ukraine or the Black Sea'));
+live.onChange((st) => {
+  for (const k of Object.keys(LIVE_KIND)) liveRows[k].textContent = st.error[k] ? ' · unavailable' : st.show[k] ? ` · ${st.counts[k]}${k === 'air' && st.limited ? ' · source busy, retrying' : ''}` : '';
+  liveStatus.textContent = st.show.air && map.getZoom() < live.AIR_MIN_ZOOM ? 'Zoom in to see aircraft in that area.' : '';
+});
+map.on('zoomend', () => { if (live.state.on) liveStatus.textContent = live.state.show.air && map.getZoom() < live.AIR_MIN_ZOOM ? 'Zoom in to see aircraft in that area.' : ''; });
+function setLive(on) { live.setOn(on); $('#live').classList.toggle('active', on); $('#legend-live').hidden = !on; }
+$('#live').addEventListener('click', () => setLive(!live.state.on));
+setLive(params.get('live') === '1');
 
 const overlay = new MapLibreOverlay({ interleaved: true, layers: [], getCursor: ({ isHovering }) => (isHovering ? 'pointer' : 'grab'), onClick: (info) => info.object?.id && clickNode(info.object.id) });
 map.addControl(overlay);
