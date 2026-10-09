@@ -1,11 +1,13 @@
 // LIVE layer (Serhii, 09.10.2026): real aircraft, ships and trains from free open APIs whose licences allow a commercial site.
 //   aircraft — adsb.lol (ODbL 1.0), queried around the current view only (the API answers by point and radius, max 250 NM)
-//   ships    — Fintraffic Digitraffic Marine AIS (CC BY 4.0), Baltic Sea from Finnish coastal receivers
+//   military — adsb.lol military list (/v2/mil, worldwide, one request) — highlighted (Serhii, 09.10.2026)
+//   ships    — AISStream.io worldwide (free, key on the server; dev relay dev/aisstream-relay.mjs)
+//              + Fintraffic Digitraffic Marine AIS (CC BY 4.0), Baltic Sea from Finnish coastal receivers
 //   trains   — Fintraffic Digitraffic Rail GPS (CC BY 4.0), Finland
-// Not used: OpenSky and adsb.fi (non-commercial only), AISStream (needs our own server and key; later, via the Worker).
+// Not used: OpenSky and adsb.fi (non-commercial only).
 // Rule (08.10–09.10): nothing is shown over Ukraine or the Black Sea; the filter runs on every record before it reaches the map.
 // The browser calls /live/<source>/... — in dev Vite proxies it (vite.config.js); in production the Cloudflare Worker will.
-const POLL = { air: 30000, ais: 60000, rail: 30000 };
+const POLL = { air: 30000, ais: 45000, rail: 30000 };
 const AIR_MIN_ZOOM = 4.5;
 const NM = 1.852;
 
@@ -49,6 +51,7 @@ const svgImage = (body, size = 64) => new Promise((ok, fail) => {
 });
 const ICONS = {
   'live-plane': '<path d="M32 4 L36 24 L58 36 L58 41 L36 35 L35 51 L42 56 L42 60 L32 57 L22 60 L22 56 L29 51 L28 35 L6 41 L6 36 L28 24 Z" fill="#f2b632" stroke="#2a2416" stroke-width="2.5" stroke-linejoin="round"/>',
+  'live-plane-mil': '<path d="M32 4 L36 24 L58 36 L58 41 L36 35 L35 51 L42 56 L42 60 L32 57 L22 60 L22 56 L29 51 L28 35 L6 41 L6 36 L28 24 Z" fill="#4e5d23" stroke="#f4ecd0" stroke-width="3" stroke-linejoin="round"/>',
   'live-ship': '<path d="M32 6 L44 26 L44 56 L20 56 L20 26 Z" fill="#2f9fb8" stroke="#0e2a36" stroke-width="3" stroke-linejoin="round"/>',
   'live-ship-still': '<circle cx="32" cy="32" r="13" fill="#2f9fb8" fill-opacity="0.75" stroke="#0e2a36" stroke-width="3"/>',
   'live-train': '<rect x="14" y="14" width="36" height="36" rx="8" fill="#c8452f" stroke="#fff3e6" stroke-width="4"/><rect x="22" y="22" width="20" height="10" rx="2" fill="#fff3e6"/>',
@@ -84,38 +87,61 @@ export async function createLive(map, { ukraineGeometry, onCard }) {
   const size = (k) => ['interpolate', ['linear'], ['zoom'], 3, 0.35 * k, 6, 0.55 * k, 10, 0.8 * k];
   map.addLayer({ id: 'live-rail', type: 'symbol', source: 'live-rail', layout: { 'icon-image': 'live-train', 'icon-size': size(1), 'icon-allow-overlap': true, 'text-field': ['step', ['zoom'], '', 7, ['get', 'label']], 'text-font': ['Noto Sans Bold'], 'text-size': 10, 'text-offset': [0, 1.2], 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': '#3a1a12', 'text-halo-color': '#fff3e6', 'text-halo-width': 1.4 } });
   map.addLayer({ id: 'live-ais', type: 'symbol', source: 'live-ais', layout: { 'icon-image': ['case', ['get', 'moving'], 'live-ship', 'live-ship-still'], 'icon-size': size(0.9), 'icon-rotate': ['get', 'course'], 'icon-rotation-alignment': 'map', 'icon-pitch-alignment': 'map', 'icon-allow-overlap': true } });
-  map.addLayer({ id: 'live-air', type: 'symbol', source: 'live-air', minzoom: AIR_MIN_ZOOM - 0.5, layout: { 'icon-image': 'live-plane', 'icon-size': size(1), 'icon-rotate': ['get', 'track'], 'icon-rotation-alignment': 'map', 'icon-pitch-alignment': 'map', 'icon-allow-overlap': true, 'text-field': ['step', ['zoom'], '', 7.5, ['get', 'label']], 'text-font': ['Noto Sans Bold'], 'text-size': 10, 'text-offset': [0, 1.3], 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': '#2a2416', 'text-halo-color': '#fff8e0', 'text-halo-width': 1.4 } });
+  const milSize = ['interpolate', ['linear'], ['zoom'], 1, ['case', ['get', 'mil'], 0.45, 0.3], 6, ['case', ['get', 'mil'], 0.75, 0.55], 10, ['case', ['get', 'mil'], 1, 0.8]];
+  map.addLayer({ id: 'live-air', type: 'symbol', source: 'live-air', layout: { 'icon-image': ['case', ['get', 'mil'], 'live-plane-mil', 'live-plane'], 'symbol-sort-key': ['case', ['get', 'mil'], 1, 0], 'icon-size': milSize, 'icon-rotate': ['get', 'track'], 'icon-rotation-alignment': 'map', 'icon-pitch-alignment': 'map', 'icon-allow-overlap': true, 'text-field': ['step', ['zoom'], '', 7.5, ['get', 'label']], 'text-font': ['Noto Sans Bold'], 'text-size': 10, 'text-offset': [0, 1.3], 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': '#2a2416', 'text-halo-color': '#fff8e0', 'text-halo-width': 1.4 } });
 
-  const state = { on: false, show: { air: true, ais: true, rail: true }, counts: { air: 0, ais: 0, rail: 0 }, dropped: 0, updated: {}, error: {} };
+  const state = { on: false, show: { air: true, mil: true, ais: true, rail: true }, counts: { air: 0, mil: 0, ais: 0, rail: 0 }, dropped: 0, updated: {}, error: {} };
   const records = { air: new Map(), ais: new Map(), rail: new Map() };
   const listeners = new Set();
   const changed = () => listeners.forEach((f) => f(state));
   const put = (kind, src, feats) => { state.counts[kind] = feats.length; state.updated[kind] = new Date(); map.getSource(src).setData({ type: 'FeatureCollection', features: feats }); changed(); };
   const pt = (lon, lat, props) => ({ type: 'Feature', properties: props, geometry: { type: 'Point', coordinates: [lon, lat] } });
 
-  // adsb.lol limits are dynamic: one query at a time with a pause, at most 4 points; on HTTP 429 keep what we have and slow down
+  // adsb.lol limits are dynamic: one query at a time with a pause; on HTTP 429 keep what we have and slow down.
+  // Military: one worldwide request (/v2/mil), visible at every zoom. Civil: up to 4 point queries around the view, zoomed in only.
+  const isMil = (a) => (a.dbFlags & 1) === 1;
   async function pollAir() {
-    if (map.getZoom() < AIR_MIN_ZOOM) { records.air.clear(); put('air', 'live-air', []); return; }
     const seen = new Map();
     let limited = false;
-    for (const [i, [lon, lat]] of airPoints(map, excluded).slice(0, 4).entries()) {
-      if (i) await new Promise((r) => setTimeout(r, 1500));
-      const r = await fetch(`/live/adsb/v2/point/${lat.toFixed(3)}/${lon.toFixed(3)}/250`);
-      if (r.status === 429) { limited = true; break; }
+    const ask = async (path) => {
+      const r = await fetch('/live/adsb' + path);
+      if (r.status === 429) { limited = true; return null; }
       if (!r.ok) throw new Error(`adsb.lol → ${r.status}`);
-      for (const a of (await r.json()).ac ?? []) if (a.lat != null && a.alt_baro !== 'ground') seen.set(a.hex, a);
+      return (await r.json()).ac ?? [];
+    };
+    const take = (list, mil) => { for (const a of list ?? []) if (a.lat != null && a.alt_baro !== 'ground') seen.set(a.hex, { ...a, mil: mil || isMil(a) }); };
+    if (state.show.mil) take(await ask('/v2/mil'), true);
+    if (state.show.air && map.getZoom() >= AIR_MIN_ZOOM && !limited) {
+      for (const [lon, lat] of airPoints(map, excluded).slice(0, 4)) {
+        await new Promise((r) => setTimeout(r, 1500));
+        const list = await ask(`/v2/point/${lat.toFixed(3)}/${lon.toFixed(3)}/250`);
+        if (!list) break;
+        for (const a of list) if (!seen.has(a.hex)) take([a], false); // keep the military flag from /v2/mil
+      }
     }
     backoff.air = limited ? Math.min(backoff.air * 2, 8) : 1;
     state.limited = limited;
     if (limited && !seen.size) { changed(); return; } // nothing new: the last picture stays
-    records.air = new Map([...seen].filter(([, a]) => !excluded(a.lon, a.lat)));
+    records.air = new Map([...seen].filter(([, a]) => !excluded(a.lon, a.lat) && (a.mil ? state.show.mil : state.show.air)));
     state.dropped = seen.size - records.air.size;
-    put('air', 'live-air', [...records.air.values()].map((a) => pt(a.lon, a.lat, { id: a.hex, track: a.track ?? a.true_heading ?? 0, label: (a.flight ?? '').trim() })));
+    const all = [...records.air.values()];
+    state.counts.mil = all.filter((a) => a.mil).length;
+    put('air', 'live-air', all.map((a) => pt(a.lon, a.lat, { id: a.hex, mil: a.mil, track: a.track ?? a.true_heading ?? 0, label: (a.flight ?? '').trim() })));
+    state.counts.air = all.length - state.counts.mil; changed();
   }
+  // ships: AISStream worldwide (via our relay, for the current view) merged with Digitraffic for the Baltic; newest position wins
   async function pollAis() {
-    const d = await getJSON('/live/ais/api/ais/v1/locations');
-    records.ais = new Map(d.features.filter((f) => !excluded(...f.geometry.coordinates)).map((f) => [f.properties.mmsi, f]));
-    put('ais', 'live-ais', [...records.ais.values()].map((f) => { const p = f.properties, moving = p.sog > 0.5; return pt(...f.geometry.coordinates, { id: p.mmsi, moving, course: moving ? (p.heading < 360 ? p.heading : p.cog) : 0 }); }));
+    const b = map.getBounds(), merged = new Map();
+    const [dt, as] = await Promise.allSettled([
+      getJSON('/live/ais/api/ais/v1/locations'),
+      getJSON(`/live/aisstream/positions?w=${b.getWest().toFixed(2)}&s=${b.getSouth().toFixed(2)}&e=${b.getEast().toFixed(2)}&n=${b.getNorth().toFixed(2)}&limit=6000`),
+    ]);
+    if (dt.status === 'fulfilled') for (const f of dt.value.features) { const p = f.properties; merged.set(p.mmsi, { mmsi: p.mmsi, lon: f.geometry.coordinates[0], lat: f.geometry.coordinates[1], sog: p.sog, cog: p.cog, heading: p.heading, time: p.timestampExternal, src: 'dt' }); }
+    if (as.status === 'fulfilled') for (const [mmsi, lon, lat, sog, cog, heading] of as.value.ships) { const o = merged.get(mmsi); if (!o) merged.set(mmsi, { mmsi, lon, lat, sog, cog, heading, src: 'as' }); else o.alsoAs = true; }
+    if (dt.status === 'rejected' && as.status === 'rejected') throw new Error('ship sources unavailable');
+    state.aisWorld = as.status === 'fulfilled' ? as.value.total : null;
+    records.ais = new Map([...merged].filter(([, v]) => !excluded(v.lon, v.lat)));
+    put('ais', 'live-ais', [...records.ais.values()].map((v) => { const moving = v.sog > 0.5; return pt(v.lon, v.lat, { id: v.mmsi, moving, course: moving ? (v.heading < 360 ? v.heading : v.cog) : 0 }); }));
   }
   async function pollRail() {
     const d = await getJSON('/live/rail/api/v1/train-locations/latest/');
@@ -126,24 +152,24 @@ export async function createLive(map, { ukraineGeometry, onCard }) {
   const POLLERS = { air: pollAir, ais: pollAis, rail: pollRail };
   const timers = {};
   const backoff = { air: 1, ais: 1, rail: 1 }, busy = {};
-  async function run(kind) {
+  async function run(kind, force = false) {
     clearTimeout(timers[kind]);
-    if (!state.on || !state.show[kind]) return;
+    if (!state.on || !(kind === 'air' ? state.show.air || state.show.mil : state.show[kind])) return;
     if (busy[kind]) { busy[kind] = 'again'; return; } // one request chain per source at a time
     busy[kind] = true;
-    if (document.visibilityState === 'visible' || !state.updated[kind]) { // hidden tab: only the first load, no polling
+    if (force || document.visibilityState === 'visible' || !state.updated[kind]) { // hidden tab: only the first load, no polling
       try { await POLLERS[kind](); state.error[kind] = null; } catch (e) { state.error[kind] = String(e.message || e); changed(); }
     }
     const again = busy[kind] === 'again'; busy[kind] = false;
     timers[kind] = setTimeout(() => run(kind), again ? 1000 : POLL[kind] * backoff[kind]);
   }
   let moveTimer;
-  map.on('moveend', () => { if (!state.on || !state.show.air) return; clearTimeout(moveTimer); moveTimer = setTimeout(() => run('air'), 600); });
+  map.on('moveend', () => { if (!state.on) return; clearTimeout(moveTimer); moveTimer = setTimeout(() => { if (state.show.air || state.show.mil) run('air'); if (state.show.ais) run('ais'); }, 600); });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') for (const k of Object.keys(POLLERS)) run(k); });
 
   const LAYER = { air: 'live-air', ais: 'live-ais', rail: 'live-rail' };
   function apply() {
-    for (const [k, id] of Object.entries(LAYER)) map.setLayoutProperty(id, 'visibility', state.on && state.show[k] ? 'visible' : 'none');
+    for (const [k, id] of Object.entries(LAYER)) map.setLayoutProperty(id, 'visibility', state.on && (k === 'air' ? state.show.air || state.show.mil : state.show[k]) ? 'visible' : 'none');
     for (const k of Object.keys(POLLERS)) run(k);
     changed();
   }
@@ -153,15 +179,16 @@ export async function createLive(map, { ukraineGeometry, onCard }) {
   async function card(kind, id) {
     if (kind === 'air') {
       const a = records.air.get(id); if (!a) return;
-      onCard({ head: 'LIVE · AIRCRAFT', title: (a.flight ?? '').trim() || a.r || a.hex.toUpperCase(), rows: [['Registration', a.r ?? '—'], ['Aircraft type', a.desc ?? a.t ?? '—'], ['Altitude', fmt(a.alt_baro, 'ft')], ['Ground speed', fmt(a.gs, 'kn')], ['ICAO address', a.hex.toUpperCase()]], source: 'adsb.lol, ODbL 1.0', sourceUrl: 'https://www.adsb.lol/docs/open-data/api/' });
+      onCard({ head: a.mil ? 'LIVE · MILITARY AIRCRAFT' : 'LIVE · AIRCRAFT', title: (a.flight ?? '').trim() || a.r || a.hex.toUpperCase(), rows: [['Registration', a.r ?? '—'], ['Aircraft type', a.desc ?? a.t ?? '—'], ['Altitude', fmt(a.alt_baro, 'ft')], ['Ground speed', fmt(a.gs, 'kn')], ['ICAO address', a.hex.toUpperCase()]], source: 'adsb.lol, ODbL 1.0', sourceUrl: 'https://www.adsb.lol/docs/open-data/api/' });
     } else if (kind === 'ais') {
-      const f = records.ais.get(Number(id)); if (!f) return;
-      const p = f.properties;
-      const base = { head: 'LIVE · SHIP', title: `MMSI ${p.mmsi}`, rows: [['Speed', `${p.sog} kn`], ['Course', `${Math.round(p.cog)}°`]], source: 'Fintraffic / digitraffic.fi, CC BY 4.0', sourceUrl: 'https://www.digitraffic.fi/en/terms-of-service/' };
+      const v = records.ais.get(Number(id)); if (!v) return;
+      const fromDt = v.src === 'dt';
+      const base = { head: 'LIVE · SHIP', title: `MMSI ${v.mmsi}`, rows: [['Speed', `${v.sog ?? '—'} kn`], ['Course', v.cog == null ? '—' : `${Math.round(v.cog)}°`]], source: fromDt ? 'Fintraffic / digitraffic.fi, CC BY 4.0' : 'AISStream.io', sourceUrl: fromDt ? 'https://www.digitraffic.fi/en/terms-of-service/' : 'https://aisstream.io' };
       onCard(base);
       try {
-        const v = await getJSON(`/live/ais/api/ais/v1/vessels/${p.mmsi}`);
-        onCard({ ...base, title: v.name?.trim() || base.title, rows: [['Type', AIS_TYPE(v.shipType)], ['Destination', v.destination?.trim() || '—'], ...base.rows, ['MMSI', String(p.mmsi)]] });
+        const d = fromDt ? await getJSON(`/live/ais/api/ais/v1/vessels/${v.mmsi}`) : await getJSON(`/live/aisstream/vessel/${v.mmsi}`);
+        const type = fromDt ? d.shipType : d.type;
+        onCard({ ...base, title: d.name?.trim() || base.title, rows: [['Type', type == null ? '—' : AIS_TYPE(type)], ['Destination', d.destination?.trim() || '—'], ...base.rows, ['MMSI', String(v.mmsi)]] });
       } catch { /* the position card stays */ }
     } else if (kind === 'rail') {
       const t = records.rail.get(String(id)); if (!t) return;
@@ -184,7 +211,13 @@ export async function createLive(map, { ukraineGeometry, onCard }) {
   return {
     state, excluded, AIR_MIN_ZOOM,
     setOn(on) { state.on = on; apply(); },
-    setShow(kind, on) { state.show[kind] = on; if (!on) { records[kind].clear(); put(kind, LAYER[kind], []); } apply(); },
+    setShow(kind, on) {
+      state.show[kind] = on;
+      if (kind === 'air' || kind === 'mil') map.setFilter('live-air', ['any', ['all', ['literal', state.show.air], ['!', ['get', 'mil']]], ['all', ['literal', state.show.mil], ['get', 'mil']]]);
+      else if (!on) { records[kind].clear(); put(kind, LAYER[kind], []); }
+      apply();
+    },
     onChange(f) { listeners.add(f); f(state); },
+    refresh() { return Promise.all(Object.keys(POLLERS).map((k) => run(k, true))); }, // also for tests in a hidden tab
   };
 }

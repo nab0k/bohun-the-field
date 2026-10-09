@@ -295,7 +295,7 @@ function showLiveCard(c) {
 }
 const live = await createLive(map, { ukraineGeometry: countries.features.find((f) => f.properties.a3 === 'UKR').geometry, onCard: showLiveCard });
 window.__live = live;
-const LIVE_KIND = { air: ['Aircraft', '#f2b632'], ais: ['Ships · Baltic Sea', '#2f9fb8'], rail: ['Trains · Finland', '#c8452f'] };
+const LIVE_KIND = { mil: ['Military aircraft · worldwide', '#4e5d23'], air: ['Civil aircraft', '#f2b632'], ais: ['Ships', '#2f9fb8'], rail: ['Trains · Finland', '#c8452f'] };
 const liveRows = {};
 const liveStatus = el('small', 'src');
 $('#legend-live').replaceChildren(el('b', null, 'LIVE TRAFFIC · OPEN DATA'), ...Object.entries(LIVE_KIND).map(([k, [label, color]]) => {
@@ -303,12 +303,15 @@ $('#legend-live').replaceChildren(el('b', null, 'LIVE TRAFFIC · OPEN DATA'), ..
   cb.addEventListener('change', () => live.setShow(k, cb.checked));
   const dot = el('i'); dot.style.background = color; const n = el('span', 'n');
   r.append(cb, dot, document.createTextNode(label), n); liveRows[k] = n; return r;
-}), liveStatus, el('small', 'src', 'Aircraft: adsb.lol (ODbL). Ships, trains: Fintraffic / digitraffic.fi (CC BY 4.0).'), el('small', null, 'Nothing is shown over Ukraine or the Black Sea'));
+}), liveStatus, el('small', 'src', 'Aircraft: adsb.lol (ODbL). Ships: AISStream.io, Fintraffic / digitraffic.fi (CC BY 4.0). Trains: Fintraffic / digitraffic.fi (CC BY 4.0).'), el('small', null, 'Nothing is shown over Ukraine or the Black Sea'));
 live.onChange((st) => {
-  for (const k of Object.keys(LIVE_KIND)) liveRows[k].textContent = st.error[k] ? ' · unavailable' : st.show[k] ? ` · ${st.counts[k]}${k === 'air' && st.limited ? ' · source busy, retrying' : ''}` : '';
-  liveStatus.textContent = st.show.air && map.getZoom() < live.AIR_MIN_ZOOM ? 'Zoom in to see aircraft in that area.' : '';
+  for (const k of Object.keys(LIVE_KIND)) {
+    const src = k === 'mil' ? 'air' : k, busy = src === 'air' && st.limited ? ' · source busy, retrying' : '';
+    liveRows[k].textContent = st.error[src] ? ' · unavailable' : st.show[k] ? ` · ${st.counts[k]}${busy}` : '';
+  }
+  liveStatus.textContent = st.show.air && map.getZoom() < live.AIR_MIN_ZOOM ? 'Zoom in to see civil aircraft in that area.' : '';
 });
-map.on('zoomend', () => { if (live.state.on) liveStatus.textContent = live.state.show.air && map.getZoom() < live.AIR_MIN_ZOOM ? 'Zoom in to see aircraft in that area.' : ''; });
+map.on('zoomend', () => { if (live.state.on) liveStatus.textContent = live.state.show.air && map.getZoom() < live.AIR_MIN_ZOOM ? 'Zoom in to see civil aircraft in that area.' : ''; });
 function setLive(on) { live.setOn(on); $('#live').classList.toggle('active', on); $('#legend-live').hidden = !on; }
 $('#live').addEventListener('click', () => setLive(!live.state.on));
 setLive(params.get('live') === '1');
