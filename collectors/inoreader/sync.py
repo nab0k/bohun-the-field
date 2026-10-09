@@ -29,8 +29,14 @@ def request_json(url, *, headers=None, form=None):
     if body is not None:
         h["Content-Type"] = "application/x-www-form-urlencoded"
     req = urllib.request.Request(url, data=body, headers=h, method="POST" if body else "GET")
-    with urllib.request.urlopen(req, timeout=45) as response:
-        return json.load(response)
+    try:
+        with urllib.request.urlopen(req, timeout=45) as response:
+            return json.load(response)
+    except urllib.error.HTTPError as exc:
+        stage = "oauth_token" if url.startswith(TOKEN) else "inoreader_api"
+        raise RuntimeError(
+            f"HTTP request failed: stage={stage}, status={exc.code}"
+        ) from None
 
 
 def access_token():
@@ -196,7 +202,9 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except (RuntimeError, urllib.error.HTTPError, urllib.error.URLError) as exc:
-        # Do not log URLs, response bodies or credentials.
-        print(f"FAILED: {type(exc).__name__}; check secrets, API limits and database", file=sys.stderr)
+    except RuntimeError as exc:
+        print(f"FAILED: {exc}", file=sys.stderr)
+        sys.exit(1)
+    except (urllib.error.HTTPError, urllib.error.URLError) as exc:
+        print(f"FAILED: {type(exc).__name__}; check network", file=sys.stderr)
         sys.exit(1)
