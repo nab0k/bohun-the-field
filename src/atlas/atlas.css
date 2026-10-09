@@ -124,3 +124,4 @@ button { font: inherit; cursor: pointer; }
 .scale-list button:hover { background: #ffffff10; } .scale-list b { font: 600 12px var(--sans); } .scale-list small { grid-column: 2; color: #999d82; font-size: 11px; }
 .scale-cluster { cursor: pointer; filter: drop-shadow(0 2px 4px #0006); }
 @media (max-width: 820px) { .scale-panel { left: 8px; right: 8px; top: auto; width: auto; height: 34vh; bottom: 30px; } }
+.topbar button[hidden], .entry [hidden] { display: none !important; }

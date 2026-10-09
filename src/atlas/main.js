@@ -20,6 +20,10 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const params = new URLSearchParams(location.search);
 const PROJECTION = params.get('projection') === 'mercator' ? 'mercator' : 'globe';
+// Serhii, 09.10.2026: no points on the map until the company data is collected — no companies, no undersea list, no demo
+// journeys (actors, routes, Bohun), no scale demo. The code stays and is opened only for review: ?journeys=1, ?industry=1,
+// ?sea=1, ?demo=scale. The live traffic layer (LIVE) is not affected.
+const SHOW = { journeys: params.get('journeys') === '1', industry: params.get('industry') === '1', sea: params.get('sea') === '1', scale: params.get('demo') === 'scale' };
 
 // flows world px <-> lon/lat (the flows frame is equirectangular, so this is exact)
 const toLL = (x, y) => [x / frame.pxPerDeg - 180, frame.latNorth - y / (frame.pxPerDeg * frame.squash)];
@@ -224,7 +228,8 @@ function showIndustryCard(id) {
 $('#ind-close').addEventListener('click', () => { $('#ind-card').hidden = true; });
 $('#legend').replaceChildren(el('b', null, 'INDUSTRY · OPEN DATA'), ...Object.entries(PRODUCT).filter(([k]) => industry.companies.some((c) => c.product === k)).map(([, [label, color]]) => { const r = el('span', 'lg'); const dot = el('i'); dot.style.background = color; r.append(dot, document.createTextNode(label)); return r; }), el('small', null, 'Not clients or partners of Bohun'));
 $('#industry').addEventListener('click', () => setIndustry(!industryOn));
-setIndustry(true);
+setIndustry(SHOW.industry);
+if (!SHOW.industry) $('#industry').hidden = true;
 
 // ---------- thematic layer: undersea infrastructure defence (Serhii's article, 02.01.2026) ----------
 const SECTION = { detect: ['Detect', '#2f8fb0'], patrol: ['Patrol', '#3f8f6a'], inspect: ['Inspect', '#c08a2a'], repair: ['Repair', '#b8562f'], secure: ['Secure data', '#7d5aa6'] };
@@ -279,7 +284,8 @@ $('#sea').addEventListener('click', () => setSea(!seaOn));
 const lookSel = $('#look');
 for (const [k, v] of Object.entries(LOOKS)) { const o = el('option', null, v.label); o.value = k; o.selected = k === LOOK; lookSel.append(o); }
 lookSel.addEventListener('change', () => { const u = new URL(location.href); u.searchParams.set('look', lookSel.value); location.href = u.toString(); });
-setSea(false);
+setSea(SHOW.sea);
+if (!SHOW.sea) $('#sea').hidden = true;
 
 // ---------- live layer: aircraft, ships, trains from free open APIs (src/atlas/live.js); off by default, ?live=1 turns it on ----------
 const countries = await fetch('/atlas/countries.geojson').then((r) => r.json());
@@ -325,7 +331,7 @@ function setScale(on) {
   if (on) { setIndustry(false); $('#entry').hidden = true; map.flyTo({ center: [10, 35], zoom: innerWidth <= 820 ? 0.9 : 1.6, pitch: 0, bearing: 0, duration: reduced ? 0 : 1600 }); }
 }
 $('#scale').addEventListener('click', () => setScale(!scale.state.on));
-if (params.get('demo') === 'scale') setScale(true);
+if (SHOW.scale) setScale(true); else $('#scale').hidden = true;
 
 // demo actors as plain points (MapLibre layers draw correctly on the globe), under the city names
 map.addSource('objects', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
@@ -593,6 +599,12 @@ function tickFrame(now) {
     prog.hidden = v === null; if (v !== null) { prog.querySelector('i').style.width = `${v * 100}%`; prog.querySelector('span').textContent = t; } }
 }
 function loop(now) { tickFrame(now); requestAnimationFrame(loop); }
+if (!SHOW.journeys) { // the map without the demo journeys: only the welcome text and the way to explore
+  for (const id of ['#open-need', '#open-have', '#reset']) $(id).hidden = true;
+  $('#entry .sides').hidden = true; $('#entry .ask').hidden = true;
+  $('#just-look').textContent = 'EXPLORE THE MAP →';
+  const demo = $('.demo'); demo.textContent = demo.textContent.replace(/^Demonstration:[^.]*\. /, '');
+  map.setLayoutProperty('objects', 'visibility', 'none');
+}
 window.__step = (n = 1) => { for (let i = 0; i < n; i++) { last -= 50; tickFrame(performance.now()); } map.triggerRepaint(); }; // test hook: advance without rAF
-seedDefaults();
-requestAnimationFrame(loop);
+if (SHOW.journeys) { seedDefaults(); requestAnimationFrame(loop); }
