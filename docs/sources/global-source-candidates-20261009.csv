@@ -1,0 +1,85 @@
+category,name,country,url,verification_status,collection_method,priority
+media,"Defense News",US,https://www.defensenews.com/,candidate_unverified,rss_or_web,P1
+media,"Breaking Defense",US,https://breakingdefense.com/,candidate_unverified,rss_or_web,P1
+media,"Defense One",US,https://www.defenseone.com/,candidate_unverified,rss_or_web,P1
+media,"The War Zone",US,https://www.twz.com/,candidate_unverified,rss_or_web,P1
+media,"Naval News",FR,https://www.navalnews.com/,candidate_unverified,rss_or_web,P1
+media,"Army Recognition",BE,https://www.armyrecognition.com/,candidate_unverified,rss_or_web,P1
+media,"Janes",GB,https://www.janes.com/,candidate_unverified,rss_or_web,P1
+media,"Shephard Media",GB,https://www.shephardmedia.com/,candidate_unverified,rss_or_web,P1
+media,"Aviation Week",US,https://aviationweek.com/,candidate_unverified,rss_or_web,P1
+media,"European Security & Defence",DE,https://euro-sd.com/,candidate_unverified,rss_or_web,P1
+media,"Hartpunkt",DE,https://www.hartpunkt.de/,candidate_unverified,rss_or_web,P1
+media,"Militarnyi",UA,https://militarnyi.com/,candidate_unverified,rss_or_web,P1
+media,"Defence Express",UA,https://defence-ua.com/,candidate_unverified,rss_or_web,P1
+media,"UK Defence Journal",GB,https://ukdefencejournal.org.uk/,candidate_unverified,rss_or_web,P1
+media,"Australian Defence Magazine",AU,https://www.australiandefence.com.au/,candidate_unverified,rss_or_web,P1
+government,"US Department of Defense",US,https://www.defense.gov/,candidate_unverified,rss_or_web,P1
+government,"DARPA",US,https://www.darpa.mil/,candidate_unverified,rss_or_web,P1
+government,"DIU",US,https://www.diu.mil/,candidate_unverified,rss_or_web,P1
+government,"UK Ministry of Defence",GB,https://www.gov.uk/government/organisations/ministry-of-defence,candidate_unverified,rss_or_web,P1
+government,"UK DASA",GB,https://www.gov.uk/government/organisations/defence-and-security-accelerator,candidate_unverified,rss_or_web,P1
+government,"Germany Bundeswehr",DE,https://www.bundeswehr.de/,candidate_unverified,rss_or_web,P1
+government,"France Ministry of Armed Forces",FR,https://www.defense.gouv.fr/,candidate_unverified,rss_or_web,P1
+government,"Poland Ministry of Defence",PL,https://www.gov.pl/web/national-defence,candidate_unverified,rss_or_web,P1
+government,"Canada National Defence",CA,https://www.canada.ca/en/department-national-defence.html,candidate_unverified,rss_or_web,P1
+government,"Australia Defence",AU,https://www.defence.gov.au/,candidate_unverified,rss_or_web,P1
+government,"Japan ATLA",JP,https://www.mod.go.jp/atla/,candidate_unverified,rss_or_web,P1
+government,"NATO",INT,https://www.nato.int/,candidate_unverified,rss_or_web,P1
+government,"European Defence Agency",EU,https://eda.europa.eu/,candidate_unverified,rss_or_web,P1
+government,"European Commission DG DEFIS",EU,https://defence-industry-space.ec.europa.eu/,candidate_unverified,rss_or_web,P1
+government,"EDA Hub for EU Defence Innovation",EU,https://hedi.eda.europa.eu/,candidate_unverified,rss_or_web,P1
+industry,"Lockheed Martin",US,https://www.lockheedmartin.com/,candidate_unverified,rss_or_web,P1
+industry,"RTX",US,https://www.rtx.com/,candidate_unverified,rss_or_web,P1
+industry,"Northrop Grumman",US,https://www.northropgrumman.com/,candidate_unverified,rss_or_web,P1
+industry,"General Dynamics",US,https://www.gd.com/,candidate_unverified,rss_or_web,P1
+industry,"Boeing Defense",US,https://www.boeing.com/,candidate_unverified,rss_or_web,P1
+industry,"BAE Systems",GB,https://www.baesystems.com/,candidate_unverified,rss_or_web,P1
+industry,"Rheinmetall",DE,https://www.rheinmetall.com/,candidate_unverified,rss_or_web,P1
+industry,"Airbus",EU,https://www.airbus.com/,candidate_unverified,rss_or_web,P1
+industry,"Thales",FR,https://www.thalesgroup.com/,candidate_unverified,rss_or_web,P1
+industry,"Leonardo",IT,https://www.leonardo.com/,candidate_unverified,rss_or_web,P1
+industry,"Saab",SE,https://www.saab.com/,candidate_unverified,rss_or_web,P1
+industry,"Kongsberg",NO,https://www.kongsberg.com/,candidate_unverified,rss_or_web,P1
+industry,"Hensoldt",DE,https://www.hensoldt.net/,candidate_unverified,rss_or_web,P1
+industry,"MBDA",EU,https://www.mbda-systems.com/,candidate_unverified,rss_or_web,P1
+industry,"Anduril",US,https://www.anduril.com/,candidate_unverified,rss_or_web,P1
+industry,"Helsing",DE,https://helsing.ai/,candidate_unverified,rss_or_web,P1
+industry,"Quantum Systems",DE,https://quantum-systems.com/,candidate_unverified,rss_or_web,P1
+industry,"Tekever",PT,https://www.tekever.com/,candidate_unverified,rss_or_web,P1
+industry,"Baykar",TR,https://baykartech.com/,candidate_unverified,rss_or_web,P1
+industry,"Elbit Systems",IL,https://elbitsystems.com/,candidate_unverified,rss_or_web,P1
+grants,"EU Funding & Tenders",EU,https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home,candidate_unverified,specialized_collector_or_web,P1
+grants,"European Defence Fund",EU,https://defence-industry-space.ec.europa.eu/eu-defence-industry/european-defence-fund-edf-official-webpage-european-commission_en,candidate_unverified,specialized_collector_or_web,P1
+grants,"EUDIS",EU,https://eudis.europa.eu/,candidate_unverified,specialized_collector_or_web,P1
+grants,"NATO DIANA",INT,https://www.diana.nato.int/,candidate_unverified,specialized_collector_or_web,P1
+grants,"UK DASA",GB,https://www.gov.uk/government/organisations/defence-and-security-accelerator,candidate_unverified,specialized_collector_or_web,P1
+grants,"US SBIR",US,https://www.sbir.gov/,candidate_unverified,specialized_collector_or_web,P1
+grants,"AFWERX",US,https://afwerx.com/,candidate_unverified,specialized_collector_or_web,P1
+grants,"Brave1",UA,https://brave1.gov.ua/,candidate_unverified,specialized_collector_or_web,P1
+grants,"Canada IDEaS",CA,https://www.canada.ca/en/department-national-defence/programs/defence-ideas.html,candidate_unverified,specialized_collector_or_web,P1
+grants,"India iDEX",IN,https://idex.gov.in/,candidate_unverified,specialized_collector_or_web,P1
+procurement,"TED EU",EU,https://ted.europa.eu/,candidate_unverified,specialized_collector_or_web,P1
+procurement,"SAM.gov",US,https://sam.gov/,candidate_unverified,specialized_collector_or_web,P1
+procurement,"UK Find a Tender",GB,https://www.find-tender.service.gov.uk/,candidate_unverified,specialized_collector_or_web,P1
+procurement,"UK Contracts Finder",GB,https://www.contractsfinder.service.gov.uk/,candidate_unverified,specialized_collector_or_web,P1
+procurement,"CanadaBuys",CA,https://canadabuys.canada.ca/,candidate_unverified,specialized_collector_or_web,P1
+procurement,"AusTender",AU,https://www.tenders.gov.au/,candidate_unverified,specialized_collector_or_web,P1
+procurement,"NATO NSPA",INT,https://www.nspa.nato.int/,candidate_unverified,specialized_collector_or_web,P1
+procurement,"EU eTendering",EU,https://etendering.ted.europa.eu/,candidate_unverified,specialized_collector_or_web,P1
+analysis,"RUSI",GB,https://www.rusi.org/,candidate_unverified,rss_or_web,P1
+analysis,"IISS",GB,https://www.iiss.org/,candidate_unverified,rss_or_web,P1
+analysis,"CSIS",US,https://www.csis.org/,candidate_unverified,rss_or_web,P1
+analysis,"RAND",US,https://www.rand.org/,candidate_unverified,rss_or_web,P1
+analysis,"SIPRI",SE,https://www.sipri.org/,candidate_unverified,rss_or_web,P1
+analysis,"Atlantic Council",US,https://www.atlanticcouncil.org/,candidate_unverified,rss_or_web,P1
+analysis,"CEPA",US,https://cepa.org/,candidate_unverified,rss_or_web,P1
+analysis,"CNA",US,https://www.cna.org/,candidate_unverified,rss_or_web,P1
+analysis,"CNAS",US,https://www.cnas.org/,candidate_unverified,rss_or_web,P1
+analysis,"EUISS",EU,https://www.iss.europa.eu/,candidate_unverified,rss_or_web,P1
+events,"DSEI",GB,https://www.dsei.co.uk/,candidate_unverified,rss_or_web,P1
+events,"Eurosatory",FR,https://www.eurosatory.com/,candidate_unverified,rss_or_web,P1
+events,"IDEX",AE,https://www.idexuae.ae/,candidate_unverified,rss_or_web,P1
+events,"AUSA",US,https://www.ausa.org/,candidate_unverified,rss_or_web,P1
+events,"MSPO",PL,https://www.targikielce.pl/en/mspo,candidate_unverified,rss_or_web,P1
+events,"FEINDEF",ES,https://feindef.com/,candidate_unverified,rss_or_web,P1
