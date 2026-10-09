@@ -176,7 +176,7 @@ def discover_channels(source, robots, channels):
                 article_shape = bool(ARTICLE_PATH.search(path) or DATE_PATH.search(path))
                 if not (under_listing or article_shape):
                     continue
-                if path == listing_path or ASSET_PATH.search(path):
+                if path == listing_path or path.lower().endswith((".pdf", ".jpg", ".jpeg", ".png", ".svg", ".zip", ".doc", ".docx", ".xls", ".xlsx", ".xml", ".json")):
                     continue
                 quality = classify_candidate(candidate, source["url"])
                 if quality in ("reject", "index"):
