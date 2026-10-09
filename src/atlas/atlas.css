@@ -112,3 +112,20 @@ button { font: inherit; cursor: pointer; }
 .legend.live { border-color: #f2b63266; } .legend.live b { color: #f2c86a; }
 .legend .toggle { cursor: pointer; } .legend .toggle input { margin: 0; accent-color: #f2b632; } .legend .n { color: #a9a98f; }
 .card .rows { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 6px 0 0; font-size: 12px; } .card .rows dt { color: #999d82; } .card .rows dd { margin: 0; color: #e4e1c8; }
+
+/* SIGNALS layer (src/atlas/signals.js) */
+.card.sig { left: auto; right: 18px; top: 72px; bottom: auto; width: 360px; max-height: calc(100vh - 140px); overflow-y: auto; }
+.sig-tag { display: inline-block; padding: 1px 6px; color: #fff; font: 700 10px/1.6 var(--mono); text-transform: uppercase; letter-spacing: .04em; }
+.card .sig-why { color: #e8dfae; }
+.sig-facts { margin: 8px 0 0; padding-left: 16px; color: #c8c7ae; font-size: 13px; }
+.sig-h { display: block; margin-top: 10px; font: 700 11px/1 var(--mono); color: #c1b36c; letter-spacing: .06em; }
+.sig-sources { font-size: 13px; }
+.sig-list { list-style: none; margin: 8px 0 0; padding: 0; }
+.sig-item { all: unset; box-sizing: border-box; display: grid; grid-template-columns: 10px 1fr; column-gap: 8px; width: 100%; padding: 8px 4px; border-top: 1px solid #8b8d7033; cursor: pointer; }
+.sig-item:hover, .sig-item:focus-visible { background: #ffffff0d; outline: none; }
+.sig-item i { width: 9px; height: 9px; border-radius: 50%; margin-top: 4px; grid-row: span 2; }
+.sig-item-meta { font: 600 10px/1.4 var(--mono); color: #a9a78c; text-transform: uppercase; }
+.sig-item-title { font: 600 13px/1.35 var(--sans); color: #ece8c8; }
+@media (max-width: 760px) {
+  .card.sig { left: 8px; right: 8px; top: auto; bottom: 40px; width: auto; max-height: 55vh; }
+}

@@ -5,6 +5,7 @@ Interactive map of the defence and dual-use industry for Bohun Defence (bohundef
 - **Published:** the atlas (`atlas.html`) as the home page, built with `npm run build:site` and deployed by `.github/workflows/pages.yml` on every push to `main`.
 - **Not published:** the earlier prototypes (`index.html`, `game.html`, `flows.html`, `field.html`) — local drafts only.
 - **LIVE layer** is hidden in the published build until the Cloudflare Worker relay for `/live/*` exists (`VITE_LIVE=1` turns it on).
+- **Signals:** `pipeline/` runs every 15 minutes (`.github/workflows/signals.yml`): feeds from `data/sources/registry.csv` → Gemini → rules in `docs/AI_EDITORIAL_RULES.md` checked in code → `signals.json` on the `signals-data` branch → SIGNALS layer on the map. Secret `GEMINI_API_KEY`; repository variable `AUTO_PUBLISH=0` stops publishing; hide a signal by adding its id to `hidden` in `state.json` on that branch.
 - **Data model:** `db/schema.sql` (Cloudflare D1), explained in `docs/DATA_MODEL.md`.
 - **Decisions:** `docs/DECISIONS.md` — read it first. Claude, ChatGPT and Codex all work from this file.
 - **Secrets:** only in `.env.local` (git-ignored) or Cloudflare / GitHub secrets. Never in Git, Notion or chat.

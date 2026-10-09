@@ -1,0 +1,46 @@
+# Signal pipeline: every 15 minutes, read the feeds, ask Gemini, apply docs/AI_EDITORIAL_RULES.md in code,
+# and write signals.json to the `signals-data` branch. The site reads that file directly.
+# Secret: GEMINI_API_KEY. Optional repository variables: AUTO_PUBLISH ("0" stops publishing), GEMINI_MODEL.
+# Emergency stop: set the repository variable AUTO_PUBLISH to 0, or disable this workflow in the Actions tab.
+name: Signals
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: signals
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node pipeline/test.mjs
+      - name: Check out state branch
+        run: |
+          if git ls-remote --exit-code --heads origin signals-data >/dev/null; then
+            git fetch --depth 1 origin signals-data
+            git worktree add state origin/signals-data
+          else
+            mkdir state
+          fi
+      - name: Run pipeline
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          AUTO_PUBLISH: ${{ vars.AUTO_PUBLISH }}
+          STATE_DIR: state
+        run: node pipeline/run.mjs
+      - name: Save state (single commit, history not kept)
+        run: |
+          mkdir out && cp state/signals.json state/state.json out/ && cd out
+          git init -q -b signals-data
+          git add signals.json state.json
+          git -c user.name="bohun-signals" -c user.email="actions@users.noreply.github.com" commit -q -m "signals $(date -u +%FT%TZ)"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" signals-data

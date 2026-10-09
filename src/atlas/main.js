@@ -12,6 +12,7 @@ import frame from '../flows/data/world-frame.json' with { type: 'json' };
 import assets from '../game/data/assets.json' with { type: 'json' };
 import { createNight } from './night.js';
 import { createLive } from './live.js';
+import { initSignals } from './signals.js';
 import { isoIcon } from './iso.js';
 import { createJourneys, atlasData as data, CATEGORIES, MARKETS, HOME, CANDIDATES, INSIGHTS, OFFERS, SELL_STEPS, BUY_STEPS } from './journeys.js';
 // Site base path: '/' locally, '/<repo>/' on GitHub Pages (see vite.site.config.js)
@@ -228,6 +229,9 @@ $('#ind-close').addEventListener('click', () => { $('#ind-card').hidden = true; 
 $('#legend').replaceChildren(el('b', null, 'INDUSTRY · OPEN DATA'), ...Object.entries(PRODUCT).filter(([k]) => industry.companies.some((c) => c.product === k)).map(([, [label, color]]) => { const r = el('span', 'lg'); const dot = el('i'); dot.style.background = color; r.append(dot, document.createTextNode(label)); return r; }), el('small', null, 'Not clients or partners of Bohun'));
 $('#industry').addEventListener('click', () => setIndustry(!industryOn));
 setIndustry(true);
+
+// ---------- SIGNALS: AI summaries of industry events, refreshed every 15 minutes (decision 011) ----------
+initSignals({ map, $, el, reduced }).catch((e) => console.error('signals', e));
 
 // ---------- thematic layer: undersea infrastructure defence (Serhii's article, 02.01.2026) ----------
 const SECTION = { detect: ['Detect', '#2f8fb0'], patrol: ['Patrol', '#3f8f6a'], inspect: ['Inspect', '#c08a2a'], repair: ['Repair', '#b8562f'], secure: ['Secure data', '#7d5aa6'] };
