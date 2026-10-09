@@ -13,6 +13,7 @@ import assets from '../game/data/assets.json' with { type: 'json' };
 import { createNight } from './night.js';
 import { createLive } from './live.js';
 import { isoIcon } from './iso.js';
+import { createScaleDemo } from './scale-demo.js';
 import { createJourneys, atlasData as data, CATEGORIES, MARKETS, HOME, CANDIDATES, INSIGHTS, OFFERS, SELL_STEPS, BUY_STEPS } from './journeys.js';
 
 const $ = (s) => document.querySelector(s);
@@ -290,8 +291,8 @@ function showLiveCard(c) {
   const dl = el('dl', 'rows');
   for (const [k, v] of c.rows) dl.append(el('dt', null, k), el('dd', null, v));
   body.append(dl);
-  const src = el('p', 'links'); src.append(document.createTextNode('Source: '), link(c.source, c.sourceUrl)); body.append(src);
-  body.append(el('p', 'notice', 'Public open data, shown as received. Nothing is shown over Ukraine or the Black Sea.'));
+  if (c.source) { const src = el('p', 'links'); src.append(document.createTextNode('Source: '), link(c.source, c.sourceUrl)); body.append(src); }
+  body.append(el('p', 'notice', c.note ?? 'Public open data, shown as received. Nothing is shown over Ukraine or the Black Sea.'));
 }
 const live = await createLive(map, { ukraineGeometry: countries.features.find((f) => f.properties.a3 === 'UKR').geometry, onCard: showLiveCard });
 window.__live = live;
@@ -315,6 +316,16 @@ map.on('zoomend', () => { if (live.state.on) liveStatus.textContent = live.state
 function setLive(on) { live.setOn(on); $('#live').classList.toggle('active', on); $('#legend-live').hidden = !on; }
 $('#live').addEventListener('click', () => setLive(!live.state.on));
 setLive(params.get('live') === '1');
+
+// ---------- scale demo (?demo=scale): 30,000 generated points with four levels of detail (src/atlas/scale-demo.js) ----------
+const scale = createScaleDemo(map, { maplibregl, countries, categories: PRODUCT, isoIconId: (k) => ISO_ICON[k].id, onCard: showLiveCard, $ });
+scale.setOn(false);
+function setScale(on) {
+  scale.setOn(on); $('#scale').classList.toggle('active', on);
+  if (on) { setIndustry(false); $('#entry').hidden = true; map.flyTo({ center: [10, 35], zoom: innerWidth <= 820 ? 0.9 : 1.6, pitch: 0, bearing: 0, duration: reduced ? 0 : 1600 }); }
+}
+$('#scale').addEventListener('click', () => setScale(!scale.state.on));
+if (params.get('demo') === 'scale') setScale(true);
 
 // isometric objects as MapLibre symbols (deck.gl billboard icons get stretched on the globe); the anchor is the footprint centre
 const loadImg = (url) => new Promise((ok, fail) => { const im = new Image(); im.onload = () => ok(im); im.onerror = fail; im.src = url; });

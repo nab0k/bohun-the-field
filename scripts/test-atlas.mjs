@@ -122,3 +122,12 @@ console.log(`${n} atlas checks passed`);
   for (const k of Object.keys(OBJECTS)) for (const st of ['A', 'C']) { const ic = isoIcon(k, st); assert.match(decodeURIComponent(ic.url), /<polygon/); assert.ok(ic.anchorY > 0 && ic.anchorY < ic.height); }
   console.log(`ok  iso: every map node type has one of ${Object.keys(OBJECTS).length} isometric objects, in styles A and C`);
 }
+{
+  const { generate } = await import('../src/atlas/scale-demo.js');
+  const gj = JSON.parse(fs.readFileSync(new URL('../public/atlas/countries.geojson', import.meta.url)));
+  const all = generate(gj, { a: ['A', '#000'], b: ['B', '#111'] });
+  assert.equal(all.length, 30000);
+  assert.ok(!all.some((c) => ['UKR', 'RUS', 'BLR', 'CHN', 'PRK'].includes(c.a3)), 'no generated points in Ukraine, Russia, Belarus, China or North Korea');
+  assert.deepEqual(generate(gj, { a: ['A', '#000'], b: ['B', '#111'] }).slice(0, 3), all.slice(0, 3), 'the demo data is the same on every load');
+  console.log(`ok  scale demo: 30,000 generated points in ${new Set(all.map((c) => c.a3)).size} countries, none in excluded countries, reproducible`);
+}
