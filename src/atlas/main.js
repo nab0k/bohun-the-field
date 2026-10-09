@@ -14,6 +14,10 @@ import { createNight } from './night.js';
 import { createLive } from './live.js';
 import { isoIcon } from './iso.js';
 import { createJourneys, atlasData as data, CATEGORIES, MARKETS, HOME, CANDIDATES, INSIGHTS, OFFERS, SELL_STEPS, BUY_STEPS } from './journeys.js';
+// Site base path: '/' locally, '/<repo>/' on GitHub Pages (see vite.site.config.js)
+const BASE = import.meta.env.BASE_URL;
+// LIVE needs the /live/* relay (Vite dev proxy now, Cloudflare Worker later); hide the button in builds without it
+if (import.meta.env.PROD && !import.meta.env.VITE_LIVE) document.getElementById('live').hidden = true;
 
 const $ = (s) => document.querySelector(s);
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
@@ -31,7 +35,7 @@ const heading = (p) => { const [a0, b0] = toLL(p.x, p.y), [a1, b1] = toLL(p.x + 
 const NODE_ISO = { mine: ['mine', 0.9], 'factory-s': ['factory', 0.85], 'factory-m': ['factory', 1], 'factory-l': ['factory', 1.15], bank: ['bank', 1], port: ['port', 1.1], station: ['station', 0.95], airfield: ['airfield', 1.05], actor: ['office', 1] };
 const CAND_ISO = ['factory', 1];
 // Vehicles (?vehicles=1 only) still use Kenney CC0 models; see public/atlas/models/PROVENANCE.json
-const M = (kit, name) => `/atlas/models/${kit}/${name}.glb`;
+const M = (kit, name) => `${BASE}atlas/models/${kit}/${name}.glb`;
 const MOVER_MODEL = { truck: M('car-kit', 'truck'), wagon: M('car-kit', 'delivery-flat'), train: M('train-kit', 'train-diesel-a'), ship: M('watercraft-kit', 'ship-cargo-a') };
 const MODEL_YAW = 180;
 const SHOW_VEHICLES = params.get('vehicles') === '1'; // Kenney vehicles face -Z; turn them to face the direction of travel
@@ -123,7 +127,7 @@ async function loadStyle() {
     const at = style.layers.findIndex((l) => l.id === 'water');
     style.layers.splice(at + 1, 0, { id: 'hillshade', type: 'hillshade', source: 'dem', paint: { 'hillshade-exaggeration': L0.parchment ? 0.45 : 0.6, 'hillshade-shadow-color': L0.parchment ? '#6b5a3a' : '#4a4a3a', 'hillshade-highlight-color': '#fff8e0', 'hillshade-accent-color': '#5a4a30' } });
   }
-  style.sources.countries = { type: 'geojson', data: '/atlas/countries.geojson' };
+  style.sources.countries = { type: 'geojson', data: BASE + 'atlas/countries.geojson' };
   const pt = (t, lon, lat, kind, size) => ({ type: 'Feature', properties: { t, kind, size }, geometry: { type: 'Point', coordinates: [lon, lat] } });
   style.sources.labels = { type: 'geojson', data: { type: 'FeatureCollection', features: [...LABELS.map(([t, lon, lat]) => pt(t, lon, lat, 'city', 12)), ...REGIONS.map(([t, lon, lat, size]) => pt(t, lon, lat, 'region', size))] } };
   style.layers.push(
@@ -137,7 +141,7 @@ async function loadStyle() {
   );
   return style;
 }
-maplibregl.setWorkerUrl('/atlas/vendor/maplibre-gl-worker.mjs'); // verbatim copy, see scripts/copy-maplibre-worker.mjs
+maplibregl.setWorkerUrl(BASE + 'atlas/vendor/maplibre-gl-worker.mjs'); // verbatim copy, see scripts/copy-maplibre-worker.mjs
 const map = new maplibregl.Map({
   container: 'map', style: await loadStyle(), center: [31, 48.4], zoom: 4.6, pitch: 45, bearing: -8, maxPitch: 70,
   attributionControl: { compact: true }, canvasContextAttributes: { antialias: true },
@@ -165,7 +169,7 @@ const PRODUCT = {
   missiles: ['Missiles and air defence', '#b8562f'], electronics: ['Electronics, radar, comms', '#5b6fb0'], drones: ['Uncrewed systems', '#3f8f6a'], smallarms: ['Small arms', '#6b5a45'],
   software: ['Software', '#7d5aa6'], propulsion: ['Propulsion and drives', '#c08a2a'], components: ['Components and materials', '#8a8a5a'], testing: ['Testing and research', '#4a8a8a'],
 };
-const industry = await fetch('/atlas/industry.json').then((r) => r.json());
+const industry = await fetch(BASE + 'atlas/industry.json').then((r) => r.json());
 // several companies share one city centre: spread them on a small ring so each stays clickable (the point is the city, not an address)
 const byCity = {};
 for (const c of industry.companies) (byCity[c.lon + ',' + c.lat] ??= []).push(c);
@@ -227,7 +231,7 @@ setIndustry(true);
 
 // ---------- thematic layer: undersea infrastructure defence (Serhii's article, 02.01.2026) ----------
 const SECTION = { detect: ['Detect', '#2f8fb0'], patrol: ['Patrol', '#3f8f6a'], inspect: ['Inspect', '#c08a2a'], repair: ['Repair', '#b8562f'], secure: ['Secure data', '#7d5aa6'] };
-const sea = await fetch('/atlas/undersea.json').then((r) => r.json());
+const sea = await fetch(BASE + 'atlas/undersea.json').then((r) => r.json());
 const seaByCity = {};
 for (const c of sea.companies) (seaByCity[c.lon + ',' + c.lat] ??= []).push(c);
 const seaFeatures = [];
@@ -281,7 +285,7 @@ lookSel.addEventListener('change', () => { const u = new URL(location.href); u.s
 setSea(false);
 
 // ---------- live layer: aircraft, ships, trains from free open APIs (src/atlas/live.js); off by default, ?live=1 turns it on ----------
-const countries = await fetch('/atlas/countries.geojson').then((r) => r.json());
+const countries = await fetch(BASE + 'atlas/countries.geojson').then((r) => r.json());
 function showLiveCard(c) {
   const box = $('#ind-card'); box.hidden = false;
   box.querySelector('.panel-head span').textContent = c.head;

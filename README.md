@@ -1,6 +1,20 @@
-# BOHUN / THE FIELD — vertical-slice prototype
+# BOHUN / THE FIELD
 
-Local spike. Not deployed, not connected to any repo or production site.
+Interactive map of the defence and dual-use industry for Bohun Defence (bohundefence.com).
+
+- **Published:** the atlas (`atlas.html`) as the home page, built with `npm run build:site` and deployed by `.github/workflows/pages.yml` on every push to `main`.
+- **Not published:** the earlier prototypes (`index.html`, `game.html`, `flows.html`, `field.html`) — local drafts only.
+- **LIVE layer** is hidden in the published build until the Cloudflare Worker relay for `/live/*` exists (`VITE_LIVE=1` turns it on).
+- **Data model:** `db/schema.sql` (Cloudflare D1), explained in `docs/DATA_MODEL.md`.
+- **Decisions:** `docs/DECISIONS.md` — read it first. Claude, ChatGPT and Codex all work from this file.
+- **Secrets:** only in `.env.local` (git-ignored) or Cloudflare / GitHub secrets. Never in Git, Notion or chat.
+
+All map journeys, actors and object locations are illustrative examples, not live operational information.
+
+---
+
+# Prototype notes (history)
+
 
 Stack: Vite + Phaser 3.90 (pinned) + GSAP, vanilla JS. All art is drawn in code (original, deliberately crude).
 
