@@ -2,6 +2,13 @@ name: Bohundefence Web Monitor (pilot)
 on:
   workflow_dispatch:
     inputs:
+      discovery_mode:
+        description: "Channel listings (default) or legacy sitemap exploration"
+        type: choice
+        options:
+          - channels
+          - legacy
+        default: channels
       audit_metadata:
         description: "Read-only metadata audit of up to 3 article candidates per source"
         type: boolean
@@ -23,10 +30,12 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install "psycopg[binary]"
+      - name: Offline channel discovery tests
+        run: python -m unittest discover -s tests -p "test_web_monitor_channels.py"
       - name: Discover public pages
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.audit_metadata }}" = "true" ]; then
-            python collectors/web_monitor/monitor.py --audit-metadata
+            python collectors/web_monitor/monitor.py --discovery-mode "${{ inputs.discovery_mode || 'channels' }}" --audit-metadata
           else
-            python collectors/web_monitor/monitor.py
+            python collectors/web_monitor/monitor.py --discovery-mode "${{ inputs.discovery_mode || 'channels' }}"
           fi
