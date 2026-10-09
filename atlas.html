@@ -16,6 +16,7 @@
       <button id="open-have" type="button">I HAVE SOMETHING</button>
       <label class="look">MAP <select id="look" aria-label="Map style"></select></label>
       <button id="night" type="button" class="ghost">NIGHT</button>
+      <button id="signals" type="button" class="ghost">SIGNALS</button>
       <button id="industry" type="button" class="ghost">INDUSTRY</button>
       <button id="sea" type="button" class="ghost">UNDERSEA INFRASTRUCTURE</button>
       <button id="live" type="button" class="ghost">LIVE</button>
@@ -69,6 +70,15 @@
     <div class="panel-head"><span>INDUSTRY · OPEN DATA</span><button id="ind-close" type="button" aria-label="Close">×</button></div>
     <h3 id="ind-title"></h3>
     <div id="ind-body"></div>
+  </aside>
+  <aside id="sig-card" class="card ind sig" hidden aria-label="Signal">
+    <div class="panel-head"><span>SIGNAL · AI-GENERATED</span><button id="sig-close" type="button" aria-label="Close">×</button></div>
+    <h3 id="sig-title"></h3>
+    <div id="sig-body"></div>
+  </aside>
+  <aside id="sig-feed" class="card ind sig" hidden aria-label="Latest signals">
+    <div class="panel-head"><span>SIGNALS · LATEST</span><button id="sig-feed-close" type="button" aria-label="Close">×</button></div>
+    <div id="sig-feed-body"></div>
   </aside>
   <div class="legends"><div id="legend" class="legend" hidden></div><div id="legend-sea" class="legend sea" hidden></div><div id="legend-live" class="legend live" hidden></div></div>
 
