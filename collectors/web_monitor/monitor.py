@@ -90,7 +90,7 @@ def discover(source, robots):
                             if same_site(u, base) and KEYWORDS.search(urllib.parse.urlsplit(u).path):
                                 found[u] = None
                 else:
-                    failures.append("sitemap_index_requires_adapter")
+                    failures.append("SITEMAP_INDEX_NOT_YET_SUPPORTED")
             else:
                 parser = Links()
                 parser.feed(body)
@@ -158,7 +158,7 @@ def main():
             errors += 1
             print(f"SOURCE {source['name']}: ERROR={type(exc).__name__}",flush=True)
     print(f"SUMMARY sources={len(sources)} inserted={total} sources_without_candidates_or_failed={errors} mode={'apply' if args.apply else 'dry-run'}")
-    if errors:
+    if errors and args.apply:
         sys.exit(2)
 
 if __name__ == "__main__":
