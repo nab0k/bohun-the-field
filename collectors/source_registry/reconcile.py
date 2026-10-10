@@ -45,9 +45,23 @@ def main():
     p.add_argument("--sources", default="collectors/inoreader/top100_sources.json")
     p.add_argument("--inoreader-report", required=True)
     p.add_argument("--channels", default="collectors/web_monitor/channels.json")
+    p.add_argument("--extra-candidates", default="docs/sources/global-source-candidates-20261009.csv")
     p.add_argument("--out", default="output/unified-source-registry.csv")
     args = p.parse_args()
     sources = json.loads(Path(args.sources).read_text(encoding="utf-8"))["sources"]
+    # Expand beyond Notion Top100 with GitHub's 84-source candidate catalog.
+    # Deduplication is by host only, and does not imply equal publisher or feed.
+    known_hosts = {normalized_host(src["url"]) for src in sources}
+    extra_added = 0
+    with Path(args.extra_candidates).open(newline="", encoding="utf-8") as file:
+        for row in csv.DictReader(file):
+            host = normalized_host(row.get("url"))
+            if not host or host in known_hosts:
+                continue
+            known_hosts.add(host)
+            sources.append({"name": row["name"], "url": row["url"],
+                            "group": "Extra candidate / " + row.get("category", "")})
+            extra_added += 1
     report = json.loads(Path(args.inoreader_report).read_text(encoding="utf-8"))
     channels = json.loads(Path(args.channels).read_text(encoding="utf-8"))
     rows = build(sources, report, channels)
@@ -57,7 +71,7 @@ def main():
         writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
         writer.writeheader()
         writer.writerows(rows)
-    print(f"REGISTRY sources={len(rows)} inoreader_observed={sum(bool(r['feed_url']) for r in rows)} web_seeds={sum(bool(r['web_monitor_seed_urls']) for r in rows)}")
+    print(f"REGISTRY extra_candidates={extra_added} sources={len(rows)} inoreader_observed={sum(bool(r['feed_url']) for r in rows)} web_seeds={sum(bool(r['web_monitor_seed_urls']) for r in rows)}")
     # This is a snapshot, not evidence that a live Inoreader folder or monitoring job is active.
 
 if __name__ == "__main__":
