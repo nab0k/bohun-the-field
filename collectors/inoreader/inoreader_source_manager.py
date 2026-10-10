@@ -64,7 +64,7 @@ def is_feed(data):
     except ET.ParseError:
         return False
     tag = root.tag.lower()
-    return tag == "rss" or tag.endswith("}feed") or tag == "feed" or tag.endswith("}rdf") or tag == "rdf"
+    return (tag == "rss" and root.find("./channel/item") is not None) or ((tag.endswith("}feed") or tag == "feed") and any(child.tag.lower().endswith("entry") for child in root)) or ((tag.endswith("}rdf") or tag == "rdf") and any(child.tag.lower().endswith("item") for child in root))
 
 def discover(source):
     homepage = source["url"]
@@ -122,11 +122,15 @@ def run(args):
         results = list(pool.map(discover, sources))
     token = access_token() if args.apply or args.check_subscriptions else None
     ids, current_count = existing_ids(token) if token else (set(), None)
+    selected = {name.strip().casefold() for name in args.only.split(",") if name.strip()}
     added = 0
     for item in results:
         feed = item.get("feed_url")
         feed_id = "feed/" + feed if feed else None
         item["folder"] = FOLDERS.get(item["group"], "BOHUN_RESEARCH")
+        if selected and item["name"].casefold() not in selected:
+            item["status"] = "not_selected"
+            continue
         if feed_id and feed_id in ids:
             item["status"] = "already_subscribed"
         elif args.apply and feed:
@@ -181,10 +185,13 @@ def main():
     p.add_argument("--registry", default=str(Path(__file__).with_name("top100_sources.json")))
     p.add_argument("--report", default="inoreader-source-report.json")
     p.add_argument("--apply", action="store_true")
+    p.add_argument("--only", default="", help="Comma-separated exact source names to import; leave empty for all")
     p.add_argument("--check-subscriptions", action="store_true")
     p.add_argument("--max-add", type=int, default=20)
     p.add_argument("--workers", type=int, default=4)
     args = p.parse_args()
+    if args.apply and not args.only.strip():
+        p.error("--apply requires --only to prevent accidental mass import")
     if not 1 <= args.workers <= 8 or not 1 <= args.max_add <= 100:
         p.error("workers must be 1..8 and max-add must be 1..100")
     return run(args)
