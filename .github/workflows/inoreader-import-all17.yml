@@ -1,0 +1,35 @@
+name: Inoreader import 17 feed candidates
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/inoreader-import-all17.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: bohun-inoreader-import
+  cancel-in-progress: false
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Import and verify against Inoreader API
+        env:
+          INOREADER_CLIENT_ID: ${{ secrets.INOREADER_CLIENT_ID }}
+          INOREADER_CLIENT_SECRET: ${{ secrets.INOREADER_CLIENT_SECRET }}
+          INOREADER_REFRESH_TOKEN: ${{ secrets.INOREADER_REFRESH_TOKEN }}
+        run: python collectors/inoreader/import_all17.py
+      - name: Upload API verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: inoreader-import-all17-verification
+          path: output/inoreader-import-all17.json
+          retention-days: 30
+          if-no-files-found: warn
