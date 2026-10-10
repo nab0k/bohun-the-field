@@ -1,0 +1,35 @@
+name: Inoreader first import batch (one-time)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/inoreader-import-first-batch.yml
+permissions:
+  contents: read
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Offline importer tests
+        run: python -m unittest discover -s tests -p 'test_inoreader_source_manager.py'
+      - name: Subscribe first five selected sources
+        env:
+          INOREADER_CLIENT_ID: ${{ secrets.INOREADER_CLIENT_ID }}
+          INOREADER_CLIENT_SECRET: ${{ secrets.INOREADER_CLIENT_SECRET }}
+          INOREADER_REFRESH_TOKEN: ${{ secrets.INOREADER_REFRESH_TOKEN }}
+        run: |
+          python collectors/inoreader/inoreader_source_manager.py \
+            --apply --check-subscriptions --max-add 5 \
+            --only 'Canadian Defence Review,Asia Pacific Defence Reporter,Defense Mirror,L3Harris,Tech.eu' \
+            --report inoreader-first-batch-report.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: inoreader-first-batch-report
+          path: inoreader-first-batch-report.json
+          if-no-files-found: ignore
