@@ -13,12 +13,14 @@ concurrency:
 jobs:
   import:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Offline importer tests
+        run: python -m unittest discover -s tests -p 'test_inoreader_source_manager.py'
       - name: Import and verify against Inoreader API
         env:
           INOREADER_CLIENT_ID: ${{ secrets.INOREADER_CLIENT_ID }}
