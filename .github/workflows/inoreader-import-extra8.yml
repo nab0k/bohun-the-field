@@ -1,0 +1,37 @@
+name: Inoreader add 8 newly discovered feeds
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/inoreader-import-extra8.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: bohun-inoreader-import
+  cancel-in-progress: false
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Offline Inoreader source manager tests
+        run: python -m unittest discover -s tests -p 'test_inoreader_source_manager.py'
+      - name: Import and verify eight newly discovered feeds
+        env:
+          INOREADER_CLIENT_ID: ${{ secrets.INOREADER_CLIENT_ID }}
+          INOREADER_CLIENT_SECRET: ${{ secrets.INOREADER_CLIENT_SECRET }}
+          INOREADER_REFRESH_TOKEN: ${{ secrets.INOREADER_REFRESH_TOKEN }}
+        run: python collectors/inoreader/import_extra8.py
+      - name: Upload API verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: inoreader-import-extra8-verification
+          path: output/inoreader-import-extra8.json
+          retention-days: 30
+          if-no-files-found: warn
