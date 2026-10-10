@@ -1,0 +1,384 @@
+{
+  "version": "1.0",
+  "owner": "Sources Intelligence",
+  "checked": "2026-10-10",
+  "role": "collection_and_initial_event_classification_not_final_entity_qualification",
+  "types": [
+    {
+      "id": "procurement_award",
+      "title": "Закупки и контракты",
+      "watch_for": [
+        "tender notice",
+        "request for proposal",
+        "contract award",
+        "framework agreement",
+        "amendment",
+        "delivery acceptance"
+      ],
+      "required_fields": [
+        "CPV/NAICS",
+        "buyer",
+        "supplier",
+        "amount",
+        "currency",
+        "deadline",
+        "award_id"
+      ],
+      "preferred_source_families": [
+        "official procurement portals",
+        "defence ministries"
+      ],
+      "priority": "high",
+      "verification_rule": "Always retain original document URL and separate announcement from completed event"
+    },
+    {
+      "id": "procurement_pipeline",
+      "title": "Предстоящие закупки",
+      "watch_for": [
+        "prior information notice",
+        "request for information",
+        "market consultation",
+        "upcoming solicitation"
+      ],
+      "required_fields": [
+        "buyer",
+        "project",
+        "indicative budget",
+        "anticipated date"
+      ],
+      "preferred_source_families": [
+        "official procurement programmes"
+      ],
+      "priority": "high",
+      "verification_rule": "Always retain original document URL and separate announcement from completed event"
+    },
+    {
+      "id": "innovation_rd",
+      "title": "Инновации и НИОКР",
+      "watch_for": [
+        "R&D programme",
+        "prototype",
+        "demonstrator",
+        "technology trial",
+        "test campaign",
+        "patent",
+        "technical publication"
+      ],
+      "required_fields": [
+        "technology",
+        "TRL only if stated",
+        "laboratory",
+        "funding programme"
+      ],
+      "preferred_source_families": [
+        "research institutions",
+        "defence innovation offices"
+      ],
+      "priority": "medium",
+      "verification_rule": "Always retain original document URL and separate announcement from completed event"
+    },
+    {
+      "id": "grants_challenges",
+      "title": "Гранты и конкурсы",
+      "watch_for": [
+        "call for proposals",
+        "funding opportunity",
+        "SBIR/STTR",
+        "innovation challenge",
+        "accelerator cohort"
+      ],
+      "required_fields": [
+        "eligibility",
+        "ceiling",
+        "closing date",
+        "programme",
+        "award ID"
+      ],
+      "preferred_source_families": [
+        "grant portals",
+        "accelerator sites"
+      ],
+      "priority": "high",
+      "verification_rule": "Always retain original document URL and separate announcement from completed event"
+    },
+    {
+      "id": "law_regulation",
+      "title": "Законодательство",
+      "watch_for": [
+        "new regulation",
+        "export control",
+        "sanctions amendment",
+        "procurement policy",
+        "industrial strategy",
+        "parliamentary bill"
+      ],
+      "required_fields": [
+        "jurisdiction",
+        "effective date",
+        "legal instrument",
+        "official citation"
+      ],
+      "preferred_source_families": [
+        "official gazettes",
+        "parliaments",
+        "regulators"
+      ],
+      "priority": "high",
+      "verification_rule": "Always retain original document URL and separate announcement from completed event"
+    },
+    {
+      "id": "critical_materials",
+      "title": "Сырьё и цепочки поставок",
+      "watch_for": [
+        "rare earths",
+        "titanium",
+        "tungsten",
+        "gallium",
+        "germanium",
+        "supply disruption",
+        "stockpile",
+        "mining permit",
+        "recycling project"
+      ],
+      "required_fields": [
+        "material",
+        "country",
+        "facility at non-sensitive regional level",
+        "dependence",
+        "capacity if sourced"
+      ],
+      "preferred_source_families": [
+        "JRC RMIS",
+        "geological surveys",
+        "trade ministries"
+      ],
+      "priority": "high",
+      "verification_rule": "Always retain original document URL and separate announcement from completed event"
+    },
+    {
+      "id": "industry_capacity",
+      "title": "Промышленность и производство",
+      "watch_for": [
+        "capacity expansion",
+        "new line",
+        "production rate",
+        "factory investment",
+        "backlog",
+        "production halt",
+        "plant acquisition"
+      ],
+      "required_fields": [
+        "company",
+        "public HQ",
+        "investment",
+        "capacity and units",
+        "date"
+      ],
+      "preferred_source_families": [
+        "company releases",
+        "chambers",
+        "industry reports"
+      ],
+      "priority": "high",
+      "verification_rule": "Always retain original document URL and separate announcement from completed event"
+    },
+    {
+      "id": "corporate_deals",
+      "title": "Новости компаний",
+      "watch_for": [
+        "merger",
+        "acquisition",
+        "joint venture",
+        "memorandum",
+        "partnership",
+        "new product",
+        "leadership"
+      ],
+      "required_fields": [
+        "legal entities",
+        "subsidiaries",
+        "transaction stage",
+        "verification"
+      ],
+      "preferred_source_families": [
+        "corporate pressrooms",
+        "public filings"
+      ],
+      "priority": "medium",
+      "verification_rule": "Always retain original document URL and separate announcement from completed event"
+    },
+    {
+      "id": "capital_investments",
+      "title": "Инвестиции и фонды",
+      "watch_for": [
+        "equity round",
+        "fund launch",
+        "venture investment",
+        "debt financing",
+        "IPO",
+        "strategic investor"
+      ],
+      "required_fields": [
+        "round type",
+        "investors",
+        "size",
+        "portfolio company",
+        "announcement date"
+      ],
+      "preferred_source_families": [
+        "fund sites",
+        "public filings",
+        "startups"
+      ],
+      "priority": "high",
+      "verification_rule": "Always retain original document URL and separate announcement from completed event"
+    },
+    {
+      "id": "events_networks",
+      "title": "События, выставки и форумы",
+      "watch_for": [
+        "conference",
+        "expo",
+        "call for speakers",
+        "registration",
+        "exhibitor list",
+        "agenda",
+        "workshop",
+        "defense industry day"
+      ],
+      "required_fields": [
+        "organizer",
+        "venue city",
+        "dates",
+        "edition",
+        "participating company only if documented"
+      ],
+      "preferred_source_families": [
+        "official event organizers",
+        "government calendars"
+      ],
+      "priority": "medium",
+      "verification_rule": "Always retain original document URL and separate announcement from completed event"
+    },
+    {
+      "id": "policy_budgets",
+      "title": "Политика и оборонные бюджеты",
+      "watch_for": [
+        "budget allocation",
+        "defence spending",
+        "multi-year plan",
+        "NATO target",
+        "parliamentary hearing",
+        "procurement reform"
+      ],
+      "required_fields": [
+        "government",
+        "fiscal year",
+        "amount",
+        "parliamentary stage"
+      ],
+      "preferred_source_families": [
+        "official budgets",
+        "statistical agencies",
+        "think tanks"
+      ],
+      "priority": "high",
+      "verification_rule": "Always retain original document URL and separate announcement from completed event"
+    },
+    {
+      "id": "security_market",
+      "title": "Рынок и экспорт",
+      "watch_for": [
+        "export authorization",
+        "transfer approval",
+        "official order",
+        "production agreement",
+        "trade restriction"
+      ],
+      "required_fields": [
+        "destination at public country level",
+        "licence vs delivery",
+        "approval date"
+      ],
+      "preferred_source_families": [
+        "official export authorities",
+        "public company filings"
+      ],
+      "priority": "high",
+      "verification_rule": "Always retain original document URL and separate announcement from completed event"
+    },
+    {
+      "id": "research_analysis",
+      "title": "Исследования и аналитика",
+      "watch_for": [
+        "think tank report",
+        "journal article",
+        "threat assessment",
+        "market forecast",
+        "technology foresight"
+      ],
+      "required_fields": [
+        "author",
+        "publication year",
+        "DOI/report ID",
+        "assumptions"
+      ],
+      "preferred_source_families": [
+        "universities",
+        "think tanks",
+        "JRC",
+        "OECD"
+      ],
+      "priority": "medium",
+      "verification_rule": "Always retain original document URL and separate announcement from completed event"
+    },
+    {
+      "id": "community_rumours",
+      "title": "Форумы и слухи",
+      "watch_for": [
+        "unverified claim",
+        "forum discussion",
+        "supplier hiring rumour",
+        "prototype sighting"
+      ],
+      "required_fields": [
+        "platform",
+        "post timestamp",
+        "corroboration",
+        "do not promote as fact"
+      ],
+      "preferred_source_families": [
+        "permitted public forums and communities"
+      ],
+      "priority": "low",
+      "verification_rule": "Never publish as confirmed without independent primary evidence"
+    }
+  ],
+  "shared_required": [
+    "original_url",
+    "source_publisher",
+    "retrieved_at",
+    "published_at_if_available",
+    "country_and_jurisdiction",
+    "language",
+    "signal_type",
+    "claim_summary",
+    "source_evidence_grade",
+    "verification_status",
+    "rights_or_license_note"
+  ],
+  "flags": [
+    "candidate_unverified",
+    "source_validated",
+    "signal_candidate",
+    "confirmed_primary",
+    "contradicted",
+    "duplicate",
+    "sensitive_location_blocked"
+  ],
+  "exclusions": [
+    "no exact sensitive Ukrainian production locations",
+    "no inference of supplier contracts from association membership",
+    "no promotion of forum rumor without corroboration"
+  ]
+}
