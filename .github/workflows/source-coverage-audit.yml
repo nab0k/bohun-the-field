@@ -1,5 +1,9 @@
 name: Unified Source Coverage Audit
 on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/source-coverage-audit.yml
   workflow_dispatch:
   schedule:
     - cron: '25 4 * * 1'
