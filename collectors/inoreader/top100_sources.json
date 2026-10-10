@@ -1,0 +1,507 @@
+{
+  "source": "Notion Top 100 Defence Sources",
+  "snapshot_date": "2026-10-09",
+  "status": "unverified_site_entrypoints",
+  "sources": [
+    {
+      "name": "Defense News",
+      "url": "https://www.defensenews.com",
+      "group": "Media / intelligence"
+    },
+    {
+      "name": "Breaking Defense",
+      "url": "https://breakingdefense.com",
+      "group": "Media / intelligence"
+    },
+    {
+      "name": "Defense One",
+      "url": "https://www.defenseone.com",
+      "group": "Media / intelligence"
+    },
+    {
+      "name": "Janes",
+      "url": "https://www.janes.com",
+      "group": "Media / intelligence"
+    },
+    {
+      "name": "Naval News",
+      "url": "https://www.navalnews.com",
+      "group": "Media / intelligence"
+    },
+    {
+      "name": "Army Recognition",
+      "url": "https://www.armyrecognition.com",
+      "group": "Media / intelligence"
+    },
+    {
+      "name": "Air & Space Forces Magazine",
+      "url": "https://www.airandspaceforces.com",
+      "group": "Media / intelligence"
+    },
+    {
+      "name": "The War Zone",
+      "url": "https://www.twz.com",
+      "group": "Media / intelligence"
+    },
+    {
+      "name": "Shephard Media",
+      "url": "https://www.shephardmedia.com",
+      "group": "Media / intelligence"
+    },
+    {
+      "name": "European Security & Defence",
+      "url": "https://euro-sd.com",
+      "group": "Media / intelligence"
+    },
+    {
+      "name": "Hartpunkt",
+      "url": "https://www.hartpunkt.de",
+      "group": "Media / intelligence"
+    },
+    {
+      "name": "Opex360",
+      "url": "https://www.opex360.com",
+      "group": "Media / intelligence"
+    },
+    {
+      "name": "Aviation Week",
+      "url": "https://aviationweek.com",
+      "group": "Media / intelligence"
+    },
+    {
+      "name": "FlightGlobal",
+      "url": "https://www.flightglobal.com",
+      "group": "Media / intelligence"
+    },
+    {
+      "name": "UK Defence Journal",
+      "url": "https://ukdefencejournal.org.uk",
+      "group": "Media / intelligence"
+    },
+    {
+      "name": "Canadian Defence Review",
+      "url": "https://canadiandefencereview.com",
+      "group": "Media / intelligence"
+    },
+    {
+      "name": "Asia Pacific Defence Reporter",
+      "url": "https://asiapacificdefencereporter.com",
+      "group": "Media / intelligence"
+    },
+    {
+      "name": "Australian Defence Magazine",
+      "url": "https://www.australiandefence.com.au",
+      "group": "Media / intelligence"
+    },
+    {
+      "name": "Indian Defence Review",
+      "url": "https://www.indiandefencereview.com",
+      "group": "Media / intelligence"
+    },
+    {
+      "name": "Defense Mirror",
+      "url": "https://www.defensemirror.com",
+      "group": "Media / intelligence"
+    },
+    {
+      "name": "European Commission DG DEFIS",
+      "url": "https://defence-industry-space.ec.europa.eu",
+      "group": "Governments / procurement / regulation"
+    },
+    {
+      "name": "European Defence Agency",
+      "url": "https://eda.europa.eu",
+      "group": "Governments / procurement / regulation"
+    },
+    {
+      "name": "EU Council Press",
+      "url": "https://www.consilium.europa.eu/en/press/",
+      "group": "Governments / procurement / regulation"
+    },
+    {
+      "name": "European Parliament",
+      "url": "https://www.europarl.europa.eu/news/en",
+      "group": "Governments / procurement / regulation"
+    },
+    {
+      "name": "EU Funding & Tenders",
+      "url": "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home",
+      "group": "Governments / procurement / regulation"
+    },
+    {
+      "name": "EUR-Lex",
+      "url": "https://eur-lex.europa.eu",
+      "group": "Governments / procurement / regulation"
+    },
+    {
+      "name": "NATO News",
+      "url": "https://www.nato.int",
+      "group": "Governments / procurement / regulation"
+    },
+    {
+      "name": "NATO Support and Procurement Agency",
+      "url": "https://www.nspa.nato.int",
+      "group": "Governments / procurement / regulation"
+    },
+    {
+      "name": "US Defense Department",
+      "url": "https://www.defense.gov",
+      "group": "Governments / procurement / regulation"
+    },
+    {
+      "name": "US DSCA",
+      "url": "https://www.dsca.mil",
+      "group": "Governments / procurement / regulation"
+    },
+    {
+      "name": "US State DDTC",
+      "url": "https://www.pmddtc.state.gov",
+      "group": "Governments / procurement / regulation"
+    },
+    {
+      "name": "US BIS",
+      "url": "https://www.bis.gov",
+      "group": "Governments / procurement / regulation"
+    },
+    {
+      "name": "SAM.gov",
+      "url": "https://sam.gov",
+      "group": "Governments / procurement / regulation"
+    },
+    {
+      "name": "US SBIR/STTR",
+      "url": "https://www.sbir.gov",
+      "group": "Governments / procurement / regulation"
+    },
+    {
+      "name": "UK Ministry of Defence",
+      "url": "https://www.gov.uk/government/organisations/ministry-of-defence",
+      "group": "Governments / procurement / regulation"
+    },
+    {
+      "name": "UK Defence and Security Accelerator",
+      "url": "https://www.gov.uk/government/organisations/defence-and-security-accelerator",
+      "group": "Governments / procurement / regulation"
+    },
+    {
+      "name": "Germany BMVg",
+      "url": "https://www.bmvg.de",
+      "group": "Governments / procurement / regulation"
+    },
+    {
+      "name": "France DGA",
+      "url": "https://www.defense.gouv.fr/dga",
+      "group": "Governments / procurement / regulation"
+    },
+    {
+      "name": "Polish Ministry of National Defence",
+      "url": "https://www.gov.pl/web/national-defence",
+      "group": "Governments / procurement / regulation"
+    },
+    {
+      "name": "Netherlands Ministry of Defence",
+      "url": "https://www.defensie.nl",
+      "group": "Governments / procurement / regulation"
+    },
+    {
+      "name": "Canada National Defence",
+      "url": "https://www.canada.ca/en/department-national-defence.html",
+      "group": "Governments / procurement / regulation"
+    },
+    {
+      "name": "Australia Defence",
+      "url": "https://www.defence.gov.au",
+      "group": "Governments / procurement / regulation"
+    },
+    {
+      "name": "India Ministry of Defence",
+      "url": "https://mod.gov.in",
+      "group": "Governments / procurement / regulation"
+    },
+    {
+      "name": "Malaysia MINDEF",
+      "url": "https://www.mod.gov.my",
+      "group": "Governments / procurement / regulation"
+    },
+    {
+      "name": "Saudi GAMI",
+      "url": "https://www.gami.gov.sa",
+      "group": "Governments / procurement / regulation"
+    },
+    {
+      "name": "UAE EDGE News",
+      "url": "https://edgegroup.ae",
+      "group": "Governments / procurement / regulation"
+    },
+    {
+      "name": "Lockheed Martin",
+      "url": "https://news.lockheedmartin.com",
+      "group": "Industry / corporates"
+    },
+    {
+      "name": "RTX",
+      "url": "https://www.rtx.com/news",
+      "group": "Industry / corporates"
+    },
+    {
+      "name": "Northrop Grumman",
+      "url": "https://news.northropgrumman.com",
+      "group": "Industry / corporates"
+    },
+    {
+      "name": "General Dynamics",
+      "url": "https://www.gd.com/news",
+      "group": "Industry / corporates"
+    },
+    {
+      "name": "Boeing Defense",
+      "url": "https://www.boeing.com/defense",
+      "group": "Industry / corporates"
+    },
+    {
+      "name": "BAE Systems",
+      "url": "https://www.baesystems.com",
+      "group": "Industry / corporates"
+    },
+    {
+      "name": "Rheinmetall",
+      "url": "https://www.rheinmetall.com",
+      "group": "Industry / corporates"
+    },
+    {
+      "name": "Airbus Defence & Space",
+      "url": "https://www.airbus.com/en/products-services/defence",
+      "group": "Industry / corporates"
+    },
+    {
+      "name": "Thales",
+      "url": "https://www.thalesgroup.com",
+      "group": "Industry / corporates"
+    },
+    {
+      "name": "Leonardo",
+      "url": "https://www.leonardo.com",
+      "group": "Industry / corporates"
+    },
+    {
+      "name": "Saab",
+      "url": "https://www.saab.com",
+      "group": "Industry / corporates"
+    },
+    {
+      "name": "MBDA",
+      "url": "https://www.mbda-systems.com",
+      "group": "Industry / corporates"
+    },
+    {
+      "name": "Kongsberg Defence & Aerospace",
+      "url": "https://www.kongsberg.com/kda/",
+      "group": "Industry / corporates"
+    },
+    {
+      "name": "Hanwha Aerospace",
+      "url": "https://www.hanwhaaerospace.com",
+      "group": "Industry / corporates"
+    },
+    {
+      "name": "Hyundai Rotem",
+      "url": "https://www.hyundai-rotem.co.kr",
+      "group": "Industry / corporates"
+    },
+    {
+      "name": "Anduril",
+      "url": "https://www.anduril.com",
+      "group": "Industry / corporates"
+    },
+    {
+      "name": "Shield AI",
+      "url": "https://shield.ai",
+      "group": "Industry / corporates"
+    },
+    {
+      "name": "Helsing",
+      "url": "https://helsing.ai",
+      "group": "Industry / corporates"
+    },
+    {
+      "name": "Quantum Systems",
+      "url": "https://quantum-systems.com",
+      "group": "Industry / corporates"
+    },
+    {
+      "name": "Tekever",
+      "url": "https://www.tekever.com",
+      "group": "Industry / corporates"
+    },
+    {
+      "name": "Kratos Defense",
+      "url": "https://www.kratosdefense.com",
+      "group": "Industry / corporates"
+    },
+    {
+      "name": "L3Harris",
+      "url": "https://www.l3harris.com",
+      "group": "Industry / corporates"
+    },
+    {
+      "name": "Bharat Electronics",
+      "url": "https://bel-india.in",
+      "group": "Industry / corporates"
+    },
+    {
+      "name": "Hindustan Aeronautics",
+      "url": "https://hal-india.co.in",
+      "group": "Industry / corporates"
+    },
+    {
+      "name": "NATO DIANA",
+      "url": "https://www.diana.nato.int",
+      "group": "Investments / accelerators / aid / events"
+    },
+    {
+      "name": "NATO Innovation Fund",
+      "url": "https://www.nif.fund",
+      "group": "Investments / accelerators / aid / events"
+    },
+    {
+      "name": "European Investment Fund",
+      "url": "https://www.eif.org",
+      "group": "Investments / accelerators / aid / events"
+    },
+    {
+      "name": "European Investment Bank",
+      "url": "https://www.eib.org",
+      "group": "Investments / accelerators / aid / events"
+    },
+    {
+      "name": "European Innovation Council",
+      "url": "https://eic.ec.europa.eu",
+      "group": "Investments / accelerators / aid / events"
+    },
+    {
+      "name": "Defense Innovation Unit",
+      "url": "https://www.diu.mil",
+      "group": "Investments / accelerators / aid / events"
+    },
+    {
+      "name": "AFWERX",
+      "url": "https://afwerx.com",
+      "group": "Investments / accelerators / aid / events"
+    },
+    {
+      "name": "Army Applications Laboratory",
+      "url": "https://aal.army",
+      "group": "Investments / accelerators / aid / events"
+    },
+    {
+      "name": "In-Q-Tel",
+      "url": "https://www.iqt.org",
+      "group": "Investments / accelerators / aid / events"
+    },
+    {
+      "name": "Starburst Aerospace",
+      "url": "https://starburst.aero",
+      "group": "Investments / accelerators / aid / events"
+    },
+    {
+      "name": "Seraphim Space",
+      "url": "https://seraphim.vc",
+      "group": "Investments / accelerators / aid / events"
+    },
+    {
+      "name": "Crunchbase News",
+      "url": "https://news.crunchbase.com",
+      "group": "Investments / accelerators / aid / events"
+    },
+    {
+      "name": "Sifted",
+      "url": "https://sifted.eu",
+      "group": "Investments / accelerators / aid / events"
+    },
+    {
+      "name": "Tech.eu",
+      "url": "https://tech.eu",
+      "group": "Investments / accelerators / aid / events"
+    },
+    {
+      "name": "Kiel Ukraine Support Tracker",
+      "url": "https://www.kielinstitut.de/research/topics/war-against-ukraine/ukraine-support-tracker/",
+      "group": "Investments / accelerators / aid / events"
+    },
+    {
+      "name": "Ramstein UDCG / Ukraine MoD",
+      "url": "https://mod.gov.ua",
+      "group": "Investments / accelerators / aid / events"
+    },
+    {
+      "name": "DSEI UK",
+      "url": "https://www.dsei.co.uk",
+      "group": "Investments / accelerators / aid / events"
+    },
+    {
+      "name": "Eurosatory",
+      "url": "https://www.eurosatory.com",
+      "group": "Investments / accelerators / aid / events"
+    },
+    {
+      "name": "World Defense Show",
+      "url": "https://www.worlddefenseshow.com",
+      "group": "Investments / accelerators / aid / events"
+    },
+    {
+      "name": "IDEX UAE",
+      "url": "https://www.idexuae.ae",
+      "group": "Investments / accelerators / aid / events"
+    },
+    {
+      "name": "DSA Malaysia",
+      "url": "https://www.dsaexhibition.com",
+      "group": "Investments / accelerators / aid / events"
+    },
+    {
+      "name": "Aero India",
+      "url": "https://www.aeroindia.gov.in",
+      "group": "Investments / accelerators / aid / events"
+    },
+    {
+      "name": "AUSA Annual Meeting",
+      "url": "https://meetings.ausa.org",
+      "group": "Investments / accelerators / aid / events"
+    },
+    {
+      "name": "CANSEC",
+      "url": "https://www.defenceandsecurity.ca/CANSEC/",
+      "group": "Investments / accelerators / aid / events"
+    },
+    {
+      "name": "Milipol Paris",
+      "url": "https://www.milipol.com",
+      "group": "Investments / accelerators / aid / events"
+    },
+    {
+      "name": "Kiel Institute News",
+      "url": "https://www.kielinstitut.de",
+      "group": "Investments / accelerators / aid / events"
+    },
+    {
+      "name": "MSPO Defence Exhibition",
+      "url": "https://www.targikielce.pl/en/mspo",
+      "group": "Additional sources — completion to 100"
+    },
+    {
+      "name": "LIMA Malaysia",
+      "url": "https://www.lima2025.com",
+      "group": "Additional sources — completion to 100"
+    },
+    {
+      "name": "European Defence Fund programme",
+      "url": "https://defence-industry-space.ec.europa.eu/eu-defence-industry/european-defence-fund-edf_en",
+      "group": "Additional sources — completion to 100"
+    },
+    {
+      "name": "European Union Sanctions Map",
+      "url": "https://www.sanctionsmap.eu",
+      "group": "Additional sources — completion to 100"
+    }
+  ]
+}

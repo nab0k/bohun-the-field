@@ -1,0 +1,43 @@
+name: Inoreader Source Manager (manual)
+on:
+  workflow_dispatch:
+    inputs:
+      check_subscriptions:
+        description: "Compare discovered feeds with Inoreader subscriptions (read-only)"
+        type: boolean
+        default: true
+      apply:
+        description: "Actually add feeds (explicit opt-in)"
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  sources:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Offline tests
+        run: python -m unittest discover -s tests -p 'test_inoreader_source_manager.py'
+      - name: Discover and optionally subscribe
+        env:
+          INOREADER_CLIENT_ID: ${{ secrets.INOREADER_CLIENT_ID }}
+          INOREADER_CLIENT_SECRET: ${{ secrets.INOREADER_CLIENT_SECRET }}
+          INOREADER_REFRESH_TOKEN: ${{ secrets.INOREADER_REFRESH_TOKEN }}
+          APPLY: ${{ inputs.apply }}
+          CHECK: ${{ inputs.check_subscriptions }}
+        run: |
+          flags=""
+          if [ "$CHECK" = "true" ]; then flags="$flags --check-subscriptions"; fi
+          if [ "$APPLY" = "true" ]; then flags="$flags --apply"; fi
+          python collectors/inoreader/inoreader_source_manager.py $flags --max-add 20 --report inoreader-source-report.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: inoreader-source-report
+          path: inoreader-source-report.json
+          if-no-files-found: ignore
