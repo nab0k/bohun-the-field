@@ -20,9 +20,9 @@ UA = "BohundefenceWebMonitor/1.0 (+public-source-monitor)"
 KEYWORDS = re.compile(r"(news|press|article|release|story|stories|actualit|presse|nachricht|meldung|aktualn|communiqu|innovation|publication|media|nieuws)", re.I)
 LIMIT = 30
 ARTICLE_PATH = re.compile(r"/(?:news|press-releases?|articles?|stories|actualites|communiques|nachrichten)/[^/?#]+", re.I)
-DATE_PATH = re.compile(r"/20\\d{2}/(?:0?[1-9]|1[0-2])/(?:[0-3]?\\d)/")
+DATE_PATH = re.compile(r"/20\d{2}/(?:0?[1-9]|1[0-2])/(?:[0-3]?\d)/")
 INDEX_PATH = re.compile(r"/(?:news|press|media|publications|innovation|updates|events|topics|tags?)/?$", re.I)
-ASSET_PATH = re.compile(r"\\.(?:pdf|jpg|jpeg|png|svg|zip|docx?|xlsx?|xml|json)$", re.I)
+ASSET_PATH = re.compile(r"\.(?:pdf|jpg|jpeg|png|svg|zip|docx?|xlsx?|xml|json)$", re.I)
 
 def classify_candidate(url, base):
     """Heuristic only. An article-shaped URL is NOT a verified publication."""
