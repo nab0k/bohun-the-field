@@ -93,8 +93,13 @@ def fetch_namc(max_pages=60, sleep=0.8):
     results = {}
     failures = []
     total_announced = None
+    url = NAMC
+    seen_pages = set()
     for page in range(max_pages):
-        url = NAMC + ("?page=" + str(page) if page else "")
+        if url in seen_pages:
+            failures.append({"page": page, "problem": "pagination_cycle"})
+            break
+        seen_pages.add(url)
         try:
             html = read_page(url)
             match = re.search(r"Showing\s+\d+\s*-\s*\d+\s*\(of\s*([\d,]+)\)", html, re.I)
@@ -111,8 +116,16 @@ def fetch_namc(max_pages=60, sleep=0.8):
             if len(results) == previous_count:
                 failures.append({"page": page, "problem": "repeated_or_duplicate_page"})
                 break
-            if total_announced and page * 15 + len(items) >= total_announced:
+            pager = Links()
+            pager.feed(html)
+            next_links = [x for x in pager.links if "next page" in x["text"].strip().casefold()]
+            if not next_links:
                 break
+            following = urllib.parse.urljoin(url, next_links[-1]["href"])
+            if urllib.parse.urlsplit(following).hostname != urllib.parse.urlsplit(NAMC).hostname:
+                failures.append({"page": page, "problem": "invalid_next_page_host"})
+                break
+            url = following
         except Exception as exc:
             failures.append({"page": page, "problem": type(exc).__name__})
             break
