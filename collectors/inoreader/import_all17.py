@@ -9,7 +9,7 @@ import sys
 import time
 import urllib.error
 from pathlib import Path
-from inoreader_source_manager import FOLDERS, post_api
+from inoreader_source_manager import FOLDERS, post_api, fetch, is_feed
 from sync import access_token, api
 
 CANDIDATES = [
@@ -38,9 +38,9 @@ def subscriptions(token):
         raise RuntimeError("Subscription API did not return a list")
     return result["subscriptions"]
 
-def find(subs, feed_url):
+def find(subs, feed_url, stream_id=None):
     expected = "feed/" + feed_url
-    return next((row for row in subs if row.get("id") == expected or row.get("url") == feed_url), None)
+    return next((row for row in subs if row.get("id") in (expected, stream_id) or row.get("url") == feed_url), None)
 
 def has_folder(sub, folder):
     return any(cat.get("label") == folder or cat.get("id", "").endswith("/label/" + folder)
@@ -58,19 +58,42 @@ def main():
         try:
             sub = find(current, feed_url)
             if not sub:
+                # Re-validate all original feed URLs immediately before API writes.
+                try:
+                    raw_feed, final_url, _ = fetch(feed_url)
+                    if not is_feed(raw_feed):
+                        result["subscription_status"] = "invalid_or_empty_feed"
+                        results.append(result)
+                        print(name + ": invalid_or_empty_feed", flush=True)
+                        continue
+                    from urllib.parse import urlsplit
+                    if urlsplit(final_url).hostname != urlsplit(feed_url).hostname:
+                        result["subscription_status"] = "redirected_to_other_host"
+                        results.append(result)
+                        print(name + ": redirected_to_other_host", flush=True)
+                        continue
+                except (ValueError, urllib.error.URLError, TimeoutError, OSError) as error:
+                    result["subscription_status"] = "feed_unavailable_" + type(error).__name__
+                    results.append(result)
+                    print(name + ": " + result["subscription_status"], flush=True)
+                    continue
+                created_id = None
                 try:
                     raw = post_api("subscription/quickadd", token, {"quickadd": feed_url})
                     # The response is informational: actual state comes from subscription/list.
                     try:
                         response = json.loads(raw)
                         result["quickadd_response_type"] = type(response).__name__
+                        if isinstance(response, dict):
+                            created_id = response.get("streamId") or response.get("id")
                     except ValueError:
                         result["quickadd_response_type"] = "non_json"
                 except (urllib.error.URLError, RuntimeError) as error:
                     result["quickadd_error"] = type(error).__name__
                 time.sleep(1.0)
                 current = subscriptions(token)
-                sub = find(current, feed_url)
+                sub = find(current, feed_url, created_id)
+                result["api_stream_id"] = created_id
                 result["subscription_status"] = "confirmed_new" if sub else "unconfirmed"
             else:
                 result["subscription_status"] = "confirmed_existing"
@@ -94,7 +117,7 @@ def main():
         time.sleep(0.3)
     final = subscriptions(token)
     for result in results:
-        verified = find(final, result["feed_url"])
+        verified = find(final, result["feed_url"], result.get("api_stream_id"))
         if not verified:
             result["subscription_status"] = "not_in_final_list"
             result["folder_status"] = "not_verified"
