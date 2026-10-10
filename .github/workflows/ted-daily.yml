@@ -14,6 +14,7 @@ concurrency:
 
 jobs:
   collect:
+    if: github.ref_name != 'eng01-gemini-pilot-review'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -53,3 +54,30 @@ jobs:
           name: ted-results
           path: output/
           retention-days: 30
+
+  eng01_internal_pilot:
+    if: github.event_name == 'workflow_dispatch' && github.ref_name == 'eng01-gemini-pilot-review'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install "psycopg[binary]"
+      - name: Internal 10-item Gemini QA trial (read-only, no publication)
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: gemini-2.5-flash
+        run: python scripts/eng01_gemini_pilot.py
+      - name: Preserve QA-only evidence even on error
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eng01-private-qa-cards
+          path: output/eng01/
+          if-no-files-found: warn
+          retention-days: 7
