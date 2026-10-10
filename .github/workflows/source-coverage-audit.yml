@@ -1,0 +1,38 @@
+name: Unified Source Coverage Audit
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/source-coverage-audit.yml
+  workflow_dispatch:
+  schedule:
+    - cron: '25 4 * * 1'
+permissions:
+  contents: read
+jobs:
+  registry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Discover Inoreader candidates and compare existing subscriptions
+        env:
+          INOREADER_CLIENT_ID: ${{ secrets.INOREADER_CLIENT_ID }}
+          INOREADER_CLIENT_SECRET: ${{ secrets.INOREADER_CLIENT_SECRET }}
+          INOREADER_REFRESH_TOKEN: ${{ secrets.INOREADER_REFRESH_TOKEN }}
+        run: |
+          mkdir -p output
+          python collectors/inoreader/inoreader_source_manager.py --check-subscriptions --report output/inoreader-source-report.json
+      - name: Reconcile Top 100 delivery methods
+        run: |
+          python collectors/source_registry/reconcile.py --inoreader-report output/inoreader-source-report.json --out output/unified-source-registry.csv
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unified-source-coverage-audit
+          path: output/
+          retention-days: 30
+          if-no-files-found: ignore
