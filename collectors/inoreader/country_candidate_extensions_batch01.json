@@ -1,0 +1,246 @@
+{
+  "source": "Notion C01-C08 research pages (mostly Austria and Belgium)",
+  "snapshot_date": "2026-10-10",
+  "status": "candidate_unverified",
+  "notes": "Publisher websites and cited URLs. Site may not publish a feed. Do not count as active subscriptions.",
+  "sources": [
+    {
+      "name": "wko.at",
+      "url": "https://www.wko.at/security-defence-aviation-technology-austria/schiebel-elektronische-geraete-gmbh",
+      "group": "Additional country research candidates",
+      "discovered_in": "Austria",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "gdels.com",
+      "url": "https://www.gdels.com/en/media/news/austrian-ministry-of-defense-orders-225-pandur-evo-from-gdels-steyr-um08pdf7y5pyjq1pp8jjp422",
+      "group": "Additional country research candidates",
+      "discovered_in": "Austria",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "advantageaustria.org",
+      "url": "https://www.advantageaustria.org/gb/company/en/hirtenberger-defence-systems-gmbh-co-kg",
+      "group": "Additional country research candidates",
+      "discovered_in": "Austria",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "industriemagazin.at",
+      "url": "https://industriemagazin.at/ruestung/rheinmetall-wien-bundeswehr-militaer-lkw-milliardenauftrag/",
+      "group": "Additional country research candidates",
+      "discovered_in": "Austria",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "de.finance.yahoo.com",
+      "url": "https://de.finance.yahoo.com/quote/FQT.F/profile",
+      "group": "Additional country research candidates",
+      "discovered_in": "Austria",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "diamondaircraft.com",
+      "url": "https://www.diamondaircraft.com/en/austro-engine",
+      "group": "Additional country research candidates",
+      "discovered_in": "Austria",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "upperaustria.com",
+      "url": "https://www.upperaustria.com/en/oesterreich-poi/detail/430028833/facc-ag.html",
+      "group": "Additional country research candidates",
+      "discovered_in": "Austria",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "simplywall.st",
+      "url": "https://simplywall.st/stocks/at/capital-goods/vie-facc/facc-shares/ownership",
+      "group": "Additional country research candidates",
+      "discovered_in": "Austria",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "msm.sk",
+      "url": "https://www.msm.sk/?p=8564",
+      "group": "Additional country research candidates",
+      "discovered_in": "Austria",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "militaeraktuell.at",
+      "url": "https://militaeraktuell.at/en/airborne-technologies-isr-specialist-becomes-part-of-the-airbus-a400m-program/",
+      "group": "Additional country research candidates",
+      "discovered_in": "Austria",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "rsbcgroup.com",
+      "url": "https://rsbcgroup.com/en/media/rsbc-acquires-leading-european-arms-manufacturer-austrian-steyr-arms",
+      "group": "Additional country research candidates",
+      "discovered_in": "Austria",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "ffg.at",
+      "url": "https://www.ffg.at/en/content/austrian-aerospace-technology-0",
+      "group": "Additional country research candidates",
+      "discovered_in": "Austria",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "drones-magazin.de",
+      "url": "https://www.drones-magazin.de/en/articles/industry-meeting-point/",
+      "group": "Additional country research candidates",
+      "discovered_in": "Austria",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "bmwet.gv.at",
+      "url": "https://www.bmwet.gv.at/Ministerium/Rechtsvorschriften/aussenwirtschaftsrecht/Rechtsgrundlagen_Aussenwirtschaft.html",
+      "group": "Additional country research candidates",
+      "discovered_in": "Austria",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "ris.bka.gv.at",
+      "url": "https://ris.bka.gv.at/eli/bgbl/I/2012/10",
+      "group": "Additional country research candidates",
+      "discovered_in": "Austria",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "aws.at",
+      "url": "https://www.aws.at/en/aws-venture-capital-initiative/",
+      "group": "Additional country research candidates",
+      "discovered_in": "Austria",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "govinfo.gov",
+      "url": "https://www.govinfo.gov/content/pkg/FR-2026-06-10/html/2026-11571.htm",
+      "group": "Additional country research candidates",
+      "discovered_in": "Austria",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "idsf.io",
+      "url": "https://idsf.io/exhibitors/icsl/",
+      "group": "Additional country research candidates",
+      "discovered_in": "Austria",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "evi.gv.at",
+      "url": "https://www.evi.gv.at/f/532289d",
+      "group": "Additional country research candidates",
+      "discovered_in": "Austria",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "projekte.ffg.at",
+      "url": "https://projekte.ffg.at/projekt/5125278/pdf",
+      "group": "Additional country research candidates",
+      "discovered_in": "Austria",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "en.aletihad.ae",
+      "url": "https://en.aletihad.ae/news/business/4552823/austria-maintains-eur-2-9-billion-in-annual-defence-producti",
+      "group": "Additional country research candidates",
+      "discovered_in": "Austria",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "trade.gov",
+      "url": "https://www.trade.gov/market-intelligence/austria-defense-modernization",
+      "group": "Additional country research candidates",
+      "discovered_in": "Austria",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "gpv-group.com",
+      "url": "https://gpv-group.com/media/newsroom/interim-financial-report-q2-2025-q2-financial-report-underlines-ongoing-market-normalisation/",
+      "group": "Additional country research candidates",
+      "discovered_in": "Austria",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "rosenbauer.com",
+      "url": "https://www.rosenbauer.com/en/news/news-hub/specialist-press/2024/07/rosenbauer-erhaelt-panther-grossauftrag-der-deutschen-bundeswehr",
+      "group": "Additional country research candidates",
+      "discovered_in": "Austria",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "agoria.be",
+      "url": "https://www.agoria.be/en/themes/industry-clusters/aerospace-safety-security-cybersecurity-defence/defence/defence-within-agoria-stronger-together-in-military-technology",
+      "group": "Additional country research candidates",
+      "discovered_in": "Belgium",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "mil.be",
+      "url": "https://www.mil.be/en/about-belgian-defence/industry/",
+      "group": "Additional country research candidates",
+      "discovered_in": "Belgium",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "fnherstal.com",
+      "url": "https://fnherstal.com/en/defence/",
+      "group": "Additional country research candidates",
+      "discovered_in": "Belgium",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "defense.johncockerill.com",
+      "url": "https://defense.johncockerill.com/en/defense-2/",
+      "group": "Additional country research candidates",
+      "discovered_in": "Belgium",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "oip.be",
+      "url": "https://www.oip.be/oip-sensor-systems/",
+      "group": "Additional country research candidates",
+      "discovered_in": "Belgium",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "sabca.be",
+      "url": "https://www.sabca.be/",
+      "group": "Additional country research candidates",
+      "discovered_in": "Belgium",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "johncockerill.com",
+      "url": "https://johncockerill.com/en/press-and-news/news/ls2-launch-of-a-strategic-partnership/",
+      "group": "Additional country research candidates",
+      "discovered_in": "Belgium",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "scioteq.com",
+      "url": "https://www.scioteq.com/en",
+      "group": "Additional country research candidates",
+      "discovered_in": "Belgium",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "safran-group.com",
+      "url": "https://www.safran-group.com/companies/safran-aero-boosters",
+      "group": "Additional country research candidates",
+      "discovered_in": "Belgium",
+      "verification": "unverified_site_entrypoint"
+    },
+    {
+      "name": "bedex.brussels",
+      "url": "https://www.bedex.brussels/nl/BedexInteractiveMap/InteractiveMap/index",
+      "group": "Additional country research candidates",
+      "discovered_in": "Belgium",
+      "verification": "unverified_site_entrypoint"
+    }
+  ]
+}
