@@ -8,6 +8,7 @@ import os
 import re
 import sys
 import urllib.request
+import urllib.error
 from pathlib import Path
 
 OUT = Path("output/eng01")
@@ -109,6 +110,12 @@ def main():
                               "source_url":item["url"],"source_id":item["source_id"],
                               "model":audit["model"],"prompt_version":"eng01-v1",
                               "card":result,"gate":gate})
+            except urllib.error.HTTPError as e:
+                # Never persist provider response body, prompts or credentials.
+                audit["errors"].append({"item_id":item["id"],"error_type":"GeminiHTTPError","http_status":e.code})
+                if e.code in (400, 401, 403, 404, 429):
+                    audit["halted_after_first_provider_error"]=True
+                    break
             except Exception as e:
                 audit["errors"].append({"item_id":item["id"],"error_type":type(e).__name__})
         audit["outputs"]=len(cards)
