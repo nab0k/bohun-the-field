@@ -1,5 +1,9 @@
 name: US Grants.gov Opportunities (read-only)
 on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/opportunities-grants-us.yml
   workflow_dispatch:
   schedule:
     - cron: '45 7 * * *'
