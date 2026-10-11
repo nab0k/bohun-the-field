@@ -305,3 +305,19 @@ button[data-journey], .demo-tag { display:none !important; }
  #side.side{transition:none !important}
  *{scroll-behavior:auto !important}
 }
+
+/* Sprint 01 mobile screenshot correction: no empty menu sheet, compact map-first status. */
+@media(max-width:760px){
+ .m1-mobile-menu:not([open]) > .m1-mobile-menu-content{display:none !important}
+ .m1-mobile-menu[open] > .m1-mobile-menu-content{display:grid !important;background:#111a19 !important;max-height:55dvh}
+ #m1-intelligence:not([hidden]){
+  top:auto !important;bottom:12px !important;left:12px !important;right:12px !important;
+  width:auto !important;max-height:112px !important;min-height:0 !important;
+  overflow:auto !important;padding:12px 14px !important;border-radius:10px !important;
+ }
+ #m1-intelligence h2{font-size:15px !important;margin:0 0 6px !important}
+ #m1-intelligence p{font-size:12px !important;line-height:1.35 !important;margin:0 !important}
+ #m1-dossier[hidden],#m1-signals[hidden]{display:none !important}
+ .nav-drawer-toggle{top:72px !important;left:12px !important;padding:9px 10px !important;font-size:10px !important;max-width:calc(100vw - 24px)}
+ .brand-logo[hidden]{display:none !important}
+}
