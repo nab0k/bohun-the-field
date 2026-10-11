@@ -1,0 +1,22 @@
+name: M1 State and Atlas Regression (NO DEPLOY)
+on:
+  push:
+    branches: [m1-shared-state-review]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  m1-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: node scripts/test-m1-state.mjs
+      - run: npm run build
+      - run: npm run build:site
