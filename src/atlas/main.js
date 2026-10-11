@@ -108,13 +108,11 @@ const REGIONS = [['UKRAINE', 33.0, 48.95, 18], ['BLACK SEA', 34.5, 43.2, 13], ['
 // ---------- map ----------
 // map looks to compare (?look=...): all use free OpenFreeMap styles; relief adds a public elevation dataset (AWS Terrain Tiles)
 export const LOOKS = {
-  relief: { label: 'Relief', base: 'liberty' },
-  hills: { label: 'Relief + hill shading', base: 'liberty', hillshade: true },
   parchment: { label: 'Old map', base: 'liberty', parchment: true, hillshade: true },
   dark: { label: 'Dark', base: 'dark' },
   light: { label: 'Light minimal', base: 'positron' },
 };
-const LOOK = LOOKS[params.get('look')] ? params.get('look') : 'relief';
+const LOOK = LOOKS[params.get('look')] ? params.get('look') : 'light';
 // capitals of the world and the 24 oblast centres of Ukraine (scripts/build-places.mjs, Natural Earth)
 const places = (await fetch('/atlas/places.json').then((r) => r.json())).places;
 async function loadStyle() {
@@ -167,14 +165,26 @@ if (PROJECTION === 'globe') map.setProjection({ type: 'globe' });
 
 // night side with city lights (NASA Black Marble), redrawn every 5 minutes as the Earth turns; ?night=0 switches it off
 let nightOn = params.get('night') !== '0';
+// Night preference is separate from effective visibility. World/global view only.
+export const NIGHT_MAX_ZOOM = 2.6;
+const nightVisible = () => nightOn && map.getZoom() <= NIGHT_MAX_ZOOM;
 createNight().then((night) => {
   map.addSource('night', { type: 'canvas', canvas: night.canvas, coordinates: night.coordinates, animate: false });
-  map.addLayer({ id: 'night', type: 'raster', source: 'night', paint: { 'raster-opacity': 0.88, 'raster-fade-duration': 0 }, layout: { visibility: nightOn ? 'visible' : 'none' } }, 'eu-tint');
+  map.addLayer({ id: 'night', type: 'raster', source: 'night', paint: { 'raster-opacity': 0.88, 'raster-fade-duration': 0 }, layout: { visibility: nightVisible() ? 'visible' : 'none' } }, 'eu-tint');
   const refresh = () => { night.draw(new Date()); const src = map.getSource('night'); src.play(); requestAnimationFrame(() => src.pause()); };
   setInterval(refresh, 5 * 60 * 1000);
   window.__night = { refresh, draw: night.draw };
-  $('#night').addEventListener('click', () => { nightOn = !nightOn; map.setLayoutProperty('night', 'visibility', nightOn ? 'visible' : 'none'); $('#night').classList.toggle('active', nightOn); });
-  $('#night').classList.toggle('active', nightOn);
+  const syncNight = () => {
+    const effective=nightVisible();
+    if(map.getLayer('night')) map.setLayoutProperty('night','visibility',effective?'visible':'none');
+    const button=$('#night');button.classList.toggle('active',effective);
+    button.setAttribute('aria-pressed',String(nightOn));
+    button.title=nightOn&&!effective?'Night preference enabled; visible only at global zoom':'Night side of the Earth';
+    window.__nightVisibility={userEnabled:nightOn,effective,zoom:map.getZoom(),threshold:NIGHT_MAX_ZOOM};
+  };
+  map.on('zoom',syncNight);map.on('zoomend',syncNight);map.on('styledata',syncNight);
+  $('#night').addEventListener('click',()=>{nightOn=!nightOn;syncNight();});
+  syncNight();
 });
 
 // ---------- industry layer: real companies from open data (Notion task 08.10.2026) ----------
