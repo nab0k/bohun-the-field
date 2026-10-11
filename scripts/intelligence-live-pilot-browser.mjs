@@ -1,0 +1,23 @@
+import {chromium,devices} from 'playwright';import fs from 'node:fs';
+fs.mkdirSync('output/live-pilot/browser',{recursive:true});
+const browser=await chromium.launch({headless:true,args:['--no-sandbox']});const results=[];
+for(const device of [{name:'desktop',viewport:{width:1440,height:900}},{name:'mobile',...devices['iPhone 13']}]){
+ const ctx=await browser.newContext(device),p=await ctx.newPage(),errors=[];
+ p.on('pageerror',e=>errors.push(e.message));
+ try{
+  const response=await p.goto('http://127.0.0.1:5174/atlas.html?pilot=internal',{waitUntil:'domcontentloaded',timeout:40000});
+  await p.waitForFunction(()=>window.__livePilot01?.from_db,{timeout:35000});
+  const button=p.locator('#m1-intelligence button.v1-internal-entry');
+  await button.click();
+  const dossier=await p.locator('#m1-dossier').innerText();
+  const state=await p.evaluate(()=>({pilot:window.__livePilot01,selected:window.__bohunM1State.get(),nightEnabled:!!window.__nightVisibility}));
+  const pass=response.status()===200&&state.pilot.count===1&&state.selected.event==='CORDIS:101289409'&&
+    dossier.includes('Persisted raw_item ID: 1')&&dossier.includes('QA: HOLD')&&
+    dossier.includes('Geo role: NONE')&&!errors.length;
+  await p.screenshot({path:'output/live-pilot/browser/'+device.name+'.png',fullPage:true});
+  results.push({device:device.name,pass,http:response.status(),pilot:state.pilot,selected:state.selected.event,errors});
+ }catch(e){errors.push(e.message);results.push({device:device.name,pass:false,errors});}
+ await ctx.close();
+}
+await browser.close();fs.writeFileSync('output/live-pilot/browser/audit.json',JSON.stringify(results,null,2));
+console.log(JSON.stringify(results));if(results.some(r=>!r.pass))process.exit(1);
