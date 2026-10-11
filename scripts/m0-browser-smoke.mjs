@@ -15,11 +15,13 @@ try{
  result.checks.liveHidden=await page.locator('#live').isHidden();
  result.checks.scaleDemoHidden=await page.locator('#scale').isHidden();
  await page.screenshot({path:dir+'/m0-atlas.png',fullPage:true});
- for(const slug of ['about','services','about-project','support-project']){
+ for(const slug of ['about','services','about-project','support-project','contact','privacy']){
     const r=await page.goto(base+'/'+slug+'.html',{waitUntil:'domcontentloaded',timeout:20000});
     result.checks[slug]=r?.status()===200 && await page.locator('main h1').count()===1;
  }
- const data=await page.evaluate(async()=>await (await fetch('/atlas/companies-at.json')).json());
+ await page.goto(base+'/contact.html');
+ result.checks.formspreePreserved=await page.locator('form').getAttribute('action')==='https://formspree.io/f/xbdwvgqp' && await page.locator('form input[name=email]').count()===1;
+  const data=await page.evaluate(async()=>await (await fetch('/atlas/companies-at.json')).json());
  result.checks.atFlagsExcluded=Array.isArray(data.companies)&&data.companies.every(c=>!c.flags?.length);
  result.checks.atFixtureRetained=data.companies.some(c=>c.id==='at-041'&&c.name==='Frequentis AG');
  result.checks.noUAAddresses=data.companies.every(c=>c.country_iso2!=='UA'||(!c.hq_address&&!c.lat));
