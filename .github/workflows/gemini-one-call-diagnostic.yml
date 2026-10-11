@@ -51,6 +51,16 @@ jobs:
                   print('RESULT=SUCCESS_ONE_CALL')
               except urllib.error.HTTPError as e:
                   print('HTTP_STATUS='+str(e.code))
+                  try:
+                      body=json.loads(e.read(8192).decode('utf-8','replace'))
+                      err=body.get('error',{})
+                      print('GOOGLE_ERROR_STATUS='+str(err.get('status',''))[:80])
+                      message=str(err.get('message',''))
+                      import re
+                      message=re.sub(r'AIza[0-9A-Za-z_-]{20,}', '[REDACTED_KEY]', message)
+                      print('GOOGLE_ERROR_MESSAGE='+message[:750].replace('\\n',' '))
+                  except Exception:
+                      print('GOOGLE_ERROR_MESSAGE=UNAVAILABLE')
                   print('RESULT=GEMINI_HTTP_ERROR')
                   sys.exit(1)
           except urllib.error.HTTPError as e:
