@@ -15,6 +15,7 @@ import urllib.robotparser
 import xml.etree.ElementTree as ET
 from html.parser import HTMLParser
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 UA = "BohundefenceWebMonitor/1.0 (+public-source-monitor)"
 KEYWORDS = re.compile(r"(news|press|article|release|story|stories|actualit|presse|nachricht|meldung|aktualn|communiqu|innovation|publication|media|nieuws)", re.I)
@@ -210,8 +211,15 @@ class ArticleMetadata(HTMLParser):
         self.in_title = False
         self.json_ld = []
         self.in_json_ld = False
+        self.date_elements = []
+        self.date_depth = 0
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
+        if self.date_depth:
+            self.date_depth += 1
+        elif tag == "time" or (tag in ("span", "div", "p") and re.search(r"(?:^|[\\s_-])(?:date|datum|published)(?:$|[\\s_-])", a.get("class", ""), re.I)):
+            self.date_elements.append({"datetime": a.get("datetime"), "text": ""})
+            self.date_depth = 1
         if tag == "meta":
             key = (a.get("property") or a.get("name") or "").lower()
             if key and a.get("content"):
@@ -228,11 +236,28 @@ class ArticleMetadata(HTMLParser):
             self.json_ld[-1] += data
         if self.in_title:
             self.title += data
+        if self.date_depth and self.date_elements:
+            self.date_elements[-1]['text'] += data
     def handle_endtag(self, tag):
+        if self.date_depth:
+            self.date_depth -= 1
         if tag == "script":
             self.in_json_ld = False
         if tag == "title":
             self.in_title = False
+
+GERMAN_MONTHS = {"januar":1,"februar":2,"märz":3,"maerz":3,"april":4,"mai":5,"juni":6,"juli":7,"august":8,"september":9,"oktober":10,"november":11,"dezember":12}
+
+def normalize_german_date(raw):
+    if not isinstance(raw, str):
+        return None
+    m = re.search(r"\\b([0-3]?\\d)\\.\\s*([A-Za-zÄÖÜäöüß]+)\\s+(20\\d{2})\\b", raw)
+    if not m or m.group(2).lower() not in GERMAN_MONTHS:
+        return None
+    try:
+        return dt.datetime(int(m.group(3)), GERMAN_MONTHS[m.group(2).lower()], int(m.group(1)), tzinfo=ZoneInfo("Europe/Berlin")).isoformat()
+    except ValueError:
+        return None
 
 def audit_candidate(item, base, robots):
     """Inspect public HTML metadata; fail closed on ambiguity and access errors."""
@@ -271,6 +296,17 @@ def audit_candidate(item, base, robots):
                 break
         title = parser.meta.get("og:title") or parser.meta.get("twitter:title") or structured.get("headline") or parser.title.strip()
         date = next((parser.meta[k] for k in ("article:published_time", "datepublished", "date", "dc.date.issued", "pubdate") if parser.meta.get(k)), None) or structured.get("datePublished")
+        date_precision = None
+        if not date:
+            for el in parser.date_elements:
+                raw = el["datetime"] or el["text"].strip()
+                normalized = normalize_german_date(raw)
+                if normalized:
+                    date, date_precision = normalized, "day"
+                    break
+                if raw and re.match(r"^20\\d{2}-\\d{2}-\\d{2}T", raw):
+                    date = raw
+                    break
         canonical = urllib.parse.urljoin(final, parser.canonical) if parser.canonical else final
         if not same_site(canonical, base):
             raise ValueError("off_domain_canonical")
@@ -290,6 +326,8 @@ def audit_candidate(item, base, robots):
                     result["reason"] = "future_publication_date"
                 else:
                     result["verified"] = True
+                    if date_precision:
+                        result["date_precision"] = date_precision
                     result["reason"] = "metadata_title_date_canonical_present"
                     result["published_at"] = normalized.isoformat()
             except ValueError:
