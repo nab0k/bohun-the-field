@@ -1,0 +1,36 @@
+name: Sources RSS audit (manual)
+on:
+  workflow_dispatch:
+    inputs:
+      input_path:
+        description: 'CSV path on this branch (must contain url and prefilter_status)'
+        required: true
+        default: 'data/sources/bohundefence_sources_prefilter_20261011.csv'
+      limit:
+        description: 'Maximum number of records'
+        required: true
+        default: '388'
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate source file exists
+        env:
+          INPUT_PATH: ${{ inputs.input_path }}
+        run: |
+          test -f "$INPUT_PATH" || { echo "::error::CSV missing: $INPUT_PATH. Upload prefilter CSV before dispatch."; exit 1; }
+      - name: Check RSS and Atom (read-only)
+        env:
+          INPUT_PATH: ${{ inputs.input_path }}
+          LIMIT: ${{ inputs.limit }}
+        run: |
+          python3 tools/source_audit/validate_rss.py --input "$INPUT_PATH" --output rss-validation-results.csv --limit "$LIMIT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sources-rss-validation
+          path: rss-validation-results.csv
+          retention-days: 30
