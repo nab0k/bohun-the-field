@@ -49,3 +49,28 @@ jobs:
           path: output/m0/
           retention-days: 7
           if-no-files-found: warn
+
+  real-source-readonly:
+    needs: release-tests
+    if: success()
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install read-only PostgreSQL driver
+        run: python -m pip install "psycopg[binary]"
+      - name: Real TED, Frequentis and duplicate evidence checks (no model, no writes)
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: python scripts/m0-readonly-real-tests.py
+      - name: Evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m0-three-real-source-evidence
+          path: output/m0/m0-real-source-tests.json
+          retention-days: 7
+          if-no-files-found: warn
