@@ -11,7 +11,7 @@ for(const cfg of [{label:'desktop',viewport:{width:1440,height:900},deviceScaleF
   await page.locator('.maplibregl-canvas').waitFor({state:'attached',timeout:30000});
   await page.waitForTimeout(6000); // map tiles/rendering, not merely canvas creation
   const visibleAnalytics=await page.locator('#m1-intelligence').isVisible();
-  const navVisible=cfg.label==='mobile'?await page.locator('.m1-mobile-menu > summary').isVisible():await page.locator('a[href="/about-project.html"]').first().isVisible();
+  const navVisible=cfg.label==='mobile'?await page.locator('.m1-mobile-menu > summary').isVisible():await page.locator('.topbar > nav a[href="/about-project.html"]').isVisible();
   if(cfg.label==='mobile') {await page.locator('.m1-mobile-menu > summary').click();if(!await page.getByRole('link',{name:'ABOUT PROJECT'}).last().isVisible())throw Error('M1 mobile menu link not visible');await page.locator('.m1-mobile-menu > summary').click();}
   await page.screenshot({path:dir+'/'+cfg.label+'-m1.png',fullPage:true});
   const companyState=await page.evaluate(()=>{const s=window.__bohunM1State;s.selectCompany('at-041','AT');return s.get()});
