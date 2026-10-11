@@ -13,6 +13,7 @@ for(const device of [{name:'desktop',viewport:{width:1440,height:900}},{name:'mo
   await btn.click();
   const visible=await drawer.isVisible()&&await btn.getAttribute('aria-expanded')==='true';
   const search=await drawer.locator('input#q').isVisible();
+  await drawer.locator('#p2-coverage').waitFor({state:'attached',timeout:30000});
   const coverage=await drawer.locator('#p2-coverage').count()===1;
   await p.keyboard.press('Escape');
   const closed=await drawer.getAttribute('aria-hidden')==='true'&&await btn.getAttribute('aria-expanded')==='false';
