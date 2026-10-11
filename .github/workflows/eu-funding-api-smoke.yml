@@ -1,0 +1,23 @@
+name: EU Funding API smoke (manual, read-only)
+on:
+  workflow_dispatch:
+    inputs:
+      query:
+        description: "Safe test search query"
+        required: false
+        default: "European Defence Fund"
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Probe official EU search endpoint (no writes)
+        env:
+          SEARCH_QUERY: ${{ inputs.query }}
+        run: python collectors/opportunities/eu_funding_api_smoke.py --query "$SEARCH_QUERY" --limit 3 --timeout 20
