@@ -19,9 +19,9 @@ from pathlib import Path
 UA = "BohundefenceWebMonitor/1.0 (+public-source-monitor)"
 KEYWORDS = re.compile(r"(news|press|article|release|story|stories|actualit|presse|nachricht|meldung|aktualn|communiqu|innovation|publication|media|nieuws)", re.I)
 LIMIT = 30
-ARTICLE_PATH = re.compile(r"/(?:news|press-releases?|articles?|stories|actualites|communiques|nachrichten)/[^/?#]+", re.I)
+ARTICLE_PATH = re.compile(r"/(?:news|press-releases?|articles?|stories|actualites|communiques|nachrichten|meldungen|pressemitteilungen)/[^/?#]+", re.I)
 DATE_PATH = re.compile(r"/20\d{2}/(?:0?[1-9]|1[0-2])/(?:[0-3]?\d)/")
-INDEX_PATH = re.compile(r"/(?:news|press|media|publications|innovation|updates|events|topics|tags?)/?$", re.I)
+INDEX_PATH = re.compile(r"/(?:news|press|media|publications|innovation|updates|events|topics|tags?|aktuelles|meldungen|pressemitteilungen)/?$", re.I)
 ASSET_PATH = re.compile(r"\.(?:pdf|jpg|jpeg|png|svg|zip|docx?|xlsx?|xml|json)$", re.I)
 
 def classify_candidate(url, base):
@@ -187,6 +187,8 @@ def discover_channels(source, robots, channels):
                                     "channel_url": url}
                 if len(found) >= LIMIT:
                     break
+        except PermissionError:
+            failures.append("channel:robots_unavailable_or_disallowed")
         except Exception as exc:
             failures.append("channel:" + type(exc).__name__)
         if len(found) >= LIMIT:
