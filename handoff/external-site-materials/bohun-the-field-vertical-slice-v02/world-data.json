@@ -1,0 +1,164 @@
+{
+  "meta": {
+    "version": "0.2",
+    "world": "BOHUN / THE FIELD"
+  },
+  "entities": [
+    {
+      "id": "bohun",
+      "type": "bohun",
+      "label": "BOHUN",
+      "category": "orchestrator",
+      "region": "central",
+      "status": "active",
+      "position": {
+        "x": 8,
+        "y": 7
+      },
+      "interaction": "dossier",
+      "contentReference": "nodes.bohun",
+      "visibleInPresentation": true,
+      "visibleInGameMode": true
+    },
+    {
+      "id": "ukraine",
+      "type": "market",
+      "label": "UKRAINE",
+      "category": "market",
+      "region": "ukraine",
+      "status": "active",
+      "position": {
+        "x": 3,
+        "y": 8
+      },
+      "interaction": "dossier",
+      "contentReference": "nodes.ukraine",
+      "visibleInPresentation": true,
+      "visibleInGameMode": true
+    },
+    {
+      "id": "europe",
+      "type": "market",
+      "label": "EUROPE / INTERNATIONAL",
+      "category": "market",
+      "region": "international",
+      "status": "active",
+      "position": {
+        "x": 14,
+        "y": 4
+      },
+      "interaction": "dossier",
+      "contentReference": "nodes.europe",
+      "visibleInPresentation": true,
+      "visibleInGameMode": true
+    },
+    {
+      "id": "supplier",
+      "type": "supplier",
+      "label": "SUPPLIER",
+      "category": "capability",
+      "region": "international",
+      "status": "available",
+      "position": {
+        "x": 4,
+        "y": 3
+      },
+      "interaction": "dossier",
+      "contentReference": "nodes.supplier",
+      "visibleInPresentation": true,
+      "visibleInGameMode": true
+    },
+    {
+      "id": "buyer",
+      "type": "buyer",
+      "label": "BUYER",
+      "category": "demand",
+      "region": "ukraine",
+      "status": "contextual",
+      "position": {
+        "x": 12,
+        "y": 9
+      },
+      "interaction": "dossier",
+      "contentReference": "nodes.buyer",
+      "visibleInPresentation": true,
+      "visibleInGameMode": true
+    },
+    {
+      "id": "partner",
+      "type": "partner",
+      "label": "PARTNER",
+      "category": "partner",
+      "region": "central",
+      "status": "active",
+      "position": {
+        "x": 11,
+        "y": 3
+      },
+      "interaction": "dossier",
+      "contentReference": "nodes.partner",
+      "visibleInPresentation": true,
+      "visibleInGameMode": true
+    },
+    {
+      "id": "propulsion",
+      "type": "interest",
+      "label": "PROPULSION",
+      "category": "capability",
+      "region": "international",
+      "status": "current-interest",
+      "position": {
+        "x": 6,
+        "y": 4
+      },
+      "interaction": "dossier",
+      "contentReference": "currentInterest.propulsion",
+      "visibleInPresentation": true,
+      "visibleInGameMode": true
+    }
+  ],
+  "routes": [
+    {
+      "id": "supplier-bohun",
+      "from": "supplier",
+      "to": "bohun",
+      "status": "visible",
+      "intent": "need"
+    },
+    {
+      "id": "bohun-buyer",
+      "from": "bohun",
+      "to": "buyer",
+      "status": "visible",
+      "intent": "have"
+    },
+    {
+      "id": "bohun-ukraine",
+      "from": "bohun",
+      "to": "ukraine",
+      "status": "visible",
+      "intent": "have"
+    },
+    {
+      "id": "bohun-europe",
+      "from": "bohun",
+      "to": "europe",
+      "status": "visible",
+      "intent": "have"
+    },
+    {
+      "id": "partner-bohun",
+      "from": "partner",
+      "to": "bohun",
+      "status": "visible",
+      "intent": "both"
+    },
+    {
+      "id": "propulsion-match",
+      "from": "propulsion",
+      "to": "bohun",
+      "status": "locked",
+      "intent": "need"
+    }
+  ]
+}

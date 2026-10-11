@@ -1,0 +1,12 @@
+{
+  "meta":{"version":"0.3","world":"BOHUN / THE FIELD","scenario":"PROPULSION ROUTE"},
+  "entities":[
+    {"id":"bohun","type":"bohun","label":"BOHUN HQ","x":47,"y":44,"region":"Central Ukraine","status":"active"},
+    {"id":"propulsion","type":"signal","label":"PROPULSION","x":28,"y":31,"region":"Western corridor","status":"detected"},
+    {"id":"supplier","type":"supplier","label":"SUPPLIER","x":15,"y":25,"region":"Europe","status":"hidden"},
+    {"id":"partner","type":"partner","label":"PARTNER","x":36,"y":35,"region":"Western Ukraine","status":"available"},
+    {"id":"market","type":"market","label":"UKRAINE MARKET","x":61,"y":45,"region":"Ukraine","status":"active"},
+    {"id":"port","type":"market","label":"BLACK SEA ROUTE","x":54,"y":68,"region":"South","status":"active"}
+  ],
+  "scenario":{"signal":"propulsion","reveal":"supplier","dispatchFrom":"bohun","dispatchTo":"supplier","connect":["supplier","bohun","market"]}
+}

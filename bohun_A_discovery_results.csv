@@ -1,0 +1,16 @@
+country,name,official_url,status,validated_feed_urls,website_status,checks,bohun_folder
+US,US Department of Defense,https://www.defense.gov,VALID_FEED,https://www.war.gov/DesktopModules/ArticleCS/RSS.ashx?ContentType=1&Site=945&max=10,HTTPError: HTTP Error 403: Forbidden,existing: https://www.war.gov/DesktopModules/ArticleCS/RSS.ashx?ContentType=1&Site=945&max=10 [valid XML; entries=10],BOHUN_03_GOVERNMENT
+US,DARPA,https://www.darpa.mil,NO_FEED_DISCOVERED,,accessible,,BOHUN_03_GOVERNMENT
+US,Defense Innovation Unit,https://www.diu.mil,NO_FEED_DISCOVERED,,accessible,,BOHUN_03_GOVERNMENT
+UK,UK Ministry of Defence,https://www.gov.uk/government/organisations/ministry-of-defence,VALID_FEED,https://www.gov.uk/search/news-and-communications.atom?organisations%5B%5D=ministry-of-defence | https://www.gov.uk/government/organisations/ministry-of-defence.atom,accessible,existing: https://www.gov.uk/search/news-and-communications.atom?organisations%5B%5D=ministry-of-defence [valid XML; entries=20] | html_autodiscovery: https://www.gov.uk/government/organisations/ministry-of-defence.atom [valid XML; entries=20],BOHUN_03_GOVERNMENT
+UK,Defence and Security Accelerator,https://www.gov.uk/government/organisations/defence-and-security-accelerator,VALID_FEED,https://www.gov.uk/search/news-and-communications.atom?organisations%5B%5D=defence-and-security-accelerator | https://www.gov.uk/government/organisations/defence-and-security-accelerator.atom,accessible,govuk_atom_candidate: https://www.gov.uk/search/news-and-communications.atom?organisations%5B%5D=defence-and-security-accelerator [valid XML; entries=20] | html_autodiscovery: https://www.gov.uk/government/organisations/defence-and-security-accelerator.atom [valid XML; entries=20],BOHUN_03_GOVERNMENT
+DE,Bundeswehr,https://www.bundeswehr.de,NO_FEED_DISCOVERED,,accessible,,BOHUN_03_GOVERNMENT
+DE,BAAINBw,https://www.bundeswehr.de,NO_FEED_DISCOVERED,,accessible,,BOHUN_03_GOVERNMENT
+FR,Ministère des Armées,https://www.defense.gouv.fr,NO_FEED_DISCOVERED,,accessible,,BOHUN_03_GOVERNMENT
+FR,Direction générale de l’armement,https://www.defense.gouv.fr/dga,NO_FEED_DISCOVERED,,accessible,,BOHUN_03_GOVERNMENT
+PL,Ministry of National Defence,https://www.gov.pl/web/obrona-narodowa,NO_FEED_DISCOVERED,,accessible,,BOHUN_03_GOVERNMENT
+CA,Department of National Defence,https://www.canada.ca/en/department-national-defence.html,NO_FEED_DISCOVERED,,TimeoutError: The read operation timed out,,BOHUN_03_GOVERNMENT
+AU,Department of Defence,https://www.defence.gov.au,NO_FEED_DISCOVERED,,TimeoutError: The read operation timed out,,BOHUN_03_GOVERNMENT
+JP,Acquisition Technology & Logistics Agency,https://www.mod.go.jp/atla/,NO_FEED_DISCOVERED,,accessible,,BOHUN_03_GOVERNMENT
+INT,NATO,https://www.nato.int,NO_FEED_DISCOVERED,,accessible,,BOHUN_03_GOVERNMENT
+EU,European Defence Agency,https://eda.europa.eu,NO_FEED_DISCOVERED,,accessible,,BOHUN_03_GOVERNMENT

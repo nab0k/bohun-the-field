@@ -1,0 +1,16 @@
+﻿country,name,official_url,topics,bohun_folder,feed_url,api_url,collection_method,verification_status,evidence
+US,US Department of Defense,https://www.defense.gov,contracts;policy;news,BOHUN_03_GOVERNMENT,https://www.war.gov/DesktopModules/ArticleCS/RSS.ashx?ContentType=1&Site=945&max=10,,rss,OFFICIAL_FEED_LINK_XML_CONTENT_TYPE,https://www.war.gov/News/RSS/
+US,DARPA,https://www.darpa.mil,research;programs,BOHUN_03_GOVERNMENT,,,website_pending_feed_discovery,OFFICIAL_SITE_ONLY_FEED_UNVERIFIED,
+US,Defense Innovation Unit,https://www.diu.mil,dual-use;startups,BOHUN_03_GOVERNMENT,,,website_pending_feed_discovery,OFFICIAL_SITE_ONLY_FEED_UNVERIFIED,
+UK,UK Ministry of Defence,https://www.gov.uk/government/organisations/ministry-of-defence,policy;contracts,BOHUN_03_GOVERNMENT,https://www.gov.uk/search/news-and-communications.atom?organisations%5B%5D=ministry-of-defence,,atom,OFFICIAL_FEED_LINK_XML_CONTENT_TYPE,https://www.gov.uk/search/news-and-communications?organisations%5B%5D=ministry-of-defence
+UK,Defence and Security Accelerator,https://www.gov.uk/government/organisations/defence-and-security-accelerator,grants;innovation,BOHUN_03_GOVERNMENT,,,website_pending_feed_discovery,OFFICIAL_SITE_ONLY_FEED_UNVERIFIED,
+DE,Bundeswehr,https://www.bundeswehr.de,procurement;modernisation,BOHUN_03_GOVERNMENT,,,website_pending_feed_discovery,OFFICIAL_SITE_ONLY_FEED_UNVERIFIED,
+DE,BAAINBw,https://www.bundeswehr.de,procurement;armaments,BOHUN_03_GOVERNMENT,,,website_pending_feed_discovery,OFFICIAL_SITE_ONLY_FEED_UNVERIFIED,
+FR,Ministère des Armées,https://www.defense.gouv.fr,policy;industry,BOHUN_03_GOVERNMENT,,,website_pending_feed_discovery,OFFICIAL_SITE_ONLY_FEED_UNVERIFIED,
+FR,Direction générale de l’armement,https://www.defense.gouv.fr/dga,research;procurement,BOHUN_03_GOVERNMENT,,,website_pending_feed_discovery,OFFICIAL_SITE_ONLY_FEED_UNVERIFIED,
+PL,Ministry of National Defence,https://www.gov.pl/web/obrona-narodowa,procurement;policy,BOHUN_03_GOVERNMENT,,,website_pending_feed_discovery,OFFICIAL_SITE_ONLY_FEED_UNVERIFIED,
+CA,Department of National Defence,https://www.canada.ca/en/department-national-defence.html,procurement;programs,BOHUN_03_GOVERNMENT,,,website_pending_feed_discovery,OFFICIAL_SITE_ONLY_FEED_UNVERIFIED,
+AU,Department of Defence,https://www.defence.gov.au,contracts;research,BOHUN_03_GOVERNMENT,,,website_pending_feed_discovery,OFFICIAL_SITE_ONLY_FEED_UNVERIFIED,
+JP,Acquisition Technology & Logistics Agency,https://www.mod.go.jp/atla/,technology;procurement,BOHUN_03_GOVERNMENT,,,website_pending_feed_discovery,OFFICIAL_SITE_ONLY_FEED_UNVERIFIED,
+INT,NATO,https://www.nato.int,initiatives;programs,BOHUN_03_GOVERNMENT,,,website_pending_feed_discovery,OFFICIAL_SITE_ONLY_FEED_UNVERIFIED,
+EU,European Defence Agency,https://eda.europa.eu,joint-projects;research,BOHUN_03_GOVERNMENT,,,website_pending_feed_discovery,OFFICIAL_SITE_ONLY_FEED_UNVERIFIED,

@@ -11,36 +11,38 @@ import { createFlows, MODES, pointAt } from '../flows/core.js';
 import frame from '../flows/data/world-frame.json' with { type: 'json' };
 import assets from '../game/data/assets.json' with { type: 'json' };
 import { createNight } from './night.js';
+import { mountAustriaInternalReview } from './eng04-internal.js';
 import { createLive } from './live.js';
-import { isoIcon } from './iso.js';
+import { createScaleDemo } from './scale-demo.js';
 import { createJourneys, atlasData as data, CATEGORIES, MARKETS, HOME, CANDIDATES, INSIGHTS, OFFERS, SELL_STEPS, BUY_STEPS } from './journeys.js';
-// Site base path: '/' locally, '/<repo>/' on GitHub Pages (see vite.site.config.js)
-const BASE = import.meta.env.BASE_URL;
-// LIVE needs the /live/* relay (Vite dev proxy now, Cloudflare Worker later); hide the button in builds without it
-if (import.meta.env.PROD && !import.meta.env.VITE_LIVE) document.getElementById('live').hidden = true;
 
 const $ = (s) => document.querySelector(s);
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const params = new URLSearchParams(location.search);
 const PROJECTION = params.get('projection') === 'mercator' ? 'mercator' : 'globe';
+// Serhii, 09.10.2026: no points on the map until the company data is collected — no companies, no undersea list, no demo
+// journeys (actors, routes, Bohun), no scale demo. The code stays and is opened only for review: ?journeys=1, ?industry=1,
+// ?sea=1, ?demo=scale. The live traffic layer (LIVE) is not affected.
+const SHOW = { journeys: params.get('journeys') === '1', industry: params.get('industry') === '1', sea: params.get('sea') === '1', scale: params.get('demo') === 'scale' };
 
 // flows world px <-> lon/lat (the flows frame is equirectangular, so this is exact)
 const toLL = (x, y) => [x / frame.pxPerDeg - 180, frame.latNorth - y / (frame.pxPerDeg * frame.squash)];
 const llOf = (p) => toLL(p.x, p.y);
 const heading = (p) => { const [a0, b0] = toLL(p.x, p.y), [a1, b1] = toLL(p.x + p.ax, p.y + p.ay); return (Math.atan2((a1 - a0) * Math.cos((b0 * Math.PI) / 180), b1 - b0) * 180) / Math.PI; };
 
-// ---------- map objects: our own vector isometric drawings (src/atlas/iso.js), replacing the Kenney buildings (09.10.2026) ----------
-// node type → object and relative size; candidates are suppliers' factories
-const NODE_ISO = { mine: ['mine', 0.9], 'factory-s': ['factory', 0.85], 'factory-m': ['factory', 1], 'factory-l': ['factory', 1.15], bank: ['bank', 1], port: ['port', 1.1], station: ['station', 0.95], airfield: ['airfield', 1.05], actor: ['office', 1] };
-const CAND_ISO = ['factory', 1];
+// ---------- map objects: plain points coloured by type (Serhii, 09.10.2026: no isometric objects, no 3D buildings) ----------
+const NODE_KIND = {
+  mine: ['Mine', '#7a6a48', 0.9], 'factory-s': ['Factory', '#9a4a32', 0.85], 'factory-m': ['Factory', '#9a4a32', 1], 'factory-l': ['Factory', '#9a4a32', 1.2],
+  bank: ['Bank', '#c08a2a', 1], port: ['Port', '#2f6f95', 1.1], station: ['Rail hub', '#5b6fb0', 0.95], airfield: ['Airfield', '#4f7fa8', 1], actor: ['Market actor', '#3f8f6a', 1],
+};
+const CAND_KIND = ['Candidate supplier', '#d3b766', 1];
 // Vehicles (?vehicles=1 only) still use Kenney CC0 models; see public/atlas/models/PROVENANCE.json
-const M = (kit, name) => `${BASE}atlas/models/${kit}/${name}.glb`;
+const M = (kit, name) => `/atlas/models/${kit}/${name}.glb`;
 const MOVER_MODEL = { truck: M('car-kit', 'truck'), wagon: M('car-kit', 'delivery-flat'), train: M('train-kit', 'train-diesel-a'), ship: M('watercraft-kit', 'ship-cargo-a') };
 const MODEL_YAW = 180;
 const SHOW_VEHICLES = params.get('vehicles') === '1'; // Kenney vehicles face -Z; turn them to face the direction of travel
 
-const ISO_ICON = Object.fromEntries(['factory', 'port', 'warehouse', 'bank', 'lab', 'office', 'mine', 'station', 'airfield'].map((k) => [k, isoIcon(k, params.get('look') === 'dark' ? 'C' : 'A')]));
 const svg = (body, w = 64, h = 64) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${body}</svg>`)}`;
 const ICON = {
   expert: { url: svg('<circle cx="32" cy="32" r="29" fill="#11150e" stroke="#d3b766" stroke-width="4"/><circle cx="32" cy="24" r="9" fill="#efe9cc"/><path d="M15 50c3-11 10-15 17-15s14 4 17 15" fill="#efe9cc"/>'), width: 64, height: 64, anchorY: 32 },
@@ -97,7 +99,7 @@ const LABELS = [
   ['Istanbul', 28.98, 41.01], ['New York', -74.0, 40.71], ['Shanghai', 121.47, 31.23], ['Singapore', 103.82, 1.35],
   ['Prague', 14.42, 50.09], ['Brno', 16.61, 49.2], ['Paris', 2.35, 48.86], ['Rome', 12.48, 41.89], ['Munich', 11.58, 48.14], ['London', -0.13, 51.51],
 ];
-const REGIONS = [['UKRAINE', 31.5, 49.3, 18], ['BLACK SEA', 34.5, 43.2, 13], ['EUROPEAN UNION', 12.0, 47.8, 12]];
+const REGIONS = [['UKRAINE', 33.0, 48.95, 18], ['BLACK SEA', 34.5, 43.2, 13], ['EUROPEAN UNION', 12.0, 47.8, 12]];
 
 // ---------- map ----------
 // map looks to compare (?look=...): all use free OpenFreeMap styles; relief adds a public elevation dataset (AWS Terrain Tiles)
@@ -109,6 +111,8 @@ export const LOOKS = {
   light: { label: 'Light minimal', base: 'positron' },
 };
 const LOOK = LOOKS[params.get('look')] ? params.get('look') : 'relief';
+// capitals of the world and the 24 oblast centres of Ukraine (scripts/build-places.mjs, Natural Earth)
+const places = (await fetch('/atlas/places.json').then((r) => r.json())).places;
 async function loadStyle() {
   const L0 = LOOKS[LOOK];
   const style = await fetch('https://tiles.openfreemap.org/styles/' + L0.base).then((r) => r.json());
@@ -127,21 +131,27 @@ async function loadStyle() {
     const at = style.layers.findIndex((l) => l.id === 'water');
     style.layers.splice(at + 1, 0, { id: 'hillshade', type: 'hillshade', source: 'dem', paint: { 'hillshade-exaggeration': L0.parchment ? 0.45 : 0.6, 'hillshade-shadow-color': L0.parchment ? '#6b5a3a' : '#4a4a3a', 'hillshade-highlight-color': '#fff8e0', 'hillshade-accent-color': '#5a4a30' } });
   }
-  style.sources.countries = { type: 'geojson', data: BASE + 'atlas/countries.geojson' };
+  style.sources.countries = { type: 'geojson', data: '/atlas/countries.geojson' };
   const pt = (t, lon, lat, kind, size) => ({ type: 'Feature', properties: { t, kind, size }, geometry: { type: 'Point', coordinates: [lon, lat] } });
-  style.sources.labels = { type: 'geojson', data: { type: 'FeatureCollection', features: [...LABELS.map(([t, lon, lat]) => pt(t, lon, lat, 'city', 12)), ...REGIONS.map(([t, lon, lat, size]) => pt(t, lon, lat, 'region', size))] } };
+  // the demo journeys keep their own city list; otherwise the map names capitals and Ukraine's oblast centres
+  const cityPts = SHOW.journeys ? LABELS.map(([t, lon, lat]) => pt(t, lon, lat, 'city', 12)) : places.map((p) => ({ ...pt(p.name, p.lon, p.lat, p.kind === 'capital' ? 'capital' : 'ua', p.kind === 'capital' ? 12 : 11), properties: { t: p.name, kind: p.kind === 'capital' ? 'capital' : 'ua', size: p.kind === 'capital' ? 12 : 11, rank: p.pop ?? 0 } }));
+  style.sources.labels = { type: 'geojson', data: { type: 'FeatureCollection', features: [...cityPts, ...REGIONS.map(([t, lon, lat, size]) => pt(t, lon, lat, 'region', size))] } };
   style.layers.push(
     { id: 'eu-tint', type: 'fill', source: 'countries', filter: ['==', ['get', 'cls'], 'eu'], paint: { 'fill-color': '#5f7f3a', 'fill-opacity': 0.08 } },
     { id: 'ua-tint', type: 'fill', source: 'countries', filter: ['==', ['get', 'a3'], 'UKR'], paint: { 'fill-color': '#e2c667', 'fill-opacity': 0.14 } },
     { id: 'borders', type: 'line', source: 'countries', paint: { 'line-color': '#6b6650', 'line-width': ['interpolate', ['linear'], ['zoom'], 1, 0.4, 6, 1.1], 'line-opacity': 0.7, 'line-dasharray': [3, 2] } },
     { id: 'ua-glow', type: 'line', source: 'countries', filter: ['==', ['get', 'a3'], 'UKR'], paint: { 'line-color': '#fff6cf', 'line-width': 6, 'line-opacity': 0.45, 'line-blur': 3 } },
     { id: 'ua-border', type: 'line', source: 'countries', filter: ['==', ['get', 'a3'], 'UKR'], paint: { 'line-color': '#b8932e', 'line-width': 2 } },
-    { id: 'label-region', type: 'symbol', source: 'labels', filter: ['==', ['get', 'kind'], 'region'], layout: { 'text-field': ['get', 't'], 'text-font': ['Noto Sans Bold'], 'text-size': ['get', 'size'], 'text-letter-spacing': 0.4, 'text-allow-overlap': true }, paint: { 'text-color': '#5b5334', 'text-opacity': 0.7, 'text-halo-color': '#efe6c4', 'text-halo-width': 1.2 } },
-    { id: 'label-city', type: 'symbol', source: 'labels', filter: ['==', ['get', 'kind'], 'city'], minzoom: 3, layout: { 'text-field': ['get', 't'], 'text-font': ['Noto Sans Bold'], 'text-size': 12, 'text-offset': [0, 1.4], 'text-anchor': 'top' }, paint: { 'text-color': '#2a281c', 'text-halo-color': '#f4ecd0', 'text-halo-width': 1.6 } },
+    { id: 'label-region', type: 'symbol', source: 'labels', minzoom: 3, filter: ['==', ['get', 'kind'], 'region'], layout: { 'text-field': ['get', 't'], 'text-font': ['Noto Sans Bold'], 'text-size': ['get', 'size'], 'text-letter-spacing': 0.4, 'text-allow-overlap': true }, paint: { 'text-color': '#5b5334', 'text-opacity': 0.7, 'text-halo-color': '#efe6c4', 'text-halo-width': 1.2 } },
+    // capitals from the world view, the biggest first (labels that collide are dropped); Ukraine's oblast centres from zoom 4.5
+    { id: 'place-dot', type: 'circle', source: 'labels', minzoom: 1.5, filter: ['==', ['get', 'kind'], 'capital'], paint: { 'circle-color': '#2a281c', 'circle-radius': ['interpolate', ['linear'], ['zoom'], 1.5, 2.2, 6, 3.6], 'circle-stroke-color': '#f4ecd0', 'circle-stroke-width': 1.6 } },
+    { id: 'place-dot-ua', type: 'circle', source: 'labels', minzoom: 4.5, filter: ['==', ['get', 'kind'], 'ua'], paint: { 'circle-color': '#5b5334', 'circle-radius': ['interpolate', ['linear'], ['zoom'], 4.5, 2.2, 7, 3], 'circle-stroke-color': '#f4ecd0', 'circle-stroke-width': 1.2 } },
+    { id: 'label-ua', type: 'symbol', source: 'labels', minzoom: 4.5, filter: ['==', ['get', 'kind'], 'ua'], layout: { 'text-field': ['get', 't'], 'text-font': ['Noto Sans Bold'], 'text-size': 11, 'text-offset': [0, 0.6], 'text-anchor': 'top' }, paint: { 'text-color': '#3d3926', 'text-halo-color': '#f4ecd0', 'text-halo-width': 1.6 } },
+    { id: 'label-city', type: 'symbol', source: 'labels', minzoom: SHOW.journeys ? 3 : 1.5, filter: ['in', ['get', 'kind'], ['literal', ['city', 'capital']]], layout: { 'text-field': ['get', 't'], 'text-font': ['Noto Sans Bold'], 'text-size': ['interpolate', ['linear'], ['zoom'], 2, 10, 6, 12], 'text-offset': [0, 0.7], 'text-anchor': 'top', 'symbol-sort-key': ['-', 0, ['coalesce', ['get', 'rank'], 0]] }, paint: { 'text-color': '#2a281c', 'text-halo-color': '#f4ecd0', 'text-halo-width': 1.6 } },
   );
   return style;
 }
-maplibregl.setWorkerUrl(BASE + 'atlas/vendor/maplibre-gl-worker.mjs'); // verbatim copy, see scripts/copy-maplibre-worker.mjs
+maplibregl.setWorkerUrl('/atlas/vendor/maplibre-gl-worker.mjs'); // verbatim copy, see scripts/copy-maplibre-worker.mjs
 const map = new maplibregl.Map({
   container: 'map', style: await loadStyle(), center: [31, 48.4], zoom: 4.6, pitch: 45, bearing: -8, maxPitch: 70,
   attributionControl: { compact: true }, canvasContextAttributes: { antialias: true },
@@ -169,7 +179,8 @@ const PRODUCT = {
   missiles: ['Missiles and air defence', '#b8562f'], electronics: ['Electronics, radar, comms', '#5b6fb0'], drones: ['Uncrewed systems', '#3f8f6a'], smallarms: ['Small arms', '#6b5a45'],
   software: ['Software', '#7d5aa6'], propulsion: ['Propulsion and drives', '#c08a2a'], components: ['Components and materials', '#8a8a5a'], testing: ['Testing and research', '#4a8a8a'],
 };
-const industry = await fetch(BASE + 'atlas/industry.json').then((r) => r.json());
+const industry = await fetch('/atlas/industry.json').then((r) => r.json());
+
 // several companies share one city centre: spread them on a small ring so each stays clickable (the point is the city, not an address)
 const byCity = {};
 for (const c of industry.companies) (byCity[c.lon + ',' + c.lat] ??= []).push(c);
@@ -227,11 +238,12 @@ function showIndustryCard(id) {
 $('#ind-close').addEventListener('click', () => { $('#ind-card').hidden = true; });
 $('#legend').replaceChildren(el('b', null, 'INDUSTRY · OPEN DATA'), ...Object.entries(PRODUCT).filter(([k]) => industry.companies.some((c) => c.product === k)).map(([, [label, color]]) => { const r = el('span', 'lg'); const dot = el('i'); dot.style.background = color; r.append(dot, document.createTextNode(label)); return r; }), el('small', null, 'Not clients or partners of Bohun'));
 $('#industry').addEventListener('click', () => setIndustry(!industryOn));
-setIndustry(true);
+setIndustry(SHOW.industry);
+if (!SHOW.industry) $('#industry').hidden = true;
 
 // ---------- thematic layer: undersea infrastructure defence (Serhii's article, 02.01.2026) ----------
 const SECTION = { detect: ['Detect', '#2f8fb0'], patrol: ['Patrol', '#3f8f6a'], inspect: ['Inspect', '#c08a2a'], repair: ['Repair', '#b8562f'], secure: ['Secure data', '#7d5aa6'] };
-const sea = await fetch(BASE + 'atlas/undersea.json').then((r) => r.json());
+const sea = await fetch('/atlas/undersea.json').then((r) => r.json());
 const seaByCity = {};
 for (const c of sea.companies) (seaByCity[c.lon + ',' + c.lat] ??= []).push(c);
 const seaFeatures = [];
@@ -282,20 +294,23 @@ $('#sea').addEventListener('click', () => setSea(!seaOn));
 const lookSel = $('#look');
 for (const [k, v] of Object.entries(LOOKS)) { const o = el('option', null, v.label); o.value = k; o.selected = k === LOOK; lookSel.append(o); }
 lookSel.addEventListener('change', () => { const u = new URL(location.href); u.searchParams.set('look', lookSel.value); location.href = u.toString(); });
-setSea(false);
+setSea(SHOW.sea);
+if (!SHOW.sea) $('#sea').hidden = true;
 
 // ---------- live layer: aircraft, ships, trains from free open APIs (src/atlas/live.js); off by default, ?live=1 turns it on ----------
-const countries = await fetch(BASE + 'atlas/countries.geojson').then((r) => r.json());
+const countries = await fetch('/atlas/countries.geojson').then((r) => r.json());
 function showLiveCard(c) {
   const box = $('#ind-card'); box.hidden = false;
   box.querySelector('.panel-head span').textContent = c.head;
   $('#ind-title').textContent = c.title;
   const body = $('#ind-body'); body.replaceChildren();
+  if (c.warn) body.append(el('p', 'warn', c.warn));
+  if (c.text) body.append(el('p', null, c.text));
   const dl = el('dl', 'rows');
   for (const [k, v] of c.rows) dl.append(el('dt', null, k), el('dd', null, v));
   body.append(dl);
-  const src = el('p', 'links'); src.append(document.createTextNode('Source: '), link(c.source, c.sourceUrl)); body.append(src);
-  body.append(el('p', 'notice', 'Public open data, shown as received. Nothing is shown over Ukraine or the Black Sea.'));
+  if (c.source) { const src = el('p', 'links'); src.append(document.createTextNode('Source: '), link(c.source, c.sourceUrl)); for (const [t, u] of c.links ?? []) src.append(document.createTextNode(' · '), link(t, u)); body.append(src); }
+  body.append(el('p', 'notice', c.note ?? 'Public open data, shown as received. Nothing is shown over Ukraine or the Black Sea.'));
 }
 const live = await createLive(map, { ukraineGeometry: countries.features.find((f) => f.properties.a3 === 'UKR').geometry, onCard: showLiveCard });
 window.__live = live;
@@ -320,16 +335,112 @@ function setLive(on) { live.setOn(on); $('#live').classList.toggle('active', on)
 $('#live').addEventListener('click', () => setLive(!live.state.on));
 setLive(params.get('live') === '1');
 
-// isometric objects as MapLibre symbols (deck.gl billboard icons get stretched on the globe); the anchor is the footprint centre
-const loadImg = (url) => new Promise((ok, fail) => { const im = new Image(); im.onload = () => ok(im); im.onerror = fail; im.src = url; });
-for (const ic of Object.values(ISO_ICON)) map.addImage(ic.id, await loadImg(ic.url), { pixelRatio: 2 });
+// ---------- scale demo (?demo=scale): 30,000 generated points with four levels of detail (src/atlas/scale-demo.js) ----------
+const scale = createScaleDemo(map, { maplibregl, countries, categories: PRODUCT, onCard: showLiveCard, $ });
+scale.setOn(false);
+
+// ---------- companies from the research catalogue (Notion DB | Companies: accepted + Publishable), first country Austria ----------
+// built by scripts/build-companies.mjs; the point is the city centre, companies of one city are spread on a small ring
+const atData = await fetch('/atlas/companies-at.json').then((r) => r.json());
+mountAustriaInternalReview({map, industry, atData});
+const ringed = (list) => { const g = {}; for (const c of list) (g[c.lon + ',' + c.lat] ??= []).push(c); return Object.values(g).flatMap((cs) => cs.map((c, i) => { const r = cs.length > 1 ? 0.012 + 0.003 * cs.length : 0, a = (i / cs.length) * Math.PI * 2; return { ...c, lon: c.lon + (r * Math.cos(a)) / Math.cos((c.lat * Math.PI) / 180), lat: c.lat + r * Math.sin(a) }; })); };
+const FLAG_EN = { 'OWNERSHIP OPEN': 'Ownership not fully confirmed', 'SOURCE CONFLICT': 'Sources disagree on some details', 'LEGAL REVIEW': 'Under legal review', 'NO CITY': 'City not confirmed' };
+const companies = createScaleDemo(map, {
+  maplibregl, countries, categories: PRODUCT, onCard: showLiveCard, $, data: ringed(atData.companies), prefix: 'co-at', namesFrom: 7,
+  title: `AUSTRIA · ${atData.companies.length} COMPANIES · OPEN DATA`,
+  note: 'From the Bohun research catalogue, public sources only. Not clients or partners of Bohun. A point is the city centre, not an address.',
+  subtitle: (c) => `${PRODUCT[c.cat][0]} · ${c.city}`,
+  card: (c) => ({
+    head: 'INDUSTRY · OPEN DATA', title: c.name, text: c.about,
+    warn: c.flags.includes('CHINA') ? `Controlled by a Chinese group: ${c.parent.replace(/\.$/, '')}.` : null,
+    rows: [['Category', PRODUCT[c.cat][0]], ['City', `${c.city} (city centre, not the address)`], ...(c.parent && !c.flags.includes('CHINA') ? [['Group', c.parent]] : []), ['Confidence', c.confidence], ...c.flags.filter((f) => FLAG_EN[f]).map((f) => ['Note', FLAG_EN[f]])],
+    source: new URL(c.source).hostname.replace(/^www\./, ''), sourceUrl: c.source, links: c.web ? [['Company website', c.web]] : [],
+    note: 'Open data. Not clients or partners of Bohun.',
+  }),
+});
+function setCompanies(on) {
+  if (on && scale.state.on) setScale(false);
+  companies.setOn(on); $('#companies').classList.toggle('active', on);
+}
+$('#companies').addEventListener('click', () => setCompanies(!companies.state.on));
+setCompanies(!SHOW.scale);
+
+function setScale(on) {
+  if (on && companies.state.on) setCompanies(false);
+  scale.setOn(on); $('#scale').classList.toggle('active', on);
+  if (on) { setIndustry(false); $('#entry').hidden = true; map.flyTo({ center: [10, 35], zoom: innerWidth <= 820 ? 0.9 : 1.6, pitch: 0, bearing: 0, duration: reduced ? 0 : 1600 }); }
+}
+$('#scale').addEventListener('click', () => setScale(!scale.state.on));
+if (SHOW.scale) setScale(true); else $('#scale').hidden = true;
+
+// ---------- left panel: layer switches drive the (hidden) topbar buttons, so every layer keeps one code path ----------
+for (const lab of document.querySelectorAll('.layer[data-for]')) {
+  const btn = $('#' + lab.dataset.for), cb = lab.querySelector('input');
+  const sync = () => { cb.checked = btn.classList.contains('active'); };
+  cb.addEventListener('change', () => { if (cb.checked !== btn.classList.contains('active')) btn.click(); sync(); });
+  new MutationObserver(sync).observe(btn, { attributes: true, attributeFilter: ['class'] }); sync();
+}
+if (SHOW.scale) $('.layer[data-for="scale"]').hidden = false;
+$('#n-companies').textContent = `${atData.companies.length} · Austria`;
+
+// ---------- search: companies, capitals and Ukrainian centres, countries ----------
+const norm = (t) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const countryFeature = Object.fromEntries(countries.features.map((f) => [f.properties.a3, f]));
+const INDEX = [
+  ...atData.companies.map((c) => ({ kind: 'company', id: c.id, name: c.name, sub: `${PRODUCT[c.cat][0]} · ${c.city}`, color: PRODUCT[c.cat][1], key: norm(`${c.name} ${c.city} ${c.about}`) })),
+  ...places.map((p) => ({ kind: 'place', name: p.name, sub: p.kind === 'capital' ? `Capital · ${countryFeature[p.a3]?.properties.name ?? p.a3}` : p.oblast ?? 'Ukraine', lon: p.lon, lat: p.lat, key: norm(p.name) })),
+  ...countries.features.map((f) => ({ kind: 'country', a3: f.properties.a3, name: f.properties.name, sub: atData.companies.some((c) => c.a3 === f.properties.a3) ? `Country · ${atData.companies.filter((c) => c.a3 === f.properties.a3).length} companies` : 'Country', key: norm(f.properties.name) })),
+];
+const qIn = $('#q'), qOut = $('#q-results');
+let qHits = [], qOn = 0;
+function bboxOf(g) { let w = 180, s0 = 90, e = -180, n = -90; for (const poly of g.type === 'Polygon' ? [g.coordinates] : g.coordinates) for (const [x, y] of poly[0]) { w = Math.min(w, x); e = Math.max(e, x); s0 = Math.min(s0, y); n = Math.max(n, y); } return [[w, s0], [e, n]]; }
+function go(h) {
+  qOut.hidden = true; qIn.value = h.name; qIn.blur();
+  $('#entry').hidden = true;
+  if (h.kind === 'company') { if (!companies.state.on) setCompanies(true); companies.select(h.id, { fly: true }); }
+  else if (h.kind === 'place') map.flyTo({ center: [h.lon, h.lat], zoom: 9, pitch: 0, duration: 1400 });
+  else if (atData.companies.some((c) => c.a3 === h.a3)) { if (!companies.state.on) setCompanies(true); companies.showCountry(h.a3); }
+  else map.fitBounds(bboxOf(countryFeature[h.a3].geometry), { padding: 60, maxZoom: 6, pitch: 0, duration: 1400 });
+}
+function renderHits() {
+  qOut.replaceChildren();
+  if (!qHits.length) { const li = el('li', 'none', 'Nothing found. Try a company, a city or a country.'); qOut.append(li); }
+  qHits.forEach((h, i) => {
+    const li = el('li'), b = el('button'); b.type = 'button'; b.classList.toggle('on', i === qOn);
+    const dot = el('i', h.kind === 'company' ? null : h.kind); if (h.color) dot.style.background = h.color;
+    b.append(dot, el('b', null, h.name), el('small', null, h.sub));
+    b.addEventListener('mousedown', (e) => { e.preventDefault(); go(h); });
+    li.append(b); qOut.append(li);
+  });
+  qOut.hidden = false;
+}
+qIn.addEventListener('input', () => {
+  const t = norm(qIn.value.trim());
+  if (t.length < 2) { qOut.hidden = true; return; }
+  const rank = (h) => (h.key.startsWith(t) ? 0 : norm(h.name).includes(t) ? 1 : 2) + (h.kind === 'company' ? 0 : 0.5);
+  qHits = INDEX.filter((h) => h.key.includes(t)).sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name)).slice(0, 12);
+  qOn = 0; renderHits();
+});
+qIn.addEventListener('keydown', (e) => {
+  if (qOut.hidden) return;
+  if (e.key === 'ArrowDown') { qOn = Math.min(qOn + 1, qHits.length - 1); renderHits(); e.preventDefault(); }
+  else if (e.key === 'ArrowUp') { qOn = Math.max(qOn - 1, 0); renderHits(); e.preventDefault(); }
+  else if (e.key === 'Enter' && qHits[qOn]) go(qHits[qOn]);
+  else if (e.key === 'Escape') { qOut.hidden = true; }
+});
+qIn.addEventListener('blur', () => setTimeout(() => (qOut.hidden = true), 120));
+// keys: "/" focuses search, Esc closes the company card
+addEventListener('keydown', (e) => {
+  if (e.key === '/' && document.activeElement !== qIn) { e.preventDefault(); qIn.focus(); }
+  else if (e.key === 'Escape' && document.activeElement !== qIn) { for (const l of [companies, scale]) if (l.state.on && l.state.selected) l.back(); }
+});
+
+// demo actors as plain points (MapLibre layers draw correctly on the globe), under the city names
 map.addSource('objects', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-const ISO_IMG_H = ISO_ICON.factory.height / 2, ISO_ANCHOR_DY = ISO_ICON.factory.anchorY / 2 - ISO_IMG_H / 2;
-map.addLayer({ id: 'objects', type: 'symbol', source: 'objects', layout: {
-  'icon-image': ['get', 'icon'], 'icon-offset': [0, -ISO_ANCHOR_DY], 'icon-allow-overlap': true, 'icon-ignore-placement': true,
-  'icon-size': ['interpolate', ['linear'], ['zoom'], 2.6, ['*', 0.32, ['get', 's']], 5, ['*', 0.62, ['get', 's']], 8, ['*', 1, ['get', 's']], 11, ['*', 1.3, ['get', 's']]],
-  'symbol-sort-key': ['-', 0, ['get', 'lat']], // southern objects are drawn over northern ones, as in an isometric scene
-} }, 'label-city'); // under the city names, so the names stay readable
+map.addLayer({ id: 'objects', type: 'circle', source: 'objects', paint: {
+  'circle-color': ['get', 'color'], 'circle-stroke-color': '#fff6cf', 'circle-stroke-width': 1.5,
+  'circle-radius': ['interpolate', ['linear'], ['zoom'], 2.6, ['*', 3.5, ['get', 's']], 6, ['*', 6, ['get', 's']], 10, ['*', 9, ['get', 's']]],
+} }, 'label-city');
 map.on('click', 'objects', (e) => clickNode(e.features[0].properties.id));
 map.on('mouseenter', 'objects', () => (map.getCanvas().style.cursor = 'pointer'));
 map.on('mouseleave', 'objects', () => (map.getCanvas().style.cursor = ''));
@@ -342,8 +453,8 @@ function syncObjects(list) {
   const key = list.map((n) => n.id).join();
   if (key === objectsKey) return;
   objectsKey = key;
-  const isoOf = (n) => (n.id in CANDIDATES ? CAND_ISO : NODE_ISO[n.type]);
-  map.getSource('objects').setData({ type: 'FeatureCollection', features: list.map((n) => ({ type: 'Feature', properties: { id: n.id, icon: ISO_ICON[isoOf(n)[0]].id, s: isoOf(n)[1], lat: n.lat }, geometry: { type: 'Point', coordinates: [n.lon, n.lat] } })) });
+  const kindOf = (n) => (n.id in CANDIDATES ? CAND_KIND : NODE_KIND[n.type]);
+  map.getSource('objects').setData({ type: 'FeatureCollection', features: list.map((n) => ({ type: 'Feature', properties: { id: n.id, color: kindOf(n)[1], s: kindOf(n)[2] }, geometry: { type: 'Point', coordinates: [n.lon, n.lat] } })) });
 }
 
 const overlay = new MapLibreOverlay({ interleaved: true, layers: [], getCursor: ({ isHovering }) => (isHovering ? 'pointer' : 'grab'), onClick: (info) => info.object?.id && clickNode(info.object.id) });
@@ -503,7 +614,7 @@ function layers(now) {
   // far out (whole planet) the objects would be a pile: show only corridors and flows there
   const zoom = map.getZoom(), farOut = zoom < 2.6;
   const nodes = Object.values(S.world.nodes).filter((n) => !j.hidden(n.id) && !farOut);
-  const buildings = nodes.filter((n) => NODE_ISO[n.type] && !(n.id in CANDIDATES));
+  const buildings = nodes.filter((n) => NODE_KIND[n.type] && !(n.id in CANDIDATES));
   const cands = nodes.filter((n) => n.id in CANDIDATES);
   const pulse = reduced ? 1 : 0.5 + 0.5 * Math.sin(now / 260);
 
@@ -590,6 +701,12 @@ function tickFrame(now) {
     prog.hidden = v === null; if (v !== null) { prog.querySelector('i').style.width = `${v * 100}%`; prog.querySelector('span').textContent = t; } }
 }
 function loop(now) { tickFrame(now); requestAnimationFrame(loop); }
+if (!SHOW.journeys) { // the map without the demo journeys: only the welcome text and the way to explore
+  for (const id of ['#open-need', '#open-have', '#reset']) $(id).hidden = true;
+  $('#entry .sides').hidden = true; $('#entry .ask').hidden = true;
+  $('#just-look').textContent = 'EXPLORE THE MAP →';
+  const demo = $('.demo'); demo.textContent = demo.textContent.replace(/^Demonstration:[^.]*\. /, '');
+  map.setLayoutProperty('objects', 'visibility', 'none');
+}
 window.__step = (n = 1) => { for (let i = 0; i < n; i++) { last -= 50; tickFrame(performance.now()); } map.triggerRepaint(); }; // test hook: advance without rAF
-seedDefaults();
-requestAnimationFrame(loop);
+if (SHOW.journeys) { seedDefaults(); requestAnimationFrame(loop); }

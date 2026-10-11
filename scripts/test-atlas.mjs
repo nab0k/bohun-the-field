@@ -115,10 +115,46 @@ console.log(`${n} atlas checks passed`);
   console.log(`ok  live: nothing over Ukraine (with margin) or the Black Sea; ${Object.keys(shown).length} nearby places stay visible`);
 }
 {
-  const { OBJECTS, isoIcon } = await import('../src/atlas/iso.js');
   const main = fs.readFileSync(new URL('../src/atlas/main.js', import.meta.url), 'utf8');
-  const map = Object.fromEntries([...main.match(/const NODE_ISO = \{([^}]+)\}/)[1].matchAll(/'?([a-z-]+)'?: \['([a-z]+)'/g)].map((m) => [m[1], m[2]]));
-  for (const n of atlasData.nodes) if (!['expert'].includes(n.type)) assert.ok(map[n.type] && OBJECTS[map[n.type]], `node type ${n.type} has an isometric object`);
-  for (const k of Object.keys(OBJECTS)) for (const st of ['A', 'C']) { const ic = isoIcon(k, st); assert.match(decodeURIComponent(ic.url), /<polygon/); assert.ok(ic.anchorY > 0 && ic.anchorY < ic.height); }
-  console.log(`ok  iso: every map node type has one of ${Object.keys(OBJECTS).length} isometric objects, in styles A and C`);
+  const kinds = new Set([...main.match(/const NODE_KIND = \{([\s\S]+?)\n\};/)[1].matchAll(/'?([a-z-]+)'?: \['/g)].map((m) => m[1]));
+  for (const n of atlasData.nodes) if (n.type !== 'expert') assert.ok(kinds.has(n.type), `node type ${n.type} has a point style`);
+  assert.ok(!/iso\.js|ScenegraphLayer\(\{ id: 'b-/.test(main), 'no isometric objects or 3D buildings on the map');
+  console.log('ok  map objects: every node type is a plain point; no isometric objects or 3D buildings');
+}
+{
+  const { generate } = await import('../src/atlas/scale-demo.js');
+  const gj = JSON.parse(fs.readFileSync(new URL('../public/atlas/countries.geojson', import.meta.url)));
+  const all = generate(gj, { a: ['A', '#000'], b: ['B', '#111'] });
+  assert.equal(all.length, 30000);
+  assert.ok(!all.some((c) => ['UKR', 'RUS', 'BLR', 'CHN', 'PRK'].includes(c.a3)), 'no generated points in Ukraine, Russia, Belarus, China or North Korea');
+  assert.deepEqual(generate(gj, { a: ['A', '#000'], b: ['B', '#111'] }).slice(0, 3), all.slice(0, 3), 'the demo data is the same on every load');
+  console.log(`ok  scale demo: 30,000 generated points in ${new Set(all.map((c) => c.a3)).size} countries, none in excluded countries, reproducible`);
+}
+{
+  const pl = JSON.parse(fs.readFileSync(new URL('../public/atlas/places.json', import.meta.url))).places;
+  const caps = pl.filter((p) => p.kind === 'capital'), ua = pl.filter((p) => p.kind === 'ua-centre');
+  assert.ok(caps.length >= 190, `capitals: ${caps.length}`);
+  assert.equal(caps.find((c) => c.a3 === 'UKR')?.name, 'Kyiv');
+  assert.equal(ua.length + 1, 25, '24 oblast centres of Ukraine (Kyiv counted as the capital) and Simferopol');
+  assert.equal(ua.find((p) => p.name === 'Simferopol')?.oblast, 'Autonomous Republic of Crimea');
+  for (const n of ['Odesa', 'Dnipro', 'Kropyvnytskyi', 'Zaporizhzhia', 'Kharkiv', 'Kherson', 'Donetsk', 'Luhansk']) assert.ok(ua.some((p) => p.name === n), n);
+  assert.ok(!pl.some((p) => /Kiev|Odessa|Dnepr|Kirovograd/.test(p.name)), 'Ukrainian names in Ukrainian transliteration');
+  console.log(`ok  places: ${caps.length} capitals, the 24 oblast centres of Ukraine and Simferopol, in Ukrainian transliteration`);
+}
+{
+  const at = JSON.parse(fs.readFileSync(new URL('../public/atlas/companies-at.json', import.meta.url)));
+  const gj = JSON.parse(fs.readFileSync(new URL('../public/atlas/countries.geojson', import.meta.url)));
+  const aut = gj.features.find((f) => f.properties.a3 === 'AUT').geometry;
+  const rings = (aut.type === 'Polygon' ? [aut.coordinates] : aut.coordinates).map((p) => p[0]);
+  const inRing = ([x, y], r) => { let ins = false; for (let i = 0, k = r.length - 1; i < r.length; k = i++) { const [xi, yi] = r[i], [xk, yk] = r[k]; if ((yi > y) !== (yk > y) && x < ((xk - xi) * (y - yi)) / (yk - yi) + xi) ins = !ins; } return ins; };
+  const cats = ['land', 'air', 'naval', 'munitions', 'missiles', 'electronics', 'drones', 'smallarms', 'software', 'propulsion', 'components', 'testing'];
+  assert.equal(at.companies.length, 50);
+  for (const c of at.companies) {
+    assert.ok(cats.includes(c.cat), `${c.name}: category`);
+    assert.match(c.source, /^https:\/\//, `${c.name}: source`);
+    assert.ok(c.city && rings.some((r) => inRing([c.lon, c.lat], r) || r.some(([ax, ay], i) => { const [bx, by] = r[(i + 1) % r.length], dx = bx - ax, dy = by - ay, t = Math.max(0, Math.min(1, ((c.lon - ax) * dx + (c.lat - ay) * dy) / (dx * dx + dy * dy || 1))); return Math.hypot(c.lon - ax - t * dx, c.lat - ay - t * dy) < 0.1; })), `${c.name}: ${c.city} is in Austria (borders are simplified, ~10 km tolerance)`);
+    if (c.flags.includes('CHINA')) assert.ok(c.parent, `${c.name}: Chinese group named`);
+  }
+  assert.ok(!JSON.stringify(at).includes('notion.'), 'no Notion links in the public file');
+  console.log(`ok  companies Austria: ${at.companies.length} from the catalogue, each with a source, city inside Austria, Chinese control named`);
 }
