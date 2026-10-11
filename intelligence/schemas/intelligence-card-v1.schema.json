@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Bohundefence Internal Intelligence Candidate v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "headline",
+    "summary",
+    "why_it_matters",
+    "event_type",
+    "publication_date",
+    "event_date",
+    "country_iso2",
+    "geo_role",
+    "entities",
+    "claims",
+    "unknowns"
+  ],
+  "properties": {
+    "headline": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "why_it_matters": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "event_type": {
+      "type": "string"
+    },
+    "publication_date": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "event_date": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "country_iso2": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "geo_role": {
+      "type": "string",
+      "enum": [
+        "HQ_CITY",
+        "EVENT_VENUE",
+        "PROGRAMME_JURISDICTION",
+        "COUNTRY_ONLY",
+        "NONE"
+      ]
+    },
+    "entities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "company_id"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "company_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "statement",
+          "kind",
+          "source_id",
+          "exact_quote",
+          "support"
+        ],
+        "properties": {
+          "statement": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "OBSERVED",
+              "PUBLISHER_REPORTED",
+              "ANALYSIS",
+              "HYPOTHESIS"
+            ]
+          },
+          "source_id": {
+            "type": "string"
+          },
+          "exact_quote": {
+            "type": "string"
+          },
+          "support": {
+            "type": "string",
+            "enum": [
+              "SUPPORTS",
+              "REFUTES",
+              "NOT_ENOUGH_INFO"
+            ]
+          }
+        }
+      }
+    },
+    "unknowns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
