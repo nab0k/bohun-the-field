@@ -31,7 +31,7 @@ def classify_candidate(url, base):
         return "reject"
     if path in ("", "/") or INDEX_PATH.search(path):
         return "index"
-    if ARTICLE_PATH.search(path) or DATE_PATH.search(path):
+    if ARTICLE_PATH.search(path) or DATE_PATH.search(path) or re.search(r"/aktuelles/pressemitteilungen/[^/]+\.html$", path, re.I):
         return "possible_article"
     return "review"
 
@@ -173,7 +173,7 @@ def discover_channels(source, robots, channels):
                 # A candidate must be below the listing or match an explicit
                 # article URL shape. A section page is never an article.
                 under_listing = path.startswith(listing_path + "/")
-                article_shape = bool(ARTICLE_PATH.search(path) or DATE_PATH.search(path))
+                article_shape = bool(ARTICLE_PATH.search(path) or DATE_PATH.search(path) or (source["name"] == "BDSV" and re.search(r"/aktuelles/pressemitteilungen/[^/]+\.html$", path, re.I)))
                 if not (under_listing or article_shape):
                     continue
                 if path == listing_path or ASSET_PATH.search(path):
