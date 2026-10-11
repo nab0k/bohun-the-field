@@ -31,10 +31,28 @@ for(const device of [{name:'desktop',viewport:{width:1440,height:900}},{name:'mo
    await menu.locator('summary').click();
    mobileNav=mobileNav&&await menu.locator('a[href="/contact.html"]').isHidden();
   }
+  const basemap=await p.evaluate(()=>({keys:Object.keys(window.__map.getStyle().sources||{}),light:document.querySelector('#look')?.options.length===1,style:window.__map.getStyle()?.name||''}));
+  const onlyLight=basemap.light;
+  const contact=await p.request.get('http://127.0.0.1:5174/contact.html');
+  const contactHtml=await contact.text();
+  const contactConfigured=contact.status()===200&&contactHtml.includes('https://formspree.io/f/xbdwvgqp')&&contactHtml.includes('method="POST"')&&contactHtml.includes('name="email"')&&contactHtml.includes('name="message"');
+  let nightZoomCheck=false;
+  try {
+   await p.waitForFunction(()=>!!window.__map.getLayer('night'),{timeout:25000});
+   const states=await p.evaluate(async()=>{
+    const m=window.__map;
+    const wait=()=>new Promise(done=>{const handler=()=>{m.off('idle',handler);done()};m.on('idle',handler);setTimeout(()=>{m.off('idle',handler);done()},1200)});
+    m.jumpTo({zoom:1.8});await wait();const far=m.getLayoutProperty('night','visibility');
+    m.jumpTo({zoom:5.4});await wait();const near=m.getLayoutProperty('night','visibility');
+    m.jumpTo({zoom:1.8});await wait();const back=m.getLayoutProperty('night','visibility');
+    return {far,near,back};
+   });
+   nightZoomCheck=states.far==='visible'&&states.near==='none'&&states.back==='visible';
+  }catch(e){errors.push('Night zoom assertion: '+e.message)}
   const style=await p.evaluate(()=>window.__map.getStyle()?.name||'');
   await p.waitForTimeout(1900);await p.screenshot({path:'output/threepane/'+device.name+'.png',fullPage:true});
-  const pass=res?.status()===200&&initiallyClosed&&visible&&search&&coverage&&closed&&feedVisible&&dossierCorrect&&emptyState&&signalsHidden&&skip&&noHorizontalOverflow&&mobileNav&&!errors.length;
-  results.push({device:device.name,pass,http:res?.status(),initiallyClosed,visible,search,coverage,closed,feedVisible,dossierVisible,dossierCorrect,emptyState,signalsHidden,skip,noHorizontalOverflow,mobileNav,style,errors});
+  const pass=res?.status()===200&&initiallyClosed&&visible&&search&&coverage&&closed&&feedVisible&&dossierCorrect&&emptyState&&signalsHidden&&skip&&noHorizontalOverflow&&mobileNav&&onlyLight&&contactConfigured&&nightZoomCheck&&!errors.length;
+  results.push({device:device.name,pass,http:res?.status(),initiallyClosed,visible,search,coverage,closed,feedVisible,dossierVisible,dossierCorrect,emptyState,signalsHidden,skip,noHorizontalOverflow,mobileNav,onlyLight,contactConfigured,nightZoomCheck,style,errors});
  }catch(e){errors.push(e.message);await p.screenshot({path:'output/threepane/'+device.name+'-error.png',fullPage:true}).catch(()=>{});results.push({device:device.name,pass:false,errors});}
  await ctx.close();
 }
