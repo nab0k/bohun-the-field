@@ -49,8 +49,8 @@ for iteration in range(120):
                 p=urlparse(link)
                 if p.hostname in (HOST,"www."+HOST) and link not in seen and link not in queue:queue.append(link)
         if "text/css" in mime:
-            for raw in re.findall(r"url\\(['\\\"]?([^)'\\\"]+)",body.decode("utf-8",errors="replace")):
-                link=urljoin(uri,raw)
+            for raw in re.findall(r'url\\(([^)]+)\\)',body.decode('utf-8',errors='replace')):
+                link=urljoin(uri,raw.strip().strip('\"').strip("'"))
                 if urlparse(link).hostname in (HOST,"www."+HOST) and link not in queue and link not in seen:queue.append(link)
     except Exception as e:
         manifest.append({"uri":uri,"error_type":type(e).__name__})
