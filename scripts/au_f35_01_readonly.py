@@ -45,16 +45,16 @@ prompt={'question':'What actually changed when Ferra was selected for the 12-mon
 missing=[k for k in urls if not audit['urls'][k].get('extractable')]
 if missing:audit['qa']['reasons'].append('INCOMPLETE_EXTRACTABLE_EVIDENCE:'+','.join(missing))
 # Never infer that presence of a key implies a free quota. Owner or quota evidence must enable explicitly.
-if os.getenv('GEMINI_FREE_QUOTA_VERIFIED')!='1':
- audit['gemini']['status']='BLOCKED_FREE_QUOTA_NOT_VERIFIED'
- audit['qa']['reasons'].append('GEMINI_FREE_QUOTA_UNVERIFIED')
+if os.getenv('GEMINI_OWNER_APPROVED_ONE_PAID_CALL')!='1':
+ audit['gemini']['status']='BLOCKED_OWNER_APPROVAL_REQUIRED'
+ audit['qa']['reasons'].append('NO_APPROVAL_FOR_BILLABLE_TEST')
 elif not os.getenv('GEMINI_API_KEY'):
  audit['gemini']['status']='BLOCKED_MISSING_SECRET'
  audit['qa']['reasons'].append('GEMINI_API_KEY_MISSING')
 elif missing:
  audit['gemini']['status']='BLOCKED_INCOMPLETE_SOURCE_CONTEXT'
 else:
- model=os.getenv('GEMINI_MODEL','gemini-2.5-flash')
+ model=os.getenv('GEMINI_MODEL','gemini-3.5-flash-lite')
  audit['gemini'].update({'attempted':True,'model':model})
  instruction='Return a strict JSON object {capsule,claims:[{statement,source_id,exact_quote,verdict}],event_date,publish_date,not_established}. Use only input source excerpts. Never infer contracts or ownership.'
  data=json.dumps({'contents':[{'parts':[{'text':instruction+'\\n'+json.dumps(prompt)}]}],
