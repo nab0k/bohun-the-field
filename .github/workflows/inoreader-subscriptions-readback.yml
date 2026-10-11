@@ -1,0 +1,44 @@
+name: Inoreader subscriptions read-only snapshot
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/inoreader-subscriptions-readback.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  readback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Read subscriptions (no writes)
+        env:
+          INOREADER_CLIENT_ID: ${{ secrets.INOREADER_CLIENT_ID }}
+          INOREADER_CLIENT_SECRET: ${{ secrets.INOREADER_CLIENT_SECRET }}
+          INOREADER_REFRESH_TOKEN: ${{ secrets.INOREADER_REFRESH_TOKEN }}
+        run: |
+          mkdir -p output
+          python - <<'PY'
+          import json,sys
+          sys.path.insert(0,'collectors/inoreader')
+          from sync import access_token,api
+          token=access_token()
+          payload=api('subscription/list',token)
+          subs=payload.get('subscriptions',[])
+          records=[{'id':s.get('id'),'title':s.get('title'),'categories':[c.get('label') for c in s.get('categories',[]) if isinstance(c,dict)]} for s in subs]
+          with open('output/inoreader-subscriptions-readback.json','w') as f:
+              json.dump({'count':len(subs),'subscriptions':records},f,ensure_ascii=False,indent=2)
+          print('READBACK_OK count='+str(len(subs)))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: inoreader-subscriptions-readback
+          path: output/inoreader-subscriptions-readback.json
+          retention-days: 7
+          if-no-files-found: warn
