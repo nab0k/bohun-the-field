@@ -19,6 +19,7 @@ for(const device of [{name:'desktop',viewport:{width:1440,height:900}},{name:'mo
   const closed=await drawer.getAttribute('aria-hidden')==='true'&&await btn.getAttribute('aria-expanded')==='false';
   const feedVisible=await p.locator('#m1-intelligence').isVisible();
   const dossierVisible=await p.locator('#m1-dossier').isVisible();
+  const dossierCorrect=device.name==='mobile'?!dossierVisible:dossierVisible;
   const emptyState=(await p.locator('#m1-intelligence').innerText()).includes('No QA-approved intelligence items');
   const signalsHidden=await p.locator('#m1-signals').isHidden();
   const skip=await p.locator('.skip-link').count()===1;
@@ -32,8 +33,8 @@ for(const device of [{name:'desktop',viewport:{width:1440,height:900}},{name:'mo
   }
   const style=await p.evaluate(()=>window.__map.getStyle()?.name||'');
   await p.waitForTimeout(1900);await p.screenshot({path:'output/threepane/'+device.name+'.png',fullPage:true});
-  const pass=res?.status()===200&&initiallyClosed&&visible&&search&&coverage&&closed&&feedVisible&&dossierVisible&&emptyState&&signalsHidden&&skip&&noHorizontalOverflow&&mobileNav&&!errors.length;
-  results.push({device:device.name,pass,http:res?.status(),initiallyClosed,visible,search,coverage,closed,feedVisible,dossierVisible,emptyState,signalsHidden,skip,noHorizontalOverflow,mobileNav,style,errors});
+  const pass=res?.status()===200&&initiallyClosed&&visible&&search&&coverage&&closed&&feedVisible&&dossierCorrect&&emptyState&&signalsHidden&&skip&&noHorizontalOverflow&&mobileNav&&!errors.length;
+  results.push({device:device.name,pass,http:res?.status(),initiallyClosed,visible,search,coverage,closed,feedVisible,dossierVisible,dossierCorrect,emptyState,signalsHidden,skip,noHorizontalOverflow,mobileNav,style,errors});
  }catch(e){errors.push(e.message);await p.screenshot({path:'output/threepane/'+device.name+'-error.png',fullPage:true}).catch(()=>{});results.push({device:device.name,pass:false,errors});}
  await ctx.close();
 }
