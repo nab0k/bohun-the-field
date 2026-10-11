@@ -1,10 +1,10 @@
 // ENG-04: local-only internal review surface for the EXISTING MapLibre atlas.
 // No keys, no production writes, no model claims, no approved public output.
-export function mountAustriaInternalReview({ map, industry }) {
+export function mountAustriaInternalReview({ map, industry, atData }) {
   const args = new URLSearchParams(location.search);
   if (import.meta.env.PROD || args.get('eng04') !== 'internal') return;
-  const existing = industry.companies.find(c => c.name === 'Frequentis AG');
-  // GitHub atlas currently lacks this company; city centre is a review-only locator,
+  const existing = atData?.companies?.find(c => c.name === 'Frequentis AG') || industry.companies.find(c => c.name === 'Frequentis AG');
+  // Fallback is a review-only city-centre locator,
   // NOT a factory or headquarters address. No changes to industry.json.
   const record = existing || {id:'eng04-frequentis-at-review',name:'Frequentis AG',city:'Vienna',lon:16.3738,lat:48.2082};
   if (!existing) {
@@ -40,7 +40,7 @@ export function mountAustriaInternalReview({ map, industry }) {
   button.addEventListener('click',()=>{
     map.flyTo({center:[record.lon,record.lat],zoom:6.6,duration:850});
   });
-  safe('p','Company context: '+record.name+' · Vienna · '+(existing?'existing atlas dataset':'Austria research preview, NOT in current atlas industry.json')+'. Pin is public city centroid, NOT site location. Group/ownership and economic effects not established here.');
+  safe('p','Company context: '+record.name+' · Vienna · '+(existing?'original Claude Austria research atlas layer':'Austria research preview, NOT in current atlas industry.json')+'. Pin is public city centroid, NOT site location. Group/ownership and economic effects not established here.');
   safe('p','Gemini: NOT RUN for this event. Supabase row: NOT VERIFIED. QA-08: PENDING.');
   const a=safe('a','Open primary issuer document');
   a.href=source;a.target='_blank';a.rel='noopener noreferrer';a.style.color='#e9c37b';
