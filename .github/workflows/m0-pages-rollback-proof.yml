@@ -1,0 +1,35 @@
+name: M0 Pinned GitHub Pages Rollback Build (NO DEPLOY)
+on:
+  workflow_dispatch:
+  push:
+    branches: [m0-public-release-review]
+permissions:
+  contents: read
+jobs:
+  restore-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout pinned last-successful Pages source
+        uses: actions/checkout@v4
+        with:
+          ref: d582d53e1c1e4ff4f7df2c89794698762a40cba0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Restore npm dependencies
+        run: npm ci
+      - name: Validate pinned code
+        run: npm test
+      - name: Rebuild Pages-compatible historical artifact
+        run: npm run build:site
+        env:
+          SITE_BASE: /bohun-the-field/
+      - name: Save pinned rebuild only
+        uses: actions/upload-artifact@v4
+        with:
+          name: m0-pinned-pages-rollback-d582d53e
+          path: dist/
+          retention-days: 30
+          if-no-files-found: error
