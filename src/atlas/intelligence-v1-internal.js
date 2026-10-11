@@ -20,6 +20,7 @@ export function mountIntelligenceV1Internal({map,store,packets}){
       paint:{'line-color':'#f2cb72','line-width':3,'line-opacity':0.9}});
   }
   function focus(packet){
+    store.selectEvent(packet.event.event_id,null,packet.event.country_iso2);
     pane();safe(feed,'h2','Intelligence Feed · INTERNAL QA HOLD');
     const back=safe(feed,'button','← All review candidates');
     back.type='button';back.addEventListener('click',overview);
@@ -44,7 +45,6 @@ export function mountIntelligenceV1Internal({map,store,packets}){
       map.setFilter(layer,['==',['get','a3'],'AUS']);
       // MapLibre highlight only; do not assign coordinates to the event.
     }
-    store.selectEvent(packet.event.event_id,null,packet.event.country_iso2);
   }
   function overview(){
     pane();map.setFilter(layer,['==',['get','a3'],'']);
