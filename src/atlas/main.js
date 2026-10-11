@@ -303,7 +303,10 @@ if (!SHOW.sea) $('#sea').hidden = true;
 
 // ---------- live layer: aircraft, ships, trains from free open APIs (src/atlas/live.js); off by default, ?live=1 turns it on ----------
 const countries = await fetch('/atlas/countries.geojson').then((r) => r.json());
+let m1CompaniesByName = new Map();
 function showLiveCard(c) {
+  const linkedCompany=m1CompaniesByName.get(c.title);
+  if(linkedCompany) m1State.selectCompany(linkedCompany.id,'AT');
   const box = $('#ind-card'); box.hidden = false;
   box.querySelector('.panel-head span').textContent = c.head;
   $('#ind-title').textContent = c.title;
@@ -346,9 +349,9 @@ scale.setOn(false);
 // ---------- companies from the research catalogue (Notion DB | Companies: accepted + Publishable), first country Austria ----------
 // built by scripts/build-companies.mjs; the point is the city centre, companies of one city are spread on a small ring
 const atData = await fetch('/atlas/companies-at.json').then((r) => r.json());
+m1CompaniesByName=new Map(atData.companies.map(company=>[company.name,company]));
 mountAustriaInternalReview({map, industry, atData});
-// Research company identity only; analytics remain hidden until QA approves a real source record.
-map.on('click',(e)=>{const company=e.features?.find?.(f=>f.properties?.company_id)?.properties;if(company?.company_id)m1State.selectCompany(company.company_id,company.country_iso2);});
+// Card selection uses the existing Claude onCard handler, mapped to research identity.
 const ringed = (list) => { const g = {}; for (const c of list) (g[c.lon + ',' + c.lat] ??= []).push(c); return Object.values(g).flatMap((cs) => cs.map((c, i) => { const r = cs.length > 1 ? 0.012 + 0.003 * cs.length : 0, a = (i / cs.length) * Math.PI * 2; return { ...c, lon: c.lon + (r * Math.cos(a)) / Math.cos((c.lat * Math.PI) / 180), lat: c.lat + r * Math.sin(a) }; })); };
 const FLAG_EN = { 'OWNERSHIP OPEN': 'Ownership not fully confirmed', 'SOURCE CONFLICT': 'Sources disagree on some details', 'LEGAL REVIEW': 'Under legal review', 'NO CITY': 'City not confirmed' };
 const companies = createScaleDemo(map, {
