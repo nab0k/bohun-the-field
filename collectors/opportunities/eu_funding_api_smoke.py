@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+"""Read-only EU Funding & Tenders Search API smoke probe; no persistence."""
+import argparse
+import json
+import urllib.error
+import urllib.parse
+import urllib.request
+import uuid
+
+API = "https://api.tech.ec.europa.eu/search-api/prod/rest/search"
+EDF_PROGRAMME = "44181033"  # EDF; cross-check against EC portal filters
+
+def query_data():
+    return {"bool": {"must": [
+        {"terms": {"type": ["1", "8"]}},  # grants and cascade funding
+        {"terms": {"status": ["31094501", "31094502"]}},  # forthcoming and open
+        {"term": {"frameworkProgramme": EDF_PROGRAMME}},
+    ]}}
+
+def multipart(fields):
+    boundary = "----bohun" + uuid.uuid4().hex
+    chunks = []
+    for name, value in fields.items():
+        chunks.extend([
+            ("--" + boundary + "\r\n").encode(),
+            (f'Content-Disposition: form-data; name="{name}"\r\n').encode(),
+            b"Content-Type: application/json\r\n\r\n",
+            json.dumps(value, separators=(",", ":")).encode(),
+            b"\r\n",
+        ])
+    chunks.append(("--" + boundary + "--\r\n").encode())
+    return b"".join(chunks), "multipart/form-data; boundary=" + boundary
+
+def smoke(page_size, timeout):
+    params = urllib.parse.urlencode({
+        "apiKey": "SEDIA", "text": "*", "pageSize": page_size, "pageNumber": 1
+    })
+    body, content_type = multipart({"query": query_data(), "languages": ["en"]})
+    req = urllib.request.Request(
+        API + "?" + params, data=body, method="POST",
+        headers={"Content-Type": content_type, "Accept": "application/json",
+                 "User-Agent": "BOHUN-research-readonly/0.2",
+                 "Referer": "https://ec.europa.eu/info/funding-tenders/opportunities/portal/"}
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as response:
+        raw = response.read(2_000_001)
+        if len(raw) > 2_000_000:
+            raise ValueError("Response exceeds 2 MB diagnostic cap")
+        data = json.loads(raw)
+        return {"http_status": response.status, "root_type": type(data).__name__,
+                "root_keys": list(data)[:30] if isinstance(data, dict) else [],
+                "root_field_types": {k: type(v).__name__ for k, v in data.items()}
+                if isinstance(data, dict) else {},
+                "persisted": 0, "publication_approved": 0}
+
+def main():
+    p = argparse.ArgumentParser()
+    p.add_argument("--limit", type=int, default=3)
+    p.add_argument("--timeout", type=int, default=20)
+    args = p.parse_args()
+    if not 1 <= args.limit <= 10:
+        p.error("--limit must be between 1 and 10")
+    try:
+        output = smoke(args.limit, args.timeout)
+    except (urllib.error.URLError, ValueError, TimeoutError) as exc:
+        print(json.dumps({"ok": False, "error_type": type(exc).__name__,
+                          "message": str(exc)[:300], "publication_approved": 0}))
+        raise SystemExit(1)
+    print(json.dumps({"ok": True, **output}, indent=2))
+
+if __name__ == "__main__":
+    main()
