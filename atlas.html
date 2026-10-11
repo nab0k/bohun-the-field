@@ -24,7 +24,7 @@
       </div>
     </details>
     <a class="brand" href="/" aria-label="Bohun Defence home"><img class="brand-logo" src="https://bohundefence.com/logo_gold.png" alt="" width="38" height="38"><span class="brand-name"><strong>Bohun Defence</strong><small>Advisory &amp; Intelligence</small></span></a>
-    <nav>
+    <nav aria-label="Bohun Defence navigation">
       <button id="open-need" type="button" hidden aria-hidden="true" tabindex="-1">I NEED SOMETHING</button>
       <button id="open-have" type="button" hidden aria-hidden="true" tabindex="-1">I HAVE SOMETHING</button>
       <a class="m0-link" href="/about.html">ABOUT</a>
@@ -92,7 +92,8 @@
   </aside>
   <div class="legends"><div id="legend" class="legend" hidden></div><div id="legend-sea" class="legend sea" hidden></div></div>
 
-  <aside id="side" class="side" aria-label="Search, layers and filters">
+  <button id="nav-drawer-toggle" class="nav-drawer-toggle" type="button" aria-expanded="false" aria-controls="side">SEARCH · FILTERS · LAYERS</button>
+  <aside id="side" class="side" aria-label="Search, layers and filters" aria-hidden="true">
     <div class="search">
       <input id="q" type="search" placeholder="Search companies, cities, countries" autocomplete="off" aria-label="Search" aria-controls="q-results" />
       <ol id="q-results" class="q-results" hidden></ol>
