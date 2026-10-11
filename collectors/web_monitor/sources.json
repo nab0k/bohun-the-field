@@ -94,5 +94,21 @@
     "enabled": true,
     "discovery": "sitemap_and_html",
     "status": "candidate_unverified"
+  },
+  {
+    "name": "BDSV",
+    "country": "DE",
+    "url": "https://bdsv.eu/",
+    "enabled": true,
+    "discovery": "html_listing",
+    "status": "candidate_unverified"
+  },
+  {
+    "name": "BDLI",
+    "country": "DE",
+    "url": "https://www.bdli.de/",
+    "enabled": true,
+    "discovery": "html_listing",
+    "status": "candidate_unverified"
   }
 ]
