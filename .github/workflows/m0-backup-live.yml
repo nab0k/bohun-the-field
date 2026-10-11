@@ -1,0 +1,30 @@
+name: M0 Existing Site Read-Only Snapshot (NO DEPLOY)
+on:
+  push:
+    branches: [m0-public-release-review]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-http-snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate backup snapshot script
+        run: python -m py_compile scripts/m0-backup-live.py
+      - name: Snapshot current live public HTML/assets (read-only)
+        run: python scripts/m0-backup-live.py
+      - name: Preserve original public site HTTP snapshot and hash manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m0-old-public-site-http-snapshot
+          path: |
+            output/m0-existing-site-snapshot.zip
+            output/m0-existing-site/manifest.json
+          if-no-files-found: warn
+          retention-days: 30
