@@ -314,7 +314,7 @@ def audit_candidate(item, base, robots):
             # BDSV press releases expose a formal Berlin dateline in the body.
             # Never infer publication time from arbitrary dates elsewhere.
             body_text = " ".join(parser._body_text)
-            dateline = re.search(r"Berlin,?\\s+den\\s+([0-3]?\\d\\.[01]?\\d\\.20\\d{2})\\b", body_text, re.I)
+            dateline = re.search(r"Berlin,?\s+den\s+([0-3]?\d\.[01]?\d\.20\d{2})\b", body_text, re.I)
             if dateline:
                 try:
                     day = dt.datetime.strptime(dateline.group(1), "%d.%m.%Y")
