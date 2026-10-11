@@ -43,7 +43,7 @@ def main():
     report=[]
     for item in fixtures:
         source=item["source_id"]
-        version=hashlib.sha256(item["source_snapshot"].encode()).hexdigest()
+        version=item.get("document_sha256") or hashlib.sha256(item["source_snapshot"].encode()).hexdigest()
         evidence=build(source,version,[{"locator":x["locator"],"text":x["text"]} for x in item["spans"]])
         card={"claims":[{"statement":item["test_statement"],"kind":"PUBLISHER_REPORTED",
               "source_id":source,"evidence_id":evidence[0]["evidence_id"],
@@ -58,7 +58,7 @@ def main():
         report.append({"fixture":item["fixture"],"source_id":source,"document_sha256":version,
           "span_count":len(evidence),"positive_id_resolution":"PASS",
           "unknown_id_rejection":"PASS","fabricated_quote_rejection":"PASS",
-          "qa_decision":"HOLD","source_capture_kind":"fixture excerpt, NOT full downloaded original"})
+          "qa_decision":"HOLD","source_capture_kind":("ORIGINAL_PUBLISHER_HTML_EXCERPT" if item.get("evidence_kind")=="REAL_PUBLISHER_CAPTURED_HTML_2026-10-11" else "TEST_SENTINEL_NOT_ORIGINAL")})
     (out/"audit.json").write_text(json.dumps(report,indent=2))
     print(json.dumps(report))
 if __name__=="__main__":main()
