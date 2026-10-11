@@ -1,14 +1,17 @@
 name: Inoreader subscriptions read-only snapshot
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/inoreader-subscriptions-readback.yml'
   workflow_dispatch:
+    inputs:
+      quota_confirmed:
+        description: 'Owner confirms current Inoreader quota is available'
+        required: true
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
   readback:
+    if: ${{ inputs.quota_confirmed == true }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -27,8 +30,16 @@ jobs:
           import json,sys
           sys.path.insert(0,'collectors/inoreader')
           from sync import access_token,api
-          try:\n              token=access_token()\n          except RuntimeError as exc:\n              print('READBACK_BLOCKED oauth; no credentials printed: '+str(exc))\n              raise
-          try:\n              payload=api('subscription/list',token)\n          except RuntimeError as exc:\n              print('READBACK_BLOCKED api; '+str(exc)+'; do not rerun until quota reset')\n              raise
+          try:
+              token=access_token()
+          except RuntimeError as exc:
+              print('READBACK_BLOCKED oauth; no credentials printed: '+str(exc))
+              raise
+          try:
+              payload=api('subscription/list',token)
+          except RuntimeError as exc:
+              print('READBACK_BLOCKED api; '+str(exc)+'; do not rerun until quota reset')
+              raise
           subs=payload.get('subscriptions',[])
           records=[{'id':s.get('id'),'title':s.get('title'),'categories':[c.get('label') for c in s.get('categories',[]) if isinstance(c,dict)]} for s in subs]
           with open('output/inoreader-subscriptions-readback.json','w') as f:
