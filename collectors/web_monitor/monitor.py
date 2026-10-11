@@ -235,6 +235,10 @@ def audit_candidate(item, base, robots):
         if not same_site(canonical, base):
             raise ValueError("off_domain_canonical")
         result.update({"title": title[:240], "published_at_raw": date, "canonical_url": canonical})
+        # Reject section and directory URLs even when they expose dates in metadata.
+        if classify_candidate(canonical, base) != "possible_article":
+            result["reason"] = "not_article_url"
+            return result
         if not title or not date:
             result["reason"] = "missing_title_or_publication_date"
         else:
@@ -330,6 +334,7 @@ def main():
     errors = 0
     total = 0
     found = 0
+    verified = 0
     for index, source in enabled:
         command = [sys.executable, str(Path(__file__).resolve()), "--sources", args.sources,
                    "--source-index", str(index), "--channels", args.channels,
@@ -371,8 +376,7 @@ def main():
     print(f"SUMMARY sources_checked={len(enabled)} candidates={found} inserted={total} "
           f"sources_without_candidates_or_failed={errors} "
           f"mode={'apply' if args.apply else 'dry-run'} discovery={args.discovery_mode}", flush=True)
-    if errors and args.apply:
-        sys.exit(2)
+    # Distinguish successful execution from healthy source coverage in CI.\n    # No writes are performed. A failed/empty source must not yield a green run.\n    if errors:\n        sys.exit(2)
 
 if __name__ == "__main__":
     main()
