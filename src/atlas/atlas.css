@@ -321,3 +321,17 @@ button[data-journey], .demo-tag { display:none !important; }
  .nav-drawer-toggle{top:72px !important;left:12px !important;padding:9px 10px !important;font-size:10px !important;max-width:calc(100vw - 24px)}
  .brand-logo[hidden]{display:none !important}
 }
+
+
+/* Country coverage markers: small flags, not noisy and misleading national totals. */
+.country-microflag {
+ display:grid;place-items:center;width:29px;height:25px;padding:0;
+ border:1px solid #d5bd74;border-radius:6px;background:#111a18ea;
+ box-shadow:0 2px 8px #0009;color:#fff;font-size:18px;line-height:1;
+ cursor:pointer;backdrop-filter:blur(4px);
+}
+.country-microflag:hover,.country-microflag:focus-visible{
+ border:2px solid #fff2ad;outline:2px solid #d7bd68;outline-offset:2px;
+ transform:scale(1.12);
+}
+@media(max-width:760px){.country-microflag{width:26px;height:23px;font-size:16px;}}
