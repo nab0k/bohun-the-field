@@ -31,7 +31,7 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install "psycopg[binary]"
       - name: Offline channel discovery tests
-        run: python -m unittest discover -s tests -p "test_web_monitor_channels.py"
+        run: python -m unittest discover -s tests -p "test_web_monitor_*.py"
       - name: Discover public pages
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.audit_metadata }}" = "true" ]; then
