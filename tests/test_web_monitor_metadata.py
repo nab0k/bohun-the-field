@@ -61,5 +61,21 @@ class MetadataTest(unittest.TestCase):
             result = audit_candidate(item,'https://bdsv.eu/',{})
         self.assertFalse(result['verified'], result)
 
+    def test_bdsv_formal_berlin_dateline(self):
+        html = '<html><head><title>BDSV fordert Beteiligung Deutschlands</title></head><body><p>Berlin, den 29.06.2026 – Der Bundesverband erklärt.</p></body></html>'
+        item = {'url':'https://bdsv.eu/aktuelles/pressemitteilungen/bdsv-fordert-beteiligung.html','quality':'possible_article'}
+        with patch('collectors.web_monitor.monitor.get',return_value=(html,item['url'])):
+            result = audit_candidate(item,'https://bdsv.eu/',{})
+        self.assertTrue(result['verified'], result)
+        self.assertEqual(result['published_at_raw'],'2026-06-29T00:00:00+02:00')
+        self.assertEqual(result['date_precision'],'day')
+
+    def test_bdsv_unlabelled_date_is_not_verified(self):
+        html = '<html><head><title>BDSV article</title></head><body><p>Meeting planned for 29.06.2026</p></body></html>'
+        item = {'url':'https://bdsv.eu/aktuelles/pressemitteilungen/example.html','quality':'possible_article'}
+        with patch('collectors.web_monitor.monitor.get',return_value=(html,item['url'])):
+            result = audit_candidate(item,'https://bdsv.eu/',{})
+        self.assertFalse(result['verified'], result)
+
 if __name__ == '__main__':
     unittest.main()
