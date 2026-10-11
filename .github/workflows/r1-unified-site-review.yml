@@ -18,6 +18,18 @@ jobs:
       - run: node scripts/test-r1-unified.mjs
       - run: npm test
       - run: npm run build:site
+      - name: Install browser dependencies
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Start existing Atlas locally
+        run: |
+          mkdir -p output/r1-review
+          (npm run dev -- --host 127.0.0.1 --port 5174 > output/r1-review/vite.log 2>&1 &)
+          for i in $(seq 1 30); do if curl -fsS http://127.0.0.1:5174/atlas.html >/dev/null; then exit 0; fi; sleep 2; done
+          exit 1
+      - name: Browser smoke desktop and mobile, screenshots
+        run: node scripts/r1-browser-smoke.mjs
       - name: Assert internal HOLD data excluded
         run: |
           test ! -f dist/atlas/pilot-internal-feed.json
@@ -28,5 +40,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: r1-unified-site-review-build
-          path: dist/
+          path: |
+            dist/
+            output/r1-review/
           retention-days: 14
