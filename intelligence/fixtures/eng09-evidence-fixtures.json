@@ -1,0 +1,40 @@
+{
+  "fixtures": [
+    {
+      "fixture": "FREQUENTIS-2026-05-05",
+      "source_id": "FREQUENTIS-PR-2026-05-05",
+      "source_snapshot": "QA-only placeholder: original PDF SHA256 cdb9c75ed5bcb8b2f7cd95dd42284bc5252baea5fe1b5c3efaba4ff392e7e5db; source contents NOT in fixture",
+      "spans": [
+        {
+          "locator": "TEST-SEGMENT-001",
+          "text": "Fixture sentinel for Frequentis PDF. Not a quotation from the document."
+        }
+      ],
+      "test_statement": "Claim requires actual primary PDF span and semantic validation."
+    },
+    {
+      "fixture": "AU-F35-01",
+      "source_id": "AU-F35-01-K6",
+      "source_snapshot": "QA-only placeholder K6 announcement body not yet extracted/dated",
+      "spans": [
+        {
+          "locator": "TEST-SEGMENT-001",
+          "text": "Fixture sentinel for K6 announcement. Not a quotation from the document."
+        }
+      ],
+      "test_statement": "Mentor-protege date and relation require primary event passage."
+    },
+    {
+      "fixture": "TED-699594-2026",
+      "source_id": "TED-699594-2026",
+      "source_snapshot": "QA-only placeholder: TED notice 699594-2026 / existing DB id 145; original evidence bytes not attached",
+      "spans": [
+        {
+          "locator": "TEST-SEGMENT-001",
+          "text": "Fixture sentinel for TED notice. Not a quotation from the document."
+        }
+      ],
+      "test_statement": "Award type and parties require official TED XML/document proof."
+    }
+  ]
+}
