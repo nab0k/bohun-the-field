@@ -54,11 +54,11 @@ export function mountM1Panels({store,records=[]}){
     text(feed,'h2','Intelligence Feed');
     const allowed=selectApproved(records,state);
     if(!allowed.length){
-      dossier.hidden=false;
+      dossier.hidden=window.matchMedia('(max-width:760px)').matches;
       text(dossier,'h2','Company & event dossier');
       text(dossier,'p','Select a verified map object to inspect its available sources. No analytical dossier is approved for this selection.');
       text(feed,'p','No QA-approved intelligence items available yet. Research candidates and AI drafts are not published.');
-      text(feed,'p','The map may contain geographic and separately sourced company data; absence from the feed does not mean there are no companies.');
+      if(!window.matchMedia('(max-width:760px)').matches)text(feed,'p','The map may contain geographic and separately sourced company data; absence from the feed does not mean there are no companies.');
       return;
     }
     text(feed,'p','Verified, source-linked intelligence only.');
