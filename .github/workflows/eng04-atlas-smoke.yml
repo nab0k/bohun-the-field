@@ -45,3 +45,28 @@ jobs:
           path: output/eng04/
           if-no-files-found: warn
           retention-days: 7
+
+  frequentis-readonly:
+    needs: offline-atlas
+    if: success()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install PostgreSQL read-only driver
+        run: python -m pip install "psycopg[binary]"
+      - name: Lookup Frequentis in existing intelligence items (READ ONLY)
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: python scripts/eng04-supabase-readonly.py
+      - name: Preserve source ID evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eng04-frequentis-supabase-readonly
+          path: output/eng04/supabase-frequentis-readonly.json
+          if-no-files-found: warn
+          retention-days: 7
