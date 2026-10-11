@@ -12,8 +12,8 @@ const ENV = new URL('../.env.local', import.meta.url);
 const env = Object.fromEntries(fs.readFileSync(ENV, 'utf8').split('\n').filter((l) => /^[A-Z_]+=/.test(l)).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
 const { INOREADER_APP_ID: id, INOREADER_APP_KEY: key } = env;
 if (!id || !key) { console.error('INOREADER_APP_ID / INOREADER_APP_KEY missing in .env.local'); process.exit(2); }
-const REDIRECT = 'http://localhost:8787/callback', state = crypto.randomBytes(12).toString('hex');
-const authUrl = `https://www.inoreader.com/oauth2/auth?client_id=${id}&redirect_uri=${encodeURIComponent(REDIRECT)}&response_type=code&scope=read&state=${state}`;
+const REDIRECT = process.env.INOREADER_REDIRECT_URI || 'http://localhost:8787/callback', state = crypto.randomBytes(12).toString('hex');
+const authUrl = `https://www.inoreader.com/oauth2/auth?client_id=${id}&redirect_uri=${encodeURIComponent(REDIRECT)}&response_type=code&scope=${encodeURIComponent('read write')}&state=${state}`;
 
 function save(vars) {
   let text = fs.readFileSync(ENV, 'utf8');

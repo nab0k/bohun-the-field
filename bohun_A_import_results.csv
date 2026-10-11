@@ -1,0 +1,16 @@
+name,status,feed_url
+US Department of Defense,IMPORTED,https://www.war.gov/DesktopModules/ArticleCS/RSS.ashx?ContentType=1&Site=945&max=10
+DARPA,PENDING,
+Defense Innovation Unit,PENDING,
+UK Ministry of Defence,IMPORTED,https://www.gov.uk/search/news-and-communications.atom?organisations%5B%5D=ministry-of-defence
+Defence and Security Accelerator,PENDING,
+Bundeswehr,PENDING,
+BAAINBw,PENDING,
+Ministère des Armées,PENDING,
+Direction générale de l’armement,PENDING,
+Ministry of National Defence,PENDING,
+Department of National Defence,PENDING,
+Department of Defence,PENDING,
+Acquisition Technology & Logistics Agency,PENDING,
+NATO,PENDING,
+European Defence Agency,PENDING,

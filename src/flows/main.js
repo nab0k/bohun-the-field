@@ -180,7 +180,7 @@ function chooseNode(id) {
 }
 
 // ---------- scene ----------
-const COL = { rail: 0xf0e6c0, road: 0xe0b878, sea: 0x9fd4f5, air: 0xffffff };
+const COL = { rail: 0xb7b09b, road: 0x8f8268, sea: 0x6f8b90, air: 0xaeb1aa };
 const NODE_PX = { mine: 12, 'factory-s': 10, 'factory-m': 13, 'factory-l': 17, bank: 13, port: 12, station: 10, airfield: 12 };
 
 class FlowsScene extends Phaser.Scene {
@@ -196,7 +196,7 @@ class FlowsScene extends Phaser.Scene {
     this.dyn = this.add.graphics().setDepth(4);
     this.miniGfx = this.add.graphics().setDepth(6);
     this.label = this.add.text(0, 0, '', { fontFamily: 'system-ui, sans-serif', fontSize: '14px', fontStyle: '700', color: '#ffffff', stroke: '#101412', strokeThickness: 4, resolution: dpr }).setOrigin(0.5, 1).setDepth(10).setVisible(false);
-    this.hintLabel = this.add.text(0, 0, '', { fontFamily: 'system-ui, sans-serif', fontSize: '15px', fontStyle: '700', color: '#ffd54a', stroke: '#101412', strokeThickness: 5, resolution: dpr }).setOrigin(0.5, 1).setDepth(11).setVisible(false);
+    this.hintLabel = this.add.text(0, 0, '', { fontFamily: 'system-ui, sans-serif', fontSize: '15px', fontStyle: '700', color: '#c8a45f', stroke: '#101412', strokeThickness: 5, resolution: dpr }).setOrigin(0.5, 1).setDepth(11).setVisible(false);
     this.bohun = this.add.image(0, 0, 'rider').setOrigin(rider.anchor.x / rider.size[0], rider.anchor.y / rider.size[1]).setDepth(8);
     this.facing = 1;
     this.targets = new Set();
@@ -298,11 +298,11 @@ class FlowsScene extends Phaser.Scene {
     const sel = ui.selected, st = stage();
     for (const e of Object.values(S.world.edges)) {
       const hot = sel && (e.a === sel || e.b === sel);
-      L.lineStyle((hot ? 6 : 4) * k, 0x101412, 0.5); strokeEdge(L, e, k);
-      L.lineStyle((hot ? 3.4 : 2) * k, COL[e.mode], hot ? 1 : 0.75); strokeEdge(L, e, k);
+      L.lineStyle((hot ? 4.2 : 2.8) * k, 0x101412, 0.42); strokeEdge(L, e, k);
+      L.lineStyle((hot ? 2.4 : 1.35) * k, COL[e.mode], hot ? 0.95 : 0.58); strokeEdge(L, e, k);
     }
     const off = (time / 40) * k;
-    for (const f of S.flows) for (const s of f.steps) { L.lineStyle(7 * k, 0x101412, 0.55); L.strokePoints(s.pts, false, false); L.lineStyle(4 * k, 0xffd54a, 1); dashed(L, s.pts, 14 * k, 8 * k, off); }
+    for (const f of S.flows) for (const s of f.steps) { L.lineStyle(5 * k, 0x101412, 0.45); L.strokePoints(s.pts, false, false); L.lineStyle(2.6 * k, 0xc8a45f, 0.95); dashed(L, s.pts, 18 * k, 12 * k, off); }
 
     for (const n of Object.values(S.world.nodes)) this.drawNode(D, n, k);
     const vw = cam.worldView, pad = 30 * k;
@@ -314,7 +314,7 @@ class FlowsScene extends Phaser.Scene {
       if (c.age > 1.4) { coins.splice(i, 1); continue; }
       if (c.age < 0) continue;
       const a = 1 - c.age / 1.4, y = c.y - c.age * 40 * k, x = c.x + (c.kind ? 8 : -8) * k * c.age;
-      if (c.kind) { D.fillStyle(0x4caf50, a); D.fillRect(x - 7 * k, y - 4 * k, 14 * k, 8 * k); D.lineStyle(1.2 * k, 0x1d5e20, a); D.strokeRect(x - 7 * k, y - 4 * k, 14 * k, 8 * k); } else { D.fillStyle(0xf5c542, a); D.fillCircle(x, y, 6 * k); D.lineStyle(1.2 * k, 0x8d6a28, a); D.strokeCircle(x, y, 6 * k); }
+      if (c.kind) { D.fillStyle(0x6f8063, a); D.fillRect(x - 7 * k, y - 4 * k, 14 * k, 8 * k); D.lineStyle(1.2 * k, 0x1d5e20, a); D.strokeRect(x - 7 * k, y - 4 * k, 14 * k, 8 * k); } else { D.fillStyle(0xc8a45f, a); D.fillCircle(x, y, 6 * k); D.lineStyle(1.2 * k, 0x8d6a28, a); D.strokeCircle(x, y, 6 * k); }
     }
 
     // guidance: what to press next
@@ -322,10 +322,10 @@ class FlowsScene extends Phaser.Scene {
     let hintId = null, hintText = '';
     if (st === 1) { hintId = M.source; hintText = 'Нажмите сюда'; }
     if (st === 3) { hintId = M.target; hintText = 'Нажмите на банк'; }
-    if (hintId) { const n = S.world.nodes[hintId]; D.lineStyle(4 * k, 0xffd54a, 0.5 + 0.5 * pulse); D.strokeCircle(n.x, n.y, (20 + 6 * pulse) * k); this.hintLabel.setVisible(true).setScale(k).setPosition(n.x, n.y - 24 * k).setText(hintText); } else this.hintLabel.setVisible(false);
-    if (ui.mode === 'pick') for (const id of this.targets) { const n = S.world.nodes[id]; D.lineStyle(2.4 * k, 0x8fe08f, 0.95); D.strokeCircle(n.x, n.y, 17 * k); }
-    if (ui.mode === 'pick' && ui.source) { const n = S.world.nodes[ui.source]; D.lineStyle(4 * k, 0xffd54a, 1); D.strokeCircle(n.x, n.y, 19 * k); }
-    if (sel && ui.mode !== 'pick' && sel !== hintId) { const n = S.world.nodes[sel]; D.lineStyle(3.4 * k, 0xffd54a, 0.7 + 0.3 * pulse); D.strokeCircle(n.x, n.y, (17 + 3 * pulse) * k); }
+    if (hintId) { const n = S.world.nodes[hintId]; D.lineStyle(4 * k, 0xc8a45f, 0.5 + 0.5 * pulse); D.strokeCircle(n.x, n.y, (20 + 6 * pulse) * k); this.hintLabel.setVisible(true).setScale(k).setPosition(n.x, n.y - 24 * k).setText(hintText); } else this.hintLabel.setVisible(false);
+    if (ui.mode === 'pick') for (const id of this.targets) { const n = S.world.nodes[id]; D.lineStyle(2.2 * k, 0x91a986, 0.88); D.strokeCircle(n.x, n.y, 17 * k); }
+    if (ui.mode === 'pick' && ui.source) { const n = S.world.nodes[ui.source]; D.lineStyle(4 * k, 0xc8a45f, 1); D.strokeCircle(n.x, n.y, 19 * k); }
+    if (sel && ui.mode !== 'pick' && sel !== hintId) { const n = S.world.nodes[sel]; D.lineStyle(3.4 * k, 0xc8a45f, 0.7 + 0.3 * pulse); D.strokeCircle(n.x, n.y, (17 + 3 * pulse) * k); }
     const hv = this.hover && S.world.nodes[this.hover];
     if (hv) this.label.setVisible(true).setScale(k).setPosition(hv.x, hv.y - 20 * k).setText(`${hv.name} · ${short(hv.place)}`); else this.label.setVisible(false);
 
@@ -335,9 +335,9 @@ class FlowsScene extends Phaser.Scene {
     D.fillStyle(0x0e1210, 0.5); D.fillEllipse(bp.x, bp.y, 46 * k, 11 * k);
     this.bohun.setPosition(bp.x, bp.y).setScale(sc * this.facing, sc);
 
-    for (const n of Object.values(S.world.nodes)) { Mg.fillStyle(n.type === 'bank' ? 0xf5c542 : n.type === 'port' ? 0x9fd4f5 : 0xffffff, 1); Mg.fillCircle(n.x, n.y, 18); }
-    if (hintId) { const n = S.world.nodes[hintId]; Mg.lineStyle(26, 0xffd54a, 0.5 + 0.5 * pulse); Mg.strokeCircle(n.x, n.y, 90); }
-    const wv = cam.worldView; Mg.lineStyle(16, 0xffd54a, 1); Mg.strokeRect(wv.x, wv.y, wv.width, wv.height);
+    for (const n of Object.values(S.world.nodes)) { Mg.fillStyle(n.type === 'bank' ? 0xc8a45f : n.type === 'port' ? 0x6f8b90 : 0xc4c2b8, 0.9); Mg.fillCircle(n.x, n.y, 18); }
+    if (hintId) { const n = S.world.nodes[hintId]; Mg.lineStyle(26, 0xc8a45f, 0.5 + 0.5 * pulse); Mg.strokeCircle(n.x, n.y, 90); }
+    const wv = cam.worldView; Mg.lineStyle(16, 0xc8a45f, 1); Mg.strokeRect(wv.x, wv.y, wv.width, wv.height);
     $('#c-delivered').textContent = String(S.delivered); $('#c-coins').textContent = String(S.coins);
     renderMission();
   }
@@ -347,17 +347,17 @@ class FlowsScene extends Phaser.Scene {
     g.fillStyle(0x0e1210, 0.35); g.fillEllipse(x, y + s * 0.9, s * 2.2, s * 0.7);
     g.lineStyle(2 * k, 0x101412, 1);
     if (n.type === 'mine') { g.fillStyle(0x5a4a3a, 1); g.fillTriangle(x, y - s, x + s * 1.1, y + s * 0.8, x - s * 1.1, y + s * 0.8); g.strokeTriangle(x, y - s, x + s * 1.1, y + s * 0.8, x - s * 1.1, y + s * 0.8); g.fillStyle(0x201a14, 1); g.fillRect(x - s * 0.25, y + s * 0.2, s * 0.5, s * 0.6); }
-    else if (n.type.startsWith('factory')) { g.fillStyle(0x9aa7b4, 1); g.fillRect(x - s, y - s * 0.6, s * 2, s * 1.4); g.strokeRect(x - s, y - s * 0.6, s * 2, s * 1.4); g.fillStyle(0xc94b3a, 1); g.fillRect(x - s, y - s * 0.9, s * 2, s * 0.35); g.fillStyle(0x4b5156, 1); g.fillRect(x + s * 0.35, y - s * 1.7, s * 0.5, s * 1.1); g.strokeRect(x + s * 0.35, y - s * 1.7, s * 0.5, s * 1.1); }
-    else if (n.type === 'bank') { g.fillStyle(0xf0d36a, 1); g.fillRect(x - s, y - s * 0.4, s * 2, s * 1.2); g.strokeRect(x - s, y - s * 0.4, s * 2, s * 1.2); g.fillStyle(0xfff1b8, 1); g.fillTriangle(x - s * 1.2, y - s * 0.4, x + s * 1.2, y - s * 0.4, x, y - s * 1.3); g.strokeTriangle(x - s * 1.2, y - s * 0.4, x + s * 1.2, y - s * 0.4, x, y - s * 1.3); g.fillStyle(0x4caf50, 1); g.fillCircle(x, y + s * 0.2, s * 0.35); }
-    else if (n.type === 'port') { g.fillStyle(0x2a7fc4, 1); g.fillCircle(x, y, s); g.strokeCircle(x, y, s); g.lineStyle(2.6 * k, 0xffffff, 1); g.lineBetween(x, y - s * 0.6, x, y + s * 0.6); g.lineBetween(x - s * 0.55, y + s * 0.15, x + s * 0.55, y + s * 0.15); g.strokeCircle(x, y - s * 0.6, s * 0.18); }
-    else if (n.type === 'station') { g.fillStyle(0xd9c79a, 1); g.fillRect(x - s, y - s * 0.55, s * 2, s * 1.1); g.strokeRect(x - s, y - s * 0.55, s * 2, s * 1.1); g.fillStyle(0xb3402e, 1); g.fillTriangle(x - s * 1.1, y - s * 0.55, x + s * 1.1, y - s * 0.55, x, y - s * 1.2); g.lineStyle(1.6 * k, 0x3a3328, 1); g.lineBetween(x - s, y + s * 0.1, x + s, y + s * 0.1); }
-    else { g.fillStyle(0xeef0fa, 1); g.fillCircle(x, y, s * 0.95); g.strokeCircle(x, y, s * 0.95); g.lineStyle(3 * k, 0x2b2f3a, 1); g.lineBetween(x - s * 0.65, y, x + s * 0.65, y); g.lineBetween(x, y - s * 0.65, x, y + s * 0.65); }
+    else if (n.type.startsWith('factory')) { g.fillStyle(0x9aa7b4, 1); g.fillRect(x - s, y - s * 0.6, s * 2, s * 1.4); g.strokeRect(x - s, y - s * 0.6, s * 2, s * 1.4); g.fillStyle(0x8a5b4d, 1); g.fillRect(x - s, y - s * 0.9, s * 2, s * 0.35); g.fillStyle(0x4b5156, 1); g.fillRect(x + s * 0.35, y - s * 1.7, s * 0.5, s * 1.1); g.strokeRect(x + s * 0.35, y - s * 1.7, s * 0.5, s * 1.1); }
+    else if (n.type === 'bank') { g.fillStyle(0xb99b60, 1); g.fillRect(x - s, y - s * 0.4, s * 2, s * 1.2); g.strokeRect(x - s, y - s * 0.4, s * 2, s * 1.2); g.fillStyle(0xd4c7a4, 1); g.fillTriangle(x - s * 1.2, y - s * 0.4, x + s * 1.2, y - s * 0.4, x, y - s * 1.3); g.strokeTriangle(x - s * 1.2, y - s * 0.4, x + s * 1.2, y - s * 0.4, x, y - s * 1.3); g.fillStyle(0x6f8063, 1); g.fillCircle(x, y + s * 0.2, s * 0.35); }
+    else if (n.type === 'port') { g.fillStyle(0x557984, 1); g.fillCircle(x, y, s); g.strokeCircle(x, y, s); g.lineStyle(2.6 * k, 0xffffff, 1); g.lineBetween(x, y - s * 0.6, x, y + s * 0.6); g.lineBetween(x - s * 0.55, y + s * 0.15, x + s * 0.55, y + s * 0.15); g.strokeCircle(x, y - s * 0.6, s * 0.18); }
+    else if (n.type === 'station') { g.fillStyle(0xa99d7d, 1); g.fillRect(x - s, y - s * 0.55, s * 2, s * 1.1); g.strokeRect(x - s, y - s * 0.55, s * 2, s * 1.1); g.fillStyle(0x7d5145, 1); g.fillTriangle(x - s * 1.1, y - s * 0.55, x + s * 1.1, y - s * 0.55, x, y - s * 1.2); g.lineStyle(1.6 * k, 0x3a3328, 1); g.lineBetween(x - s, y + s * 0.1, x + s, y + s * 0.1); }
+    else { g.fillStyle(0xc6c7c0, 1); g.fillCircle(x, y, s * 0.95); g.strokeCircle(x, y, s * 0.95); g.lineStyle(3 * k, 0x2b2f3a, 1); g.lineBetween(x - s * 0.65, y, x + s * 0.65, y); g.lineBetween(x, y - s * 0.65, x, y + s * 0.65); }
   }
 
   drawMover(g, kind, p, k, a, accent) {
     const len = Math.hypot(p.ax, p.ay) || 1, ux = p.ax / len, uy = p.ay / len, vx = -uy, vy = ux, z = 1.35;
     const u = (l, w) => ({ x: p.x + (ux * l + vx * w) * k * z, y: p.y + (uy * l + vy * w) * k * z });
-    const poly = (pts, fill) => { g.fillStyle(fill, a); g.fillPoints(pts, true); g.lineStyle((accent ? 2 : 1.2) * k, accent ? 0xffd54a : 0x101412, 1); g.strokePoints(pts, true); };
+    const poly = (pts, fill) => { g.fillStyle(fill, a); g.fillPoints(pts, true); g.lineStyle((accent ? 2 : 1.2) * k, accent ? 0xc8a45f : 0x101412, 1); g.strokePoints(pts, true); };
     if (kind === 'train') for (let i = 0; i < 3; i++) poly([u(-6 + i * 7, -2.4), u(-1 + i * 7, -2.4), u(-1 + i * 7, 2.4), u(-6 + i * 7, 2.4)], i === 0 ? 0xc0392b : 0x8b6f47);
     else if (kind === 'truck') { poly([u(-5, -2.8), u(2, -2.8), u(2, 2.8), u(-5, 2.8)], 0x6f7a55); poly([u(2, -2.4), u(5, -2.4), u(5, 2.4), u(2, 2.4)], 0xd9d27a); }
     else if (kind === 'wagon') poly([u(-4.5, -3.2), u(4.5, -3.2), u(4.5, 3.2), u(-4.5, 3.2)], 0xa8743c);
