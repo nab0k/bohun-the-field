@@ -3,10 +3,21 @@
 export function mountAustriaInternalReview({ map, industry }) {
   const args = new URLSearchParams(location.search);
   if (import.meta.env.PROD || args.get('eng04') !== 'internal') return;
-  const record = industry.companies.find(c => c.name === 'Frequentis AG');
-  if (!record) {
-    console.warn('ENG-04: Frequentis AG absent from loaded atlas company dataset; demo blocked.');
-    return;
+  const existing = industry.companies.find(c => c.name === 'Frequentis AG');
+  // GitHub atlas currently lacks this company; city centre is a review-only locator,
+  // NOT a factory or headquarters address. No changes to industry.json.
+  const record = existing || {id:'eng04-frequentis-at-review',name:'Frequentis AG',city:'Vienna',lon:16.3738,lat:48.2082};
+  if (!existing) {
+    const add = () => {
+      if (map.getSource('eng04-vienna-review')) return;
+      map.addSource('eng04-vienna-review',{type:'geojson',data:{type:'FeatureCollection',features:[{
+        type:'Feature',properties:{status:'INTERNAL_DRAFT',name:'Frequentis AG',geo_role:'city_centroid_not_facility'},
+        geometry:{type:'Point',coordinates:[record.lon,record.lat]}
+      }]}});
+      map.addLayer({id:'eng04-vienna-review-dot',type:'circle',source:'eng04-vienna-review',
+        paint:{'circle-radius':10,'circle-color':'#ccae62','circle-stroke-width':3,'circle-stroke-color':'#212626'}});
+    };
+    if(map.isStyleLoaded()) add(); else map.once('load',add);
   }
   const source = 'https://www.frequentis.com/sites/default/files/pr/2026-05/20260505-pr-Frequentis-BMLV_Flugfunksystem_EN.pdf';
   const panel = document.createElement('aside');
@@ -29,10 +40,10 @@ export function mountAustriaInternalReview({ map, industry }) {
   button.addEventListener('click',()=>{
     map.flyTo({center:[record.lon,record.lat],zoom:6.6,duration:850});
   });
-  safe('p','Company context: '+record.name+' · '+(record.city||'city not provided')+' · atlas industry data. Group/ownership and economic effects not established here.');
+  safe('p','Company context: '+record.name+' · Vienna · '+(existing?'existing atlas dataset':'Austria research preview, NOT in current atlas industry.json')+'. Pin is public city centroid, NOT site location. Group/ownership and economic effects not established here.');
   safe('p','Gemini: NOT RUN for this event. Supabase row: NOT VERIFIED. QA-08: PENDING.');
   const a=safe('a','Open primary issuer document');
   a.href=source;a.target='_blank';a.rel='noopener noreferrer';a.style.color='#e9c37b';
   document.body.append(panel);
-  window.__eng04_internal_status={mode:'dev_only',qa:'PENDING_QA_08',published:false,supabase:'NOT_VERIFIED',gemini:'NOT_RUN',company_id:record.id};
+  window.__eng04_internal_status={mode:'dev_only',qa:'PENDING_QA_08',published:false,supabase:'NOT_VERIFIED',gemini:'NOT_RUN',company_id:record.id,atlas_member:!!existing};
 }
