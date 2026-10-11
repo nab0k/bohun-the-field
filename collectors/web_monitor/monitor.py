@@ -165,15 +165,19 @@ def discover_channels(source, robots, channels):
             parser = Links()
             parser.feed(body)
             listing_path = urllib.parse.urlsplit(final).path.rstrip("/")
+            link_stats = {"total": len(parser.links), "same_host": 0, "article_shaped": 0, "selected": 0}
             for href, label in parser.links:
                 candidate = urllib.parse.urljoin(final, href).split("#")[0]
                 if not same_site(candidate, source["url"]):
                     continue
+                link_stats["same_host"] += 1
                 path = urllib.parse.urlsplit(candidate).path.rstrip("/")
                 # A candidate must be below the listing or match an explicit
                 # article URL shape. A section page is never an article.
                 under_listing = path.startswith(listing_path + "/")
                 article_shape = bool(ARTICLE_PATH.search(path) or DATE_PATH.search(path) or (source["name"] == "BDSV" and re.search(r"/aktuelles/pressemitteilungen/[^/]+\.html$", path, re.I)))
+                if article_shape:
+                    link_stats["article_shaped"] += 1
                 if not (under_listing or article_shape):
                     continue
                 if path == listing_path or ASSET_PATH.search(path):
@@ -181,12 +185,14 @@ def discover_channels(source, robots, channels):
                 quality = classify_candidate(candidate, source["url"])
                 if quality in ("reject", "index"):
                     continue
+                link_stats["selected"] += 1
                 found[candidate] = {"url": candidate,
                                     "title": (label.strip() or path.rsplit("/", 1)[-1].replace("-", " "))[:180],
                                     "quality": quality,
                                     "channel_url": url}
                 if len(found) >= LIMIT:
                     break
+            print("CHANNEL_DIAGNOSTIC " + json.dumps({"source": source["name"], "url": url, **link_stats}), flush=True)
         except PermissionError:
             failures.append("channel:robots_unavailable_or_disallowed")
         except Exception as exc:
