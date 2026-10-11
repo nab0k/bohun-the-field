@@ -25,6 +25,8 @@ jobs:
           node scripts/test-p2-coverage.mjs
       - name: Production build compiles but never deploys
         run: npm run build:site
+      - name: Read-only first-party CORDIS SMART/HIVE XML attempt (HOLD if inaccessible)
+        run: python scripts/cordis_official_xml_capture.py
       - name: Install Chromium
         run: |
           npm install --no-save playwright
@@ -41,5 +43,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: intelligence-v1-internal-au-f35-desktop-mobile
-          path: output/intelligence-v1/
+          path: |
+            output/intelligence-v1/
+            output/cordis-original-xml/
           retention-days: 14
