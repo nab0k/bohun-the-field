@@ -1,0 +1,51 @@
+name: Intelligence Live Pilot 01 (EXISTING D1 SCHEMA, NO DEPLOY)
+on:
+  push:
+    branches: [intelligence-live-pilot-01-review]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  local-staging-persistence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: FIRST official CORDIS API XML live ingest
+        run: python scripts/intelligence_live_pilot.py ingest
+      - name: SECOND official source poll with dedup
+        run: python scripts/intelligence_live_pilot.py ingest
+      - name: Fresh Python process opens persisted existing D1-schema SQLite file
+        run: python scripts/intelligence_live_pilot.py readback
+      - name: Export only HOLD internal test feed from persisted database
+        run: python scripts/intelligence_live_pilot.py export
+      - name: Verify existing UI tests and build without deploy
+        run: |
+          npm test
+          node scripts/test-m1-state.mjs
+          npm run build:site
+      - name: Install Chromium
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Serve original Atlas locally in DEV internal mode
+        run: |
+          (npm run dev -- --host 127.0.0.1 --port 5174 > output/live-pilot/vite.log 2>&1 &)
+          for i in $(seq 1 30); do if curl -fsS http://127.0.0.1:5174/atlas.html >/dev/null; then exit 0; fi; sleep 2; done
+          exit 1
+      - name: Browser verify feed -> same event ID -> dossier, no false map pin
+        run: node scripts/intelligence-live-pilot-browser.mjs
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-pilot-01-original-xml-staging-db-browser
+          path: output/live-pilot/
+          retention-days: 14
