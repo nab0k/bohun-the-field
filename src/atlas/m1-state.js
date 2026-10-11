@@ -20,7 +20,7 @@ export function createAtlasState(seed={}){
 }
 export function selectApproved(records,state){
  if(!Array.isArray(records))return[];
- return records.filter(r=>r?.qa?.decision==='APPROVE'&&r?.qa?.public_release===true&&r?.source_url&&r?.content_hash
+ return records.filter(r=>r?.qa?.decision==='APPROVE'&&r?.qa?.public_release===true&&/^https:\/\//.test(r?.source_url||'')&&r?.content_hash
    &&(!state.country||r.country_iso2===state.country)
    &&(!state.company||r.company_id===state.company)
    &&(!state.event||r.event_id===state.event)
@@ -30,19 +30,47 @@ export function selectApproved(records,state){
    &&(!state.filters.sectors?.length||state.filters.sectors.includes(r.sector)));
 }
 export function mountM1Panels({store,records=[]}){
- const root=document.createElement('section');root.id='m1-intelligence';root.hidden=true;root.setAttribute('aria-label','Verified intelligence');
- root.style.cssText='position:absolute;top:92px;right:12px;z-index:650;max-width:330px;max-height:60vh;overflow:auto;background:#111b18;color:#f3eddb;padding:14px;border:1px solid #8d8867;border-radius:8px';
- document.body.append(root);
- const link=(href,label,parent)=>{const a=document.createElement('a');a.href=href;a.target='_blank';a.rel='noopener noreferrer';a.textContent=label;parent.append(a);};
- const render=state=>{
-  root.replaceChildren();const rows=selectApproved(records,state);root.hidden=rows.length===0;
-  if(!rows.length)return;
-  const heading=document.createElement('h2');heading.textContent='Intelligence · Verified';root.append(heading);
-  for(const r of rows.slice(0,20)){
-   const card=document.createElement('article'),h=document.createElement('h3'),p=document.createElement('p');
-   h.textContent=r.headline;p.textContent=r.takeaway;card.append(h,p);link(r.source_url,'Primary source',card);root.append(card);
-  }
- };
- const unsubscribe=store.subscribe(render);
- return {root,dispose(){unsubscribe();root.remove();}};
+  const create=(id,title,left)=>{
+    const box=document.createElement('aside');
+    box.id=id;box.hidden=true;box.setAttribute('aria-label',title);
+    box.style.cssText='position:fixed;z-index:650;'+(left?'left:14px;bottom:25px;':'right:14px;top:90px;')+
+      'width:min(310px,calc(100vw - 28px));max-height:58vh;overflow:auto;background:#111b18;color:#f3eddb;padding:14px;border:1px solid #8d8867;border-radius:8px';
+    document.body.append(box);return box;
+  };
+  const feed=create('m1-intelligence','Verified Intelligence',false);
+  const dossier=create('m1-dossier','Company evidence dossier',true);
+  const signals=create('m1-signals','Evidence-backed signals',false);
+  signals.style.top='auto';signals.style.bottom='25px';
+  const text=(node,type,value)=>{const child=document.createElement(type);child.textContent=value;node.append(child);return child;};
+  const link=(node,url)=>{
+    const a=document.createElement('a');a.href=url;a.textContent='Primary source';
+    a.target='_blank';a.rel='noopener noreferrer';node.append(a);
+  };
+  const render=state=>{
+    for(const box of [feed,dossier,signals]){box.replaceChildren();box.hidden=true;}
+    const allowed=selectApproved(records,state);
+    if(!allowed.length)return;
+    feed.hidden=false;text(feed,'h2','Intelligence · Verified');
+    for(const item of allowed.slice(0,15)){
+      const entry=document.createElement('article');
+      const title=document.createElement('button');title.type='button';title.textContent=item.headline;
+      title.addEventListener('click',()=>store.selectEvent(item.event_id,item.company_id,item.country_iso2));
+      entry.append(title);text(entry,'p',item.takeaway||'');
+      link(entry,item.source_url);feed.append(entry);
+    }
+    const focused=state.company?allowed.filter(r=>r.company_id===state.company):[];
+    if(focused.length){
+      dossier.hidden=false;text(dossier,'h2','Company · Evidence Dossier');
+      text(dossier,'p',focused[0].company_name||state.company);
+      text(dossier,'p',String(focused.length)+' source-backed approved item(s)');
+      for(const item of focused.slice(0,10))link(dossier,item.source_url);
+    }
+    const verifiedSignals=allowed.filter(r=>r.signal===true&&r.qa?.risk_certified===true);
+    if(verifiedSignals.length){
+      signals.hidden=false;text(signals,'h2','Signals · Verified');
+      for(const item of verifiedSignals.slice(0,10)){text(signals,'p',item.headline);link(signals,item.source_url);}
+    }
+  };
+  const disposeSubscription=store.subscribe(render);
+  return {feed,dossier,signals,dispose(){disposeSubscription();for(const box of [feed,dossier,signals])box.remove();}};
 }
