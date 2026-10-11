@@ -12,7 +12,7 @@ store.selectCountry('AT');assert.equal(store.get().event,null);
 const record={qa:{decision:'APPROVE',public_release:true},country_iso2:'AT',company_id:'at-041',
  event_id:'at-event-1',published_at:'2026-05-05',event_type:'contract',sector:'electronics',
  source_url:'https://example.org/official',content_hash:'sha256:abcd',headline:'Test',takeaway:'Test'};
-assert.equal(selectApproved([record],store.get()).length,0);
+assert.equal(selectApproved([record],store.get()).length,1); // country/period/type match without explicit company/event selection
 store.selectCompany('at-041');store.selectEvent('at-event-1');
 assert.equal(selectApproved([record],store.get()).length,1);
 assert.equal(selectApproved([{...record,qa:{decision:'HOLD',public_release:false}}],store.get()).length,0);
