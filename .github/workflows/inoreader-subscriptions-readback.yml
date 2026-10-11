@@ -27,8 +27,8 @@ jobs:
           import json,sys
           sys.path.insert(0,'collectors/inoreader')
           from sync import access_token,api
-          token=access_token()
-          payload=api('subscription/list',token)
+          try:\n              token=access_token()\n          except RuntimeError as exc:\n              print('READBACK_BLOCKED oauth; no credentials printed: '+str(exc))\n              raise
+          try:\n              payload=api('subscription/list',token)\n          except RuntimeError as exc:\n              print('READBACK_BLOCKED api; '+str(exc)+'; do not rerun until quota reset')\n              raise
           subs=payload.get('subscriptions',[])
           records=[{'id':s.get('id'),'title':s.get('title'),'categories':[c.get('label') for c in s.get('categories',[]) if isinstance(c,dict)]} for s in subs]
           with open('output/inoreader-subscriptions-readback.json','w') as f:
