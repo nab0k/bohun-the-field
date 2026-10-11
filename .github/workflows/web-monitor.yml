@@ -1,5 +1,10 @@
 name: Bohundefence Web Monitor (pilot)
 on:
+  pull_request:
+    paths:
+      - 'collectors/web_monitor/**'
+      - 'tests/test_web_monitor_*.py'
+      - '.github/workflows/web-monitor.yml'
   workflow_dispatch:
     inputs:
       discovery_mode:
@@ -33,6 +38,7 @@ jobs:
       - name: Offline channel discovery tests
         run: python -m unittest discover -s tests -p "test_web_monitor_*.py"
       - name: Discover public pages
+        if: github.event_name != 'pull_request'
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.audit_metadata }}" = "true" ]; then
             python collectors/web_monitor/monitor.py --discovery-mode "${{ inputs.discovery_mode || 'channels' }}" --audit-metadata
