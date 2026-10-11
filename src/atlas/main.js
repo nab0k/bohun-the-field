@@ -13,6 +13,7 @@ import assets from '../game/data/assets.json' with { type: 'json' };
 import { createNight } from './night.js';
 import { mountAustriaInternalReview } from './eng04-internal.js';
 import { createAtlasState, mountM1Panels } from './m1-state.js';
+import { mountCoverageControls } from './p2-coverage.js';
 import { createLive } from './live.js';
 import { createScaleDemo } from './scale-demo.js';
 import { createJourneys, atlasData as data, CATEGORIES, MARKETS, HOME, CANDIDATES, INSIGHTS, OFFERS, SELL_STEPS, BUY_STEPS } from './journeys.js';
@@ -405,7 +406,17 @@ $('#n-companies').textContent = `${atData.companies.length} · Austria`;
 // ---------- search: companies, capitals and Ukrainian centres, countries ----------
 const norm = (t) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const countryFeature = Object.fromEntries(countries.features.map((f) => [f.properties.a3, f]));
+mountCoverageControls({store:m1State,industry,atData,countries,places,
+ onCountry:a3=>{const f=countryFeature[a3];if(f)map.fitBounds(bboxOf(f.geometry),{padding:65,maxZoom:6,pitch:0,duration:1200});},
+ onLayer:layer=>document.getElementById(layer==='world'?'all':layer)?.click()
+});
 const INDEX = [
+  ...industry.companies.filter(c=>c.name&&c.source&&c.country).map(c=>({
+    kind:'global-company',id:c.id,name:c.name,country:c.country,city:c.city,
+    lat:c.lat,lon:c.lon,source:c.source,product:c.product,
+    sub:'Global industry · '+c.country+' · '+(c.city||'public city'),
+    key:norm(c.name+' '+(c.city||'')+' '+(c.about||''))
+  })),
   ...atData.companies.map((c) => ({ kind: 'company', id: c.id, name: c.name, sub: `${PRODUCT[c.cat][0]} · ${c.city}`, color: PRODUCT[c.cat][1], key: norm(`${c.name} ${c.city} ${c.about}`) })),
   ...places.map((p) => ({ kind: 'place', name: p.name, sub: p.kind === 'capital' ? `Capital · ${countryFeature[p.a3]?.properties.name ?? p.a3}` : p.oblast ?? 'Ukraine', lon: p.lon, lat: p.lat, key: norm(p.name) })),
   ...countries.features.map((f) => ({ kind: 'country', a3: f.properties.a3, name: f.properties.name, sub: atData.companies.some((c) => c.a3 === f.properties.a3) ? `Country · ${atData.companies.filter((c) => c.a3 === f.properties.a3).length} companies` : 'Country', key: norm(f.properties.name) })),
@@ -424,9 +435,15 @@ function go(h) {
   qOut.hidden = true; qIn.value = h.name; qIn.blur();
   $('#entry').hidden = true;
   if (h.kind === 'company') { m1State.selectCompany(h.id, 'AT'); if (!companies.state.on) setCompanies(true); companies.select(h.id, { fly: true }); }
+  else if (h.kind==='global-company'){
+    m1State.selectCompany(h.id,h.country);
+    if(!industryOn)setIndustry(true);
+    if(Number.isFinite(h.lon)&&Number.isFinite(h.lat))map.flyTo({center:[h.lon,h.lat],zoom:6,pitch:0,duration:1100});
+    showLiveCard({head:'GLOBAL INDUSTRY · OPEN SOURCE',title:h.name,rows:[['Country',h.country],['City',h.city||'Not provided'],['Sector',h.product]],source:'Original public-source entry',sourceUrl:h.source});
+  }
   else if (h.kind === 'place') { m1State.set({company:null,event:null}); map.flyTo({ center: [h.lon, h.lat], zoom: 9, pitch: 0, duration: 1400 }); }
-  else if (atData.companies.some((c) => c.a3 === h.a3)) { if (h.a3 === 'AUT') m1State.selectCountry('AT'); else m1State.set({country:null,company:null,event:null}); if (!companies.state.on) setCompanies(true); companies.showCountry(h.a3); }
-  else map.fitBounds(bboxOf(countryFeature[h.a3].geometry), { padding: 60, maxZoom: 6, pitch: 0, duration: 1400 });
+  else if (atData.companies.some((c) => c.a3 === h.a3)) { m1State.set({geographyA3:h.a3}); if (h.a3 === 'AUT') m1State.selectCountry('AT'); else m1State.set({country:null,company:null,event:null}); if (!companies.state.on) setCompanies(true); companies.showCountry(h.a3); }
+  else { m1State.set({geographyA3:h.a3,company:null,event:null}); map.fitBounds(bboxOf(countryFeature[h.a3].geometry), { padding: 60, maxZoom: 6, pitch: 0, duration: 1400 }); }
 }
 function renderHits() {
   qOut.replaceChildren();
