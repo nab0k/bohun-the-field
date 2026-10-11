@@ -1,7 +1,7 @@
 name: ENG-04 Atlas Internal Smoke (no deploy)
 on:
   push:
-    branches: [eng04-austria-internal-demo]
+    branches: [eng04-austria-internal-demo, eng04-claude-integration]
   workflow_dispatch:
 permissions:
   contents: read
