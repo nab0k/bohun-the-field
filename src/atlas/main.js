@@ -19,6 +19,17 @@ import { createScaleDemo } from './scale-demo.js';
 import { createJourneys, atlasData as data, CATEGORIES, MARKETS, HOME, CANDIDATES, INSIGHTS, OFFERS, SELL_STEPS, BUY_STEPS } from './journeys.js';
 
 const $ = (s) => document.querySelector(s);
+const navDrawerToggle = document.getElementById('nav-drawer-toggle');
+const navDrawer = document.getElementById('side');
+function setDrawerOpen(open) {
+  navDrawer.classList.toggle('m1-drawer-open',open);
+  navDrawer.setAttribute('aria-hidden',String(!open));
+  navDrawerToggle.setAttribute('aria-expanded',String(open));
+  if(!open&&navDrawer.contains(document.activeElement)) navDrawerToggle.focus();
+}
+navDrawerToggle.addEventListener('click',()=>setDrawerOpen(!navDrawer.classList.contains('m1-drawer-open')));
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&navDrawer.classList.contains('m1-drawer-open'))setDrawerOpen(false);});
+
 const m1State=createAtlasState();
 mountM1Panels({store:m1State,records:[]});
 if(import.meta.env.DEV) window.__bohunM1State=m1State;
