@@ -33,13 +33,14 @@ export function selectApproved(records,state){
 export function mountM1Panels({store,records=[]}){
   const create=(id,title,left)=>{
     const box=document.createElement('aside');
-    box.id=id;box.hidden=true;box.setAttribute('aria-label',title);
+    box.id=id;box.hidden=true;box.setAttribute('aria-label',title);box.setAttribute('role','region');
     box.style.cssText='position:fixed;z-index:650;'+(left?'left:14px;bottom:25px;':'right:14px;top:90px;')+
       'width:min(310px,calc(100vw - 28px));max-height:58vh;overflow:auto;background:#111b18;color:#f3eddb;padding:14px;border:1px solid #8d8867;border-radius:8px';
     document.body.append(box);return box;
   };
   const feed=create('m1-intelligence','Verified Intelligence',false);
   const dossier=create('m1-dossier','Company evidence dossier',true);
+  dossier.hidden=false;
   const signals=create('m1-signals','Evidence-backed signals',false);
   signals.style.top='auto';signals.style.bottom='25px';
   const text=(node,type,value)=>{const child=document.createElement(type);child.textContent=value;node.append(child);return child;};
@@ -49,9 +50,18 @@ export function mountM1Panels({store,records=[]}){
   };
   const render=state=>{
     for(const box of [feed,dossier,signals]){box.replaceChildren();box.hidden=true;}
+    feed.hidden=false;
+    text(feed,'h2','Intelligence Feed');
     const allowed=selectApproved(records,state);
-    if(!allowed.length)return;
-    feed.hidden=false;text(feed,'h2','Intelligence · Verified');
+    if(!allowed.length){
+      dossier.hidden=false;
+      text(dossier,'h2','Company & event dossier');
+      text(dossier,'p','Select a verified map object to inspect its available sources. No analytical dossier is approved for this selection.');
+      text(feed,'p','No QA-approved intelligence items available yet. Research candidates and AI drafts are not published.');
+      text(feed,'p','The map may contain geographic and separately sourced company data; absence from the feed does not mean there are no companies.');
+      return;
+    }
+    text(feed,'p','Verified, source-linked intelligence only.');
     for(const item of allowed.slice(0,15)){
       const entry=document.createElement('article');
       const title=document.createElement('button');title.type='button';title.textContent=item.headline;
