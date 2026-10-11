@@ -227,3 +227,12 @@ button[data-journey], .demo-tag { display:none !important; }
 .p2-coverage-body select {width:100%;background:#172019;color:#faf0d6;border:1px solid #a18f59;padding:9px;font:inherit;}
 .p2-coverage-body .source-note {font-size:10px;color:#b2ae9d;}
 @media(max-width:760px){.p2-coverage-body{max-height:35vh;overflow-y:auto;}}
+
+/* P2 company evidence card must stay legible above expanded source filters. */
+.card.ind {background:#111a16f7;backdrop-filter:blur(9px);}
+@media(max-width:760px){
+  .card.ind {background:#101912 !important;border:2px solid #b6a269;max-height:44vh;bottom:18px !important;top:auto !important;overflow:auto;z-index:700;}
+  .card.ind .panel-head {position:sticky;top:0;background:#101912;z-index:2;}
+  .card.ind .rows {line-height:1.5;}
+  .card.ind .notice {background:#101912;}
+}
