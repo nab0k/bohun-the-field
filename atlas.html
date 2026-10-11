@@ -15,10 +15,12 @@
       <button id="open-need" type="button">I NEED SOMETHING</button>
       <button id="open-have" type="button">I HAVE SOMETHING</button>
       <label class="look">MAP <select id="look" aria-label="Map style"></select></label>
-      <button id="night" type="button" class="ghost">NIGHT</button>
+      <button id="night" type="button" class="ghost moved">NIGHT</button>
       <button id="industry" type="button" class="ghost">INDUSTRY</button>
       <button id="sea" type="button" class="ghost">UNDERSEA INFRASTRUCTURE</button>
-      <button id="live" type="button" class="ghost">LIVE</button>
+      <button id="companies" type="button" class="ghost moved">COMPANIES</button>
+      <button id="live" type="button" class="ghost moved">LIVE</button>
+      <button id="scale" type="button" class="ghost moved">SCALE DEMO</button>
       <button id="all" type="button" class="ghost">WORLD</button>
       <button id="reset" type="button" class="ghost">RESTART</button>
     </nav>
@@ -70,7 +72,28 @@
     <h3 id="ind-title"></h3>
     <div id="ind-body"></div>
   </aside>
-  <div class="legends"><div id="legend" class="legend" hidden></div><div id="legend-sea" class="legend sea" hidden></div><div id="legend-live" class="legend live" hidden></div></div>
+  <div class="legends"><div id="legend" class="legend" hidden></div><div id="legend-sea" class="legend sea" hidden></div></div>
+
+  <aside id="side" class="side" aria-label="Search, layers and filters">
+    <div class="search">
+      <input id="q" type="search" placeholder="Search companies, cities, countries" autocomplete="off" aria-label="Search" aria-controls="q-results" />
+      <ol id="q-results" class="q-results" hidden></ol>
+    </div>
+    <section class="layers">
+      <h4>LAYERS</h4>
+      <label class="layer" data-for="companies"><input type="checkbox" /> <span>Companies</span> <small id="n-companies"></small></label>
+      <label class="layer" data-for="scale" hidden><input type="checkbox" /> <span>Scale demo · 30,000 test points</span></label>
+      <label class="layer" data-for="live"><input type="checkbox" /> <span>Live traffic</span></label>
+      <div id="legend-live" class="legend live sub" hidden></div>
+      <label class="layer" data-for="night"><input type="checkbox" /> <span>Night side of the Earth</span></label>
+    </section>
+    <section class="cats">
+      <h4>CATEGORIES <small>click: on / off · double-click: only this</small></h4>
+      <div id="cat-chips"></div>
+    </section>
+  </aside>
+
+  <aside id="scale-panel" class="scale-panel" hidden aria-label="Companies"></aside>
 
   <p id="note" class="note" role="status" aria-live="polite"></p>
   <p class="demo">Demonstration: illustrative actors, notional days and units, test locations; not real deliveries or deals. Borders: Natural Earth (not a map of territorial control). Map © OpenStreetMap, OpenFreeMap. Night lights: NASA Black Marble. Live traffic: adsb.lol (ODbL), AISStream.io, Fintraffic / digitraffic.fi (CC BY 4.0). Models: Kenney (CC0).</p>

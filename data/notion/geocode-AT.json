@@ -1,0 +1,192 @@
+{
+ "Anger": {
+  "lon": 15.6901,
+  "lat": 47.2745,
+  "osm": "Anger, Bezirk Weiz, Steiermark, Österreich"
+ },
+ "Burgkirchen": {
+  "lon": 13.0991,
+  "lat": 48.203,
+  "osm": "Burgkirchen, Helpfau-Uttendorf, Bezirk Braunau, Oberösterreich, 5274, Österreich"
+ },
+ "Deutsch-Wagram": {
+  "lon": 16.5568,
+  "lat": 48.296,
+  "osm": "Deutsch-Wagram, Bezirk Gänserndorf, Niederösterreich, 2232, Österreich"
+ },
+ "Dornbirn": {
+  "lon": 9.7424,
+  "lat": 47.4136,
+  "osm": "Dornbirn, Bezirk Dornbirn, Vorarlberg, 6850, Österreich"
+ },
+ "Frankenmarkt": {
+  "lon": 13.4192,
+  "lat": 47.9855,
+  "osm": "Frankenmarkt, Bezirk Vöcklabruck, Oberösterreich, Österreich"
+ },
+ "Graz": {
+  "lon": 15.4383,
+  "lat": 47.0709,
+  "osm": "Graz, Steiermark, Österreich"
+ },
+ "Groß-Siegharts": {
+  "lon": 15.4045,
+  "lat": 48.7911,
+  "osm": "Groß-Siegharts, Bezirk Waidhofen an der Thaya, Niederösterreich, 3812, Österreich"
+ },
+ "Hirtenberg": {
+  "lon": 16.181,
+  "lat": 47.9312,
+  "osm": "Hirtenberg, Bezirk Baden, Niederösterreich, 2552, Österreich"
+ },
+ "Illmitz": {
+  "lon": 16.8008,
+  "lat": 47.7611,
+  "osm": "Illmitz, Bezirk Neusiedl am See, Burgenland, 7142, Österreich"
+ },
+ "Jois": {
+  "lon": 16.7948,
+  "lat": 47.9621,
+  "osm": "Jois, Bezirk Neusiedl am See, Burgenland, 7093, Österreich"
+ },
+ "Kaltenbach": {
+  "lon": 11.8744,
+  "lat": 47.2908,
+  "osm": "Kaltenbach, Bezirk Schwaz, Tirol, 6272, Österreich"
+ },
+ "Kapfenberg": {
+  "lon": 15.2902,
+  "lat": 47.4405,
+  "osm": "Kapfenberg, Bezirk Bruck-Mürzzuschlag, Steiermark, 8605, Österreich"
+ },
+ "Kleinraming": {
+  "lon": 14.4898,
+  "lat": 48.0109,
+  "osm": "Kleinraming, St. Ulrich bei Steyr, Bezirk Steyr-Land, Oberösterreich, 4442, Österreich"
+ },
+ "Leoben": {
+  "lon": 15.0948,
+  "lat": 47.3805,
+  "osm": "Leoben, Bezirk Leoben, Steiermark, 8700, Österreich"
+ },
+ "Leonding": {
+  "lon": 14.2487,
+  "lat": 48.2793,
+  "osm": "Leonding, Bezirk Linz-Land, Oberösterreich, 4060, Österreich"
+ },
+ "Liezen": {
+  "lon": 14.2421,
+  "lat": 47.5677,
+  "osm": "Liezen, Bezirk Liezen, Steiermark, 8940, Österreich"
+ },
+ "Lingenau": {
+  "lon": 9.917,
+  "lat": 47.4522,
+  "osm": "Lingenau, Bezirk Bregenz, Vorarlberg, 6951, Österreich"
+ },
+ "Margarethen am Moos": {
+  "lon": 16.6034,
+  "lat": 48.0469,
+  "osm": "Margarethen am Moos, Enzersdorf an der Fischa, Bezirk Bruck an der Leitha, Niederösterreich, 2433, Österreich"
+ },
+ "Mils": {
+  "lon": 11.5293,
+  "lat": 47.2875,
+  "osm": "Mils, Bezirk Innsbruck-Land, Tirol, 6068, Österreich"
+ },
+ "Mistelbach bei Wels": {
+  "lon": 14.0618,
+  "lat": 48.2392,
+  "osm": "Mistelbach bei Wels, Buchkirchen, Bezirk Wels-Land, Oberösterreich, 4613, Österreich"
+ },
+ "Radfeld": {
+  "lon": 11.9079,
+  "lat": 47.4464,
+  "osm": "Radfeld, Bezirk Kufstein, Tirol, 6241, Österreich"
+ },
+ "Ranshofen": {
+  "lon": 13.0149,
+  "lat": 48.2352,
+  "osm": "Ranshofen, Braunau am Inn, Helpfau-Uttendorf, Bezirk Braunau, Oberösterreich, 5282, Österreich"
+ },
+ "Rüstorf": {
+  "lon": 13.7897,
+  "lat": 48.0416,
+  "osm": "Rüstorf, Bezirk Vöcklabruck, Oberösterreich, Österreich"
+ },
+ "Salzburg": {
+  "lon": 13.0465,
+  "lat": 47.7981,
+  "osm": "Salzburg, Österreich"
+ },
+ "Schlitters": {
+  "lon": 11.8407,
+  "lat": 47.3772,
+  "osm": "Schlitters, Bezirk Schwaz, Tirol, 6262, Österreich"
+ },
+ "Schwanenstadt": {
+  "lon": 13.7749,
+  "lat": 48.0545,
+  "osm": "Schwanenstadt, Bezirk Vöcklabruck, Oberösterreich, Österreich"
+ },
+ "Selzthal": {
+  "lon": 14.3144,
+  "lat": 47.5495,
+  "osm": "Selzthal, Bezirk Liezen, Steiermark, 8900, Österreich"
+ },
+ "Sitzenberg-Reidling": {
+  "lon": 15.8182,
+  "lat": 48.3107,
+  "osm": "Sitzenberg-Reidling, Bezirk Tulln, Niederösterreich, Österreich"
+ },
+ "St. Barbara im Mürztal": {
+  "lon": 15.4649,
+  "lat": 47.576,
+  "osm": "St. Barbara im Mürztal, Bezirk Bruck-Mürzzuschlag, Steiermark, Österreich"
+ },
+ "St. Peter ob Judenburg": {
+  "lon": 14.5781,
+  "lat": 47.1617,
+  "osm": "St. Peter ob Judenburg, Bezirk Murtal, Steiermark, 8755, Österreich"
+ },
+ "Steyr": {
+  "lon": 14.4191,
+  "lat": 48.039,
+  "osm": "Steyr, Oberösterreich, 4400, Österreich"
+ },
+ "Thalheim bei Wels": {
+  "lon": 14.031,
+  "lat": 48.1522,
+  "osm": "Thalheim bei Wels, Bezirk Wels-Land, Oberösterreich, Österreich"
+ },
+ "Tillmitsch": {
+  "lon": 15.517,
+  "lat": 46.8129,
+  "osm": "Tillmitsch, Bezirk Leibnitz, Steiermark, 8434, Österreich"
+ },
+ "Traiskirchen": {
+  "lon": 16.2952,
+  "lat": 48.0139,
+  "osm": "Traiskirchen, Bezirk Baden, Niederösterreich, Österreich"
+ },
+ "Vienna": {
+  "lon": 16.3725,
+  "lat": 48.2084,
+  "osm": "Wien, Österreich"
+ },
+ "Völkermarkt": {
+  "lon": 14.6341,
+  "lat": 46.6604,
+  "osm": "Völkermarkt, Bezirk Völkermarkt, Kärnten, Österreich"
+ },
+ "Waldneukirchen": {
+  "lon": 14.2597,
+  "lat": 47.9962,
+  "osm": "Waldneukirchen, Bezirk Steyr-Land, Oberösterreich, 4595, Österreich"
+ },
+ "Wiener Neustadt": {
+  "lon": 16.2441,
+  "lat": 47.8132,
+  "osm": "Wiener Neustadt, Niederösterreich, 2700, Österreich"
+ }
+}

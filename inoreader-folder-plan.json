@@ -1,0 +1,170 @@
+[
+  {
+    "title": "Ministry of Defence - Activity on GOV.UK",
+    "feed_id": "feed/https://www.gov.uk/government/organisations/ministry-of-defence.atom",
+    "target_folder": "BOHUN_03_GOVERNMENT",
+    "existing_folders": []
+  },
+  {
+    "title": "Zone Militaire",
+    "feed_id": "feed/https://www.opex360.com/feed/",
+    "target_folder": "BOHUN_01_DEFENCE_MEDIA",
+    "existing_folders": [
+      "Media & Analysis"
+    ]
+  },
+  {
+    "title": "UK Defence Journal",
+    "feed_id": "feed/https://ukdefencejournal.org.uk/feed/",
+    "target_folder": "BOHUN_01_DEFENCE_MEDIA",
+    "existing_folders": [
+      "Media & Analysis"
+    ]
+  },
+  {
+    "title": "Der Monitor für Defence und Sicherheitspolitik",
+    "feed_id": "feed/https://www.hartpunkt.de/feed/",
+    "target_folder": "BOHUN_01_DEFENCE_MEDIA",
+    "existing_folders": [
+      "Media & Analysis"
+    ]
+  },
+  {
+    "title": "Crunchbase News",
+    "feed_id": "feed/https://news.crunchbase.com/feed/",
+    "target_folder": "BOHUN_08_INVESTORS_VC",
+    "existing_folders": [
+      "Capital Aid & Events"
+    ]
+  },
+  {
+    "title": "Defence and Security Accelerator - Activity on GOV.UK",
+    "feed_id": "feed/https://www.gov.uk/government/organisations/defence-and-security-accelerator.atom",
+    "target_folder": "BOHUN_04_PROCUREMENT",
+    "existing_folders": []
+  },
+  {
+    "title": "Defense News",
+    "feed_id": "feed/https://www.defensenews.com/arc/outboundfeeds/rss/category/air/?outputType=xml",
+    "target_folder": "BOHUN_01_DEFENCE_MEDIA",
+    "existing_folders": []
+  },
+  {
+    "title": "Defense News",
+    "feed_id": "feed/https://www.defensenews.com/arc/outboundfeeds/rss/category/global/?outputType=xml",
+    "target_folder": "BOHUN_01_DEFENCE_MEDIA",
+    "existing_folders": []
+  },
+  {
+    "title": "Defense News",
+    "feed_id": "feed/https://www.defensenews.com/arc/outboundfeeds/rss/category/land/?outputType=xml",
+    "target_folder": "BOHUN_01_DEFENCE_MEDIA",
+    "existing_folders": []
+  },
+  {
+    "title": "Defense News",
+    "feed_id": "feed/https://www.defensenews.com/arc/outboundfeeds/rss/category/training-sim/?outputType=xml",
+    "target_folder": "BOHUN_01_DEFENCE_MEDIA",
+    "existing_folders": []
+  },
+  {
+    "title": "Defense News",
+    "feed_id": "feed/https://www.defensenews.com/arc/outboundfeeds/rss/category/industry/?outputType=xml",
+    "target_folder": "BOHUN_01_DEFENCE_MEDIA",
+    "existing_folders": []
+  },
+  {
+    "title": "Defense News",
+    "feed_id": "feed/https://www.defensenews.com/arc/outboundfeeds/rss/category/naval/?outputType=xml",
+    "target_folder": "BOHUN_01_DEFENCE_MEDIA",
+    "existing_folders": []
+  },
+  {
+    "title": "Defense News",
+    "feed_id": "feed/https://www.defensenews.com/arc/outboundfeeds/rss/category/pentagon/?outputType=xml",
+    "target_folder": "BOHUN_01_DEFENCE_MEDIA",
+    "existing_folders": []
+  },
+  {
+    "title": "Defense News",
+    "feed_id": "feed/https://www.defensenews.com/arc/outboundfeeds/rss/category/unmanned/?outputType=xml",
+    "target_folder": "BOHUN_01_DEFENCE_MEDIA",
+    "existing_folders": []
+  },
+  {
+    "title": "Defense News",
+    "feed_id": "feed/https://www.defensenews.com/arc/outboundfeeds/rss/category/space/?outputType=xml",
+    "target_folder": "BOHUN_01_DEFENCE_MEDIA",
+    "existing_folders": []
+  },
+  {
+    "title": "Defense News",
+    "feed_id": "feed/https://www.defensenews.com/arc/outboundfeeds/rss/category/congress/?outputType=xml",
+    "target_folder": "BOHUN_01_DEFENCE_MEDIA",
+    "existing_folders": []
+  },
+  {
+    "title": "Air & Space Forces Magazine",
+    "feed_id": "feed/https://www.airandspaceforces.com/feed/",
+    "target_folder": "BOHUN_01_DEFENCE_MEDIA",
+    "existing_folders": [
+      "Media & Analysis"
+    ]
+  },
+  {
+    "title": "Indian Defence Review",
+    "feed_id": "feed/https://indiandefencereview.com/feed/",
+    "target_folder": "BOHUN_01_DEFENCE_MEDIA",
+    "existing_folders": [
+      "Media & Analysis"
+    ]
+  },
+  {
+    "title": "TEKEVER",
+    "feed_id": "feed/https://www.tekever.com/feed/",
+    "target_folder": "BOHUN_02_INDUSTRY",
+    "existing_folders": [
+      "Industry & Companies"
+    ]
+  },
+  {
+    "title": "Anduril Blog",
+    "feed_id": "feed/https://www.anduril.com/feed.xml",
+    "target_folder": "BOHUN_02_INDUSTRY",
+    "existing_folders": [
+      "Industry & Companies"
+    ]
+  },
+  {
+    "title": "Quantum Systems",
+    "feed_id": "feed/https://quantum-systems.com/feed/",
+    "target_folder": "BOHUN_02_INDUSTRY",
+    "existing_folders": [
+      "Industry & Companies"
+    ]
+  },
+  {
+    "title": "AFWERX",
+    "feed_id": "feed/https://afwerx.com/feed/",
+    "target_folder": "BOHUN_09_STARTUPS",
+    "existing_folders": [
+      "Capital Aid & Events"
+    ]
+  },
+  {
+    "title": "Laman Utama",
+    "feed_id": "feed/https://www.mod.gov.my/index.php?format=feed&type=rss",
+    "target_folder": "BOHUN_03_GOVERNMENT",
+    "existing_folders": [
+      "Government & Procurement"
+    ]
+  },
+  {
+    "title": "Kratos Defense",
+    "feed_id": "feed/https://www.kratosdefense.com/feed",
+    "target_folder": "BOHUN_02_INDUSTRY",
+    "existing_folders": [
+      "Industry & Companies"
+    ]
+  }
+]
