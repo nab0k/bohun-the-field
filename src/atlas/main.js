@@ -180,7 +180,7 @@ const PRODUCT = {
   software: ['Software', '#7d5aa6'], propulsion: ['Propulsion and drives', '#c08a2a'], components: ['Components and materials', '#8a8a5a'], testing: ['Testing and research', '#4a8a8a'],
 };
 const industry = await fetch('/atlas/industry.json').then((r) => r.json());
-mountAustriaInternalReview({map, industry});
+
 // several companies share one city centre: spread them on a small ring so each stays clickable (the point is the city, not an address)
 const byCity = {};
 for (const c of industry.companies) (byCity[c.lon + ',' + c.lat] ??= []).push(c);
@@ -342,6 +342,7 @@ scale.setOn(false);
 // ---------- companies from the research catalogue (Notion DB | Companies: accepted + Publishable), first country Austria ----------
 // built by scripts/build-companies.mjs; the point is the city centre, companies of one city are spread on a small ring
 const atData = await fetch('/atlas/companies-at.json').then((r) => r.json());
+mountAustriaInternalReview({map, industry, atData});
 const ringed = (list) => { const g = {}; for (const c of list) (g[c.lon + ',' + c.lat] ??= []).push(c); return Object.values(g).flatMap((cs) => cs.map((c, i) => { const r = cs.length > 1 ? 0.012 + 0.003 * cs.length : 0, a = (i / cs.length) * Math.PI * 2; return { ...c, lon: c.lon + (r * Math.cos(a)) / Math.cos((c.lat * Math.PI) / 180), lat: c.lat + r * Math.sin(a) }; })); };
 const FLAG_EN = { 'OWNERSHIP OPEN': 'Ownership not fully confirmed', 'SOURCE CONFLICT': 'Sources disagree on some details', 'LEGAL REVIEW': 'Under legal review', 'NO CITY': 'City not confirmed' };
 const companies = createScaleDemo(map, {
