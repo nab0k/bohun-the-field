@@ -16,6 +16,13 @@ jobs:
           python-version: '3.12'
       - name: Check source-bound IDs, reject invented evidence, fail closed
         run: |
+          python - <<'PY'
+          import json
+          schema=json.load(open('intelligence/schemas/intelligence-card-v1.schema.json'))
+          c=schema['properties']['claims']['items']
+          assert 'evidence_id' in c['required'] and 'evidence_id' in c['properties']
+          print('Shared intelligence card evidence_id required: PASS')
+          PY
           python -m py_compile scripts/eng09_evidence_resolver.py
           python scripts/eng09_evidence_resolver.py
       - name: Retrieve actual Lockheed Martin K6 published HTML and text spans
