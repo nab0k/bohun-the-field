@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {coverageSummary} from '../src/atlas/p2-coverage.js';
+const industry=JSON.parse(fs.readFileSync('public/atlas/industry.json','utf8'));
+const atData=JSON.parse(fs.readFileSync('public/atlas/companies-at.json','utf8'));
+const summary=coverageSummary({industry,atData,countries:{features:[]},places:[]});
+assert.equal(summary.global.length,industry.companies.filter(x=>x.source&&x.name&&/^[A-Z]{2}$/.test(x.country||'')).length);
+assert.equal(summary.global.length,72);
+assert.equal(summary.candidate.length,41);
+assert.equal(summary.ua.length,17);
+assert.equal(summary.globalCountryCounts.length,5);
+assert.equal(summary.approvedAnalytics,0);
+assert.ok(summary.categories.includes('electronics'));
+assert.ok(summary.globalCountryCounts.some(([c])=>c==='DE'));
+assert.ok(summary.globalCountryCounts.some(([c])=>c==='PL'));
+console.log('P2 coverage source-derived PASS: industry='+summary.global.length+', AT unflagged='+summary.candidate.length+', UA name-only='+summary.ua.length+', source-country-groups='+summary.globalCountryCounts.length);
