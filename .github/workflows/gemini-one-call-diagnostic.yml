@@ -29,7 +29,7 @@ jobs:
               with urllib.request.urlopen(request('GET',base+'models?pageSize=1000'),timeout=25) as response:
                   catalog=json.load(response)
               supported={m.get('name','').removeprefix('models/') for m in catalog.get('models',[]) if 'generateContent' in m.get('supportedGenerationMethods',[])}
-              preferred=['gemini-2.5-flash-lite','gemini-2.5-flash','gemini-2.0-flash-lite']
+              preferred=['gemini-3.5-flash-lite']
               model=next((m for m in preferred if m in supported),None)
               if not model:
                   print('RESULT=BLOCKED_NO_PREFERRED_MODEL; supported_count='+str(len(supported)))
