@@ -11,6 +11,7 @@ import { createFlows, MODES, pointAt } from '../flows/core.js';
 import frame from '../flows/data/world-frame.json' with { type: 'json' };
 import assets from '../game/data/assets.json' with { type: 'json' };
 import { createNight } from './night.js';
+import { mountAustriaInternalReview } from './eng04-internal.js';
 import { createLive } from './live.js';
 import { isoIcon } from './iso.js';
 import { createJourneys, atlasData as data, CATEGORIES, MARKETS, HOME, CANDIDATES, INSIGHTS, OFFERS, SELL_STEPS, BUY_STEPS } from './journeys.js';
@@ -170,6 +171,7 @@ const PRODUCT = {
   software: ['Software', '#7d5aa6'], propulsion: ['Propulsion and drives', '#c08a2a'], components: ['Components and materials', '#8a8a5a'], testing: ['Testing and research', '#4a8a8a'],
 };
 const industry = await fetch(BASE + 'atlas/industry.json').then((r) => r.json());
+mountAustriaInternalReview({map, industry});
 // several companies share one city centre: spread them on a small ring so each stays clickable (the point is the city, not an address)
 const byCity = {};
 for (const c of industry.companies) (byCity[c.lon + ',' + c.lat] ??= []).push(c);
