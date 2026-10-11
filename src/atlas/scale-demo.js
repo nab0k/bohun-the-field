@@ -93,6 +93,27 @@ export function createScaleDemo(map, { maplibregl, countries, categories, $, dat
     return [{ type: 'FeatureCollection', features: polys }, { type: 'FeatureCollection', features: pts }];
   };
   const [cPoly, cPts] = countryFc();
+  // World overview: one small flag for a country with records, never a permanent total.
+  // Not a claim of exhaustive national coverage or verified legal-company counts.
+  const ISO2={AUT:'AT',DEU:'DE',FRA:'FR',ITA:'IT',POL:'PL',CZE:'CZ',BEL:'BE',NLD:'NL',GBR:'GB',USA:'US',CAN:'CA',ESP:'ES',PRT:'PT',SWE:'SE',NOR:'NO',DNK:'DK',FIN:'FI',CHE:'CH',UKR:'UA',AUS:'AU',NZL:'NZ',JPN:'JP',KOR:'KR',IND:'IN',BRA:'BR',ZAF:'ZA',SGP:'SG'};
+  const flag=(a3)=>{const code=ISO2[a3];return code?String.fromCodePoint(...[...code].map(ch=>127397+ch.charCodeAt(0))):null};
+  const flagMarkers=cPts.features.filter(f=>flag(f.properties.a3)).map(f=>{
+    const p=f.properties,element=document.createElement('button');
+    element.type='button';element.className='country-microflag';element.textContent=flag(p.a3);
+    element.setAttribute('aria-label',p.name+' research data. Open country coverage');
+    element.title=p.name+' · '+p.n+' research records (not national completeness)';
+    element.addEventListener('click',ev=>{ev.stopPropagation();showCountry(p.a3)});
+    return new maplibregl.Marker({element,anchor:'center'}).setLngLat(f.geometry.coordinates);
+  });
+  let flagsVisible=false;
+  function syncFlags(){
+    const show=state.on&&map.getZoom()<3;
+    if(show===flagsVisible)return;
+    for(const marker of flagMarkers) show?marker.addTo(map):marker.remove();
+    flagsVisible=show;
+  }
+  map.on('zoomend',syncFlags);
+  map.on('moveend',syncFlags);
   map.addSource(`${P}-countries`, { type: 'geojson', data: cPoly });
   map.addSource(`${P}-country-pts`, { type: 'geojson', data: cPts });
   map.addSource(P, { type: 'geojson', data: fc(all), cluster: true, clusterRadius: 52, clusterMaxZoom: 7, clusterProperties: Object.fromEntries(catKeys.map((k) => [k, ['+', ['case', ['==', ['get', 'cat'], k], 1, 0]]])) });
@@ -106,6 +127,9 @@ export function createScaleDemo(map, { maplibregl, countries, categories, $, dat
   map.addLayer({ id: `${P}-sel`, type: 'circle', source: P, minzoom: 3, filter: ['in', ['get', 'id'], ['literal', []]], paint: { 'circle-color': 'rgba(0,0,0,0)', 'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 10, 13, 16], 'circle-stroke-color': '#e2b84a', 'circle-stroke-width': 3 } });
   map.addLayer({ id: `${P}-point`, type: 'circle', source: P, minzoom: 3, filter: ['!', ['has', 'point_count']], paint: { 'circle-color': ['get', 'color'], 'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, ['case', ['get', 'big'], 5, 4], 9, ['case', ['get', 'big'], 8, 6], 13, ['case', ['get', 'big'], 11, 8]], 'circle-stroke-color': '#fff6cf', 'circle-stroke-width': 1.2 } });
   map.addLayer({ id: `${P}-name`, type: 'symbol', source: P, minzoom: Math.min(7.5, namesFrom), filter: ['all', ['!', ['has', 'point_count']], ['any', ['get', 'big'], ['>=', ['zoom'], namesFrom]]], layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Bold'], 'text-size': 10, 'text-offset': [0, 1], 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': '#22201a', 'text-halo-color': '#f7efd2', 'text-halo-width': 1.4 } });
+  // Legacy number/dot country overlays are deliberately hidden for the world view.
+  map.setLayoutProperty(`${P}-country-dot`,'visibility','none');
+  map.setLayoutProperty(`${P}-country-n`,'visibility','none');
   const LAYERS = [`${P}-country-hit`, `${P}-country-line`, `${P}-country-fill`, `${P}-country-dot`, `${P}-country-n`, `${P}-cluster`, `${P}-sel`, `${P}-point`, `${P}-name`];
   const syncSel = () => map.setFilter(`${P}-sel`, ['in', ['get', 'id'], ['literal', [state.selected, state.hover].filter(Boolean).map(String)]]);
   const syncCountryLine = () => map.setFilter(`${P}-country-line`, ['==', ['get', 'a3'], state.country ?? '']);
@@ -283,8 +307,8 @@ export function createScaleDemo(map, { maplibregl, countries, categories, $, dat
 
   function setOn(on) {
     state.on = on;
-    for (const id of LAYERS) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
-    panel.hidden = !on; tip.remove();
+    for (const id of LAYERS) map.setLayoutProperty(id, 'visibility', on && ![`${P}-country-dot`,`${P}-country-n`].includes(id) ? 'visible' : 'none');
+    panel.hidden = !on; tip.remove();syncFlags();
     if (on) { frame(); $('#cat-chips').replaceChildren(chipsBox); state.view = 'list'; state.selected = null; syncSel(); syncList(); }
     else { for (const m of onScreen.values()) m.remove(); onScreen = new Map(); if ($('#cat-chips').firstChild === chipsBox) $('#cat-chips').replaceChildren(); }
   }
