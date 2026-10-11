@@ -12,7 +12,7 @@ for(const c of [{name:'desktop',viewport:{width:1440,height:900}},{name:'mobile'
   const allRegions=await coverage.locator('select[aria-label="Geographic map view"] option').count();
   await coverage.locator('select[aria-label="Industry / category"]').selectOption('electronics');
   const filters=await p.evaluate(()=>window.__bohunM1State.get().filters.sectors);
-  await p.locator('#q').fill('Rheinmetall');
+  await p.locator('#q').fill('Rheinmetall AG');
   await p.locator('#q-results button').first().waitFor({state:'attached',timeout:10000});
   const searchResult=await p.locator('#q-results button').first().innerText();
   await p.locator('#q-results button').first().dispatchEvent('mousedown');
