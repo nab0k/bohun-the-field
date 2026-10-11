@@ -1,0 +1,43 @@
+name: P1 Bohun Defence brand Night CI (NO DEPLOY)
+on:
+  push:
+    branches: [p1-brand-night-map-review]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  p1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: node scripts/test-m1-state.mjs
+      - run: npm run build
+      - run: npm run build:site
+      - name: Browser setup
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Vite developer preview
+        run: |
+          mkdir -p output/p1
+          (npm run dev -- --host 127.0.0.1 --port 5174 > output/p1/vite.log 2>&1 &)
+          for i in $(seq 1 35); do
+            if curl -fsS http://127.0.0.1:5174/atlas.html >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          exit 1
+      - name: P1 brand and zoom/night screenshot tests
+        run: node scripts/p1-brand-night-smoke.mjs
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p1-desktop-mobile-night-audit
+          path: output/p1/
+          retention-days: 14

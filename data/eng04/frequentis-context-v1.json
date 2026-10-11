@@ -1,0 +1,83 @@
+{
+  "context_version": "eng04-frequentis-at-v1",
+  "source_mode": "EXTERNAL_OFFICIAL_TEST_FIXTURE_NOT_IN_SUPABASE",
+  "read_only_audit": {
+    "run_id": 38139201410,
+    "source": "existing intelligence.items",
+    "query_fields": [
+      "title",
+      "url"
+    ],
+    "matched_rows": 0,
+    "lookup_status": "PASS",
+    "does_not_prove": "absence in raw_data or other systems"
+  },
+  "event": {
+    "event_id": "ENG04-AT-FREQUENTIS-20260505",
+    "title": "Frequentis reports award for modernising Austrian military aeronautical radio communication systems",
+    "event_date": "2026-05-05",
+    "date_basis": "issuer press document filename/date",
+    "event_type": "issuer_reported_contract_award",
+    "source_claim_status": "PUBLISHER_CLAIM",
+    "primary_url": "https://www.frequentis.com/sites/default/files/pr/2026-05/20260505-pr-Frequentis-BMLV_Flugfunksystem_EN.pdf",
+    "verified_independent_contract_award_notice": null,
+    "contract_amount": null,
+    "facility_location": null
+  },
+  "company": {
+    "name": "Frequentis AG",
+    "research_id": "at-041",
+    "research_ref": "public/atlas/companies-at.json",
+    "country_iso2": "AT",
+    "public_city": "Vienna",
+    "city_location_role": "HQ_CITY_CENTROID_NOT_EVENT_VENUE",
+    "sector": "electronics",
+    "company_about": "Mission-critical communications and military ATC",
+    "research_record_confidence": "medium",
+    "ownership_group": null,
+    "group_proof": null,
+    "corporate_relationships": [],
+    "research_source_url": "https://de.finance.yahoo.com/quote/FQT.F/profile",
+    "flag_count_in_snapshot": 0,
+    "company_snapshot": "2026-10-09"
+  },
+  "claim_records": [
+    {
+      "claim_id": "eng04-claim-1",
+      "classification": "PUBLISHER_CLAIM",
+      "statement": "Frequentis states that Austria's defence ministry awarded a contract concerning modernisation of military aeronautical radio communication systems.",
+      "source_url": "https://www.frequentis.com/sites/default/files/pr/2026-05/20260505-pr-Frequentis-BMLV_Flugfunksystem_EN.pdf",
+      "source_role": "issuer",
+      "literal_evidence_quote": null,
+      "independent_confirmation": false,
+      "qa_status": "PENDING_PRIMARY_DOCUMENT_QUOTE_RECHECK"
+    },
+    {
+      "claim_id": "eng04-claim-2",
+      "classification": "OBSERVED_RESEARCH_RECORD",
+      "statement": "The existing Claude Austria dataset includes Frequentis AG in Vienna under electronics.",
+      "source_url": "https://github.com/nab0k/bohun-the-field/blob/eng04-claude-integration/public/atlas/companies-at.json",
+      "source_role": "internal_research_export",
+      "source_record_id": "at-041",
+      "qa_status": "PENDING_QA_08"
+    }
+  ],
+  "reasoning_constraints": [
+    "No promotion of issuer claim to independently verified award",
+    "No inferred new supplier, investment, manufacturing or ownership edge",
+    "No location precision beyond safe Vienna public city centre",
+    "No automatic facts written to Knowledge Base",
+    "Unknown values stay null",
+    "No publication until QA-08"
+  ],
+  "model": {
+    "planned": "gemini-3.5-flash-lite",
+    "executed": false,
+    "usage_tokens": null,
+    "cost": null
+  },
+  "qa": {
+    "state": "PENDING_QA_08",
+    "public_release": false
+  }
+}

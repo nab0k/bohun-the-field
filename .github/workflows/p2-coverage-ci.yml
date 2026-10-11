@@ -1,0 +1,44 @@
+name: P2 Global Atlas Coverage Controls (NO DEPLOY)
+on:
+  push:
+    branches: [p2-global-coverage-controls-review]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: node scripts/test-m1-state.mjs
+      - run: node scripts/test-p2-coverage.mjs
+      - run: npm run build
+      - run: npm run build:site
+      - name: Install browser
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Serve original atlas for P2
+        run: |
+          mkdir -p output/p2
+          (npm run dev -- --host 127.0.0.1 --port 5174 > output/p2/vite.log 2>&1 &)
+          for i in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:5174/atlas.html >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          exit 1
+      - name: P2 Chromium desktop/mobile navigation and real global company
+        run: node scripts/p2-browser-smoke.mjs
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p2-global-source-coverage-screenshots
+          path: output/p2/
+          retention-days: 14

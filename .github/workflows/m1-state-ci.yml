@@ -1,0 +1,47 @@
+name: M1 State and Atlas Regression (NO DEPLOY)
+on:
+  push:
+    branches: [m1-shared-state-review]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  m1-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: node scripts/test-m1-state.mjs
+      - run: python3 -m py_compile scripts/m1-one-event-private.py
+      - run: node scripts/test-m1-ai-guard.mjs
+      - run: npm run build
+      - run: npm run build:site
+      - name: Install isolated Chromium browser
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Serve the original atlas locally
+        run: |
+          mkdir -p output/m1
+          (npm run dev -- --host 127.0.0.1 --port 5174 > output/m1/vite.log 2>&1 &)
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:5174/atlas.html >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          exit 1
+      - name: Desktop and mobile M1 Chromium test
+        run: node scripts/m1-browser-smoke.mjs
+      - name: Store internal screenshots and audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m1-responsive-atlas-evidence
+          path: output/m1/
+          retention-days: 7
+          if-no-files-found: warn

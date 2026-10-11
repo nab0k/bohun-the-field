@@ -12,11 +12,29 @@ import frame from '../flows/data/world-frame.json' with { type: 'json' };
 import assets from '../game/data/assets.json' with { type: 'json' };
 import { createNight } from './night.js';
 import { mountAustriaInternalReview } from './eng04-internal.js';
+import { createAtlasState, mountM1Panels } from './m1-state.js';
+import { mountCoverageControls } from './p2-coverage.js';
 import { createLive } from './live.js';
 import { createScaleDemo } from './scale-demo.js';
 import { createJourneys, atlasData as data, CATEGORIES, MARKETS, HOME, CANDIDATES, INSIGHTS, OFFERS, SELL_STEPS, BUY_STEPS } from './journeys.js';
 
 const $ = (s) => document.querySelector(s);
+const navDrawerToggle = document.getElementById('nav-drawer-toggle');
+const navDrawer = document.getElementById('side');
+function setDrawerOpen(open) {
+  navDrawer.classList.toggle('m1-drawer-open',open);
+  navDrawer.setAttribute('aria-hidden',String(!open));
+  navDrawer.inert=!open;
+  navDrawerToggle.setAttribute('aria-expanded',String(open));
+  if(open) navDrawer.querySelector('#q')?.focus();
+  if(!open&&navDrawer.contains(document.activeElement)) navDrawerToggle.focus();
+}
+navDrawerToggle.addEventListener('click',()=>setDrawerOpen(!navDrawer.classList.contains('m1-drawer-open')));
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&navDrawer.classList.contains('m1-drawer-open'))setDrawerOpen(false);});
+
+const m1State=createAtlasState();
+mountM1Panels({store:m1State,records:[]});
+if(import.meta.env.DEV) window.__bohunM1State=m1State;
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const params = new URLSearchParams(location.search);
@@ -103,14 +121,8 @@ const REGIONS = [['UKRAINE', 33.0, 48.95, 18], ['BLACK SEA', 34.5, 43.2, 13], ['
 
 // ---------- map ----------
 // map looks to compare (?look=...): all use free OpenFreeMap styles; relief adds a public elevation dataset (AWS Terrain Tiles)
-export const LOOKS = {
-  relief: { label: 'Relief', base: 'liberty' },
-  hills: { label: 'Relief + hill shading', base: 'liberty', hillshade: true },
-  parchment: { label: 'Old map', base: 'liberty', parchment: true, hillshade: true },
-  dark: { label: 'Dark', base: 'dark' },
-  light: { label: 'Light minimal', base: 'positron' },
-};
-const LOOK = LOOKS[params.get('look')] ? params.get('look') : 'relief';
+export const LOOKS = { light: { label: 'Light minimal', base: 'positron' } };
+const LOOK = 'light';
 // capitals of the world and the 24 oblast centres of Ukraine (scripts/build-places.mjs, Natural Earth)
 const places = (await fetch('/atlas/places.json').then((r) => r.json())).places;
 async function loadStyle() {
@@ -163,14 +175,26 @@ if (PROJECTION === 'globe') map.setProjection({ type: 'globe' });
 
 // night side with city lights (NASA Black Marble), redrawn every 5 minutes as the Earth turns; ?night=0 switches it off
 let nightOn = params.get('night') !== '0';
+// Night preference is separate from effective visibility. World/global view only.
+export const NIGHT_MAX_ZOOM = 2.6;
+const nightVisible = () => nightOn && map.getZoom() <= NIGHT_MAX_ZOOM;
 createNight().then((night) => {
   map.addSource('night', { type: 'canvas', canvas: night.canvas, coordinates: night.coordinates, animate: false });
-  map.addLayer({ id: 'night', type: 'raster', source: 'night', paint: { 'raster-opacity': 0.88, 'raster-fade-duration': 0 }, layout: { visibility: nightOn ? 'visible' : 'none' } }, 'eu-tint');
+  map.addLayer({ id: 'night', type: 'raster', source: 'night', paint: { 'raster-opacity': 0.88, 'raster-fade-duration': 0 }, layout: { visibility: nightVisible() ? 'visible' : 'none' } }, 'eu-tint');
   const refresh = () => { night.draw(new Date()); const src = map.getSource('night'); src.play(); requestAnimationFrame(() => src.pause()); };
   setInterval(refresh, 5 * 60 * 1000);
   window.__night = { refresh, draw: night.draw };
-  $('#night').addEventListener('click', () => { nightOn = !nightOn; map.setLayoutProperty('night', 'visibility', nightOn ? 'visible' : 'none'); $('#night').classList.toggle('active', nightOn); });
-  $('#night').classList.toggle('active', nightOn);
+  const syncNight = () => {
+    const effective=nightVisible();
+    if(map.getLayer('night') && map.getLayoutProperty('night','visibility') !== (effective?'visible':'none')) map.setLayoutProperty('night','visibility',effective?'visible':'none');
+    const button=$('#night');button.classList.toggle('active',effective);
+    button.setAttribute('aria-pressed',String(nightOn));
+    button.title=nightOn&&!effective?'Night preference enabled; visible only at global zoom':'Night side of the Earth';
+    window.__nightVisibility={userEnabled:nightOn,effective,zoom:map.getZoom(),threshold:NIGHT_MAX_ZOOM};
+  };
+  map.on('zoom',syncNight);map.on('zoomend',syncNight);map.on('styledata',syncNight);
+  $('#night').addEventListener('click',()=>{nightOn=!nightOn;syncNight();});
+  syncNight();
 });
 
 // ---------- industry layer: real companies from open data (Notion task 08.10.2026) ----------
@@ -293,13 +317,16 @@ $('#legend-sea').replaceChildren(el('b', null, 'UNDERSEA INFRASTRUCTURE'), el('s
 $('#sea').addEventListener('click', () => setSea(!seaOn));
 const lookSel = $('#look');
 for (const [k, v] of Object.entries(LOOKS)) { const o = el('option', null, v.label); o.value = k; o.selected = k === LOOK; lookSel.append(o); }
-lookSel.addEventListener('change', () => { const u = new URL(location.href); u.searchParams.set('look', lookSel.value); location.href = u.toString(); });
+lookSel.disabled = true; // One approved basemap; thematic overlays remain separately selectable.
 setSea(SHOW.sea);
 if (!SHOW.sea) $('#sea').hidden = true;
 
 // ---------- live layer: aircraft, ships, trains from free open APIs (src/atlas/live.js); off by default, ?live=1 turns it on ----------
 const countries = await fetch('/atlas/countries.geojson').then((r) => r.json());
+let m1CompaniesByName = new Map();
 function showLiveCard(c) {
+  const linkedCompany=m1CompaniesByName.get(c.title);
+  if(linkedCompany) m1State.selectCompany(linkedCompany.id,'AT');
   const box = $('#ind-card'); box.hidden = false;
   box.querySelector('.panel-head span').textContent = c.head;
   $('#ind-title').textContent = c.title;
@@ -342,7 +369,9 @@ scale.setOn(false);
 // ---------- companies from the research catalogue (Notion DB | Companies: accepted + Publishable), first country Austria ----------
 // built by scripts/build-companies.mjs; the point is the city centre, companies of one city are spread on a small ring
 const atData = await fetch('/atlas/companies-at.json').then((r) => r.json());
+m1CompaniesByName=new Map(atData.companies.map(company=>[company.name,company]));
 mountAustriaInternalReview({map, industry, atData});
+// Card selection uses the existing Claude onCard handler, mapped to research identity.
 const ringed = (list) => { const g = {}; for (const c of list) (g[c.lon + ',' + c.lat] ??= []).push(c); return Object.values(g).flatMap((cs) => cs.map((c, i) => { const r = cs.length > 1 ? 0.012 + 0.003 * cs.length : 0, a = (i / cs.length) * Math.PI * 2; return { ...c, lon: c.lon + (r * Math.cos(a)) / Math.cos((c.lat * Math.PI) / 180), lat: c.lat + r * Math.sin(a) }; })); };
 const FLAG_EN = { 'OWNERSHIP OPEN': 'Ownership not fully confirmed', 'SOURCE CONFLICT': 'Sources disagree on some details', 'LEGAL REVIEW': 'Under legal review', 'NO CITY': 'City not confirmed' };
 const companies = createScaleDemo(map, {
@@ -386,21 +415,44 @@ $('#n-companies').textContent = `${atData.companies.length} · Austria`;
 // ---------- search: companies, capitals and Ukrainian centres, countries ----------
 const norm = (t) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const countryFeature = Object.fromEntries(countries.features.map((f) => [f.properties.a3, f]));
+mountCoverageControls({store:m1State,industry,atData,countries,places,
+ onCountry:a3=>{const f=countryFeature[a3];if(f)map.fitBounds(bboxOf(f.geometry),{padding:65,maxZoom:6,pitch:0,duration:1200});},
+ onLayer:layer=>document.getElementById(layer==='world'?'all':layer)?.click()
+});
 const INDEX = [
+  ...industry.companies.filter(c=>c.name&&c.source&&c.country).map(c=>({
+    kind:'global-company',id:c.id,name:c.name,country:c.country,city:c.city,
+    lat:c.lat,lon:c.lon,source:c.source,product:c.product,
+    sub:'Global industry · '+c.country+' · '+(c.city||'public city'),
+    key:norm(c.name+' '+(c.city||'')+' '+(c.about||''))
+  })),
   ...atData.companies.map((c) => ({ kind: 'company', id: c.id, name: c.name, sub: `${PRODUCT[c.cat][0]} · ${c.city}`, color: PRODUCT[c.cat][1], key: norm(`${c.name} ${c.city} ${c.about}`) })),
   ...places.map((p) => ({ kind: 'place', name: p.name, sub: p.kind === 'capital' ? `Capital · ${countryFeature[p.a3]?.properties.name ?? p.a3}` : p.oblast ?? 'Ukraine', lon: p.lon, lat: p.lat, key: norm(p.name) })),
   ...countries.features.map((f) => ({ kind: 'country', a3: f.properties.a3, name: f.properties.name, sub: atData.companies.some((c) => c.a3 === f.properties.a3) ? `Country · ${atData.companies.filter((c) => c.a3 === f.properties.a3).length} companies` : 'Country', key: norm(f.properties.name) })),
 ];
+// Approved main nav and layer controls share one selected-layer state.
+for (const id of ['companies','industry','sea','night','all']) {
+  document.getElementById(id)?.addEventListener('click',()=>m1State.selectLayer(id==='all'?'world':id));
+}
+for(const button of document.querySelectorAll('[data-m1-toggle]')) {
+  button.addEventListener('click',()=>{const target=document.getElementById(button.dataset.m1Toggle);target?.click();button.closest('details')?.removeAttribute('open');});
+}
 const qIn = $('#q'), qOut = $('#q-results');
 let qHits = [], qOn = 0;
 function bboxOf(g) { let w = 180, s0 = 90, e = -180, n = -90; for (const poly of g.type === 'Polygon' ? [g.coordinates] : g.coordinates) for (const [x, y] of poly[0]) { w = Math.min(w, x); e = Math.max(e, x); s0 = Math.min(s0, y); n = Math.max(n, y); } return [[w, s0], [e, n]]; }
 function go(h) {
   qOut.hidden = true; qIn.value = h.name; qIn.blur();
   $('#entry').hidden = true;
-  if (h.kind === 'company') { if (!companies.state.on) setCompanies(true); companies.select(h.id, { fly: true }); }
-  else if (h.kind === 'place') map.flyTo({ center: [h.lon, h.lat], zoom: 9, pitch: 0, duration: 1400 });
-  else if (atData.companies.some((c) => c.a3 === h.a3)) { if (!companies.state.on) setCompanies(true); companies.showCountry(h.a3); }
-  else map.fitBounds(bboxOf(countryFeature[h.a3].geometry), { padding: 60, maxZoom: 6, pitch: 0, duration: 1400 });
+  if (h.kind === 'company') { m1State.selectCompany(h.id, 'AT'); if (!companies.state.on) setCompanies(true); companies.select(h.id, { fly: true }); }
+  else if (h.kind==='global-company'){
+    m1State.selectCompany(h.id,h.country);
+    if(!industryOn)setIndustry(true);
+    if(Number.isFinite(h.lon)&&Number.isFinite(h.lat))map.flyTo({center:[h.lon,h.lat],zoom:6,pitch:0,duration:1100});
+    showLiveCard({head:'GLOBAL INDUSTRY · OPEN SOURCE',title:h.name,rows:[['Country',h.country],['City',h.city||'Not provided'],['Sector',h.product]],source:'Original public-source entry',sourceUrl:h.source});
+  }
+  else if (h.kind === 'place') { m1State.set({company:null,event:null}); map.flyTo({ center: [h.lon, h.lat], zoom: 9, pitch: 0, duration: 1400 }); }
+  else if (atData.companies.some((c) => c.a3 === h.a3)) { m1State.set({geographyA3:h.a3}); if (h.a3 === 'AUT') m1State.selectCountry('AT'); else m1State.set({country:null,company:null,event:null}); if (!companies.state.on) setCompanies(true); companies.showCountry(h.a3); }
+  else { m1State.set({geographyA3:h.a3,company:null,event:null}); map.fitBounds(bboxOf(countryFeature[h.a3].geometry), { padding: 60, maxZoom: 6, pitch: 0, duration: 1400 }); }
 }
 function renderHits() {
   qOut.replaceChildren();
@@ -415,6 +467,7 @@ function renderHits() {
   qOut.hidden = false;
 }
 qIn.addEventListener('input', () => {
+  m1State.setFilters({query:qIn.value.trim()});
   const t = norm(qIn.value.trim());
   if (t.length < 2) { qOut.hidden = true; return; }
   const rank = (h) => (h.key.startsWith(t) ? 0 : norm(h.name).includes(t) ? 1 : 2) + (h.kind === 'company' ? 0 : 0.5);

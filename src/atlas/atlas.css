@@ -167,3 +167,157 @@ button { font: inherit; cursor: pointer; }
 @media (max-width: 820px) { .side { left: 8px; right: 8px; width: auto; bottom: auto; max-height: 38vh; } .side .cats, .side .layers h4 { display: none; } }
 .side .chip { font: 500 12px/1.2 var(--sans) !important; letter-spacing: 0 !important; text-transform: none !important; padding: 3px 8px !important; min-height: 0 !important; }
 .scale-panel .back, .scale-panel .crumbs button, .q-results button, .scale-list button { text-transform: none; letter-spacing: 0; }
+
+/* M0 safety release shell: preserve legacy handlers but suppress unapproved journeys. */
+#entry, #open-need, #open-have, #panel, #live, #scale,
+button[data-journey], .demo-tag { display:none !important; }
+.m0-link { color:#efe9cc; font:600 11px/1.3 system-ui,sans-serif; letter-spacing:.06em; text-decoration:none; white-space:nowrap; }
+.m0-link:hover, .m0-link:focus-visible { color:#d3b766; text-decoration:underline; }
+@media(max-width:900px) { .m0-link {font-size:10px;} .topbar nav { gap:6px; flex-wrap:wrap;} }
+
+/* M0 disable unverified live/dev controls independently of HTML hidden attributes. */
+.layer[data-for="live"], .layer[data-for="scale"], #legend-live, #scale-panel { display:none !important; }
+
+/* M1 compact mobile atlas navigation. Existing globe and layer logic unchanged. */
+.m1-mobile-menu { display:none; }
+@media (max-width:760px) {
+  .topbar { height:60px !important; min-height:60px !important; padding:8px 12px !important; display:flex !important; flex-wrap:nowrap !important; align-items:center !important; }
+  .topbar .brand { min-width:0; max-width:calc(100vw - 110px); white-space:nowrap; overflow:hidden; font-size:12px; }
+  .topbar .brand .build { display:none !important; }
+  .topbar > nav { display:none !important; }
+  .m1-mobile-menu { display:block; order:4; margin-left:auto; color:#efe9cc; z-index:950; }
+  .m1-mobile-menu > summary { cursor:pointer; list-style:none; border:1px solid #b5a676; background:#111a19; padding:8px 12px; font:700 12px/1.1 system-ui; letter-spacing:.06em; }
+  .m1-mobile-menu > summary::-webkit-details-marker { display:none; }
+  .m1-mobile-menu-content { position:absolute; right:8px; top:58px; z-index:951; width:min(270px,calc(100vw - 16px)); max-height:70vh; overflow:auto; display:grid; gap:5px; background:#111a19; border:1px solid #b5a676; box-shadow:0 8px 25px #0007; padding:11px; }
+  .m1-mobile-menu-content a, .m1-mobile-menu-content button { display:block; color:#efe9cc; background:#202922; padding:10px 12px; text-decoration:none; text-align:left; border:0; font:600 12px/1.3 system-ui; }
+  .m1-mobile-menu-content a:focus-visible, .m1-mobile-menu-content button:focus-visible { outline:2px solid #d3b766; }
+  #side { top:70px !important; max-height:34vh; overflow:auto; }
+}
+
+@media (max-width:760px) { .topbar .brand span:nth-child(2) { display:inline !important; font-size:10px; letter-spacing:0; } }
+
+/* P1: legacy Bohun Defence visual identity and readable Intelligence Map header. */
+.topbar { gap:14px; }
+.topbar .brand {display:flex;align-items:center;gap:9px;flex:0 0 auto;text-decoration:none;letter-spacing:0;}
+.topbar .brand-logo {width:38px;height:38px;object-fit:contain;flex-shrink:0;}
+.topbar .brand-name {display:grid;gap:3px;white-space:nowrap;}
+.topbar .brand-name strong {font:750 14px/1.05 system-ui,sans-serif;letter-spacing:.01em;}
+.topbar .brand-name small {font:500 9px/1.2 system-ui,sans-serif;letter-spacing:.055em;color:#d3b766;}
+.topbar nav {min-width:0;flex:1 1 auto;justify-content:flex-end;align-items:center;}
+.topbar .m0-link {font:650 10px/1.2 system-ui,sans-serif;letter-spacing:.03em;}
+.topbar .look {white-space:nowrap;}
+@media (max-width:1100px) {
+  .topbar > nav {gap:5px;}
+  .topbar .m0-link {font-size:9px;}
+}
+@media (max-width:760px) {
+  .topbar .brand span:nth-child(2) {display:grid !important;}
+  .topbar .brand-name strong {font-size:13px;}
+  .topbar .brand-name small {font-size:9px;}
+  .topbar .brand-logo {height:34px;width:34px;}
+  .topbar .brand {max-width:calc(100vw - 111px);}
+}
+
+/* P2 sourced coverage and controls; geographic footprints ≠ company coverage ≠ analytics. */
+.p2-coverage { margin-top:9px; border-top:1px solid #b5a67666; padding-top:9px; font:500 11px/1.4 var(--sans); color:#dbd7be; }
+.p2-coverage > summary {cursor:pointer;color:#e3cb81;font:750 11px/1.3 var(--sans);letter-spacing:.04em;list-style:inside;}
+.p2-coverage-body {display:grid;gap:8px;padding:10px 0;}
+.p2-coverage-body p {margin:0;color:#ccc9ae;}
+.p2-coverage-body label {display:grid;gap:4px;color:#ddcda1;}
+.p2-coverage-body select {width:100%;background:#172019;color:#faf0d6;border:1px solid #a18f59;padding:9px;font:inherit;}
+.p2-coverage-body .source-note {font-size:10px;color:#b2ae9d;}
+@media(max-width:760px){.p2-coverage-body{max-height:35vh;overflow-y:auto;}}
+
+/* P2 company evidence card must stay legible above expanded source filters. */
+.card.ind {background:#111a16f7;backdrop-filter:blur(9px);}
+@media(max-width:760px){
+  .card.ind {background:#101912 !important;border:2px solid #b6a269;max-height:44vh;bottom:18px !important;top:auto !important;overflow:auto;z-index:700;}
+  .card.ind .panel-head {position:sticky;top:0;background:#101912;z-index:2;}
+  .card.ind .rows {line-height:1.5;}
+  .card.ind .notice {background:#101912;}
+}
+
+/* M1 owner decision 17:02: single basemap, three-pane semantics without empty panels. */
+.topbar .look, .topbar .look[hidden] {display:none !important;}
+@media(min-width:1100px){
+  #m1-intelligence:not([hidden]) {left:14px !important;right:auto !important;top:calc(var(--top) + 12px) !important;bottom:20px;max-height:calc(100vh - var(--top) - 35px) !important;}
+  #m1-dossier:not([hidden]) {right:14px !important;left:auto !important;top:calc(var(--top) + 12px) !important;bottom:auto !important;}
+  #ind-card:not([hidden]) {right:14px;left:auto;}
+}
+
+/* M1 approved three-pane arrangement: center original globe, contextual right, QA-only left. */
+.nav-drawer-toggle {
+ position:fixed;left:14px;top:calc(var(--top) + 12px);z-index:810;
+ background:#121b17f5;color:#ebddb2;border:1px solid #b0a36b;border-radius:4px;
+ padding:11px 13px;font:750 11px/1.2 system-ui;letter-spacing:.045em;cursor:pointer;
+}
+.nav-drawer-toggle:focus-visible{outline:2px solid #e1c76a;}
+#side.side {
+ left:14px !important;right:auto !important;top:calc(var(--top) + 56px) !important;
+ max-height:calc(100vh - var(--top) - 68px);max-width:min(325px,calc(100vw - 28px));
+ overflow-y:auto;transform:translateX(calc(-100% - 25px));opacity:0;
+ pointer-events:none;visibility:hidden;transition:transform .17s ease,opacity .17s ease;
+ z-index:805 !important;
+}
+#side.side.m1-drawer-open {
+ transform:translateX(0);opacity:1;pointer-events:auto;visibility:visible;
+}
+#m1-intelligence:not([hidden]) {
+ position:fixed;left:14px;top:calc(var(--top) + 60px);bottom:12px;
+ max-height:calc(100vh - var(--top) - 72px);width:min(290px,26vw);
+ z-index:590;
+}
+#m1-dossier:not([hidden]),#ind-card:not([hidden]) {
+ position:fixed;right:14px;left:auto;top:calc(var(--top) + 12px);bottom:auto;
+ max-height:calc(100vh - var(--top) - 28px);width:min(340px,30vw);
+ overflow:auto;z-index:610;
+}
+@media(max-width:760px){
+ .nav-drawer-toggle{top:70px;left:10px;padding:9px 10px;font-size:10px;}
+ #side.side{top:110px !important;max-height:calc(100vh - 118px) !important;left:8px !important;}
+ #m1-intelligence:not([hidden]) {left:8px;right:8px;bottom:10px;top:auto;width:auto;max-height:34vh;}
+ #m1-dossier:not([hidden]),#ind-card:not([hidden]){left:8px;right:8px;bottom:10px;top:auto;width:auto;max-height:40vh;}
+}
+
+
+/* Website Polish Sprint 01: source-safe three pane shell, keyboard visibility and mobile. */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.skip-link{position:fixed;z-index:1500;left:12px;top:-100px;color:#171c13;background:#f4d783;padding:12px 16px;border-radius:3px}
+.skip-link:focus{top:8px}
+#map:focus-visible,.nav-drawer-toggle:focus-visible,.m1-mobile-menu summary:focus-visible{outline:3px solid #f1d377;outline-offset:2px}
+#m1-intelligence,#m1-dossier{box-shadow:0 10px 35px #0009;scrollbar-width:thin}
+#m1-intelligence h2,#m1-dossier h2{font:750 16px/1.3 system-ui;margin:0 0 12px;color:#f5dfaa}
+#m1-intelligence p,#m1-dossier p{line-height:1.5;color:#d9d7cd}
+@media(min-width:1100px){
+  #m1-intelligence:not([hidden]){top:calc(var(--top) + 72px) !important;bottom:12px !important;max-height:calc(100vh - var(--top) - 86px) !important}
+  #m1-dossier:not([hidden]){width:min(320px,24vw) !important}
+}
+@media(max-width:1099px){
+ #m1-intelligence:not([hidden]){top:calc(var(--top) + 66px);bottom:auto;max-height:35vh;width:min(280px,32vw)}
+}
+@media(max-width:760px){
+ #m1-intelligence:not([hidden]){top:auto !important;bottom:10px !important;left:8px !important;right:8px !important;width:auto !important;max-height:22vh !important;padding:10px !important}
+ #m1-dossier:not([hidden]),#ind-card:not([hidden]){bottom:calc(22vh + 20px) !important;top:auto !important;max-height:34vh !important;width:auto !important}
+ .m1-mobile-menu-content{display:none}
+ .m1-mobile-menu[open] .m1-mobile-menu-content{display:grid}
+}
+@media(prefers-reduced-motion:reduce){
+ #side.side{transition:none !important}
+ *{scroll-behavior:auto !important}
+}
+
+/* Sprint 01 mobile screenshot correction: no empty menu sheet, compact map-first status. */
+@media(max-width:760px){
+ .m1-mobile-menu:not([open]) > .m1-mobile-menu-content{display:none !important}
+ .m1-mobile-menu[open] > .m1-mobile-menu-content{display:grid !important;background:#111a19 !important;max-height:55dvh}
+ #m1-intelligence:not([hidden]){
+  top:auto !important;bottom:12px !important;left:12px !important;right:12px !important;
+  width:auto !important;max-height:112px !important;min-height:0 !important;
+  overflow:auto !important;padding:12px 14px !important;border-radius:10px !important;
+ }
+ #m1-intelligence h2{font-size:15px !important;margin:0 0 6px !important}
+ #m1-intelligence p{font-size:12px !important;line-height:1.35 !important;margin:0 !important}
+ #m1-dossier[hidden],#m1-signals[hidden]{display:none !important}
+ .nav-drawer-toggle{top:72px !important;left:12px !important;padding:9px 10px !important;font-size:10px !important;max-width:calc(100vw - 24px)}
+ .brand-logo[hidden]{display:none !important}
+}
