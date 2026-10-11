@@ -39,5 +39,27 @@ class MetadataTest(unittest.TestCase):
         self.assertTrue(result['verified'],result)
 
 
+    def test_german_time_element(self):
+        html = '<html><head><title>BDSV Pressemitteilung</title></head><body><time datetime="2026-09-01T09:00:00+02:00">1. September 2026</time></body></html>'
+        item = {'url':'https://bdsv.eu/aktuelles/pressemitteilungen/example.html','quality':'possible_article'}
+        with patch('collectors.web_monitor.monitor.get',return_value=(html,item['url'])):
+            result = audit_candidate(item,'https://bdsv.eu/',{})
+        self.assertTrue(result['verified'], result)
+
+    def test_german_date_class(self):
+        html = '<html><head><title>BDSV Pressemitteilung</title></head><body><span class="date">1. September 2026</span></body></html>'
+        item = {'url':'https://bdsv.eu/aktuelles/pressemitteilungen/example.html','quality':'possible_article'}
+        with patch('collectors.web_monitor.monitor.get',return_value=(html,item['url'])):
+            result = audit_candidate(item,'https://bdsv.eu/',{})
+        self.assertTrue(result['verified'], result)
+        self.assertEqual(result['date_precision'],'day')
+
+    def test_unlabelled_body_date_is_not_publication_date(self):
+        html = '<html><head><title>BDSV Pressemitteilung</title></head><body><p>Event on 1. September 2026</p></body></html>'
+        item = {'url':'https://bdsv.eu/aktuelles/pressemitteilungen/example.html','quality':'possible_article'}
+        with patch('collectors.web_monitor.monitor.get',return_value=(html,item['url'])):
+            result = audit_candidate(item,'https://bdsv.eu/',{})
+        self.assertFalse(result['verified'], result)
+
 if __name__ == '__main__':
     unittest.main()
