@@ -17,11 +17,23 @@ for(const device of [{name:'desktop',viewport:{width:1440,height:900}},{name:'mo
   const coverage=await drawer.locator('#p2-coverage').count()===1;
   await p.keyboard.press('Escape');
   const closed=await drawer.getAttribute('aria-hidden')==='true'&&await btn.getAttribute('aria-expanded')==='false';
-  const panelsHidden=await p.locator('#m1-intelligence').isHidden()&&await p.locator('#m1-dossier').isHidden()&&await p.locator('#m1-signals').isHidden();
+  const feedVisible=await p.locator('#m1-intelligence').isVisible();
+  const dossierVisible=await p.locator('#m1-dossier').isVisible();
+  const emptyState=(await p.locator('#m1-intelligence').innerText()).includes('No QA-approved intelligence items');
+  const signalsHidden=await p.locator('#m1-signals').isHidden();
+  const skip=await p.locator('.skip-link').count()===1;
+  const noHorizontalOverflow=await p.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2);
+  let mobileNav=true;
+  if(device.name==='mobile'){
+   const menu=p.locator('.m1-mobile-menu');await menu.locator('summary').click();
+   mobileNav=await menu.locator('a[href="/contact.html"]').isVisible();
+   await menu.locator('summary').click();
+   mobileNav=mobileNav&&await menu.locator('a[href="/contact.html"]').isHidden();
+  }
   const style=await p.evaluate(()=>window.__map.getStyle()?.name||'');
   await p.waitForTimeout(1900);await p.screenshot({path:'output/threepane/'+device.name+'.png',fullPage:true});
-  const pass=res?.status()===200&&initiallyClosed&&visible&&search&&coverage&&closed&&panelsHidden&&!errors.length;
-  results.push({device:device.name,pass,http:res?.status(),initiallyClosed,visible,search,coverage,closed,panelsHidden,style,errors});
+  const pass=res?.status()===200&&initiallyClosed&&visible&&search&&coverage&&closed&&feedVisible&&dossierVisible&&emptyState&&signalsHidden&&skip&&noHorizontalOverflow&&mobileNav&&!errors.length;
+  results.push({device:device.name,pass,http:res?.status(),initiallyClosed,visible,search,coverage,closed,feedVisible,dossierVisible,emptyState,signalsHidden,skip,noHorizontalOverflow,mobileNav,style,errors});
  }catch(e){errors.push(e.message);await p.screenshot({path:'output/threepane/'+device.name+'-error.png',fullPage:true}).catch(()=>{});results.push({device:device.name,pass:false,errors});}
  await ctx.close();
 }
