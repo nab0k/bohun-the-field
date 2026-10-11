@@ -49,10 +49,16 @@ for(const device of [{name:'desktop',viewport:{width:1440,height:900}},{name:'mo
    });
    nightZoomCheck=states.far==='visible'&&states.near==='none'&&states.back==='visible';
   }catch(e){errors.push('Night zoom assertion: '+e.message)}
+  const overview=await p.evaluate(()=>{
+    const map=window.__map;
+    return {capitalMinZoom:map.getLayer('place-dot')?.minzoom,regionMinZoom:map.getLayer('label-region')?.minzoom,
+      countryCountVisibility:map.getLayoutProperty('co-at-country-n','visibility')};
+  });
+  const overviewPass=overview.capitalMinZoom>=4.5&&overview.regionMinZoom>=4.5&&overview.countryCountVisibility==='none';
   const style=await p.evaluate(()=>window.__map.getStyle()?.name||'');
   await p.waitForTimeout(1900);await p.screenshot({path:'output/threepane/'+device.name+'.png',fullPage:true});
-  const pass=res?.status()===200&&initiallyClosed&&visible&&search&&coverage&&closed&&feedVisible&&dossierCorrect&&emptyState&&signalsHidden&&skip&&noHorizontalOverflow&&mobileNav&&onlyLight&&contactConfigured&&nightZoomCheck&&!errors.length;
-  results.push({device:device.name,pass,http:res?.status(),initiallyClosed,visible,search,coverage,closed,feedVisible,dossierVisible,dossierCorrect,emptyState,signalsHidden,skip,noHorizontalOverflow,mobileNav,onlyLight,contactConfigured,nightZoomCheck,style,errors});
+  const pass=res?.status()===200&&initiallyClosed&&visible&&search&&coverage&&closed&&feedVisible&&dossierCorrect&&emptyState&&signalsHidden&&skip&&noHorizontalOverflow&&mobileNav&&onlyLight&&contactConfigured&&nightZoomCheck&&overviewPass&&!errors.length;
+  results.push({device:device.name,pass,http:res?.status(),initiallyClosed,visible,search,coverage,closed,feedVisible,dossierVisible,dossierCorrect,emptyState,signalsHidden,skip,noHorizontalOverflow,mobileNav,onlyLight,contactConfigured,nightZoomCheck,overview,overviewPass,style,errors});
  }catch(e){errors.push(e.message);await p.screenshot({path:'output/threepane/'+device.name+'-error.png',fullPage:true}).catch(()=>{});results.push({device:device.name,pass:false,errors});}
  await ctx.close();
 }
