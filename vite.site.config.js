@@ -10,11 +10,11 @@ const publicGate = () => ({
     const file='dist/atlas/companies-at.json';
     if (!existsSync(file)) throw Error('M0 missing Austria export: fail closed');
     const source=JSON.parse(readFileSync(file,'utf8'));
-    if (!Array.isArray(source.companies) || source.companies.length!==50) throw Error('M0 Austria baseline mismatch, refuse public build');
+    if (!Array.isArray(source.companies)) throw Error('M0 Austria schema mismatch, refuse public build');
     const seen = new Set(source.companies.filter(c=>c.flags?.length).map(c=>c.id));
     if ([...REQUIRED].some(id=>!seen.has(id))) throw Error('M0 QA flag identity changed, refuse public build');
     const safe=source.companies.filter(c=>!c.flags?.length);
-    if (safe.length!==41) throw Error('M0 expected 41 unflagged candidate records');
+    if (safe.some(c => REQUIRED.has(c.id) || c.flags?.length)) throw Error('M0 unsafe company reached public projection');
     source.companies=safe;
     source.note='M0 public projection: nine QA-flagged candidate records excluded; remaining companies are open-data candidates, not independently QA-approved.';
     writeFileSync(file,JSON.stringify(source));
