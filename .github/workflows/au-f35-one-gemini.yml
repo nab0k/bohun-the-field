@@ -1,0 +1,69 @@
+name: AU-F35-01 One Gemini Free-Only Read-Only Test
+on:
+  push:
+    branches: [au-f35-one-gemini-live-review]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  single-request:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check existing key/model access without generation
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_FREE_TIER_CONFIRMED: ${{ secrets.GEMINI_FREE_TIER_CONFIRMED }}
+          GEMINI_MODEL: gemini-2.5-flash-lite
+        run: |
+          mkdir -p output/au-f35-01
+          python - <<'PY'
+          import json,os,urllib.request,urllib.error
+          from pathlib import Path
+          r={'key_present':bool(os.environ.get('GEMINI_API_KEY')),
+          'free_only_confirmed_by_repo_secret':os.environ.get('GEMINI_FREE_TIER_CONFIRMED')=='1',
+          'model':'gemini-2.5-flash-lite','model_available':False,'generation_calls':0}
+          if r['key_present']:
+            try:
+              req=urllib.request.Request('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000',
+                  headers={'x-goog-api-key':os.environ['GEMINI_API_KEY']})
+              with urllib.request.urlopen(req,timeout=20) as response:d=json.load(response)
+              r['model_available']=any(x.get('name')=='models/'+r['model'] and 'generateContent' in x.get('supportedGenerationMethods',[]) for x in d.get('models',[]))
+            except urllib.error.HTTPError as e:r['model_catalog_http']=e.code
+            except Exception as e:r['model_catalog_error_type']=type(e).__name__
+          Path('output/au-f35-01/preflight.json').write_text(json.dumps(r,indent=2))
+          print('AU-F35-01 free-only preflight',r)
+          PY
+      - name: One bounded Gemini invocation only if free-only entitlement confirmed
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_FREE_TIER_CONFIRMED: ${{ secrets.GEMINI_FREE_TIER_CONFIRMED }}
+          GEMINI_MODEL: gemini-2.5-flash-lite
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          p=Path('output/au-f35-01/preflight.json');d=json.loads(p.read_text())
+          if not(d['key_present'] and d['model_available'] and d['free_only_confirmed_by_repo_secret']):
+            print('NO GENERATION: key, model or verified no-charge project/free quota not confirmed')
+            with open('output/au-f35-01/blocker.txt','w') as f:f.write('BLOCKED: '+json.dumps(d))
+            with open(os.environ['GITHUB_ENV'],'a') as f:f.write('GEMINI_FREE_QUOTA_VERIFIED=0\n')
+          else:
+            with open(os.environ['GITHUB_ENV'],'a') as f:f.write('GEMINI_FREE_QUOTA_VERIFIED=1\n')
+          PY
+          python scripts/au_f35_01_readonly.py
+      - name: Evaluate seven negative controls and preserve QA HOLD
+        if: always()
+        run: python scripts/au_f35_01_qa_negative.py
+      - name: Archive request, raw reply, token usage and QA audit internally
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: au-f35-01-single-free-gemini-internal-evidence
+          path: output/au-f35-01/
+          retention-days: 14
+          if-no-files-found: error
