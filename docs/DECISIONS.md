@@ -42,3 +42,17 @@
 
 ### 011. Сигналы вместо ленты, публикация без человека (09.10.2026, Сергій)
 На сайт выводятся не чужие заголовки, а сигналы: события, собранные из нескольких публикаций, пересказанные ИИ своими словами и отмеченные на карте. Публикация автоматическая, без ручной проверки, в реальном времени (опрос каждые 15 минут). Все ограничения, которые раньше обеспечивал редактор, записаны в `docs/AI_EDITORIAL_RULES.md` и исполняются кодом. Решение 007 (только заголовок и ссылка) остаётся в силе для источников: полные тексты не публикуются, ссылки на источники в каждой карточке. Заменяет предложение Claude о проверке каждого сигнала человеком.
+
+
+### 012. Supabase canonical; Cloudflare delivery (11.10.2026, owner-approved)
+Status: APPROVED architecture direction only. Supersedes ADR 002 and ADR 009 solely regarding canonical database choice; preserve their historical text.
+
+- Supabase PostgreSQL, existing intelligence schema, is the sole operational write-master for ingested records, source evidence, versioned industrial knowledge, relationships, indicators and QA decisions.
+- GitHub Actions remains collection and controlled Gemini analysis infrastructure. AI interpretations do not become verified knowledge automatically.
+- Cloudflare Workers/Pages serves read-only approved API, website and existing Claude MapLibre atlas.
+- Cloudflare D1 may be proposed later solely as an optional one-way, derived, public-data cache, subject to proven need and separate owner authorization. Never an independent canonical writer.
+- Notion remains research, methodology and editorial coordination; any subsequent import retains provenance and review history.
+
+This ADR authorizes documentation and read-only inspection only. It does NOT authorize schema or data changes, migrations, Cloudflare resources, production deploy, publishing, secrets changes or paid usage. Further execution requires explicit owner authorization. QA remains mandatory for unverified model outputs.
+
+Specification: https://app.notion.com/p/3f6c42d0b11b814bb87cd7bf1a47bd23
