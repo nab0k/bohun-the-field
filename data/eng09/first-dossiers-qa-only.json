@@ -1,0 +1,80 @@
+{
+  "schema": "existing-architecture-readonly-dossier-proof-v1",
+  "generated_utc": "2026-10-11",
+  "purpose": "QA-only dossiers, not a production company export",
+  "records": [
+    {
+      "notion_page_id": "3f4c42d0b11b81ec8197f97141f271ca",
+      "notion_status": "unresolved",
+      "notion_publishable": false,
+      "country": "DE",
+      "legal_name": "Diehl Defence GmbH & Co. KG",
+      "registry_id": "Freiburg HRA 581075",
+      "hq_public_city": "Überlingen",
+      "capabilities": [
+        "guided missiles",
+        "ground-based air defence",
+        "ammunition"
+      ],
+      "proof": [
+        {
+          "field": "legal_name,registry_id,hq_public_city",
+          "url": "https://new.diehl.com/defence/en/imprint-and-legal-notice",
+          "source_role": "manufacturer legal imprint",
+          "statement": "Headquarters Überlingen; Registration court Freiburg, HRA 581075"
+        },
+        {
+          "field": "capabilities",
+          "url": "https://new.diehl.com/defence/en/company/facts-and-figures",
+          "source_role": "manufacturer product facts",
+          "statement": "Guided missiles, Air Defence Systems, Ammunition"
+        }
+      ],
+      "unknown": [
+        "sanctions screening completion",
+        "independently audited ownership",
+        "programme-specific Tier",
+        "customer-contract edges"
+      ],
+      "qa_decision": "HOLD",
+      "public_release": false
+    },
+    {
+      "notion_page_id": "3f4c42d0b11b815eb945ddb86546507b",
+      "atlas_research_id": "at-041",
+      "notion_status": "accepted",
+      "notion_publishable": true,
+      "country": "AT",
+      "legal_name": "Frequentis AG",
+      "registry_id": null,
+      "hq_public_city": "Vienna",
+      "capabilities": [
+        "communication and information systems for safety-critical control centres",
+        "civil and military air traffic control"
+      ],
+      "proof": [
+        {
+          "field": "hq_public_city",
+          "url": "https://www.frequentis.com/en/ir",
+          "source_role": "issuer investor relations",
+          "statement": "Its head office is in Vienna, Austria"
+        },
+        {
+          "field": "capabilities",
+          "url": "https://www.frequentis.com/en/IR",
+          "source_role": "issuer investor relations",
+          "statement": "communication and information systems for safety-critical control centres"
+        }
+      ],
+      "unknown": [
+        "official company registration number",
+        "specific contract relationships",
+        "ownership/control chain"
+      ],
+      "qa_decision": "HOLD_FOR_INDEPENDENT_QA_ON_NEW_DOSSIER",
+      "public_release": false
+    }
+  ],
+  "event_joins": [],
+  "policy": "do not infer links from similar names, product category, or company membership; no event without stable verified ID"
+}
