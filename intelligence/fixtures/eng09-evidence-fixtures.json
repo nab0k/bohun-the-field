@@ -15,14 +15,16 @@
     {
       "fixture": "AU-F35-01",
       "source_id": "AU-F35-01-K6",
-      "source_snapshot": "QA-only placeholder K6 announcement body not yet extracted/dated",
+      "source_snapshot": "Full publisher HTML SHA256 0c170c2e1453108b0276014ae1c5f54deaa6486eb67706e176f8d5b8fce98ecd captured 2026-10-11 19:22 UTC",
       "spans": [
         {
-          "locator": "TEST-SEGMENT-001",
-          "text": "Fixture sentinel for K6 announcement. Not a quotation from the document."
+          "locator": "visible-text-offsets-4365-4740",
+          "text": "ospace & Defence industry, has been selected as the latest participant in its Mentor Protégé Program (MPP). This partnership will provide Ferra with a 12‑month intensive mentoring experience designed to enhance its core operational and commercial capabilities. “Ferra’s expertise in the manufacturing of precision aerospace & weapon systems assemblies positions it as an in"
         }
       ],
-      "test_statement": "Mentor-protege date and relation require primary event passage."
+      "test_statement": "Lockheed Martin Australia publisher reports Ferra Group selected for its Mentor Protégé Program; new procurement award NOT established",
+      "document_sha256": "0c170c2e1453108b0276014ae1c5f54deaa6486eb67706e176f8d5b8fce98ecd",
+      "evidence_kind": "REAL_PUBLISHER_CAPTURED_HTML_2026-10-11"
     },
     {
       "fixture": "TED-699594-2026",
