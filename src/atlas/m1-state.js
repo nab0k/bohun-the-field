@@ -38,7 +38,7 @@ export function mountM1Panels({store,records=[]}){
       'width:min(310px,calc(100vw - 28px));max-height:58vh;overflow:auto;background:#111b18;color:#f3eddb;padding:14px;border:1px solid #8d8867;border-radius:8px';
     document.body.append(box);return box;
   };
-  const feed=create('m1-intelligence','Verified Intelligence',false);
+  const feed=create('m1-intelligence','Verified Intelligence',true);
   const dossier=create('m1-dossier','Company evidence dossier',true);
   dossier.hidden=false;
   const signals=create('m1-signals','Evidence-backed signals',false);
@@ -54,7 +54,7 @@ export function mountM1Panels({store,records=[]}){
     text(feed,'h2','Intelligence Feed');
     const allowed=selectApproved(records,state);
     if(!allowed.length){
-      dossier.hidden=window.matchMedia('(max-width:760px)').matches;
+      dossier.hidden=false;
       text(dossier,'h2','Company & event dossier');
       text(dossier,'p','Select a verified map object to inspect its available sources. No analytical dossier is approved for this selection.');
       text(feed,'p','No QA-approved intelligence items available yet. Research candidates and AI drafts are not published.');
@@ -69,12 +69,16 @@ export function mountM1Panels({store,records=[]}){
       entry.append(title);text(entry,'p',item.takeaway||'');
       link(entry,item.source_url);feed.append(entry);
     }
-    const focused=state.company?allowed.filter(r=>r.company_id===state.company):[];
+    const focused=state.event?allowed.filter(r=>r.event_id===state.event):(state.company?allowed.filter(r=>r.company_id===state.company):[]);
+    dossier.hidden=false;
     if(focused.length){
-      dossier.hidden=false;text(dossier,'h2','Company · Evidence Dossier');
+      text(dossier,'h2','Context · Evidence Dossier');
       text(dossier,'p',focused[0].company_name||state.company);
       text(dossier,'p',String(focused.length)+' source-backed approved item(s)');
       for(const item of focused.slice(0,10))link(dossier,item.source_url);
+    }else{
+      text(dossier,'h2','Context · Evidence Dossier');
+      text(dossier,'p','Select an approved feed item, company or map feature. No verified analytical claims for this selection.');
     }
     const verifiedSignals=allowed.filter(r=>r.signal===true&&r.qa?.risk_certified===true);
     if(verifiedSignals.length){
