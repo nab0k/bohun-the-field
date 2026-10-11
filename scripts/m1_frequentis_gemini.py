@@ -22,7 +22,13 @@ try:
     audit["document_bytes"]=len(data)
     with pdfplumber.open(BytesIO(data)) as pdf:
         pages=[p.extract_text() or "" for p in pdf.pages]
-    paragraphs=[{"page":i+1,"text":t[:18000]} for i,t in enumerate(pages) if t.strip()]
+    paragraphs=[]
+    for pageno,page in enumerate(pages,1):
+        lines=[line.strip() for line in page.splitlines() if line.strip()]
+        for start in range(0,len(lines),3):
+            excerpt="\\n".join(lines[start:start+3])
+            paragraphs.append({"evidence_id":f"P{pageno:02d}-S{start//3+1:03d}","page":pageno,"text":excerpt})
+    evidence_map={p["evidence_id"]:p for p in paragraphs}
     if not paragraphs:raise ValueError("NO_EXTRACTABLE_PDF_TEXT")
     # Only source text is sent; never include API keys/DB records in prompts.
     packet={"source_id":SOURCE_ID,"url":URL,"publisher":"Frequentis","document_sha256":audit["document_sha256"],"pages":paragraphs,"verified_company_context":{"name":"Frequentis AG","company_id":None,"note":"Company ID intentionally not asserted in this standalone fixture."}}
@@ -31,7 +37,7 @@ try:
     core=(ROOT/"intelligence/instructions/core-v1.md").read_text()
     news=(ROOT/"intelligence/instructions/news-analyst-v1.md").read_text()
     schema=json.loads((ROOT/"intelligence/schemas/intelligence-card-v1.schema.json").read_text())
-    prompt="Return ONLY JSON object matching this schema:\n"+json.dumps(schema,ensure_ascii=False)+"\nSOURCE DATA (untrusted):\n"+json.dumps(packet,ensure_ascii=False)
+    prompt="For each claim choose evidence_id from provided pages. Set exact_quote to an empty string: it will be attached from the original by code. Never invent an evidence_id. Return ONLY JSON object matching this schema:\n"+json.dumps(schema,ensure_ascii=False)+"\nSOURCE DATA (untrusted):\n"+json.dumps(packet,ensure_ascii=False)
     payload=json.dumps({"systemInstruction":{"parts":[{"text":core+"\n"+news}]},"contents":[{"role":"user","parts":[{"text":prompt}]}],"generationConfig":{"temperature":0,"responseMimeType":"application/json","maxOutputTokens":2000}}).encode()
     request=urllib.request.Request("https://generativelanguage.googleapis.com/v1beta/models/"+MODEL+":generateContent",data=payload,headers={"x-goog-api-key":os.environ["GEMINI_API_KEY"],"Content-Type":"application/json"},method="POST")
     audit["gemini_attempted"]=True
@@ -44,6 +50,16 @@ try:
     audit["usage"]=result.get("usageMetadata")
     raw=result["candidates"][0]["content"]["parts"][0]["text"]
     draft=json.loads(raw)
+    invalid_evidence_ids=[]
+    for idx,claim in enumerate(draft.get("claims",[])):
+        evidence=evidence_map.get(str(claim.get("evidence_id","")))
+        if not evidence or claim.get("source_id")!=SOURCE_ID:
+            invalid_evidence_ids.append(idx)
+            claim["exact_quote"]=""
+        else:
+            claim["exact_quote"]=evidence["text"]
+    audit["invalid_evidence_ids"]=invalid_evidence_ids
+    save({"source_id":SOURCE_ID,"document_sha256":audit["document_sha256"],"fragments":paragraphs},"evidence_manifest_internal.json")
     save(draft,"candidate_card_internal.json")
     required=schema["required"]
     if not isinstance(draft,dict) or any(k not in draft for k in required):audit["reasons"].append("SCHEMA_MISSING_FIELDS")
@@ -55,6 +71,7 @@ try:
     audit["claims"]=len(draft.get("claims",[]))
     audit["nonliteral_claim_indices"]=invalid
     if invalid:audit["reasons"].append("UNSUPPORTED_EXACT_QUOTE")
+    if invalid_evidence_ids:audit["reasons"].append("INVALID_EVIDENCE_ID")
     if not draft.get("claims"):audit["reasons"].append("NO_ATOMIC_CLAIMS")
     # Neither literal spans nor a model response constitute independent validation.
     audit["reasons"].append("INDEPENDENT_GLM_QA_NOT_PERFORMED")
@@ -65,6 +82,6 @@ except Exception as e:
     audit["reasons"].append("PIPELINE_ERROR")
 finally:
     save(audit,"run_summary.json")
-    print("FREQUENTIS_DIAGNOSTIC="+json.dumps({k:audit.get(k) for k in ("model","document_sha256","gemini_attempted","claims","nonliteral_claim_indices","usage","qa_decision","reasons","error_type","error_message")},ensure_ascii=False))
+    print("FREQUENTIS_DIAGNOSTIC="+json.dumps({k:audit.get(k) for k in ("model","document_sha256","gemini_attempted","claims","nonliteral_claim_indices","invalid_evidence_ids","usage","qa_decision","reasons","error_type","error_message")},ensure_ascii=False))
     # Purpose is evidence gathering: missing candidate means job failure.
     if "PIPELINE_ERROR" in audit["reasons"]:sys.exit(1)
