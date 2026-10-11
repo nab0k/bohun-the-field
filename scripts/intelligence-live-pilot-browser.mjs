@@ -13,7 +13,7 @@ for(const device of [{name:'desktop',viewport:{width:1440,height:900}},{name:'mo
   const state=await p.evaluate(()=>({pilot:window.__livePilot01,selected:window.__bohunM1State.get(),nightEnabled:!!window.__nightVisibility}));
   const pass=response.status()===200&&state.pilot.count===1&&state.selected.event==='CORDIS:101289409'&&
     dossier.includes('Persisted raw_item ID: 1')&&dossier.includes('QA: HOLD')&&
-    dossier.includes('Geo role: NONE')&&!errors.length;
+    dossier.includes('Geo role: COORDINATOR_COUNTRY_ONLY')&&dossier.includes('project.euc_contribution: 992606.6')&&dossier.includes('project.ec_signature_date: 2026-06-22')&&!errors.length;
   await p.screenshot({path:'output/live-pilot/browser/'+device.name+'.png',fullPage:true});
   results.push({device:device.name,pass,http:response.status(),pilot:state.pilot,selected:state.selected.event,errors});
  }catch(e){errors.push(e.message);results.push({device:device.name,pass:false,errors});}
