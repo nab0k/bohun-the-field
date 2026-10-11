@@ -92,7 +92,8 @@
           "kind",
           "source_id",
           "exact_quote",
-          "support"
+          "support",
+          "evidence_id"
         ],
         "properties": {
           "statement": {
@@ -120,6 +121,11 @@
               "REFUTES",
               "NOT_ENOUGH_INFO"
             ]
+          },
+          "evidence_id": {
+            "type": "string",
+            "minLength": 8,
+            "description": "Source-bound deterministic span ID; never invent or fuzzy match"
           }
         }
       }
