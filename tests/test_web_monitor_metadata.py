@@ -1,0 +1,81 @@
+"""Read-only metadata regression tests for Web Monitor."""
+import unittest
+from unittest.mock import patch
+from collectors.web_monitor.monitor import audit_candidate, classify_candidate
+
+
+class MetadataTest(unittest.TestCase):
+    def test_section_not_article(self):
+        self.assertEqual(classify_candidate('https://example.org/news', 'https://example.org/'), 'index')
+
+    def test_article_with_valid_metadata(self):
+        html = '<html><head><title>Example article</title><meta property="article:published_time" content="2026-10-01T12:00:00+00:00"><link rel="canonical" href="/news/example-article"></head></html>'
+        item = {'url':'https://example.org/news/example-article','quality':'possible_article'}
+        with patch('collectors.web_monitor.monitor.get',return_value=(html,item['url'])):
+            result = audit_candidate(item,'https://example.org/',{})
+        self.assertTrue(result['verified'],result)
+
+    def test_section_with_date_is_not_verified(self):
+        html = '<html><head><title>News index</title><meta property="article:published_time" content="2026-10-01T12:00:00+00:00"></head></html>'
+        item = {'url':'https://example.org/news','quality':'index'}
+        with patch('collectors.web_monitor.monitor.get',return_value=(html,item['url'])):
+            result = audit_candidate(item,'https://example.org/',{})
+        self.assertFalse(result['verified'])
+
+
+    def test_json_ld_article_date_and_headline(self):
+        html = '<html><head><script type="application/ld+json">{"@type":"NewsArticle","headline":"German defence announcement","datePublished":"2026-10-01T12:00:00+02:00"}</script></head></html>'
+        item = {'url':'https://example.org/news/german-announcement','quality':'possible_article'}
+        with patch('collectors.web_monitor.monitor.get',return_value=(html,item['url'])):
+            result = audit_candidate(item,'https://example.org/',{})
+        self.assertTrue(result['verified'],result)
+        self.assertEqual(result['title'],'German defence announcement')
+
+    def test_json_ld_graph(self):
+        html = '<script type="application/ld+json">{"@graph":[{"@type":"WebSite","name":"Home"},{"@type":"NewsArticle","headline":"Article from graph","datePublished":"2026-10-01T12:00:00Z"}]}</script>'
+        item = {'url':'https://example.org/news/graph-story','quality':'possible_article'}
+        with patch('collectors.web_monitor.monitor.get',return_value=(html,item['url'])):
+            result = audit_candidate(item,'https://example.org/',{})
+        self.assertTrue(result['verified'],result)
+
+
+    def test_german_time_element(self):
+        html = '<html><head><title>BDSV Pressemitteilung</title></head><body><time datetime="2026-09-01T09:00:00+02:00">1. September 2026</time></body></html>'
+        item = {'url':'https://bdsv.eu/aktuelles/pressemitteilungen/example.html','quality':'possible_article'}
+        with patch('collectors.web_monitor.monitor.get',return_value=(html,item['url'])):
+            result = audit_candidate(item,'https://bdsv.eu/',{})
+        self.assertTrue(result['verified'], result)
+
+    def test_german_date_class(self):
+        html = '<html><head><title>BDSV Pressemitteilung</title></head><body><span class="date">1. September 2026</span></body></html>'
+        item = {'url':'https://bdsv.eu/aktuelles/pressemitteilungen/example.html','quality':'possible_article'}
+        with patch('collectors.web_monitor.monitor.get',return_value=(html,item['url'])):
+            result = audit_candidate(item,'https://bdsv.eu/',{})
+        self.assertTrue(result['verified'], result)
+        self.assertEqual(result['date_precision'],'day')
+
+    def test_unlabelled_body_date_is_not_publication_date(self):
+        html = '<html><head><title>BDSV Pressemitteilung</title></head><body><p>Event on 1. September 2026</p></body></html>'
+        item = {'url':'https://bdsv.eu/aktuelles/pressemitteilungen/example.html','quality':'possible_article'}
+        with patch('collectors.web_monitor.monitor.get',return_value=(html,item['url'])):
+            result = audit_candidate(item,'https://bdsv.eu/',{})
+        self.assertFalse(result['verified'], result)
+
+    def test_bdsv_formal_berlin_dateline(self):
+        html = '<html><head><title>BDSV fordert Beteiligung Deutschlands</title></head><body><p>Berlin, den 29.06.2026 – Der Bundesverband erklärt.</p></body></html>'
+        item = {'url':'https://bdsv.eu/aktuelles/pressemitteilungen/bdsv-fordert-beteiligung.html','quality':'possible_article'}
+        with patch('collectors.web_monitor.monitor.get',return_value=(html,item['url'])):
+            result = audit_candidate(item,'https://bdsv.eu/',{})
+        self.assertTrue(result['verified'], result)
+        self.assertEqual(result['published_at_raw'],'2026-06-29T00:00:00+02:00')
+        self.assertEqual(result['date_precision'],'day')
+
+    def test_bdsv_unlabelled_date_is_not_verified(self):
+        html = '<html><head><title>BDSV article</title></head><body><p>Meeting planned for 29.06.2026</p></body></html>'
+        item = {'url':'https://bdsv.eu/aktuelles/pressemitteilungen/example.html','quality':'possible_article'}
+        with patch('collectors.web_monitor.monitor.get',return_value=(html,item['url'])):
+            result = audit_candidate(item,'https://bdsv.eu/',{})
+        self.assertFalse(result['verified'], result)
+
+if __name__ == '__main__':
+    unittest.main()

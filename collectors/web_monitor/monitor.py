@@ -15,13 +15,14 @@ import urllib.robotparser
 import xml.etree.ElementTree as ET
 from html.parser import HTMLParser
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 UA = "BohundefenceWebMonitor/1.0 (+public-source-monitor)"
 KEYWORDS = re.compile(r"(news|press|article|release|story|stories|actualit|presse|nachricht|meldung|aktualn|communiqu|innovation|publication|media|nieuws)", re.I)
 LIMIT = 30
-ARTICLE_PATH = re.compile(r"/(?:news|press-releases?|articles?|stories|actualites|communiques|nachrichten)/[^/?#]+", re.I)
+ARTICLE_PATH = re.compile(r"/(?:news|press-releases?|articles?|stories|actualites|communiques|nachrichten|meldungen|pressemitteilungen)/[^/?#]+", re.I)
 DATE_PATH = re.compile(r"/20\d{2}/(?:0?[1-9]|1[0-2])/(?:[0-3]?\d)/")
-INDEX_PATH = re.compile(r"/(?:news|press|media|publications|innovation|updates|events|topics|tags?)/?$", re.I)
+INDEX_PATH = re.compile(r"/(?:news|press|media|publications|innovation|updates|events|topics|tags?|aktuelles|meldungen|pressemitteilungen)/?$", re.I)
 ASSET_PATH = re.compile(r"\.(?:pdf|jpg|jpeg|png|svg|zip|docx?|xlsx?|xml|json)$", re.I)
 
 def classify_candidate(url, base):
@@ -31,7 +32,7 @@ def classify_candidate(url, base):
         return "reject"
     if path in ("", "/") or INDEX_PATH.search(path):
         return "index"
-    if ARTICLE_PATH.search(path) or DATE_PATH.search(path):
+    if ARTICLE_PATH.search(path) or DATE_PATH.search(path) or re.search(r"/aktuelles/pressemitteilungen/[^/]+\.html$", path, re.I):
         return "possible_article"
     return "review"
 
@@ -165,15 +166,19 @@ def discover_channels(source, robots, channels):
             parser = Links()
             parser.feed(body)
             listing_path = urllib.parse.urlsplit(final).path.rstrip("/")
+            link_stats = {"total": len(parser.links), "same_host": 0, "article_shaped": 0, "selected": 0}
             for href, label in parser.links:
                 candidate = urllib.parse.urljoin(final, href).split("#")[0]
                 if not same_site(candidate, source["url"]):
                     continue
+                link_stats["same_host"] += 1
                 path = urllib.parse.urlsplit(candidate).path.rstrip("/")
                 # A candidate must be below the listing or match an explicit
                 # article URL shape. A section page is never an article.
                 under_listing = path.startswith(listing_path + "/")
-                article_shape = bool(ARTICLE_PATH.search(path) or DATE_PATH.search(path))
+                article_shape = bool(ARTICLE_PATH.search(path) or DATE_PATH.search(path) or (source["name"] == "BDSV" and re.search(r"/aktuelles/pressemitteilungen/[^/]+\.html$", path, re.I)))
+                if article_shape:
+                    link_stats["article_shaped"] += 1
                 if not (under_listing or article_shape):
                     continue
                 if path == listing_path or ASSET_PATH.search(path):
@@ -181,12 +186,16 @@ def discover_channels(source, robots, channels):
                 quality = classify_candidate(candidate, source["url"])
                 if quality in ("reject", "index"):
                     continue
+                link_stats["selected"] += 1
                 found[candidate] = {"url": candidate,
                                     "title": (label.strip() or path.rsplit("/", 1)[-1].replace("-", " "))[:180],
                                     "quality": quality,
                                     "channel_url": url}
                 if len(found) >= LIMIT:
                     break
+            print("CHANNEL_DIAGNOSTIC " + json.dumps({"source": source["name"], "url": url, **link_stats}), flush=True)
+        except PermissionError:
+            failures.append("channel:robots_unavailable_or_disallowed")
         except Exception as exc:
             failures.append("channel:" + type(exc).__name__)
         if len(found) >= LIMIT:
@@ -200,22 +209,58 @@ class ArticleMetadata(HTMLParser):
         self.canonical = None
         self.title = ""
         self.in_title = False
+        self.json_ld = []
+        self.in_json_ld = False
+        self.date_elements = []
+        self.date_depth = 0
+        self.press_dateline = None
+        self._body_text = []
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
+        if self.date_depth:
+            self.date_depth += 1
+        elif tag == "time" or (tag in ("span", "div", "p") and re.search(r"(?:^|[\s_-])(?:date|datum|published)(?:$|[\s_-])", a.get("class", ""), re.I)):
+            self.date_elements.append({"datetime": a.get("datetime"), "text": ""})
+            self.date_depth = 1
         if tag == "meta":
             key = (a.get("property") or a.get("name") or "").lower()
             if key and a.get("content"):
                 self.meta[key] = a["content"].strip()
         if tag == "link" and "canonical" in a.get("rel", "").lower().split():
             self.canonical = a.get("href")
+        if tag == "script" and a.get("type", "").lower() == "application/ld+json":
+            self.in_json_ld = True
+            self.json_ld.append("")
         if tag == "title":
             self.in_title = True
     def handle_data(self, data):
+        if self.in_json_ld:
+            self.json_ld[-1] += data
         if self.in_title:
             self.title += data
+        if self.date_depth and self.date_elements:
+            self.date_elements[-1]['text'] += data
+        self._body_text.append(data)
     def handle_endtag(self, tag):
+        if self.date_depth:
+            self.date_depth -= 1
+        if tag == "script":
+            self.in_json_ld = False
         if tag == "title":
             self.in_title = False
+
+GERMAN_MONTHS = {"januar":1,"februar":2,"märz":3,"maerz":3,"april":4,"mai":5,"juni":6,"juli":7,"august":8,"september":9,"oktober":10,"november":11,"dezember":12}
+
+def normalize_german_date(raw):
+    if not isinstance(raw, str):
+        return None
+    m = re.search(r"\b([0-3]?\d)\.\s*([A-Za-zÄÖÜäöüß]+)\s+(20\d{2})\b", raw)
+    if not m or m.group(2).lower() not in GERMAN_MONTHS:
+        return None
+    try:
+        return dt.datetime(int(m.group(3)), GERMAN_MONTHS[m.group(2).lower()], int(m.group(1)), tzinfo=ZoneInfo("Europe/Berlin")).isoformat()
+    except ValueError:
+        return None
 
 def audit_candidate(item, base, robots):
     """Inspect public HTML metadata; fail closed on ambiguity and access errors."""
@@ -229,12 +274,62 @@ def audit_candidate(item, base, robots):
             raise ValueError("off_domain_redirect")
         parser = ArticleMetadata()
         parser.feed(body)
-        title = parser.meta.get("og:title") or parser.meta.get("twitter:title") or parser.title.strip()
-        date = next((parser.meta[k] for k in ("article:published_time", "datepublished", "date", "dc.date.issued", "pubdate") if parser.meta.get(k)), None)
+        structured = {}
+        for raw in parser.json_ld:
+            try:
+                obj = json.loads(raw)
+                nodes = obj if isinstance(obj, list) else [obj]
+                for node in nodes:
+                    if isinstance(node, dict):
+                        nodes_to_check = node.get("@graph", [node])
+                        for candidate in nodes_to_check:
+                            if not isinstance(candidate, dict):
+                                continue
+                            types = candidate.get("@type", [])
+                            if isinstance(types, str):
+                                types = [types]
+                            if any(t in ("NewsArticle", "Article", "PressRelease") for t in types):
+                                structured = candidate
+                                break
+                    if structured:
+                        break
+            except (ValueError, TypeError):
+                continue
+            if structured:
+                break
+        title = parser.meta.get("og:title") or parser.meta.get("twitter:title") or structured.get("headline") or parser.title.strip()
+        date = next((parser.meta[k] for k in ("article:published_time", "datepublished", "date", "dc.date.issued", "pubdate") if parser.meta.get(k)), None) or structured.get("datePublished")
+        date_precision = None
+        if not date:
+            for el in parser.date_elements:
+                raw = el["datetime"] or el["text"].strip()
+                normalized = normalize_german_date(raw)
+                if normalized:
+                    date, date_precision = normalized, "day"
+                    break
+                if raw and re.match(r"^20\d{2}-\d{2}-\d{2}T", raw):
+                    date = raw
+                    break
+        if not date and urllib.parse.urlsplit(final).hostname in ("bdsv.eu", "www.bdsv.eu"):
+            # BDSV press releases expose a formal Berlin dateline in the body.
+            # Never infer publication time from arbitrary dates elsewhere.
+            body_text = " ".join(parser._body_text)
+            dateline = re.search(r"Berlin,?\s+den\s+([0-3]?\d\.[01]?\d\.20\d{2})\b", body_text, re.I)
+            if dateline:
+                try:
+                    day = dt.datetime.strptime(dateline.group(1), "%d.%m.%Y")
+                    date = day.replace(tzinfo=ZoneInfo("Europe/Berlin")).isoformat()
+                    date_precision = "day"
+                except ValueError:
+                    pass
         canonical = urllib.parse.urljoin(final, parser.canonical) if parser.canonical else final
         if not same_site(canonical, base):
             raise ValueError("off_domain_canonical")
         result.update({"title": title[:240], "published_at_raw": date, "canonical_url": canonical})
+        # Reject section and directory URLs even when they expose dates in metadata.
+        if classify_candidate(canonical, base) != "possible_article":
+            result["reason"] = "not_article_url"
+            return result
         if not title or not date:
             result["reason"] = "missing_title_or_publication_date"
         else:
@@ -246,6 +341,8 @@ def audit_candidate(item, base, robots):
                     result["reason"] = "future_publication_date"
                 else:
                     result["verified"] = True
+                    if date_precision:
+                        result["date_precision"] = date_precision
                     result["reason"] = "metadata_title_date_canonical_present"
                     result["published_at"] = normalized.isoformat()
             except ValueError:
@@ -293,6 +390,7 @@ def main():
     ap.add_argument("--audit-metadata",action="store_true",help="Inspect up to 3 article-shaped or review candidates per source")
     ap.add_argument("--source-index",type=int,default=None,help=argparse.SUPPRESS)
     ap.add_argument("--per-source-timeout",type=int,default=45,help="Hard wall-clock seconds per source (default 45)")
+    ap.add_argument("--country",default=None,help="Limit dry-run discovery to ISO country code, e.g. DE")
     ap.add_argument("--sources",default=str(Path(__file__).with_name("sources.json")))
     ap.add_argument("--channels",default=str(Path(__file__).with_name("channels.json")))
     ap.add_argument("--discovery-mode",choices=("channels","legacy"),default="channels")
@@ -326,10 +424,11 @@ def main():
                           "inserted": new, "warnings": failures, "quality": {k: sum(x["quality"] == k for x in candidates) for k in ("possible_article", "review", "index")}}, ensure_ascii=False), flush=True)
         return
 
-    enabled = [(i, src) for i, src in enumerate(sources) if src.get("enabled")]
+    enabled = [(i, src) for i, src in enumerate(sources) if src.get("enabled") and (not args.country or src.get("country") == args.country)]
     errors = 0
     total = 0
     found = 0
+    verified = 0
     for index, source in enabled:
         command = [sys.executable, str(Path(__file__).resolve()), "--sources", args.sources,
                    "--source-index", str(index), "--channels", args.channels,
@@ -371,7 +470,9 @@ def main():
     print(f"SUMMARY sources_checked={len(enabled)} candidates={found} inserted={total} "
           f"sources_without_candidates_or_failed={errors} "
           f"mode={'apply' if args.apply else 'dry-run'} discovery={args.discovery_mode}", flush=True)
-    if errors and args.apply:
+    # Distinguish successful execution from healthy source coverage in CI.
+    # No writes are performed. A failed/empty source must not yield a green run.
+    if errors:
         sys.exit(2)
 
 if __name__ == "__main__":
