@@ -12,5 +12,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - name: Offline request encoding tests
+        run: python -m unittest discover -s tests -p 'test_eu_funding_api_smoke.py' -v
       - name: Probe official EDF funding endpoint (no writes)
         run: python collectors/opportunities/eu_funding_api_smoke.py --limit 3 --timeout 20
