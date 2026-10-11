@@ -1,0 +1,31 @@
+name: M1 Frequentis Gemini Editor (READ ONLY, NO PUBLISH)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frequentis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install PDF text reader
+        run: python -m pip install 'pdfplumber>=0.11,<0.12'
+      - name: One bounded real Gemini request, internal HOLD
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python scripts/m1_frequentis_gemini.py
+      - name: Save private QA artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m1-frequentis-internal-qa
+          path: output/gemini-frequentis/
+          retention-days: 3
+          if-no-files-found: warn
