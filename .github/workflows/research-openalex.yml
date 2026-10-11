@@ -1,0 +1,34 @@
+name: Bohundefence OpenAlex Research (read-only)
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '15 6 * * *'
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/research-openalex.yml
+      - collectors/research/openalex.py
+permissions:
+  contents: read
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test OpenAlex normalization
+        run: python -m unittest discover -s tests -p 'test_openalex_research.py'
+      - name: Query OpenAlex metadata
+        env:
+          OPENALEX_API_KEY: ${{ secrets.OPENALEX_API_KEY }}
+        run: python collectors/research/openalex.py --output output/openalex-research.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: openalex-research-candidates
+          path: output/openalex-research.json
+          retention-days: 30
+          if-no-files-found: ignore
