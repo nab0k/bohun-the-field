@@ -193,3 +193,5 @@ button[data-journey], .demo-tag { display:none !important; }
   .m1-mobile-menu-content a:focus-visible, .m1-mobile-menu-content button:focus-visible { outline:2px solid #d3b766; }
   #side { top:70px !important; max-height:34vh; overflow:auto; }
 }
+
+@media (max-width:760px) { .topbar .brand span:nth-child(2) { display:inline !important; font-size:10px; letter-spacing:0; } }
