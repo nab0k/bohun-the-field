@@ -18,9 +18,13 @@ jobs:
         run: |
           python -m py_compile scripts/eng09_evidence_resolver.py
           python scripts/eng09_evidence_resolver.py
+      - name: Retrieve actual Lockheed Martin K6 published HTML and text spans
+        run: python scripts/eng09_k6_source_extract.py
       - if: always()
         uses: actions/upload-artifact@v4
         with:
           name: eng09-three-fixture-evidence-contract-audit
-          path: output/eng09-evidence/
+          path: |
+            output/eng09-evidence/
+            output/eng09-k6/
           retention-days: 14
