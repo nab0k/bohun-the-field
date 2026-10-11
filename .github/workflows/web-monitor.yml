@@ -14,6 +14,10 @@ on:
           - channels
           - legacy
         default: channels
+      country:
+        description: "Optional country filter, e.g. DE"
+        type: string
+        default: ""
       audit_metadata:
         description: "Read-only metadata audit of up to 3 article candidates per source"
         type: boolean
@@ -41,7 +45,7 @@ jobs:
         if: github.event_name != 'pull_request'
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.audit_metadata }}" = "true" ]; then
-            python collectors/web_monitor/monitor.py --discovery-mode "${{ inputs.discovery_mode || 'channels' }}" --audit-metadata
+            python collectors/web_monitor/monitor.py --discovery-mode "${{ inputs.discovery_mode || 'channels' }}" --country "${{ inputs.country }}" --audit-metadata
           else
             python collectors/web_monitor/monitor.py --discovery-mode "${{ inputs.discovery_mode || 'channels' }}"
           fi
