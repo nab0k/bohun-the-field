@@ -1,0 +1,40 @@
+name: M1 Three Pane Intelligence Drawer (NO DEPLOY)
+on:
+  push:
+    branches: [m1-three-pane-drawer-review]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  three-pane:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: node scripts/test-m1-state.mjs
+      - run: node scripts/test-p2-coverage.mjs
+      - run: npm run build:site
+      - name: Install isolated Chromium
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Serve real original Atlas
+        run: |
+          mkdir -p output/threepane
+          (npm run dev -- --host 127.0.0.1 --port 5174 > output/threepane/vite.log 2>&1 &)
+          for i in $(seq 1 30); do if curl -fsS http://127.0.0.1:5174/atlas.html >/dev/null; then exit 0; fi; sleep 2; done
+          exit 1
+      - name: Exercise responsive company/feed/detail/nav drawer
+        run: node scripts/m1-threepane-browser.mjs
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m1-three-pane-internal-desktop-mobile
+          path: output/threepane/
+          retention-days: 14
