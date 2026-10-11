@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="description" content="Bohun Defence coded vertical slice: a commercial field connecting defence requirements, capabilities and markets." />
+  <title>BOHUN / THE FIELD — Vertical Slice</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#hero" aria-label="Bohun Defence home">
+      <span class="mark" aria-hidden="true">↟</span>
+      <span>BOHUN / THE FIELD</span><span class="build-tag">v0.2</span>
+    </a>
+    <nav aria-label="Primary">
+      <a href="#interest">Current Interest</a>
+      <a href="#bohun">How Bohun Works</a>
+      <button id="game-toggle" class="mode-toggle" type="button" aria-pressed="false">GAME MODE</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="world-shell" class="world-shell" aria-label="Interactive Bohun commercial field">
+      <canvas id="world" width="1600" height="1000" aria-label="Interactive isometric map of suppliers, markets, partners and Bohun"></canvas>
+      <div class="scanlines" aria-hidden="true"></div>
+
+      <div class="hud hud-top" aria-hidden="true">
+        <span>FIELD / 00-01</span><span>UKRAINE ↔ EUROPE ↔ INTERNATIONAL</span><span id="hud-state">STATE / OVERVIEW</span>
+      </div>
+
+      <section id="hero" class="story-panel hero-panel" data-scene="overview">
+        <p class="eyebrow">COMMERCIAL FIELD / DEFENCE + DUAL-USE</p>
+        <h1>DEFENCE REQUIREMENTS.<br>CAPABILITIES.<br>OPPORTUNITIES.</h1>
+        <p class="lede">Bohun Defence helps companies navigate defence and dual-use markets across Ukraine and internationally.</p>
+        <div class="intent-switch" role="group" aria-label="Choose what you are trying to move forward">
+          <button type="button" data-intent="need"><b>I NEED SOMETHING</b><span>Find capabilities, companies and partners.</span></button>
+          <button type="button" data-intent="have"><b>I HAVE SOMETHING</b><span>Explore markets, partnerships and commercial opportunities.</span></button>
+        </div>
+        <p class="micro">Scroll to move through the field. Click map nodes to inspect. Game Mode unlocks free exploration.</p>
+      </section>
+
+      <section id="interest" class="story-panel signal-panel file-panel" data-scene="signal">
+        <div class="panel-kicker"><p class="eyebrow">SIGNAL / CURRENT INTEREST</p><span class="status-dot">ACTIVE</span></div>
+        <h2>PROPULSION</h2>
+        <p>We are interested in hearing from companies working across selected defence and dual-use capabilities.</p>
+        <button type="button" class="file-button" data-open="propulsion">OPEN FILE / PROPULSION →</button>
+      </section>
+
+      <section id="bohun" class="story-panel bohun-panel" data-scene="bohun">
+        <p class="eyebrow">HOW BOHUN WORKS</p>
+        <h2>UNDERSTAND → MAP → QUALIFY → ENGAGE → SUPPORT</h2>
+        <p>Intelligence is not the end product. It informs where to look, who may be relevant and what to do next.</p>
+      </section>
+
+      <aside id="field-legend" class="field-legend" aria-label="Field legend"><span><i class="legend-node"></i> NODE</span><span><i class="legend-signal"></i> SIGNAL</span><span><i class="legend-route"></i> ROUTE</span></aside>
+
+      <aside id="game-hud" class="game-hud" hidden aria-label="Game mode controls">
+        <div><b>GAME MODE / EXPERIMENTAL</b><span>Drag to pan · wheel/pinch to zoom · click a node</span></div>
+        <button id="reveal-button" type="button" disabled>RESEARCH / REVEAL</button>
+      </aside>
+
+      <div id="selection-label" class="selection-label" hidden></div>
+    </section>
+
+    <div class="scroll-spacer" aria-hidden="true"></div>
+  </main>
+
+  <dialog id="dossier" class="dossier" aria-labelledby="dossier-title">
+    <form method="dialog"><button class="close" aria-label="Close dossier">×</button></form>
+    <p class="eyebrow">FILE / CAPABILITY</p>
+    <div class="dossier-meta"><span>FILE ID / CP-017</span><span>STATUS / CURRENT INTEREST</span></div>
+    <h2 id="dossier-title">PROPULSION</h2>
+    <p id="dossier-copy">Bohun is interested in hearing from companies working on propulsion-related capabilities relevant to defence and dual-use applications. At this stage, we are mapping the field and relevant organisations.</p>
+    <div class="dossier-grid">
+      <div><small>FLOW</small><b>MAP → SIGNAL → FILE → MATCH → CONTACT</b></div>
+      <div><small>PUBLIC SCOPE</small><b>CATEGORY LEVEL</b></div>
+    </div>
+    <a class="cta" href="mailto:hello@bohundefence.com?subject=Introduce%20a%20capability">INTRODUCE YOUR CAPABILITY →</a>
+    <p class="legal">Sensitive information is not required at this stage. This signal is not an RFQ or procurement notice.</p>
+  </dialog>
+
+  <noscript><p class="fallback">Bohun Defence helps companies navigate defence and dual-use markets across Ukraine and internationally. Please enable JavaScript for the interactive field.</p></noscript>
+  <script src="app.js"></script>
+</body>
+</html>

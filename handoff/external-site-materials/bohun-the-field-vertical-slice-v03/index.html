@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="description" content="BOHUN / THE FIELD v0.3: a playable commercial map of Ukraine connecting defence and dual-use requirements, capabilities and markets." />
+  <title>BOHUN / THE FIELD — v0.3</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#field" aria-label="Bohun Defence home"><span class="mark">↟</span><span>BOHUN / THE FIELD</span><span class="build">v0.3</span></a>
+    <nav>
+      <button id="intent-need" class="intent active" type="button">I NEED SOMETHING</button>
+      <button id="intent-have" class="intent" type="button">I HAVE SOMETHING</button>
+      <button id="game-toggle" class="game-toggle" type="button" aria-pressed="false">EXPLORE THE FIELD</button>
+    </nav>
+  </header>
+
+  <main id="field" class="field-shell intent-need">
+    <canvas id="world" aria-label="Interactive isometric commercial map of Ukraine"></canvas>
+    <div class="grain" aria-hidden="true"></div>
+
+    <section id="hero" class="hero-card">
+      <p class="eyebrow">UKRAINE ↔ EUROPE ↔ INTERNATIONAL</p>
+      <h1>DEFENCE REQUIREMENTS.<br>CAPABILITIES.<br>OPPORTUNITIES.</h1>
+      <p>Bohun Defence helps companies understand the field, identify relevant actors and build credible routes toward commercial engagement.</p>
+      <p class="hint">Select <b>PROPULSION</b> on the map to begin the field exercise.</p>
+    </section>
+
+    <aside id="objective" class="objective">
+      <span>FIELD OBJECTIVE / 01</span>
+      <b id="objective-text">Select the PROPULSION signal</b>
+    </aside>
+
+    <aside id="selection-panel" class="selection-panel" hidden>
+      <div class="panel-head"><span>SELECTED OBJECT</span><button id="selection-close" aria-label="Close">×</button></div>
+      <h2 id="selection-title">PROPULSION</h2>
+      <div class="object-meta"><span id="selection-type">SIGNAL</span><span id="selection-status">DETECTED</span></div>
+      <p id="selection-copy"></p>
+      <div id="command-bar" class="command-bar"></div>
+    </aside>
+
+    <aside class="minimap-wrap" aria-label="Minimap">
+      <div class="minimap-title">FIELD MAP / UA</div>
+      <canvas id="minimap" width="250" height="150"></canvas>
+    </aside>
+
+    <aside id="mode-hud" class="mode-hud">
+      <span id="mode-label">MODE / I NEED SOMETHING</span>
+      <span id="world-state">FIELD / READY</span>
+    </aside>
+
+    <dialog id="dossier" class="dossier">
+      <form method="dialog"><button class="close" aria-label="Close dossier">×</button></form>
+      <p class="eyebrow">FILE / CAPABILITY</p>
+      <div class="dossier-meta"><span>FILE ID / CP-017</span><span>STATUS / CURRENT INTEREST</span></div>
+      <h2>PROPULSION</h2>
+      <p>Bohun is interested in hearing from companies working on propulsion-related capabilities relevant to defence and dual-use applications. At this stage, we are mapping the field and relevant organisations.</p>
+      <div class="dossier-grid"><div><small>FLOW</small><b>MAP → RESEARCH → REVEAL → CONNECT</b></div><div><small>PUBLIC SCOPE</small><b>CATEGORY LEVEL</b></div></div>
+      <a class="cta" href="mailto:hello@bohundefence.com?subject=Introduce%20a%20capability">INTRODUCE YOUR CAPABILITY →</a>
+      <p class="legal">Sensitive information is not required at this stage. This signal is not an RFQ or procurement notice.</p>
+    </dialog>
+  </main>
+
+  <noscript><p class="fallback">Bohun Defence helps companies navigate defence and dual-use markets across Ukraine and internationally. Enable JavaScript to explore the field.</p></noscript>
+  <script src="app.js"></script>
+</body>
+</html>
