@@ -31,6 +31,22 @@ def multipart(fields):
     chunks.append(("--" + boundary + "--\r\n").encode())
     return b"".join(chunks), "multipart/form-data; boundary=" + boundary
 
+def nested_shape(hit):
+    """Only metadata key names and value types; no raw nested content or URLs."""
+    out = {}
+    for field in ("metadata", "enrichedMetadata", "reference", "summary", "content"):
+        value = hit.get(field)
+        if isinstance(value, dict):
+            out[field] = {"type": "dict", "keys": list(value.keys())[:35],
+                          "value_types": {str(k): type(v).__name__ for k, v in list(value.items())[:35]}}
+        elif isinstance(value, list):
+            out[field] = {"type": "list", "length": len(value),
+                          "first_type": type(value[0]).__name__ if value else None,
+                          "first_keys": list(value[0].keys())[:25] if value and isinstance(value[0], dict) else []}
+        else:
+            out[field] = {"type": type(value).__name__}
+    return out
+
 def summarize_response(data):
     """Schema discovery only. Do not treat returned search hits as approved grants."""
     if not isinstance(data, dict):
@@ -48,7 +64,7 @@ def summarize_response(data):
                   if isinstance(v, (str, int, float, bool)) and
                   any(token in k.lower() for token in
                       ("title", "identifier", "id", "deadline", "date", "status", "type"))}
-        preview.append({"keys": list(hit.keys())[:35], "scalar_candidates": scalar})
+        preview.append({"keys": list(hit.keys())[:35], "scalar_candidates": scalar, "nested_shape": nested_shape(hit)})
     return {"total_results": data.get("totalResults"),
             "returned_count": len(hits),
             "warnings_count": len(data.get("warnings") or []),
