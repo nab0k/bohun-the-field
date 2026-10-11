@@ -329,6 +329,7 @@ def main():
     ap.add_argument("--audit-metadata",action="store_true",help="Inspect up to 3 article-shaped or review candidates per source")
     ap.add_argument("--source-index",type=int,default=None,help=argparse.SUPPRESS)
     ap.add_argument("--per-source-timeout",type=int,default=45,help="Hard wall-clock seconds per source (default 45)")
+    ap.add_argument("--country",default=None,help="Limit dry-run discovery to ISO country code, e.g. DE")
     ap.add_argument("--sources",default=str(Path(__file__).with_name("sources.json")))
     ap.add_argument("--channels",default=str(Path(__file__).with_name("channels.json")))
     ap.add_argument("--discovery-mode",choices=("channels","legacy"),default="channels")
@@ -362,7 +363,7 @@ def main():
                           "inserted": new, "warnings": failures, "quality": {k: sum(x["quality"] == k for x in candidates) for k in ("possible_article", "review", "index")}}, ensure_ascii=False), flush=True)
         return
 
-    enabled = [(i, src) for i, src in enumerate(sources) if src.get("enabled")]
+    enabled = [(i, src) for i, src in enumerate(sources) if src.get("enabled") and (not args.country or src.get("country") == args.country)]
     errors = 0
     total = 0
     found = 0
