@@ -176,7 +176,7 @@ createNight().then((night) => {
   window.__night = { refresh, draw: night.draw };
   const syncNight = () => {
     const effective=nightVisible();
-    if(map.getLayer('night')) map.setLayoutProperty('night','visibility',effective?'visible':'none');
+    if(map.getLayer('night') && map.getLayoutProperty('night','visibility') !== (effective?'visible':'none')) map.setLayoutProperty('night','visibility',effective?'visible':'none');
     const button=$('#night');button.classList.toggle('active',effective);
     button.setAttribute('aria-pressed',String(nightOn));
     button.title=nightOn&&!effective?'Night preference enabled; visible only at global zoom':'Night side of the Earth';
