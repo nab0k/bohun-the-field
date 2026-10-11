@@ -31,6 +31,29 @@ def multipart(fields):
     chunks.append(("--" + boundary + "--\r\n").encode())
     return b"".join(chunks), "multipart/form-data; boundary=" + boundary
 
+def summarize_response(data):
+    """Schema discovery only. Do not treat returned search hits as approved grants."""
+    if not isinstance(data, dict):
+        raise ValueError("Unexpected API response: root is not an object")
+    hits = data.get("results")
+    if not isinstance(hits, list):
+        raise ValueError("Unexpected API response: results is not a list")
+    preview = []
+    for hit in hits[:3]:
+        if not isinstance(hit, dict):
+            continue
+        # Keys are discovered rather than assumed; field names may change.
+        # Include only a bounded sample of scalar values, never full raw records.
+        scalar = {k: str(v)[:180] for k, v in hit.items()
+                  if isinstance(v, (str, int, float, bool)) and
+                  any(token in k.lower() for token in
+                      ("title", "identifier", "id", "deadline", "date", "status", "type"))}
+        preview.append({"keys": list(hit.keys())[:35], "scalar_candidates": scalar})
+    return {"total_results": data.get("totalResults"),
+            "returned_count": len(hits),
+            "warnings_count": len(data.get("warnings") or []),
+            "sample_hits": preview}
+
 def smoke(page_size, timeout):
     params = urllib.parse.urlencode({
         "apiKey": "SEDIA", "text": "*", "pageSize": page_size, "pageNumber": 1
@@ -51,6 +74,7 @@ def smoke(page_size, timeout):
                 "root_keys": list(data)[:30] if isinstance(data, dict) else [],
                 "root_field_types": {k: type(v).__name__ for k, v in data.items()}
                 if isinstance(data, dict) else {},
+                **summarize_response(data),
                 "persisted": 0, "publication_approved": 0}
 
 def main():
