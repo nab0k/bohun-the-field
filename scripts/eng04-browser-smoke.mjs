@@ -14,9 +14,10 @@ try {
  panel=await page.locator('#eng04-internal').innerText();
  if(response?.status()!==200)throw Error('HTTP '+response?.status());
  if(!panel.includes('INTERNAL DRAFT / NOT APPROVED'))throw Error('missing QA draft label');
- if(!panel.includes('Supabase: NOT VERIFIED'))throw Error('missing Supabase warning');
+ if(!panel.includes('Supabase row: NOT VERIFIED'))throw Error('missing Supabase warning');
  if(!panel.includes('Gemini: NOT RUN'))throw Error('missing Gemini warning');
  if(!await page.locator('#map').count())throw Error('original map container missing');
+ await page.locator('.maplibregl-canvas').waitFor({state:'attached',timeout:25000});
  await page.screenshot({path:dir+'/austria-internal.png',fullPage:true});
  await page.getByRole('button',{name:'View company on the original globe'}).click();
  status='PASS';
