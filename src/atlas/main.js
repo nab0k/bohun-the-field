@@ -108,12 +108,8 @@ const REGIONS = [['UKRAINE', 33.0, 48.95, 18], ['BLACK SEA', 34.5, 43.2, 13], ['
 
 // ---------- map ----------
 // map looks to compare (?look=...): all use free OpenFreeMap styles; relief adds a public elevation dataset (AWS Terrain Tiles)
-export const LOOKS = {
-  parchment: { label: 'Old map', base: 'liberty', parchment: true, hillshade: true },
-  dark: { label: 'Dark', base: 'dark' },
-  light: { label: 'Light minimal', base: 'positron' },
-};
-const LOOK = LOOKS[params.get('look')] ? params.get('look') : 'light';
+export const LOOKS = { light: { label: 'Light minimal', base: 'positron' } };
+const LOOK = 'light';
 // capitals of the world and the 24 oblast centres of Ukraine (scripts/build-places.mjs, Natural Earth)
 const places = (await fetch('/atlas/places.json').then((r) => r.json())).places;
 async function loadStyle() {
@@ -308,7 +304,7 @@ $('#legend-sea').replaceChildren(el('b', null, 'UNDERSEA INFRASTRUCTURE'), el('s
 $('#sea').addEventListener('click', () => setSea(!seaOn));
 const lookSel = $('#look');
 for (const [k, v] of Object.entries(LOOKS)) { const o = el('option', null, v.label); o.value = k; o.selected = k === LOOK; lookSel.append(o); }
-lookSel.addEventListener('change', () => { const u = new URL(location.href); u.searchParams.set('look', lookSel.value); location.href = u.toString(); });
+lookSel.disabled = true; // One approved basemap; thematic overlays remain separately selectable.
 setSea(SHOW.sea);
 if (!SHOW.sea) $('#sea').hidden = true;
 
