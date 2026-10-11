@@ -1,0 +1,26 @@
+name: ENG09 Evidence-ID Contract Three Fixtures (NO DEPLOY)
+on:
+  push:
+    branches: [eng09-evidence-ids-three-fixtures-review]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  evidence-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check source-bound IDs, reject invented evidence, fail closed
+        run: |
+          python -m py_compile scripts/eng09_evidence_resolver.py
+          python scripts/eng09_evidence_resolver.py
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eng09-three-fixture-evidence-contract-audit
+          path: output/eng09-evidence/
+          retention-days: 14
