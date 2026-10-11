@@ -13,6 +13,8 @@ import assets from '../game/data/assets.json' with { type: 'json' };
 import { createNight } from './night.js';
 import { mountAustriaInternalReview } from './eng04-internal.js';
 import { createAtlasState, mountM1Panels } from './m1-state.js';
+import { mountIntelligenceV1Internal } from './intelligence-v1-internal.js';
+import v1Evidence from '../../intelligence/fixtures/vertical-slice-v1-internal.json' with { type: 'json' };
 import { mountCoverageControls } from './p2-coverage.js';
 import { createLive } from './live.js';
 import { createScaleDemo } from './scale-demo.js';
@@ -371,6 +373,10 @@ scale.setOn(false);
 const atData = await fetch('/atlas/companies-at.json').then((r) => r.json());
 m1CompaniesByName=new Map(atData.companies.map(company=>[company.name,company]));
 mountAustriaInternalReview({map, industry, atData});
+// Dev-only approved contract review: QA HOLD evidence candidates never enter the public feed.
+if(import.meta.env.DEV && params.get('intelligence')==='review'){
+  window.__intelligenceV1Mount=mountIntelligenceV1Internal({map,store:m1State,packets:v1Evidence.packets});
+}
 // Card selection uses the existing Claude onCard handler, mapped to research identity.
 const ringed = (list) => { const g = {}; for (const c of list) (g[c.lon + ',' + c.lat] ??= []).push(c); return Object.values(g).flatMap((cs) => cs.map((c, i) => { const r = cs.length > 1 ? 0.012 + 0.003 * cs.length : 0, a = (i / cs.length) * Math.PI * 2; return { ...c, lon: c.lon + (r * Math.cos(a)) / Math.cos((c.lat * Math.PI) / 180), lat: c.lat + r * Math.sin(a) }; })); };
 const FLAG_EN = { 'OWNERSHIP OPEN': 'Ownership not fully confirmed', 'SOURCE CONFLICT': 'Sources disagree on some details', 'LEGAL REVIEW': 'Under legal review', 'NO CITY': 'City not confirmed' };
