@@ -31,6 +31,30 @@ def main(mode):
   c.execute("INSERT OR IGNORE INTO raw_item (source_id,external_id,fetched_at,content_hash,payload) VALUES (?,?,?,?,?)",
    (SOURCE,EXTERNAL_ID,NOW(),sha,raw.decode("utf-8")))
   after=c.execute("SELECT COUNT(*) FROM raw_item WHERE source_id=? AND external_id=?",(SOURCE,EXTERNAL_ID)).fetchone()[0]
+  # Typed project fact from actual official XML, using EXISTING entity/program/fact tables.
+  root=ET.fromstring(raw)
+  ns={'c':'http://cordis.europa.eu'}
+  pick=lambda field:root.findtext('c:'+field,default='',namespaces=ns)
+  assert pick('id')=='101289409' and pick('acronym')=='SMART'
+  project_id='program:cordis:101289409'
+  now=NOW()
+  c.execute("""INSERT OR IGNORE INTO entity
+    (id,kind,slug,name,summary_en,country_iso2,lat,lon,primary_source_url,status,status_reason,created_at,updated_at)
+    VALUES (?,?,?,?,?,NULL,NULL,NULL,?,'candidate',?,?,?)""",
+    (project_id,'program','cordis-smart-101289409',pick('title'),
+     'Source-reported EU research project. Not an awarded military procurement.',URL,
+     'INTERNAL_QA_HOLD_NO_ENTITY_CROSSWALK',now,now))
+  c.execute("""INSERT OR IGNORE INTO program (entity_id,budget_amount,budget_currency,period_start,period_end)
+    VALUES (?,?,?,?,?)""",(project_id,None,None,pick('startDate'),pick('endDate')))
+  raw_id=c.execute("SELECT id FROM raw_item WHERE source_id=? AND external_id=? AND content_hash=?",
+       (SOURCE,EXTERNAL_ID,sha)).fetchone()[0]
+  for field,tag in [('project.euc_contribution','ecMaxContribution'),('project.ec_signature_date','ecSignatureDate')]:
+   val=pick(tag)
+   assert val and ('<'+tag+'>'+val+'</'+tag+'>') in raw.decode('utf-8')
+   evidence='<'+tag+'>'+val+'</'+tag+'>'
+   if not c.execute("SELECT id FROM fact WHERE entity_id=? AND field=? AND source_url=? AND raw_item_id=?",(project_id,field,URL,raw_id)).fetchone():
+    c.execute("""INSERT INTO fact(entity_id,field,value,source_url,raw_item_id,evidence,extracted_by,evidence_verified,extracted_at)
+      VALUES (?,?,?,?,?,?,'rule',1,?)""",(project_id,field,val,URL,raw_id,evidence,now))
   c.commit();c.close()
   log={"stage":"ingest","source_id":SOURCE,"external_id":EXTERNAL_ID,"url":URL,"sha256":sha,
        "xml_bytes":len(raw),"content_type":ctype,"before":before,"after":after,"new_versions":after-before,
@@ -47,19 +71,29 @@ def main(mode):
     "source_id":row[1],"external_id":row[2],"sha256":row[3],"qa":"HOLD","cloud_persistence":"NOT_TESTED"}
   (ROOT/"readback.json").write_text(json.dumps(result,indent=2))
   print(json.dumps(result))
+  facts=c.execute("SELECT field,value,evidence_verified FROM fact WHERE entity_id=? ORDER BY field",('program:cordis:101289409',)).fetchall()
+  assert len(facts)==2 and all(f[2]==1 for f in facts),facts
+  result['typed_fact_count']=len(facts)
+  (ROOT/"readback.json").write_text(json.dumps(result,indent=2))
   c.close()
  elif mode=="export":
   assert (ROOT/"readback.json").exists()
   read=json.loads((ROOT/"readback.json").read_text())
   # Content comes from actual persisted original XML, not a manually authored static fixture.
   c=db();row=c.execute("SELECT payload,content_hash FROM raw_item WHERE id=?",(read["row_id"],)).fetchone()
-  ET.fromstring(row[0]);assert row[1]==read["sha256"]
+  root=ET.fromstring(row[0]);assert row[1]==read["sha256"]
+  # The coordinator's organisation country is NOT a programme venue or contract location.
+  ns={'c':'http://cordis.europa.eu'}
+  coords=root.find(".//c:organization[@type='coordinator']/c:address/c:country",ns)
+  coordinator_country=coords.text if coords is not None else None
+  facts=c.execute("SELECT field,value,evidence FROM fact WHERE entity_id=? ORDER BY field",('program:cordis:101289409',)).fetchall()
   # Internal candidate view: source update only; no model-inferred claims, company ID or fake pin.
   feed={"internal_only":True,"qa_status":"HOLD","items":[{
      "event_id":"CORDIS:101289409","source_id":SOURCE,"source_url":URL,"source_sha256":row[1],
      "headline":"CORDIS official project record · SMART · GA 101289409",
      "summary":"Original European Commission CORDIS XML captured, hashed and deduplicated. No independent company/contract analysis approved.",
-     "country_iso2":None,"geo_role":"NONE","coordinates":None,
+     "country_iso2":coordinator_country,"geo_role":"COORDINATOR_COUNTRY_ONLY","coordinates":None,
+     "typed_facts":[{"field":f[0],"value":f[1],"exact_evidence":f[2]} for f in facts],
      "company_id":None,"regulation_id":None,"analysis_id":None,"publication_id":None,
      "source_kind":"EU_PROJECT_API","qa":{"decision":"HOLD","public_release":False},
      "raw_item_id":read["row_id"]}]}
