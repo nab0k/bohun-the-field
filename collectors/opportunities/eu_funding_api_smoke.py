@@ -6,6 +6,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
+from eu_edf_normalizer import normalize_page
 
 API = "https://api.tech.ec.europa.eu/search-api/prod/rest/search"
 EDF_PROGRAMME = "44181033"  # EDF; cross-check against EC portal filters
@@ -91,6 +92,7 @@ def smoke(page_size, timeout):
                 "root_field_types": {k: type(v).__name__ for k, v in data.items()}
                 if isinstance(data, dict) else {},
                 **summarize_response(data),
+                "normalized_preview": normalize_page(data),
                 "persisted": 0, "publication_approved": 0}
 
 def main():
