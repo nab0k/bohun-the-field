@@ -17,7 +17,7 @@ jobs:
       - name: Check existing key/model access without generation
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_OWNER_APPROVED_ONE_PAID_CALL: '0'
+          GEMINI_OWNER_APPROVED_ONE_PAID_CALL: '1'
           GEMINI_MODEL: gemini-3.5-flash-lite
         run: |
           mkdir -p output/au-f35-01
@@ -41,7 +41,7 @@ jobs:
       - name: One bounded Gemini invocation with owner-approved prepaid usage
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_OWNER_APPROVED_ONE_PAID_CALL: '0'
+          GEMINI_OWNER_APPROVED_ONE_PAID_CALL: '1'
           GEMINI_MODEL: gemini-3.5-flash-lite
         run: |
           python - <<'PY'
