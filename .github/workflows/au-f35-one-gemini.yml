@@ -50,7 +50,7 @@ jobs:
           from pathlib import Path
           p=Path('output/au-f35-01/preflight.json');d=json.loads(p.read_text())
           if not(d['key_present'] and d['model_available'] and d['owner_approved_paid_single_call']):
-            print('NO GENERATION: key, model or owner's one-call paid authorization absent')
+            print('NO GENERATION: missing key, model or owner authorization')
             with open('output/au-f35-01/blocker.txt','w') as f:f.write('BLOCKED: '+json.dumps(d))
             with open(os.environ['GITHUB_ENV'],'a') as f:f.write('GEMINI_OWNER_APPROVED_ONE_PAID_CALL=0\n')
           else:
