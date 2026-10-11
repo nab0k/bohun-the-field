@@ -1,0 +1,51 @@
+name: M0 Public Release Readiness (NO DEPLOY)
+on:
+  push:
+    branches: [m0-public-release-review]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  release-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: npm ci
+        run: npm ci
+      - name: npm test
+        run: npm test
+      - name: M0 evidence gate regression
+        run: node scripts/test-m0-gate.mjs
+      - name: npm run build
+        run: npm run build
+      - name: M0 production-shape site build
+        run: npm run build:site
+      - name: Install isolated Chromium
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Start built site locally
+        run: |
+          mkdir -p output/m0
+          (npm run preview -- --host 127.0.0.1 --port 5175 > output/m0/preview.log 2>&1 &)
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:5175/ >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat output/m0/preview.log
+          exit 1
+      - name: Screenshot and release browser assertions
+        run: node scripts/m0-browser-smoke.mjs
+      - name: Upload QA-only evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m0-internal-release-readiness
+          path: output/m0/
+          retention-days: 7
+          if-no-files-found: warn
