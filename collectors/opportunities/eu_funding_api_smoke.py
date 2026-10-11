@@ -6,7 +6,12 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
-from eu_edf_normalizer import normalize_page
+try:
+    from collectors.opportunities.eu_edf_normalizer import normalize_page
+except ModuleNotFoundError as exc:
+    if exc.name != "collectors":
+        raise
+    from eu_edf_normalizer import normalize_page
 
 API = "https://api.tech.ec.europa.eu/search-api/prod/rest/search"
 EDF_PROGRAMME = "44181033"  # EDF; cross-check against EC portal filters
