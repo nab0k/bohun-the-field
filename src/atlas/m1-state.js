@@ -1,6 +1,6 @@
 // M1 single-source UI state for the existing Claude MapLibre atlas.
 // Inert by default: data panels render ONLY when approved real records exist.
-const initial=Object.freeze({country:null,company:null,event:null,filters:{sectors:[],types:[],query:''},period:{from:null,to:null},layer:'companies'});
+const initial=Object.freeze({country:null,geographyA3:null,company:null,event:null,filters:{sectors:[],types:[],query:''},period:{from:null,to:null},layer:'companies'});
 const validIso=v=>v===null||/^[A-Z]{2}$/.test(v);
 export function createAtlasState(seed={}){
  let state={...initial,...seed,filters:{...initial.filters,...seed.filters},period:{...initial.period,...seed.period}};
@@ -9,6 +9,7 @@ export function createAtlasState(seed={}){
  const set=patch=>{
   const next={...state,...patch,filters:{...state.filters,...(patch.filters||{})},period:{...state.period,...(patch.period||{})}};
   if(!validIso(next.country)) throw Error('Invalid country ISO2');
+  if(next.geographyA3!==null && !/^[A-Z]{3}$/.test(next.geographyA3)) throw Error('Invalid geography A3');
   if(next.period.from&&next.period.to&&next.period.from>next.period.to) throw Error('Invalid period');
   next.filters.sectors=[...new Set(next.filters.sectors)];
   next.filters.types=[...new Set(next.filters.types)];
