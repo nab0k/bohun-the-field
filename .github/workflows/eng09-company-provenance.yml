@@ -1,0 +1,23 @@
+name: ENG09 Company Provenance Audit (NO DEPLOY)
+on:
+  push:
+    branches: [eng09-company-evidence-audit-review]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect-source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Audit actual company candidate provenance
+        run: python scripts/eng09_company_provenance_audit.py
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eng09-company-coverage-source-audit
+          path: output/eng09/
+          retention-days: 14
