@@ -1,0 +1,32 @@
+name: R1 unified site review (NO DEPLOY)
+on:
+  push:
+    branches: [r1-unified-site-review-20261011]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node scripts/test-r1-unified.mjs
+      - run: npm test
+      - run: npm run build:site
+      - name: Assert internal HOLD data excluded
+        run: |
+          test ! -f dist/atlas/pilot-internal-feed.json
+          test ! -d dist/dev
+          test -f dist/index.html
+          grep -q 'id="map"' dist/index.html
+      - name: Upload review build, not public deployment
+        uses: actions/upload-artifact@v4
+        with:
+          name: r1-unified-site-review-build
+          path: dist/
+          retention-days: 14
