@@ -1,0 +1,23 @@
+name: ENG09 Two Country Dossier Proof (NO DEPLOY)
+on:
+  push:
+    branches: [eng09-verified-dossiers-review]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate actual Notion identity and official URLs
+        run: node scripts/test-eng09-dossiers.mjs
+      - name: Save QA-only dossier artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: eng09-two-country-evidence-proof
+          path: data/eng09/first-dossiers-qa-only.json
+          retention-days: 14
