@@ -13,7 +13,7 @@ rows=[
  row(10759,"https://example.org/kc10","KC-10A return to service?"),
  row(12847,"https://example.org/bmt","BMT Canada training"),
 ]
-chosen,excluded=select_rows(rows,limit=2)
+chosen,excluded=select_rows(rows,limit=5)
 assert [x["id"] for x in chosen]==["12847","11357"]
 assert {x["id"] for x in excluded}=={"12247","11356","10759"}
 assert canonical("https://www.Example.org/x/?utm_campaign=a")=="https://example.org/x"
