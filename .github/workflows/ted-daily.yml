@@ -67,6 +67,8 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install "psycopg[binary]"
+      - name: P1 offline duplicate and QA regression tests
+        run: python scripts/test-eng01-p1.py
       - name: Gemini key-scoped model check and single-request preflight
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
