@@ -200,6 +200,8 @@ class ArticleMetadata(HTMLParser):
         self.canonical = None
         self.title = ""
         self.in_title = False
+        self.json_ld = []
+        self.in_json_ld = False
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
         if tag == "meta":
@@ -208,12 +210,19 @@ class ArticleMetadata(HTMLParser):
                 self.meta[key] = a["content"].strip()
         if tag == "link" and "canonical" in a.get("rel", "").lower().split():
             self.canonical = a.get("href")
+        if tag == "script" and a.get("type", "").lower() == "application/ld+json":
+            self.in_json_ld = True
+            self.json_ld.append("")
         if tag == "title":
             self.in_title = True
     def handle_data(self, data):
+        if self.in_json_ld:
+            self.json_ld[-1] += data
         if self.in_title:
             self.title += data
     def handle_endtag(self, tag):
+        if tag == "script":
+            self.in_json_ld = False
         if tag == "title":
             self.in_title = False
 
@@ -229,8 +238,31 @@ def audit_candidate(item, base, robots):
             raise ValueError("off_domain_redirect")
         parser = ArticleMetadata()
         parser.feed(body)
-        title = parser.meta.get("og:title") or parser.meta.get("twitter:title") or parser.title.strip()
-        date = next((parser.meta[k] for k in ("article:published_time", "datepublished", "date", "dc.date.issued", "pubdate") if parser.meta.get(k)), None)
+        structured = {}
+        for raw in parser.json_ld:
+            try:
+                obj = json.loads(raw)
+                nodes = obj if isinstance(obj, list) else [obj]
+                for node in nodes:
+                    if isinstance(node, dict):
+                        nodes_to_check = node.get("@graph", [node])
+                        for candidate in nodes_to_check:
+                            if not isinstance(candidate, dict):
+                                continue
+                            types = candidate.get("@type", [])
+                            if isinstance(types, str):
+                                types = [types]
+                            if any(t in ("NewsArticle", "Article", "PressRelease") for t in types):
+                                structured = candidate
+                                break
+                    if structured:
+                        break
+            except (ValueError, TypeError):
+                continue
+            if structured:
+                break
+        title = parser.meta.get("og:title") or parser.meta.get("twitter:title") or structured.get("headline") or parser.title.strip()
+        date = next((parser.meta[k] for k in ("article:published_time", "datepublished", "date", "dc.date.issued", "pubdate") if parser.meta.get(k)), None) or structured.get("datePublished")
         canonical = urllib.parse.urljoin(final, parser.canonical) if parser.canonical else final
         if not same_site(canonical, base):
             raise ValueError("off_domain_canonical")
