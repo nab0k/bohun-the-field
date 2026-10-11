@@ -19,6 +19,30 @@ def emit(name, value):
 def eligible_url(s):
     return isinstance(s, str) and s.startswith(("https://", "http://"))
 
+TARGET_HOLD_IDS = ("12848","12847","12249","12248","11357","10760","10758")
+REJECT_REGRESSION_IDS = {"12247","11356","10759"}
+BLOCKED_KEYWORDS = ("postage stamp","commemorative stamp","kc-10a return","might return to service")
+def canonical(url):
+    from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
+    p=urlsplit(url.strip())
+    q=urlencode(sorted((k,v) for k,v in parse_qsl(p.query) if not k.lower().startswith("utm_") and k.lower() not in ("fbclid","gclid")))
+    return urlunsplit((p.scheme.lower(),p.netloc.lower().removeprefix("www."),p.path.rstrip("/") or "/",q,""))
+def event_key(row):
+    # Canonical URL is a conservative same-event key. Ambiguous coverage remains QA HOLD.
+    return canonical(row["url"])
+def select_rows(rows, limit=10):
+    unique=set(); selected=[]; excluded=[]
+    by_id={r["id"]:r for r in rows}
+    priority=[by_id[x] for x in TARGET_HOLD_IDS if x in by_id]
+    for r in priority+[x for x in rows if x["id"] not in TARGET_HOLD_IDS]:
+        reason=None
+        if r["id"] in REJECT_REGRESSION_IDS:reason="qa_reject_regression"
+        elif any(x in r["title"].lower() for x in BLOCKED_KEYWORDS):reason="out_of_scope_or_speculation"
+        elif event_key(r) in unique:reason="duplicate_event_url"
+        if reason:excluded.append({"id":r["id"],"reason":reason});continue
+        unique.add(event_key(r));selected.append(r)
+        if len(selected)>=limit:break
+    return selected,excluded
 def read_input():
     import psycopg
     conn = psycopg.connect(
@@ -34,37 +58,41 @@ def read_input():
                FROM intelligence.items i
                JOIN intelligence.sources s ON s.id=i.source_id
                WHERE i.title IS NOT NULL AND i.url LIKE 'http%'
-               ORDER BY CASE WHEN lower(i.item_type)='tender' THEN 1 ELSE 0 END,
+                 AND (i.id::text = ANY(%s) OR i.last_seen_at IS NOT NULL)
+               ORDER BY CASE WHEN i.id::text = ANY(%s) THEN 0 ELSE 1 END,
                         i.last_seen_at DESC NULLS LAST, i.id DESC
-               LIMIT 30"""
+               LIMIT 300"""
         with conn.cursor() as cur:
-            cur.execute(q)
-            rows = cur.fetchall()
+            cur.execute(q,(list(TARGET_HOLD_IDS),list(TARGET_HOLD_IDS)))
+            rows=cur.fetchall()
         conn.rollback()
-    finally:
-        conn.close()
-    dedup, result = set(), []
-    for id_, external, title, url, kind, pub, raw, sid, source in rows:
-        key = (str(sid), str(external))
-        if key in dedup or not eligible_url(url):
-            continue
-        dedup.add(key)
+    finally:conn.close()
+    result=[]
+    for id_,external,title,url,kind,pub,raw,sid,source in rows:
+        if not eligible_url(url):continue
         try:
-            rawval = json.loads(raw or "{}")
-            body = json.dumps(rawval, ensure_ascii=False)[:2400]
-        except (ValueError, TypeError):
-            body = str(raw or "")[:2400]
-        result.append(dict(id=str(id_), external_id=str(external), title=str(title)[:400],
-                           url=url, kind=kind, published_at=str(pub) if pub else None,
-                           source_id=str(sid), source_name=source, excerpt=body))
-        if len(result) == 10: break
-    if len(result) != 10:
-        raise RuntimeError(f"Only {len(result)} usable unique input items (need 10)")
-    return result
+            data=json.loads(raw or "{}")
+            if not isinstance(data,dict):data={"payload":data}
+        except (ValueError,TypeError):data={"unparsed":str(raw or "")[:4000]}
+        # Only text actually supplied by existing raw record, no synthesized full article.
+        fragments=[]
+        for key in ("description","summary","content","body","text","excerpt"):
+            value=data.get(key)
+            if isinstance(value,str) and value.strip():fragments.append({"field":key,"text":value[:3500]})
+        result.append(dict(id=str(id_),external_id=str(external),title=str(title)[:400],url=url,
+                  canonical_url=canonical(url),kind=kind,published_at=str(pub) if pub else None,
+                  source_id=str(sid),source_name=source,excerpts=fragments,
+                  evidence_scope="stored_raw_text_only_no_full_text_assumed"))
+    selected,excluded=select_rows(result)
+    emit("selection_audit.json",{"selected_ids":[r["id"] for r in selected],"excluded":excluded,
+         "missing_hold_ids":[x for x in TARGET_HOLD_IDS if x not in {r["id"] for r in selected}],
+         "candidate_pool":len(result)})
+    if len(selected)!=10:raise RuntimeError(f"Only {len(selected)} distinct eligible inputs (need 10)")
+    return selected
 
 def gemini(item):
     prompt = {
-        "instruction": "Produce one internally reviewable Bohundefence English analytical card from source ONLY. No speculation. Return strict JSON object with keys: headline, takeaway, why_it_matters, event_type, country_iso2, sector, evidence_quote, uncertainty. If article is not eligible or evidence weak set event_type='unresolved'. The evidence_quote must be a literal substring of the supplied title or source excerpt. No operational military locations or movements, no private individuals, no Ukrainian facility location or addresses. Distinguish publisher claims from independently verified outcomes.",
+        "instruction": "Internal Bohundefence reviewer draft ONLY, never approval. Use only the given title and stored raw excerpts, do not assume full source access. Return JSON with headline,takeaway,why_it_matters,event_type,country_iso2,sector,evidence_quote,uncertainty,claims (array). Each claim: text,classification OBSERVED|PUBLISHER_CLAIM|ANALYSIS|UNKNOWN,source_url,quote,source_field,geo_role (company_hq|event_venue|buyer_jurisdiction|source_jurisdiction|unknown). Claim OBSERVED only for directly corroborated source wording; claims of contracts, approvals and exports stay PUBLISHER_CLAIM until primary decision evidence. Unknown is UNKNOWN. No speculative awards, no military operational locations, no UA facility city/address, no private individuals. If primary evidence is insufficient signal must stay unresolved. Evidence quote must occur verbatim in title or supplied raw excerpts.",
         "source": item
     }
     req = urllib.request.Request(
@@ -82,7 +110,7 @@ ALLOWED = {"contract","funding","opportunity","production","partnership","policy
 def qa(item, card):
     reasons=[]
     evidence=str(card.get("evidence_quote") or "").strip()
-    if not evidence or (evidence not in item["title"] and evidence not in item["excerpt"]):
+    if not evidence or (evidence not in item["title"] and not any(evidence in x["text"] for x in item["excerpts"])):
         reasons.append("evidence_not_literal")
     if card.get("event_type") not in ALLOWED:
         reasons.append("unresolved_or_disallowed_type")
@@ -90,6 +118,11 @@ def qa(item, card):
         reasons.append("missing_analysis")
     if card.get("country_iso2") == "UA":
         reasons.append("ukraine_location_requires_independent_QA")
+    for claim in card.get("claims",[]):
+        if claim.get("classification") not in ("OBSERVED","PUBLISHER_CLAIM","ANALYSIS","UNKNOWN"):reasons.append("invalid_claim_class")
+        if claim.get("source_url")!=item["url"]:reasons.append("claim_source_mismatch")
+        quote=str(claim.get("quote") or "")
+        if not quote or (quote not in item["title"] and not any(quote in x["text"] for x in item["excerpts"])):reasons.append("claim_quote_missing")
     # No model response can self-approve release. QA-08 must sign off.
     return {"state":"PENDING_QA_08", "automated_flags":reasons, "public_release":False}
 
@@ -107,8 +140,8 @@ def main():
                 result=gemini(item)
                 gate=qa(item,result)
                 cards.append({"source_item_id":item["id"],"external_id":item["external_id"],
-                              "source_url":item["url"],"source_id":item["source_id"],
-                              "model":audit["model"],"prompt_version":"eng01-v1",
+                              "source_url":item["url"],"canonical_url":item["canonical_url"],"source_id":item["source_id"],
+                              "model":audit["model"],"prompt_version":"eng01-p1-v2",
                               "card":result,"gate":gate})
             except urllib.error.HTTPError as e:
                 # Never persist provider response body, prompts or credentials.
