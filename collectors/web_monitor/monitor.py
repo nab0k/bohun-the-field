@@ -387,7 +387,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--apply",action="store_true",help="Write unverified candidate URLs to Supabase")
     ap.add_argument("--report-candidates",action="store_true",help="Show classified candidate URLs")
-    ap.add_argument("--audit-metadata",action="store_true",help="Inspect up to 3 article-shaped or review candidates per source")
+    ap.add_argument("--audit-metadata",action="store_true",help="Inspect all article-shaped or review candidates per source")
     ap.add_argument("--source-index",type=int,default=None,help=argparse.SUPPRESS)
     ap.add_argument("--per-source-timeout",type=int,default=45,help="Hard wall-clock seconds per source (default 45)")
     ap.add_argument("--country",default=None,help="Limit dry-run discovery to ISO country code, e.g. DE")
@@ -414,7 +414,7 @@ def main():
             robots = {}
             checked = 0
             for item in candidates:
-                if item["quality"] in ("possible_article", "review") and checked < 3:
+                if item["quality"] in ("possible_article", "review") :
                     print("AUDIT " + json.dumps({"source": source["name"], **audit_candidate(item, source["url"], robots)}, ensure_ascii=False), flush=True)
                     checked += 1
         if args.report_candidates:
@@ -429,6 +429,7 @@ def main():
     total = 0
     found = 0
     verified = 0
+    audited = 0
     for index, source in enabled:
         command = [sys.executable, str(Path(__file__).resolve()), "--sources", args.sources,
                    "--source-index", str(index), "--channels", args.channels,
@@ -453,6 +454,11 @@ def main():
                 for line in proc.stdout.splitlines():
                     if line.startswith("AUDIT "):
                         print(line, flush=True)
+                        audited += 1
+                        try:
+                            verified += int(json.loads(line[6:]).get("verified") is True)
+                        except ValueError:
+                            pass
             result = json.loads(proc.stdout.strip().splitlines()[-1])
             count = result["candidates"]
             found += count
@@ -468,7 +474,7 @@ def main():
             errors += 1
             print(f"SOURCE {source['name']}: ERROR=invalid_worker_result_{type(exc).__name__}", flush=True)
     print(f"SUMMARY sources_checked={len(enabled)} candidates={found} inserted={total} "
-          f"sources_without_candidates_or_failed={errors} "
+          f"sources_without_candidates_or_failed={errors} audited={audited} verified={verified} "
           f"mode={'apply' if args.apply else 'dry-run'} discovery={args.discovery_mode}", flush=True)
     # Distinguish successful execution from healthy source coverage in CI.
     # No writes are performed. A failed/empty source must not yield a green run.
