@@ -1,0 +1,63 @@
+name: Gemini One-Call Diagnostic (manual, no publish)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  one_call:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: List available models and generate one minimal response
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os, json, urllib.request, urllib.error, sys
+          key=os.getenv('GEMINI_API_KEY')
+          if not key:
+              print('RESULT=BLOCKED_NO_GEMINI_API_KEY_SECRET')
+              sys.exit(1)
+          def request(method,url,payload=None):
+              return urllib.request.Request(url,method=method,data=payload,headers={'x-goog-api-key':key,'Content-Type':'application/json'})
+          base='https://generativelanguage.googleapis.com/v1beta/'
+          try:
+              with urllib.request.urlopen(request('GET',base+'models?pageSize=1000'),timeout=25) as response:
+                  catalog=json.load(response)
+              supported={m.get('name','').removeprefix('models/') for m in catalog.get('models',[]) if 'generateContent' in m.get('supportedGenerationMethods',[])}
+              preferred=['gemini-2.5-flash-lite','gemini-2.5-flash','gemini-2.0-flash-lite']
+              model=next((m for m in preferred if m in supported),None)
+              if not model:
+                  print('RESULT=BLOCKED_NO_PREFERRED_MODEL; supported_count='+str(len(supported)))
+                  sys.exit(1)
+              print('MODEL='+model)
+              payload=json.dumps({'contents':[{'parts':[{'text':'Reply with exactly one word: OK'}]}],'generationConfig':{'temperature':0,'maxOutputTokens':32}}).encode()
+              try:
+                  with urllib.request.urlopen(request('POST',base+'models/'+model+':generateContent',payload),timeout=40) as response:
+                      status=response.status
+                      answer=json.load(response)
+                  parts=answer.get('candidates',[{}])[0].get('content',{}).get('parts',[])
+                  txt=' '.join(str(p.get('text','')) for p in parts).strip()
+                  print('HTTP_STATUS='+str(status))
+                  print('MODEL_REPLY='+repr(txt[:120]))
+                  print('USAGE='+json.dumps(answer.get('usageMetadata',{}),sort_keys=True))
+                  if not txt:
+                      print('RESULT=NO_TEXT')
+                      sys.exit(1)
+                  print('RESULT=SUCCESS_ONE_CALL')
+              except urllib.error.HTTPError as e:
+                  print('HTTP_STATUS='+str(e.code))
+                  print('RESULT=GEMINI_HTTP_ERROR')
+                  sys.exit(1)
+          except urllib.error.HTTPError as e:
+              print('MODEL_LIST_HTTP_STATUS='+str(e.code))
+              print('RESULT=MODEL_LIST_HTTP_ERROR')
+              sys.exit(1)
+          except Exception as e:
+              print('RESULT=DIAGNOSTIC_ERROR_'+type(e).__name__)
+              sys.exit(1)
+          PY
