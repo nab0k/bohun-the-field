@@ -12,11 +12,15 @@ import frame from '../flows/data/world-frame.json' with { type: 'json' };
 import assets from '../game/data/assets.json' with { type: 'json' };
 import { createNight } from './night.js';
 import { mountAustriaInternalReview } from './eng04-internal.js';
+import { createAtlasState, mountM1Panels } from './m1-state.js';
 import { createLive } from './live.js';
 import { createScaleDemo } from './scale-demo.js';
 import { createJourneys, atlasData as data, CATEGORIES, MARKETS, HOME, CANDIDATES, INSIGHTS, OFFERS, SELL_STEPS, BUY_STEPS } from './journeys.js';
 
 const $ = (s) => document.querySelector(s);
+const m1State=createAtlasState();
+mountM1Panels({store:m1State,records:[]});
+if(import.meta.env.DEV) window.__bohunM1State=m1State;
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const params = new URLSearchParams(location.search);
@@ -343,6 +347,8 @@ scale.setOn(false);
 // built by scripts/build-companies.mjs; the point is the city centre, companies of one city are spread on a small ring
 const atData = await fetch('/atlas/companies-at.json').then((r) => r.json());
 mountAustriaInternalReview({map, industry, atData});
+// Research company identity only; analytics remain hidden until QA approves a real source record.
+map.on('click',(e)=>{const company=e.features?.find?.(f=>f.properties?.company_id)?.properties;if(company?.company_id)m1State.selectCompany(company.company_id,company.country_iso2);});
 const ringed = (list) => { const g = {}; for (const c of list) (g[c.lon + ',' + c.lat] ??= []).push(c); return Object.values(g).flatMap((cs) => cs.map((c, i) => { const r = cs.length > 1 ? 0.012 + 0.003 * cs.length : 0, a = (i / cs.length) * Math.PI * 2; return { ...c, lon: c.lon + (r * Math.cos(a)) / Math.cos((c.lat * Math.PI) / 180), lat: c.lat + r * Math.sin(a) }; })); };
 const FLAG_EN = { 'OWNERSHIP OPEN': 'Ownership not fully confirmed', 'SOURCE CONFLICT': 'Sources disagree on some details', 'LEGAL REVIEW': 'Under legal review', 'NO CITY': 'City not confirmed' };
 const companies = createScaleDemo(map, {
