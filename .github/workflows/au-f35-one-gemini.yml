@@ -2,6 +2,7 @@ name: AU-F35-01 One Gemini Free-Only Read-Only Test
 on:
   push:
     branches: [au-f35-one-gemini-live-review]
+    paths: ['runs/au-f35-01-one-shot.trigger']
   workflow_dispatch:
 permissions:
   contents: read
