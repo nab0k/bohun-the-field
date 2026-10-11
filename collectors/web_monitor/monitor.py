@@ -217,7 +217,7 @@ class ArticleMetadata(HTMLParser):
         a = dict(attrs)
         if self.date_depth:
             self.date_depth += 1
-        elif tag == "time" or (tag in ("span", "div", "p") and re.search(r"(?:^|[\\s_-])(?:date|datum|published)(?:$|[\\s_-])", a.get("class", ""), re.I)):
+        elif tag == "time" or (tag in ("span", "div", "p") and re.search(r"(?:^|[\s_-])(?:date|datum|published)(?:$|[\s_-])", a.get("class", ""), re.I)):
             self.date_elements.append({"datetime": a.get("datetime"), "text": ""})
             self.date_depth = 1
         if tag == "meta":
@@ -251,7 +251,7 @@ GERMAN_MONTHS = {"januar":1,"februar":2,"märz":3,"maerz":3,"april":4,"mai":5,"j
 def normalize_german_date(raw):
     if not isinstance(raw, str):
         return None
-    m = re.search(r"\\b([0-3]?\\d)\\.\\s*([A-Za-zÄÖÜäöüß]+)\\s+(20\\d{2})\\b", raw)
+    m = re.search(r"\b([0-3]?\d)\.\s*([A-Za-zÄÖÜäöüß]+)\s+(20\d{2})\b", raw)
     if not m or m.group(2).lower() not in GERMAN_MONTHS:
         return None
     try:
@@ -304,7 +304,7 @@ def audit_candidate(item, base, robots):
                 if normalized:
                     date, date_precision = normalized, "day"
                     break
-                if raw and re.match(r"^20\\d{2}-\\d{2}-\\d{2}T", raw):
+                if raw and re.match(r"^20\d{2}-\d{2}-\d{2}T", raw):
                     date = raw
                     break
         canonical = urllib.parse.urljoin(final, parser.canonical) if parser.canonical else final
