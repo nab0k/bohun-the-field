@@ -16,6 +16,10 @@ export async function mountLivePilot01({map,store}){
    add(right,'p','Original hash: '+row.source_sha256);
    add(right,'p','Persisted raw_item ID: '+row.raw_item_id);
    add(right,'p','Geo role: '+row.geo_role+' · No coordinates or map pin asserted');
+   for(const fact of row.typed_facts||[])add(right,'p',fact.field+': '+fact.value+' · XML: '+fact.exact_evidence);
+   if(row.country_iso2==='RO'){
+    if(!map.getLayer('pilot01-coordinator-country'))map.addLayer({id:'pilot01-coordinator-country',type:'line',source:'countries',filter:['==',['get','a3'],'ROU'],paint:{'line-color':'#f2cb72','line-width':3}});
+   }
    add(right,'p','Company: not independently bound');
    add(right,'p','AI claim: none; pre-existing Gemini fixtures are not source proof');
    add(right,'p','QA: HOLD · This is not an APPROVE publication');
