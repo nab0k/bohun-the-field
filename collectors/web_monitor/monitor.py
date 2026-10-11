@@ -376,7 +376,10 @@ def main():
     print(f"SUMMARY sources_checked={len(enabled)} candidates={found} inserted={total} "
           f"sources_without_candidates_or_failed={errors} "
           f"mode={'apply' if args.apply else 'dry-run'} discovery={args.discovery_mode}", flush=True)
-    # Distinguish successful execution from healthy source coverage in CI.\n    # No writes are performed. A failed/empty source must not yield a green run.\n    if errors:\n        sys.exit(2)
+    # Distinguish successful execution from healthy source coverage in CI.
+    # No writes are performed. A failed/empty source must not yield a green run.
+    if errors:
+        sys.exit(2)
 
 if __name__ == "__main__":
     main()
