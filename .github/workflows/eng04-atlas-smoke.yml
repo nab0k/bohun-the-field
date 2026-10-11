@@ -1,0 +1,47 @@
+name: ENG-04 Atlas Internal Smoke (no deploy)
+on:
+  push:
+    branches: [eng04-austria-internal-demo]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-atlas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: npm ci
+        run: npm ci
+      - name: npm test
+        run: npm test
+      - name: npm run build
+        run: npm run build
+      - name: Install browser runner (test environment only)
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Run existing Vite atlas locally
+        run: |
+          mkdir -p output/eng04
+          (npm run dev -- --host 127.0.0.1 --port 5174 > output/eng04/vite.log 2>&1 &)
+          for n in $(seq 1 50); do
+            if curl -fsS http://127.0.0.1:5174/atlas.html?eng04=internal >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat output/eng04/vite.log
+          exit 1
+      - name: Chromium original atlas test and screenshot
+        run: node scripts/eng04-browser-smoke.mjs
+      - name: Save browser artifacts (no deployment)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eng04-atlas-browser-evidence
+          path: output/eng04/
+          if-no-files-found: warn
+          retention-days: 7
