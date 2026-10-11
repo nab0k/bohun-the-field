@@ -1,0 +1,30 @@
+name: AU-F35-01 Read-Only Gemini Context QA (NO PUBLISH)
+on:
+  push:
+    branches: [au-f35-readonly-gemini-review]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  context-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Syntax check
+        run: python -m py_compile scripts/au_f35_01_readonly.py
+      - name: Freeze K1-K8 read-only source snapshots and evaluate Gemini gate
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_FREE_QUOTA_VERIFIED: '0'
+        run: python scripts/au_f35_01_readonly.py
+      - name: Preserve private AU-F35-01 QA artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: au-f35-01-readonly-qa
+          path: output/au-f35-01/
+          retention-days: 14
