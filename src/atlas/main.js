@@ -24,7 +24,9 @@ const navDrawer = document.getElementById('side');
 function setDrawerOpen(open) {
   navDrawer.classList.toggle('m1-drawer-open',open);
   navDrawer.setAttribute('aria-hidden',String(!open));
+  navDrawer.inert=!open;
   navDrawerToggle.setAttribute('aria-expanded',String(open));
+  if(open) navDrawer.querySelector('#q')?.focus();
   if(!open&&navDrawer.contains(document.activeElement)) navDrawerToggle.focus();
 }
 navDrawerToggle.addEventListener('click',()=>setDrawerOpen(!navDrawer.classList.contains('m1-drawer-open')));
