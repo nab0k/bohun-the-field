@@ -397,15 +397,22 @@ const INDEX = [
   ...places.map((p) => ({ kind: 'place', name: p.name, sub: p.kind === 'capital' ? `Capital · ${countryFeature[p.a3]?.properties.name ?? p.a3}` : p.oblast ?? 'Ukraine', lon: p.lon, lat: p.lat, key: norm(p.name) })),
   ...countries.features.map((f) => ({ kind: 'country', a3: f.properties.a3, name: f.properties.name, sub: atData.companies.some((c) => c.a3 === f.properties.a3) ? `Country · ${atData.companies.filter((c) => c.a3 === f.properties.a3).length} companies` : 'Country', key: norm(f.properties.name) })),
 ];
+// Approved main nav and layer controls share one selected-layer state.
+for (const id of ['companies','industry','sea','night','all']) {
+  document.getElementById(id)?.addEventListener('click',()=>m1State.selectLayer(id==='all'?'world':id));
+}
+for(const button of document.querySelectorAll('[data-m1-toggle]')) {
+  button.addEventListener('click',()=>{const target=document.getElementById(button.dataset.m1Toggle);target?.click();button.closest('details')?.removeAttribute('open');});
+}
 const qIn = $('#q'), qOut = $('#q-results');
 let qHits = [], qOn = 0;
 function bboxOf(g) { let w = 180, s0 = 90, e = -180, n = -90; for (const poly of g.type === 'Polygon' ? [g.coordinates] : g.coordinates) for (const [x, y] of poly[0]) { w = Math.min(w, x); e = Math.max(e, x); s0 = Math.min(s0, y); n = Math.max(n, y); } return [[w, s0], [e, n]]; }
 function go(h) {
   qOut.hidden = true; qIn.value = h.name; qIn.blur();
   $('#entry').hidden = true;
-  if (h.kind === 'company') { if (!companies.state.on) setCompanies(true); companies.select(h.id, { fly: true }); }
-  else if (h.kind === 'place') map.flyTo({ center: [h.lon, h.lat], zoom: 9, pitch: 0, duration: 1400 });
-  else if (atData.companies.some((c) => c.a3 === h.a3)) { if (!companies.state.on) setCompanies(true); companies.showCountry(h.a3); }
+  if (h.kind === 'company') { m1State.selectCompany(h.id, 'AT'); if (!companies.state.on) setCompanies(true); companies.select(h.id, { fly: true }); }
+  else if (h.kind === 'place') { m1State.set({company:null,event:null}); map.flyTo({ center: [h.lon, h.lat], zoom: 9, pitch: 0, duration: 1400 }); }
+  else if (atData.companies.some((c) => c.a3 === h.a3)) { if (h.a3 === 'AUT') m1State.selectCountry('AT'); else m1State.set({country:null,company:null,event:null}); if (!companies.state.on) setCompanies(true); companies.showCountry(h.a3); }
   else map.fitBounds(bboxOf(countryFeature[h.a3].geometry), { padding: 60, maxZoom: 6, pitch: 0, duration: 1400 });
 }
 function renderHits() {
@@ -421,6 +428,7 @@ function renderHits() {
   qOut.hidden = false;
 }
 qIn.addEventListener('input', () => {
+  m1State.setFilters({query:qIn.value.trim()});
   const t = norm(qIn.value.trim());
   if (t.length < 2) { qOut.hidden = true; return; }
   const rank = (h) => (h.key.startsWith(t) ? 0 : norm(h.name).includes(t) ? 1 : 2) + (h.kind === 'company' ? 0 : 0.5);
