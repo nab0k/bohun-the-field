@@ -68,5 +68,33 @@
     "kind": "html_listing",
     "status": "seed_unverified",
     "enabled": true
+  },
+  {
+    "source": "Bundeswehr",
+    "url": "https://www.bundeswehr.de/de/aktuelles",
+    "kind": "html_listing",
+    "status": "seed_unverified",
+    "enabled": true
+  },
+  {
+    "source": "BAAINBw",
+    "url": "https://www.bundeswehr.de/de/organisation/ausruestung-baainbw/aktuelles/alle-meldungen-des-baainbw",
+    "kind": "html_listing",
+    "status": "seed_unverified",
+    "enabled": true
+  },
+  {
+    "source": "BDSV",
+    "url": "https://bdsv.eu/aktuelles/pressemitteilungen.html",
+    "kind": "html_listing",
+    "status": "seed_unverified",
+    "enabled": true
+  },
+  {
+    "source": "BDLI",
+    "url": "https://www.bdli.de/newsroom/aktuelle-pressemitteilungen",
+    "kind": "html_listing",
+    "status": "seed_unverified",
+    "enabled": true
   }
 ]
