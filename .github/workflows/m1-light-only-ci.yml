@@ -1,0 +1,48 @@
+name: M1 Light Minimal Only + Night Regression (NO DEPLOY)
+on:
+  push:
+    branches: [m1-light-only-layout-review]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: node scripts/test-m1-state.mjs
+      - run: node scripts/test-p2-coverage.mjs
+      - run: npm run build:site
+      - name: Inspect emitted site for sole basemap, no empty analytical panes
+        run: |
+          node --input-type=module -e "import fs from 'node:fs';const text=fs.readFileSync('src/atlas/main.js','utf8');if(!/const LOOK = 'light'/.test(text)||/relief:|parchment:|dark:/.test(text.split('const LOOKS = {')[1].split('const LOOK =')[0]))process.exit(1);"
+          grep -q 'Bohun Defence' dist/index.html
+          grep -q 'Intelligence Map' dist/index.html
+          grep -q 'aria-hidden="true">MAP' dist/index.html
+      - name: Install Chrome
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Serve Atlas
+        run: |
+          mkdir -p output/m1-light
+          (npm run dev -- --host 127.0.0.1 --port 5174 > output/m1-light/vite.log 2>&1 &)
+          for i in $(seq 1 35); do if curl -fsS http://127.0.0.1:5174/atlas.html >/dev/null; then exit 0; fi; sleep 2; done
+          exit 1
+      - name: Re-run global-close-global Night and original-logo browser regression
+        run: node scripts/p1-brand-night-smoke.mjs
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m1-light-map-night-audit
+          path: |
+            output/p1/
+            output/m1-light/
+          retention-days: 14
