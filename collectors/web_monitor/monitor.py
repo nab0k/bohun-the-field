@@ -213,6 +213,8 @@ class ArticleMetadata(HTMLParser):
         self.in_json_ld = False
         self.date_elements = []
         self.date_depth = 0
+        self.press_dateline = None
+        self._body_text = []
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
         if self.date_depth:
@@ -238,6 +240,7 @@ class ArticleMetadata(HTMLParser):
             self.title += data
         if self.date_depth and self.date_elements:
             self.date_elements[-1]['text'] += data
+        self._body_text.append(data)
     def handle_endtag(self, tag):
         if self.date_depth:
             self.date_depth -= 1
@@ -307,6 +310,18 @@ def audit_candidate(item, base, robots):
                 if raw and re.match(r"^20\d{2}-\d{2}-\d{2}T", raw):
                     date = raw
                     break
+        if not date and urllib.parse.urlsplit(final).hostname in ("bdsv.eu", "www.bdsv.eu"):
+            # BDSV press releases expose a formal Berlin dateline in the body.
+            # Never infer publication time from arbitrary dates elsewhere.
+            body_text = " ".join(parser._body_text)
+            dateline = re.search(r"Berlin,?\\s+den\\s+([0-3]?\\d\\.[01]?\\d\\.20\\d{2})\\b", body_text, re.I)
+            if dateline:
+                try:
+                    day = dt.datetime.strptime(dateline.group(1), "%d.%m.%Y")
+                    date = day.replace(tzinfo=ZoneInfo("Europe/Berlin")).isoformat()
+                    date_precision = "day"
+                except ValueError:
+                    pass
         canonical = urllib.parse.urljoin(final, parser.canonical) if parser.canonical else final
         if not same_site(canonical, base):
             raise ValueError("off_domain_canonical")
