@@ -29,7 +29,9 @@ export default defineConfig({
    about:'about.html',
    services:'services.html',
    aboutProject:'about-project.html',
-   supportProject:'support-project.html'
+   supportProject:'support-project.html',
+   contact:'contact.html',
+   privacy:'privacy.html'
   }},
   chunkSizeWarningLimit:2500
  }
