@@ -1,0 +1,23 @@
+name: P2 Global Atlas Coverage Controls (NO DEPLOY)
+on:
+  push:
+    branches: [p2-global-coverage-controls-review]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: node scripts/test-m1-state.mjs
+      - run: node scripts/test-p2-coverage.mjs
+      - run: npm run build
+      - run: npm run build:site
