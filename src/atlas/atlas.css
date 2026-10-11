@@ -177,3 +177,19 @@ button[data-journey], .demo-tag { display:none !important; }
 
 /* M0 disable unverified live/dev controls independently of HTML hidden attributes. */
 .layer[data-for="live"], .layer[data-for="scale"], #legend-live, #scale-panel { display:none !important; }
+
+/* M1 compact mobile atlas navigation. Existing globe and layer logic unchanged. */
+.m1-mobile-menu { display:none; }
+@media (max-width:760px) {
+  .topbar { height:60px !important; min-height:60px !important; padding:8px 12px !important; display:flex !important; flex-wrap:nowrap !important; align-items:center !important; }
+  .topbar .brand { min-width:0; max-width:calc(100vw - 110px); white-space:nowrap; overflow:hidden; font-size:12px; }
+  .topbar .brand .build { display:none !important; }
+  .topbar > nav { display:none !important; }
+  .m1-mobile-menu { display:block; order:4; margin-left:auto; color:#efe9cc; z-index:950; }
+  .m1-mobile-menu > summary { cursor:pointer; list-style:none; border:1px solid #b5a676; background:#111a19; padding:8px 12px; font:700 12px/1.1 system-ui; letter-spacing:.06em; }
+  .m1-mobile-menu > summary::-webkit-details-marker { display:none; }
+  .m1-mobile-menu-content { position:absolute; right:8px; top:58px; z-index:951; width:min(270px,calc(100vw - 16px)); max-height:70vh; overflow:auto; display:grid; gap:5px; background:#111a19; border:1px solid #b5a676; box-shadow:0 8px 25px #0007; padding:11px; }
+  .m1-mobile-menu-content a, .m1-mobile-menu-content button { display:block; color:#efe9cc; background:#202922; padding:10px 12px; text-decoration:none; text-align:left; border:0; font:600 12px/1.3 system-ui; }
+  .m1-mobile-menu-content a:focus-visible, .m1-mobile-menu-content button:focus-visible { outline:2px solid #d3b766; }
+  #side { top:70px !important; max-height:34vh; overflow:auto; }
+}
