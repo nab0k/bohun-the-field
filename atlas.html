@@ -3,12 +3,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Bohun Defence | Intelligence Map</title>
+  <title>Intelligence Map | Bohun Defence</title>
+  <meta name="description" content="Bohun Defence Intelligence Map: a source-aware research atlas for defence and dual-use industry. Geographic coverage and evidence validation remain incomplete." />
   <link rel="stylesheet" href="/src/atlas/atlas.css" />
 </head>
 <body>
+  <a class="skip-link" href="#map">Skip to Intelligence Map</a>
+  <main id="atlas-main" aria-label="Intelligence Map">
+  <h1 class="sr-only">Bohun Defence Intelligence Map</h1>
   <div id="map" aria-label="World map. Drag to move, scroll to zoom, right-drag to rotate and tilt."></div>
 
+  </main>
   <header class="topbar">
     <details class="m1-mobile-menu">
       <summary aria-label="Open site navigation">MENU</summary>
@@ -23,7 +28,7 @@
         <button type="button" data-m1-toggle="all">WORLD VIEW</button>
       </div>
     </details>
-    <a class="brand" href="/" aria-label="Bohun Defence home"><img class="brand-logo" src="https://bohundefence.com/logo_gold.png" alt="" width="38" height="38"><span class="brand-name"><strong>Bohun Defence</strong><small>Advisory &amp; Intelligence</small></span></a>
+    <a class="brand" href="/" aria-label="Bohun Defence home"><img class="brand-logo" src="/logo_gold.png" alt="" width="38" height="38"><span class="brand-name"><strong>Bohun Defence</strong><small>Advisory &amp; Intelligence</small></span></a>
     <nav aria-label="Bohun Defence navigation">
       <button id="open-need" type="button" hidden aria-hidden="true" tabindex="-1">I NEED SOMETHING</button>
       <button id="open-have" type="button" hidden aria-hidden="true" tabindex="-1">I HAVE SOMETHING</button>
@@ -93,7 +98,7 @@
   <div class="legends"><div id="legend" class="legend" hidden></div><div id="legend-sea" class="legend sea" hidden></div></div>
 
   <button id="nav-drawer-toggle" class="nav-drawer-toggle" type="button" aria-expanded="false" aria-controls="side">SEARCH · FILTERS · LAYERS</button>
-  <aside id="side" class="side" aria-label="Search, layers and filters" aria-hidden="true">
+  <aside id="side" class="side" aria-label="Search, layers and filters" aria-hidden="true" inert>
     <div class="search">
       <input id="q" type="search" placeholder="Search companies, cities, countries" autocomplete="off" aria-label="Search" aria-controls="q-results" />
       <ol id="q-results" class="q-results" hidden></ol>
