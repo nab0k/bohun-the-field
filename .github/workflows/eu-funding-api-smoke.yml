@@ -21,4 +21,4 @@ jobs:
       - name: Offline EDF normalizer tests
         run: python -m unittest discover -s tests -p 'test_eu_edf_normalizer.py' -v
       - name: Probe official EDF funding endpoint (no writes)
-        run: python collectors/opportunities/eu_funding_api_smoke.py --limit 3 --timeout 20
+        run: python -m collectors.opportunities.eu_funding_api_smoke --limit 3 --timeout 20
