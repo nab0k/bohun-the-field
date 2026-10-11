@@ -19,6 +19,7 @@ jobs:
       - run: npm test
       - run: node scripts/test-m1-state.mjs
       - run: python3 -m py_compile scripts/m1-one-event-private.py
+      - run: node scripts/test-m1-ai-guard.mjs
       - run: npm run build
       - run: npm run build:site
       - name: Install isolated Chromium browser
