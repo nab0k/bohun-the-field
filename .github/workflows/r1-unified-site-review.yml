@@ -30,6 +30,8 @@ jobs:
           exit 1
       - name: Browser smoke desktop and mobile, screenshots
         run: node scripts/r1-browser-smoke.mjs
+      - name: Deep-scan release assets including bundled JS for HOLD payloads
+        run: node scripts/r1-dist-hold-audit.mjs
       - name: Assert internal HOLD data excluded
         run: |
           test ! -f dist/atlas/pilot-internal-feed.json
