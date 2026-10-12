@@ -8,7 +8,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: inoreader-gemini-one-item-staging
+  group: inoreader-oauth-shared
   cancel-in-progress: false
 jobs:
   collect-model-and-stage:

@@ -9,7 +9,10 @@ import argparse
 import datetime as dt
 import json
 import os
+import stat
 import sys
+import tempfile
+from pathlib import Path
 import time
 import urllib.error
 import urllib.parse
@@ -54,10 +57,36 @@ def access_token():
     })
     if not response.get("access_token"):
         raise RuntimeError("Inoreader token refresh did not return access_token")
-    # Some OAuth providers rotate refresh tokens. Never print returned credentials.
-    if response.get("refresh_token") and response["refresh_token"] != values["INOREADER_REFRESH_TOKEN"]:
-        print("WARNING: refresh token rotated; update INOREADER_REFRESH_TOKEN secret", file=sys.stderr)
+    rotated = response.get("refresh_token")
+    if rotated and rotated != values["INOREADER_REFRESH_TOKEN"]:
+        destination = os.environ.get("INOREADER_ROTATED_TOKEN_FILE")
+        if destination:
+            save_rotated_token(rotated, destination)
+            print("NOTICE: refresh token rotated; securely saved locally. Update GitHub Secret before next run.", file=sys.stderr)
+        else:
+            # Never expose credentials to logs or GitHub Actions artifacts.
+            # A rotating provider requires an explicit persistent secret handoff.
+            print("WARNING: refresh token rotated but was not persisted; GitHub Secret may now be stale", file=sys.stderr)
     return response["access_token"]
+
+
+def save_rotated_token(token, destination):
+    """Opt-in local handoff only. Never store a credential in CI artifacts."""
+    target = Path(destination).expanduser().resolve()
+    if not target.parent.is_dir():
+        raise RuntimeError("ROTATED_TOKEN_DIRECTORY_MISSING")
+    if target.exists() and (target.is_symlink() or not target.is_file()):
+        raise RuntimeError("ROTATED_TOKEN_DESTINATION_UNSAFE")
+    fd, temp_name = tempfile.mkstemp(prefix=".inoreader-token-", dir=target.parent)
+    try:
+        os.fchmod(fd, stat.S_IRUSR | stat.S_IWUSR)
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(token)
+            handle.write("\n")
+        os.replace(temp_name, target)
+    finally:
+        if os.path.exists(temp_name):
+            os.unlink(temp_name)
 
 
 def api(path, token, params=None):
