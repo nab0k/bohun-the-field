@@ -1,5 +1,9 @@
 name: Inoreader Gemini Staging Pilot (ONE ITEM, HOLD ONLY)
 on:
+  push:
+    branches: [rescue/working-model-20261012]
+    paths:
+      - '.github/workflows/inoreader-gemini-staging-pilot.yml'
   workflow_dispatch:
 permissions:
   contents: read
