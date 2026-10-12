@@ -1,15 +1,43 @@
-name: M1 Supabase Staging (INVENTORY ONLY)
+name: M1 Supabase Staging (ISOLATED, HOLD ONLY)
 on:
   push:
     branches: [rescue/working-model-20261012]
     paths:
       - 'scripts/supabase-staging-inventory.py'
+      - 'scripts/supabase-staging-packet.py'
       - '.github/workflows/m1-supabase-staging.yml'
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  read-only-inventory:
+  persist-isolated-staging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install "psycopg[binary]"
+      - name: Capture and validate official source contract locally
+        run: |
+          python scripts/intelligence_live_pilot.py ingest
+          python scripts/intelligence_live_pilot.py ingest
+          python scripts/intelligence_live_pilot.py readback
+          python scripts/intelligence_live_pilot.py export
+          python scripts/intelligence_live_pilot.py validate
+      - name: Create isolated schema and persist raw evidence plus HOLD contract
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: python scripts/supabase-staging-packet.py write
+      - uses: actions/upload-artifact@v4
+        with:
+          name: m1-supabase-staging-packet-key
+          path: output/supabase-staging/packet-key.json
+          retention-days: 14
+
+  independent-readback:
+    needs: persist-isolated-staging
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -18,12 +46,16 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install "psycopg[binary]"
-      - name: Inspect schemas, columns, and staging privileges without reading business rows
+      - uses: actions/download-artifact@v4
+        with:
+          name: m1-supabase-staging-packet-key
+          path: output/supabase-staging
+      - name: Fresh runner verifies persisted raw hash, exact evidence, and fail-closed QA
         env:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-        run: python scripts/supabase-staging-inventory.py
+        run: python scripts/supabase-staging-packet.py readback
       - uses: actions/upload-artifact@v4
         with:
-          name: m1-supabase-staging-inventory
-          path: output/supabase-staging/inventory.json
+          name: m1-supabase-staging-readback
+          path: output/supabase-staging/readback.json
           retention-days: 14
