@@ -15,7 +15,7 @@ def read_existing(pinned_external_id=None):
    cur.execute("""SELECT i.id,i.external_id,i.title,i.url,i.published_at,i.raw_data,s.name
  FROM intelligence.items i JOIN intelligence.sources s ON s.id=i.source_id
  WHERE s.name=%s AND i.url LIKE 'https:%%' AND i.external_id IS NOT NULL
- AND (%s IS NULL OR i.external_id=%s)
+ AND (%s::text IS NULL OR i.external_id=%s::text)
  ORDER BY i.published_at DESC NULLS LAST,i.id DESC LIMIT 1""",("Inoreader BOHUN",pinned_external_id,pinned_external_id))
    row=cur.fetchone()
  if not row:raise RuntimeError("NO_EXISTING_INOREADER_ROW")
