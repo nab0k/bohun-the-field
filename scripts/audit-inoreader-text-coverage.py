@@ -23,7 +23,7 @@ def main():
  if not password:raise RuntimeError("NO_EXISTING_SUPABASE_READ_CREDENTIAL")
  host=os.environ.get("SUPABASE_DB_HOST","aws-1-eu-central-1.pooler.supabase.com")
  user=os.environ.get("SUPABASE_DB_USER","postgres.tecrucawzukxqtchpxrh")
- stats=Counter(); samples=[]; keys=Counter()
+ stats=Counter(); lengths=[]; keys=Counter()
  with psycopg.connect(host=host,port=int(os.environ.get("SUPABASE_DB_PORT","5432")),dbname="postgres",user=user,password=password,sslmode="require",connect_timeout=20,options="-c default_transaction_read_only=on") as conn:
   with conn.cursor() as cur:
    cur.execute("""SELECT i.raw_data FROM intelligence.items i
@@ -48,6 +48,6 @@ def main():
     stats["rows_over_500_visible_chars"]+=best>=500
     stats["rows_over_2000_visible_chars"]+=best>=2000
     stats["rows_over_5000_visible_chars"]+=best>=5000
-    samples.append({"text_fields":[f for f,_ in candidates],"max_visible_chars":best})
- print(json.dumps({"scope":"20 newest Inoreader BOHUN Supabase metadata rows","counts":stats,"raw_data_keys_frequency":keys,"samples":samples,"caution":"Character length is only a proxy, not proof that text is full original article. No text was printed or exported."},ensure_ascii=False,default=dict))
+    lengths.append(best)
+ print(json.dumps({"scope":"20 newest Inoreader BOHUN Supabase metadata rows","counts":stats,"raw_data_keys_frequency":keys,"visible_character_lengths":{"min":min(lengths,default=0),"max":max(lengths,default=0),"mean":round(sum(lengths)/len(lengths),1) if lengths else 0,"total":sum(lengths)},"caution":"Character length is only a proxy, not proof that text is full original article. No text was printed or exported."},ensure_ascii=False,default=dict))
 if __name__=="__main__":main()
