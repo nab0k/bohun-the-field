@@ -65,8 +65,10 @@ def load_staging(limit=3, title_like=None):
         user=os.getenv("SUPABASE_DB_USER", "postgres.tecrucawzukxqtchpxrh"),
         password=os.environ["SUPABASE_DB_PASSWORD"], sslmode="require", connect_timeout=20,
     )
+    # read_only must be set before the first statement so the transaction itself
+    # starts as BEGIN READ ONLY (a SET inside an open transaction applies only later).
+    conn.read_only = True
     with conn:
-        conn.execute("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY")
         with conn.cursor() as cur:
             cur.execute("SHOW transaction_read_only")
             if cur.fetchone()[0] != "on":
@@ -105,8 +107,10 @@ def load_pilot_candidates(document_id):
         user=os.getenv("SUPABASE_DB_USER", "postgres.tecrucawzukxqtchpxrh"),
         password=os.environ["SUPABASE_DB_PASSWORD"], sslmode="require", connect_timeout=20,
     )
+    # read_only must be set before the first statement so the transaction itself
+    # starts as BEGIN READ ONLY (a SET inside an open transaction applies only later).
+    conn.read_only = True
     with conn:
-        conn.execute("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY")
         with conn.cursor() as cur:
             cur.execute("SHOW transaction_read_only")
             if cur.fetchone()[0] != "on":

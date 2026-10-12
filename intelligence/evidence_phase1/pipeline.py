@@ -49,7 +49,7 @@ def run(documents, extractor, scorer=None, max_docs=3):
         try:
             out = ex.extract(doc["text"])
         except Exception as exc:  # provider error, quota, bad JSON: fail closed, no records
-            res["outcome"] = "EXTRACTION_FAILED:" + type(exc).__name__ + ":" + str(exc)[:120]
+            res["outcome"] = "EXTRACTION_FAILED:" + type(exc).__name__ + ":" + str(exc)[:400]
             doc_results.append(res)
             per_doc_gold.append(None)
             continue

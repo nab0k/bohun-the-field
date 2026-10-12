@@ -39,6 +39,9 @@ MAX_INPUT_TOKENS_PER_CALL = 8000
 MAX_OUTPUT_TOKENS = 2048  # includes thinking tokens (Gemini docs)
 PILOT_CHARS = 12000       # same bound as scripts/inoreader-gemini-staging-pilot.py
 LX_BUFFER = 1500
+# Spend already booked by earlier runs of this series (ledger usageMetadata, paid-tier prices):
+# run 38323701774 (commit 3c06885): 4 calls, $0.005300.
+PRIOR_SPEND_USD = 0.0053
 
 
 def preflight(fixtures, pac3):
@@ -56,8 +59,8 @@ def preflight(fixtures, pac3):
                      "worst_usd": round(worst(n, 1) + worst(LX_BUFFER + 2500, lx_calls), 5)})
     total = round(sum(p["worst_usd"] for p in plan), 5)
     calls = sum(p["direct_calls"] + p["langextract_calls_max"] for p in plan)
-    return {"plan": plan, "worst_case_total_usd": total, "planned_calls_max": calls,
-            "fits_cap": total <= CAP_USD and calls <= MAX_CALLS}
+    return {"plan": plan, "worst_case_total_usd": total, "prior_spend_usd": PRIOR_SPEND_USD,
+            "planned_calls_max": calls, "fits_cap": PRIOR_SPEND_USD + total <= CAP_USD and calls <= MAX_CALLS}
 
 
 def pilot_baseline_candidates(doc):
@@ -146,6 +149,7 @@ def main():
     else:
         ledger = BudgetLedger(api_key=key, model=MODEL, cap_usd=CAP_USD, max_calls=MAX_CALLS,
                               max_input_tokens_per_call=MAX_INPUT_TOKENS_PER_CALL, max_output_tokens=MAX_OUTPUT_TOKENS)
+        ledger.spent_usd = PRIOR_SPEND_USD  # the cap is cumulative across runs of this series
         steps = [("e1-fixtures-gemini-direct", fixtures, lambda: GeminiDirectExtractor(
                       model=MODEL, max_output_tokens=MAX_OUTPUT_TOKENS, transport=budgeted_transport(ledger, "e1"))),
                  ("e2-fixtures-langextract", fixtures, lambda: LangExtractExtractor(

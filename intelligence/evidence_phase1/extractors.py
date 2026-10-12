@@ -81,10 +81,17 @@ class GeminiDirectExtractor:
         result = self._post(body)
         latency = time.perf_counter() - t0
         raw = result["candidates"][0]["content"]["parts"][0]["text"]
-        parsed = json.loads(raw)
-        claims = parsed.get("claims") if isinstance(parsed, dict) else None
+        try:
+            parsed = json.loads(raw)
+        except ValueError:
+            raise ValueError("MODEL_OUTPUT_NOT_JSON:" + raw[:300]) from None
+        # Accepted shapes: {"claims": [...]} or a top-level list of claim objects.
+        if isinstance(parsed, dict):
+            claims = parsed.get("claims")
+        else:
+            claims = parsed if isinstance(parsed, list) else None
         if not isinstance(claims, list):
-            raise ValueError("MODEL_OUTPUT_HAS_NO_CLAIMS_LIST")
+            raise ValueError("MODEL_OUTPUT_HAS_NO_CLAIMS_LIST:" + raw[:300])
         usage = result.get("usageMetadata") or {}
         return {
             "candidates": [dict(c) for c in claims[: self.max_claims] if isinstance(c, dict)],

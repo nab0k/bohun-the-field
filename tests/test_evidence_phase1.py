@@ -209,6 +209,17 @@ class Pipeline(unittest.TestCase):
         self.assertEqual((meta["prompt_tokens"], meta["output_tokens"]), (812, 64))
         self.assertEqual(res["records"][0]["char_start"], NEG["text"].index("it awarded Kestrel Dynamics a contract"))
 
+    def test_gemini_top_level_list_is_accepted_and_bad_shape_reports_raw(self):
+        def make(payload):
+            def transport(body):
+                return {"candidates": [{"content": {"parts": [{"text": json.dumps(payload)}]}}], "usageMetadata": {}}
+            return transport
+        ok = run([NEG], GeminiDirectExtractor(transport=make([{"claim_text": "A.", "evidence_text": "it awarded Kestrel Dynamics a contract",
+                                                                 "modality": "announced"}])))
+        self.assertEqual(len(ok["records"]), 1)
+        bad = run([NEG], GeminiDirectExtractor(transport=make({"result": "x"})))
+        self.assertIn('{"result": "x"}', bad["documents"][0]["outcome"])
+
 
 class Safety(unittest.TestCase):
     def test_package_has_no_write_sql(self):
