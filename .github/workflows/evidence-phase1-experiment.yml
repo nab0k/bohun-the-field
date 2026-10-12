@@ -98,6 +98,7 @@ jobs:
           python -m unittest tests.test_evidence_phase1 tests.test_gemini_evidence_validator tests.test_inoreader_content -v
       - name: Offline replay run (deterministic, no secrets)
         run: python scripts/evidence-phase1-experiment.py --source fixtures --extractor replay --label offline-replay
+      - run: python scripts/evidence-phase1-annotate.py offline-replay
       - uses: actions/upload-artifact@v4
         with:
           name: evidence-phase1-offline
@@ -145,6 +146,9 @@ jobs:
           mkdir -p output/evidence-phase1 && mv output-time.txt output/evidence-phase1/experiment-time.txt
           grep -E "Maximum resident|Elapsed|User time|System time" output/evidence-phase1/experiment-time.txt || true
           exit ${status:-0}
+      - name: Results as annotations (metrics + compact records)
+        if: always()
+        run: python scripts/evidence-phase1-annotate.py experiment || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -180,6 +184,9 @@ jobs:
           rm -rf output/evidence-phase1/pdf-work
           grep -E "Maximum resident|Elapsed" output/evidence-phase1/docling-time.txt || true
           exit ${status:-0}
+      - name: Results as annotations
+        if: always()
+        run: python scripts/evidence-phase1-annotate.py docling || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
