@@ -1,7 +1,7 @@
 name: Intelligence Live Pilot 01 (EXISTING D1 SCHEMA, NO DEPLOY)
 on:
   push:
-    branches: [intelligence-live-pilot-01-review, rescue/working-model-20261012]
+    branches: [intelligence-live-pilot-01-review]
   workflow_dispatch:
 permissions:
   contents: read

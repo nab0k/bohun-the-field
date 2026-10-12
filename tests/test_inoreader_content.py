@@ -28,6 +28,10 @@ class InoreaderContentContractTest(unittest.TestCase):
         self.assertEqual(result["visible_characters"], 0)
         self.assertFalse(result["evidence_eligible"])
 
+    def test_visible_text_ignores_executable_and_style_content(self):
+        html = "<style>.secret{display:none}</style><p>Evidence</p><script>alert(1)</script>"
+        self.assertEqual(MODULE.visible_text(html), "Evidence")
+
 
 if __name__ == "__main__":
     unittest.main()

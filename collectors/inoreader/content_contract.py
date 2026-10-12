@@ -7,8 +7,19 @@ class _VisibleText(HTMLParser):
     def __init__(self):
         super().__init__()
         self.parts = []
+        self.ignored_depth = 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag in {"script", "style", "noscript", "svg"}:
+            self.ignored_depth += 1
+
+    def handle_endtag(self, tag):
+        if tag in {"script", "style", "noscript", "svg"} and self.ignored_depth:
+            self.ignored_depth -= 1
 
     def handle_data(self, data):
+        if self.ignored_depth:
+            return
         value = " ".join(data.split())
         if value:
             self.parts.append(value)
