@@ -1,0 +1,29 @@
+name: M1 Supabase Staging (INVENTORY ONLY)
+on:
+  push:
+    branches: [rescue/working-model-20261012]
+    paths:
+      - 'scripts/supabase-staging-inventory.py'
+      - '.github/workflows/m1-supabase-staging.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  read-only-inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install "psycopg[binary]"
+      - name: Inspect schemas, columns, and staging privileges without reading business rows
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: python scripts/supabase-staging-inventory.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: m1-supabase-staging-inventory
+          path: output/supabase-staging/inventory.json
+          retention-days: 14
