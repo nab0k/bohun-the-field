@@ -12,11 +12,17 @@ def read_existing(pinned_external_id=None):
  if not password:raise RuntimeError("NO_EXISTING_SUPABASE_READ_CREDENTIAL")
  with psycopg.connect(host=os.environ.get("SUPABASE_DB_HOST","aws-1-eu-central-1.pooler.supabase.com"),port=int(os.environ.get("SUPABASE_DB_PORT","5432")),dbname="postgres",user=os.environ.get("SUPABASE_DB_USER","postgres.tecrucawzukxqtchpxrh"),password=password,sslmode="require",connect_timeout=20,options="-c default_transaction_read_only=on") as conn:
   with conn.cursor() as cur:
-   cur.execute("""SELECT i.id,i.external_id,i.title,i.url,i.published_at,i.raw_data,s.name
+   # Build the optional filter in Python so PostgreSQL never has to infer
+   # the datatype of a nullable bind parameter (IndeterminateDatatype $2).
+   query="""SELECT i.id,i.external_id,i.title,i.url,i.published_at,i.raw_data,s.name
  FROM intelligence.items i JOIN intelligence.sources s ON s.id=i.source_id
- WHERE s.name=%s AND i.url LIKE 'https:%%' AND i.external_id IS NOT NULL
- AND (%s::text IS NULL OR i.external_id=%s::text)
- ORDER BY i.published_at DESC NULLS LAST,i.id DESC LIMIT 1""",("Inoreader BOHUN",pinned_external_id,pinned_external_id))
+ WHERE s.name=%s AND i.url LIKE 'https:%%' AND i.external_id IS NOT NULL"""
+   params=["Inoreader BOHUN"]
+   if pinned_external_id is not None:
+    query+=" AND i.external_id=%s"
+    params.append(pinned_external_id)
+   query+=" ORDER BY i.published_at DESC NULLS LAST,i.id DESC LIMIT 1"
+   cur.execute(query,params)
    row=cur.fetchone()
  if not row:raise RuntimeError("NO_EXISTING_INOREADER_ROW")
  return dict(supabase_item_id=str(row[0]),external_id=row[1],title=row[2],url=row[3],published_at=row[4].isoformat() if row[4] else None,raw_data=row[5],source_name=row[6])
