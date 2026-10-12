@@ -1,0 +1,22 @@
+name: Inoreader OAuth Rotation Offline Tests
+on:
+  push:
+    branches: [fix/inoreader-oauth-rotation-20261012]
+    paths:
+      - 'collectors/inoreader/sync.py'
+      - 'tests/test_inoreader_oauth_rotation.py'
+      - '.github/workflows/inoreader-oauth-offline.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run offline token rotation tests (no credentials)
+        run: python -m unittest discover -s tests -p test_inoreader_oauth_rotation.py -v
