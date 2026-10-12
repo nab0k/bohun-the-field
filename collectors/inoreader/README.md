@@ -4,7 +4,8 @@
 
 - Automatically discovers subscriptions and their `BOHUN_*` folders on each run.
 - Reads up to 200 most recent items per folder (configurable), deduplicates by Inoreader item ID, and inserts metadata into existing Supabase `intelligence.sources` and `intelligence.items`.
-- Stores headline, URL, publication timestamp, feed origin and folder. **Does not store article content or summaries**.
+- Stores headline, URL, publication timestamp, feed origin and folder. It now also preserves the HTML returned in `summary.content`, its SHA-256 and derived visible text.
+- Returned body text is labelled `BODY_PRESENT_COMPLETENESS_UNVERIFIED`; absent text is `METADATA_ONLY`. Both remain `HOLD` and `evidence_eligible=false` until the original publisher page is captured and exact evidence is verified.
 - Safe to rerun: `ON CONFLICT (source_id, external_id) DO NOTHING`.
 - Runs every 30 minutes in GitHub Actions. Actual execution time may vary. Not a real-time feed.
 - A new source is picked up if assigned to a `BOHUN_*` folder; unassigned subscriptions are ignored.
@@ -23,5 +24,5 @@
 ## Next work
 - Incremental watermark and catch-up pagination.
 - Per-feed registry and source health checks.
-- Gemini classification with evidence checks and editorial publication gates.
+- Route preserved bodies to isolated staging, fetch the publisher original where permitted, then run Gemini classification with deterministic evidence checks and editorial publication gates.
 - Reconcile target canonical DB with `docs/DECISIONS.md`.

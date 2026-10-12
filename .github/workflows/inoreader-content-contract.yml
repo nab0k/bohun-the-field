@@ -1,0 +1,24 @@
+name: Inoreader Content Contract (NO API, NO WRITES)
+on:
+  push:
+    branches: [rescue/working-model-20261012]
+    paths:
+      - 'collectors/inoreader/content_contract.py'
+      - 'collectors/inoreader/sync.py'
+      - 'tests/test_inoreader_content.py'
+      - 'docs/INOREADER_GEMINI_SAFE_PATH.md'
+      - '.github/workflows/inoreader-content-contract.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  content-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify body preservation and fail-closed evidence status
+        run: python -m unittest tests/test_inoreader_content.py

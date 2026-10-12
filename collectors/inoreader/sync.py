@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Inoreader BOHUN_* folders -> Supabase intelligence.items.
 
-Read-only Inoreader access. Stores metadata (headline, URL, timestamps), not article bodies.
+Read-only Inoreader access. Preserves returned summary HTML but keeps it on QA HOLD.
 Requires: INOREADER_CLIENT_ID, INOREADER_CLIENT_SECRET, INOREADER_REFRESH_TOKEN,
 SUPABASE_DB_PASSWORD. Run --dry-run to inspect without database writes.
 """
@@ -14,6 +14,8 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+
+from content_contract import extract_inoreader_content
 
 API = "https://www.inoreader.com/reader/api/0/"
 TOKEN = "https://www.inoreader.com/oauth2/token"
@@ -108,6 +110,7 @@ def normalize(item, folder):
     published = item.get("published") or item.get("updated")
     timestamp = dt.datetime.fromtimestamp(published, dt.timezone.utc) if isinstance(published, (int, float)) else None
     origin = item.get("origin") or {}
+    content = extract_inoreader_content(item)
     return {
         "external_id": str(item["id"]),
         "title": title[:2000],
@@ -121,6 +124,7 @@ def normalize(item, folder):
             "published": published,
             "url": url,
             "title": title,
+            **content,
         },
     }
 
