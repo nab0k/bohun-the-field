@@ -96,6 +96,28 @@ def load_staging(limit=3, title_like=None):
     return docs
 
 
+def load_pilot_candidates(document_id):
+    """Existing pilot output for one staged document (read-only), used as a baseline."""
+    import psycopg
+    conn = psycopg.connect(
+        host=os.getenv("SUPABASE_DB_HOST", "aws-1-eu-central-1.pooler.supabase.com"),
+        port=int(os.getenv("SUPABASE_DB_PORT", "5432")), dbname="postgres",
+        user=os.getenv("SUPABASE_DB_USER", "postgres.tecrucawzukxqtchpxrh"),
+        password=os.environ["SUPABASE_DB_PASSWORD"], sslmode="require", connect_timeout=20,
+    )
+    with conn:
+        conn.execute("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY")
+        with conn.cursor() as cur:
+            cur.execute("SHOW transaction_read_only")
+            if cur.fetchone()[0] != "on":
+                raise RuntimeError("STAGING_READ_NOT_READ_ONLY")
+            cur.execute("SELECT model_run_id, model, response_json, validation_json, usage_json, created_at "
+                        "FROM bohun_staging.model_candidates WHERE document_id=%s ORDER BY created_at", (document_id,))
+            rows = cur.fetchall()
+    return [{"model_run_id": r[0], "model": r[1], "response": r[2], "validation": r[3], "usage": r[4],
+             "created_at": r[5].isoformat() if r[5] else None} for r in rows]
+
+
 def _pilot_module():
     path = ROOT / "scripts/inoreader-gemini-staging-pilot.py"
     spec = importlib.util.spec_from_file_location("bohun_staging_pilot", path)

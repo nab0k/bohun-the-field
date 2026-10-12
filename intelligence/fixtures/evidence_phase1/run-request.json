@@ -1,7 +1,8 @@
 {
-  "_comment": "Each commit to this file on experiment/evidence-phase1-20261013 triggers one HOLD-only run. Run 2: repeat run 1 (fixtures, replay extractor, MiniCheck CPU; no LLM, no secrets) with results exported as annotations.",
+  "_comment": "Each commit to this file on experiment/evidence-phase1-20261013 triggers one HOLD-only run. Run 3: owner-approved paid series (2026-10-13, authorization $1 total). Software cap $0.50, max 40 Gemini calls, <=8000 input / <=2048 output tokens per call, no retries. E0 replay baseline, E1 Gemini-direct, E2 LangExtract+Gemini on identical synthetic fixtures; E3 PAC-3 Edge from bohun_staging (read-only): pilot baseline vs Gemini-direct vs LangExtract on the same first 12,000 chars. MiniCheck on all.",
   "source": "fixtures",
   "extractor": "replay",
-  "entailment": "minicheck",
-  "max_docs": 3
+  "entailment": "none",
+  "max_docs": 3,
+  "series": "phase1-paid-v1"
 }

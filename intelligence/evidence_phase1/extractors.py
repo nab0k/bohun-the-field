@@ -134,7 +134,7 @@ def _langextract_examples(lx):
 class LangExtractExtractor:
     name = "langextract"
 
-    def __init__(self, model_id=None, max_char_buffer=1500, extraction_passes=1, model=None):
+    def __init__(self, model_id=None, max_char_buffer=1500, extraction_passes=1, model=None, model_label=None):
         try:
             import langextract as lx  # noqa: F401
         except ImportError as exc:
@@ -143,7 +143,8 @@ class LangExtractExtractor:
         self.model_id = model_id or os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
         self.max_char_buffer = max_char_buffer
         self.extraction_passes = extraction_passes
-        self.model = model  # tests inject a fake BaseLanguageModel
+        self.model = model  # tests inject a fake; experiments inject the budgeted Gemini provider
+        self.model_label = model_label or ("injected" if model is not None else self.model_id)
 
     def extract(self, text):
         kwargs = dict(
@@ -155,6 +156,9 @@ class LangExtractExtractor:
             temperature=0.0,
             fetch_urls=False,
             show_progress=False,
+            # Sequential, one chunk per call: keeps the spending guard exact and runs reproducible.
+            batch_length=1,
+            max_workers=1,
             # Library defaults accept fuzzy and partial (MATCH_LESSER) alignments,
             # whose char_interval need not equal the extracted text. Disable both.
             resolver_params={"enable_fuzzy_alignment": False, "accept_match_lesser": False},
@@ -186,10 +190,11 @@ class LangExtractExtractor:
         return {
             "candidates": cands,
             "meta": {
-                "extractor": self.name, "model": self.model_id if self.model is None else "injected",
+                "extractor": self.name, "model": self.model_label,
                 "latency_s": round(latency, 3), "input_chars": len(text), "truncated": False,
                 "prompt_tokens": None, "output_tokens": None,
-                # LangExtract does not surface provider usage metadata in AnnotatedDocument.
-                "token_usage_source": "NOT_MEASURED",
+                # LangExtract does not surface provider usage in AnnotatedDocument; when the
+                # budgeted provider is injected, tokens are in the ledger instead.
+                "token_usage_source": "LEDGER" if self.model is not None and self.model_label != "injected" else "NOT_MEASURED",
             },
         }

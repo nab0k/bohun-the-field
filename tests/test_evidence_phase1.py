@@ -236,6 +236,96 @@ class Safety(unittest.TestCase):
         self.assertEqual(rows[2]["docs_per_day"], 100_000)
 
 
+from intelligence.evidence_phase1.budget import BudgetExceeded, BudgetLedger, budgeted_transport  # noqa: E402
+
+
+def fake_gemini(tokens=1000, out=100, thoughts=0, fail_count=False, http_error=None, calls=None):
+    def opener(url, payload):
+        if calls is not None:
+            calls.append(url.rsplit(":", 1)[-1])
+        if url.endswith(":countTokens"):
+            if fail_count:
+                raise OSError("network")
+            return {"totalTokens": tokens}
+        if http_error:
+            import urllib.error
+            raise urllib.error.HTTPError(url, http_error, "err", {}, None)
+        return {"candidates": [{"content": {"parts": [{"text": json.dumps({"claims": []})}]}, "finishReason": "STOP"}],
+                "usageMetadata": {"promptTokenCount": tokens, "candidatesTokenCount": out, "thoughtsTokenCount": thoughts},
+                "modelVersion": "gemini-3.5-flash-lite-test"}
+    return opener
+
+
+def ledger(**kw):
+    args = dict(api_key="k", model="gemini-3.5-flash-lite", cap_usd=0.01, max_calls=5,
+                max_input_tokens_per_call=8000, max_output_tokens=2048, opener=fake_gemini())
+    args.update(kw)
+    return BudgetLedger(**args)
+
+
+class Budget(unittest.TestCase):
+    def test_actual_cost_includes_thinking_tokens(self):
+        lg = ledger(opener=fake_gemini(tokens=1000, out=100, thoughts=400))
+        lg.generate([{"parts": [{"text": "x"}]}], {}, "t")
+        self.assertAlmostEqual(lg.spent_usd, (1000 * 0.30 + 500 * 2.50) / 1e6)
+        self.assertEqual(lg.calls[0]["model_version"], "gemini-3.5-flash-lite-test")
+
+    def test_refuses_call_that_could_cross_cap_before_calling(self):
+        seen = []
+        # worst case per call = 1000*0.3e-6 + 2048*2.5e-6 = 0.00542 -> second call would exceed 0.01
+        lg = ledger(opener=fake_gemini(calls=seen))
+        lg.spent_usd = 0.005
+        with self.assertRaises(BudgetExceeded):
+            lg.generate([{"parts": [{"text": "x"}]}], {}, "t")
+        self.assertEqual(seen, ["countTokens"])  # generateContent never sent
+        self.assertEqual(lg.stopped, "CAP")
+        with self.assertRaises(BudgetExceeded):
+            lg.generate([{"parts": [{"text": "x"}]}], {}, "t")
+
+    def test_no_call_if_tokens_cannot_be_counted(self):
+        seen = []
+        lg = ledger(opener=fake_gemini(fail_count=True, calls=seen))
+        with self.assertRaises(BudgetExceeded):
+            lg.generate([{"parts": [{"text": "x"}]}], {}, "t")
+        self.assertEqual(seen, ["countTokens"])
+
+    def test_input_and_call_limits(self):
+        with self.assertRaises(BudgetExceeded):
+            ledger(opener=fake_gemini(tokens=9000)).generate([{"parts": [{"text": "x"}]}], {}, "t")
+        lg = ledger(max_calls=1, cap_usd=1)
+        lg.generate([{"parts": [{"text": "x"}]}], {}, "t")
+        with self.assertRaises(BudgetExceeded):
+            lg.generate([{"parts": [{"text": "x"}]}], {}, "t")
+
+    def test_output_cap_cannot_be_raised_by_caller(self):
+        sent = {}
+        base = fake_gemini()
+
+        def opener(url, payload):
+            sent.update(payload)
+            return base(url, payload)
+        ledger(opener=opener).generate([{"parts": [{"text": "x"}]}], {"maxOutputTokens": 999999}, "t")
+        self.assertEqual(sent["generationConfig"]["maxOutputTokens"], 2048)
+
+    def test_http_error_books_worst_case_and_no_retry(self):
+        seen = []
+        lg = ledger(opener=fake_gemini(http_error=429, calls=seen))
+        with self.assertRaises(Exception):
+            lg.generate([{"parts": [{"text": "x"}]}], {}, "t")
+        self.assertEqual(seen, ["countTokens", "generateContent"])
+        self.assertAlmostEqual(lg.spent_usd, lg.worst_case(1000))
+
+    def test_unknown_model_price_blocks_everything(self):
+        with self.assertRaises(BudgetExceeded):
+            ledger(model="gemini-unknown")
+
+    def test_direct_extractor_through_ledger_fails_closed_on_cap(self):
+        lg = ledger(cap_usd=0.001)
+        res = run([NEG], GeminiDirectExtractor(transport=budgeted_transport(lg, "t")))
+        self.assertTrue(res["documents"][0]["outcome"].startswith("EXTRACTION_FAILED:BudgetExceeded"))
+        self.assertEqual(res["records"], [])
+
+
 try:
     import langextract as lx  # noqa: E402
     from langextract.core import base_model, types  # noqa: E402
