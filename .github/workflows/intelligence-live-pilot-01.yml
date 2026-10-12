@@ -27,6 +27,8 @@ jobs:
         run: python scripts/intelligence_live_pilot.py readback
       - name: Export only HOLD internal test feed from persisted database
         run: python scripts/intelligence_live_pilot.py export
+      - name: Validate Source -> Evidence -> Claim -> Event -> Publication contract
+        run: python scripts/intelligence_live_pilot.py validate
       - name: Verify existing UI tests and build without deploy
         run: |
           npm test

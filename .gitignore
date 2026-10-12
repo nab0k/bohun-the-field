@@ -6,3 +6,9 @@ dist/
 # local secrets (API keys, tokens): never commit
 .env.local
 data/inoreader/private/
+
+# review-only intelligence pilot outputs (recreated by CI)
+output/live-pilot/
+output/supabase-staging/
+public/atlas/pilot-internal-feed.json
+scripts/__pycache__/

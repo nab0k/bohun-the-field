@@ -1,0 +1,60 @@
+name: Inoreader Gemini Staging Pilot (ONE ITEM, HOLD ONLY)
+on:
+  push:
+    branches: [rescue/working-model-20261012]
+    paths:
+      - '.github/workflows/inoreader-gemini-staging-pilot.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: inoreader-gemini-one-item-staging
+  cancel-in-progress: false
+jobs:
+  collect-model-and-stage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install "psycopg[binary]"
+      # One-time owner-authorized pilot retry after fixing project imports (2026-10-12).
+      - name: One Inoreader item, one original page, one Gemini call, HOLD only
+        env:
+          INOREADER_CLIENT_ID: ${{ secrets.INOREADER_CLIENT_ID }}
+          INOREADER_CLIENT_SECRET: ${{ secrets.INOREADER_CLIENT_SECRET }}
+          INOREADER_REFRESH_TOKEN: ${{ secrets.INOREADER_REFRESH_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: python scripts/inoreader-gemini-staging-pilot.py run
+      - uses: actions/upload-artifact@v4
+        with:
+          name: inoreader-gemini-pilot-key
+          path: output/inoreader-gemini-pilot/pilot-key.json
+          retention-days: 14
+
+  independent-readback:
+    needs: collect-model-and-stage
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install "psycopg[binary]"
+      - uses: actions/download-artifact@v4
+        with:
+          name: inoreader-gemini-pilot-key
+          path: output/inoreader-gemini-pilot
+      - name: Fresh runner verifies hashes, exact spans, HOLD, and access isolation
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: python scripts/inoreader-gemini-staging-pilot.py readback
+      - uses: actions/upload-artifact@v4
+        with:
+          name: inoreader-gemini-pilot-readback
+          path: output/inoreader-gemini-pilot/readback.json
+          retention-days: 14
