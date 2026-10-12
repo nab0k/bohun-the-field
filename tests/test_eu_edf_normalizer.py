@@ -16,6 +16,18 @@ class TestEDFNormalizer(unittest.TestCase):
         self.assertEqual(record["qa_status"], "HOLD")
         self.assertFalse(record["publication_approved"])
 
+    def test_expired_deadline_is_flagged(self):
+        record = normalize({"metadata": {
+            "identifier": ["EDF-2023-DA-UWW-ASW"],
+            "title": ["Example expired call"],
+            "deadlineDate": ["2023-11-22T17:00:00.000+0000"],
+            "frameworkProgramme": ["44181033"],
+            "url": ["https://ec.europa.eu/info/funding-tenders/opportunities/data/topicDetails/example.json"],
+            "sortStatus": ["2"]}})
+        self.assertIn("expired_deadline", record["qa_issues"])
+        self.assertEqual(record["qa_status"], "HOLD")
+        self.assertFalse(record["publication_approved"])
+
     def test_missing_and_unsafe_fields(self):
         record = normalize({"metadata": {"url": ["https://attacker.example/grant"],
                                           "deadlineDate": ["not-a-date"]}})

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Normalize EU Funding & Tenders search hits in memory. Never persist or publish."""
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from urllib.parse import urlparse
 
 FIELDS = ("title", "identifier", "callIdentifier", "deadlineDate",
@@ -50,6 +50,9 @@ def normalize(hit):
         issues.append("missing_deadline")
     elif not date_value(fields["deadlineDate"]):
         issues.append("invalid_deadline")
+    deadline = date_value(fields["deadlineDate"])
+    if deadline and date.fromisoformat(deadline) < datetime.now(timezone.utc).date():
+        issues.append("expired_deadline")
     url = official_url(fields["url"])
     if not url:
         issues.append("missing_or_nonofficial_url")
@@ -61,7 +64,7 @@ def normalize(hit):
         "call_identifier": fields["callIdentifier"],
         "title": fields["title"],
         "deadline_raw": fields["deadlineDate"],
-        "deadline_date": date_value(fields["deadlineDate"]),
+        "deadline_date": deadline,
         "start_date": date_value(fields["startDate"]),
         "programme": fields["frameworkProgramme"],
         "opportunity_type": fields["type"],
