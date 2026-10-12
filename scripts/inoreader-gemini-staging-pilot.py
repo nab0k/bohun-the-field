@@ -17,6 +17,7 @@ import psycopg
 from psycopg.types.json import Jsonb
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "collectors/inoreader"))
 from content_contract import extract_inoreader_content, visible_text  # noqa: E402
 import sync as inoreader  # noqa: E402
