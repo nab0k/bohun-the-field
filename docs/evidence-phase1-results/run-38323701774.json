@@ -1,0 +1,820 @@
+{
+ "run_id": "38323701774",
+ "workflow": "Evidence Phase 1 Experiment",
+ "job": "paid-series",
+ "source": "GitHub check-run annotations",
+ "note": "PAC-3 (third-party article) evidence spans are replaced by sha256 + char offsets into the stored text (first 12,000 chars of bohun_staging.inoreader_documents.original_visible_text); synthetic fixture spans are kept.",
+ "series_log": {
+  "started": "2026-10-12T23:46:56Z",
+  "pac3": null,
+  "preflight": {
+   "plan": [
+    {
+     "doc": "fixture:syn-cancelled-dates",
+     "direct_calls": 1,
+     "langextract_calls_max": 3,
+     "worst_usd": 0.02332
+    },
+    {
+     "doc": "fixture:syn-contract-negation",
+     "direct_calls": 1,
+     "langextract_calls_max": 3,
+     "worst_usd": 0.02333
+    }
+   ],
+   "worst_case_total_usd": 0.04665,
+   "planned_calls_max": 8,
+   "fits_cap": true
+  },
+  "minicheck": {
+   "model": "MiniCheck/lytang/MiniCheck-Flan-T5-Large",
+   "load_s": 0.71,
+   "commit": "b58b9fa69acbd1015ec970fa65dd752413a053d2"
+  },
+  "pilot_baseline": null,
+  "ledger": {
+   "limit_type": "PROGRAMMATIC_ESTIMATE_NOT_BILLING_GUARANTEE",
+   "model": "gemini-3.5-flash-lite",
+   "price": {
+    "input_per_m": 0.3,
+    "output_per_m": 2.5,
+    "source": "https://ai.google.dev/gemini-api/docs/pricing",
+    "checked": "2026-10-13"
+   },
+   "cap_usd": 0.5,
+   "max_calls": 40,
+   "max_input_tokens_per_call": 8000,
+   "max_output_tokens_per_call_incl_thinking": 2048,
+   "retries": 0,
+   "calls_attempted": 4,
+   "calls_ok": 4,
+   "prompt_tokens": 2234,
+   "output_tokens": 1852,
+   "thought_tokens": 0,
+   "spent_usd_paid_tier_estimate": 0.0053,
+   "model_versions": [
+    "gemini-3.5-flash-lite"
+   ],
+   "stopped": null
+  },
+  "errors": [
+   "STAGING_READ_FAILED:RuntimeError:STAGING_READ_NOT_READ_ONLY"
+  ],
+  "total_seconds": 17.91
+ },
+ "calls": [
+  {
+   "tag": "e1",
+   "outcome": "OK",
+   "counted_input_tokens": 410,
+   "prompt_tokens": 410,
+   "output_tokens": 493,
+   "thought_tokens": 0,
+   "finish_reason": "STOP",
+   "latency_s": 1.36,
+   "cost_usd": 0.001356,
+   "cost_basis": "usageMetadata",
+   "worst_case_usd": 0.005243,
+   "model_version": "gemini-3.5-flash-lite"
+  },
+  {
+   "tag": "e1",
+   "outcome": "OK",
+   "counted_input_tokens": 420,
+   "prompt_tokens": 420,
+   "output_tokens": 491,
+   "thought_tokens": 0,
+   "finish_reason": "STOP",
+   "latency_s": 1.402,
+   "cost_usd": 0.001354,
+   "cost_basis": "usageMetadata",
+   "worst_case_usd": 0.005246,
+   "model_version": "gemini-3.5-flash-lite"
+  },
+  {
+   "tag": "e2",
+   "outcome": "OK",
+   "counted_input_tokens": 697,
+   "prompt_tokens": 697,
+   "output_tokens": 338,
+   "thought_tokens": 0,
+   "finish_reason": "STOP",
+   "latency_s": 1.059,
+   "cost_usd": 0.001054,
+   "cost_basis": "usageMetadata",
+   "worst_case_usd": 0.005329,
+   "model_version": "gemini-3.5-flash-lite"
+  },
+  {
+   "tag": "e2",
+   "outcome": "OK",
+   "counted_input_tokens": 707,
+   "prompt_tokens": 707,
+   "output_tokens": 530,
+   "thought_tokens": 0,
+   "finish_reason": "STOP",
+   "latency_s": 1.474,
+   "cost_usd": 0.001537,
+   "cost_basis": "usageMetadata",
+   "worst_case_usd": 0.005332,
+   "model_version": "gemini-3.5-flash-lite"
+  }
+ ],
+ "experiments": {
+  "e0-fixtures-replay": {
+   "summary": {
+    "metrics": {
+     "records": 9,
+     "span_not_in_text_rate": 0.1111,
+     "unsupported_claim_rate_minicheck": 0.25,
+     "all_hold": true,
+     "precision_span_match": 0.8889,
+     "recall_essential": 1.0,
+     "attribution_accuracy": 0.875,
+     "modality_accuracy": 0.75,
+     "quality_note": "Computed on 2 gold-labelled document(s). Small samples: not representative."
+    },
+    "entailment_run": {
+     "scored": 8,
+     "seconds": 3.571
+    },
+    "resources": {
+     "wall_s": 3.573,
+     "max_rss_mb": 3312.4,
+     "cpu_user_s": 10.6
+    },
+    "measurements": null,
+    "run": {
+     "label": "e0-fixtures-replay",
+     "method": "replay (hand-written, deliberate errors)"
+    },
+    "validation_problems": 0,
+    "documents": [
+     {
+      "document_id": "fixture:syn-cancelled-dates",
+      "outcome": "EXTRACTED",
+      "candidates": 3,
+      "text_chars": 550,
+      "extraction_meta": {
+       "extractor": "replay",
+       "latency_s": 0.0,
+       "token_usage_source": "NOT_APPLICABLE",
+       "prompt_tokens": null,
+       "output_tokens": null,
+       "input_chars": 550
+      },
+      "gold_eval": {
+       "predicted": 3,
+       "gold": 4,
+       "matched": 3,
+       "tp_essential": 3,
+       "essential": 3,
+       "attribution_correct": 3,
+       "modality_correct": 3,
+       "matched_detail": [
+        {
+         "gold": "Brightwater Munitions plans to build a new filling plant in 2028 regardless of t",
+         "pred_modality": "planned",
+         "gold_modality": "planned",
+         "pred_asserted_by": "Brightwater Munitions",
+         "gold_asserted_by": "Brightwater Munitions"
+        },
+        {
+         "gold": "the Ostmark procurement agency cancelled the agreement after a dispute over deli",
+         "pred_modality": "cancelled",
+         "gold_modality": "cancelled",
+         "pred_asserted_by": "Ostmark procurement agency",
+         "gold_asserted_by": "Ostmark procurement agency"
+        },
+        {
+         "gold": "the Republic of Ostmark signed a framework agreement with Brightwater Munitions ",
+         "pred_modality": "occurred",
+         "gold_modality": "occurred",
+         "pred_asserted_by": null,
+         "gold_asserted_by": null
+        }
+       ]
+      }
+     },
+     {
+      "document_id": "fixture:syn-contract-negation",
+      "outcome": "EXTRACTED",
+      "candidates": 6,
+      "text_chars": 578,
+      "extraction_meta": {
+       "extractor": "replay",
+       "latency_s": 0.0,
+       "token_usage_source": "NOT_APPLICABLE",
+       "prompt_tokens": null,
+       "output_tokens": null,
+       "input_chars": 578
+      },
+      "gold_eval": {
+       "predicted": 6,
+       "gold": 5,
+       "matched": 5,
+       "tp_essential": 4,
+       "essential": 4,
+       "attribution_correct": 4,
+       "modality_correct": 3,
+       "matched_detail": [
+        {
+         "gold": "The radar was first tested in June 2025 at a range in northern Valdoria",
+         "pred_modality": "occurred",
+         "gold_modality": "occurred",
+         "pred_asserted_by": null,
+         "gold_asserted_by": null
+        },
+        {
+         "gold": "Kestrel Dynamics may open a second assembly line in Ostrava",
+         "pred_modality": "speculative",
+         "gold_modality": "speculative",
+         "pred_asserted_by": null,
+         "gold_asserted_by": "Harbour Defence Weekly"
+        },
+        {
+         "gold": "denied that the company had received a second order from the Valdorian Navy",
+         "pred_modality": "occurred",
+         "gold_modality": "negated",
+         "pred_asserted_by": "Kestrel Dynamics",
+         "gold_asserted_by": "Kestrel Dynamics"
+        },
+        {
+         "gold": "Kestrel Dynamics will deliver the first units in early 2028",
+         "pred_modality": "occurred",
+         "gold_modality": "planned",
+         "pred_asserted_by": "Valdorian Ministry of Defence",
+         "gold_asserted_by": "Valdorian Ministry of Defence"
+        },
+        {
+         "gold": "it awarded Kestrel Dynamics a contract worth EUR 48 million for 30 counter-drone",
+         "pred_modality": "announced",
+         "gold_modality": "announced",
+         "pred_asserted_by": "Valdorian Ministry of Defence",
+         "gold_asserted_by": "Valdorian Ministry of Defence"
+        }
+       ]
+      }
+     },
+     {
+      "document_id": "fixture:syn-no-full-text",
+      "outcome": "SKIPPED_NO_FULL_TEXT",
+      "candidates": null,
+      "text_chars": 69,
+      "extraction_meta": null,
+      "gold_eval": null
+     }
+    ]
+   },
+   "records": [
+    {
+     "doc": "fixture:syn-cancelled-dates",
+     "ext": "replay",
+     "claim": "Ostmark signed a framework agreement with Brightwater Munitions for 155mm shells.",
+     "evidence": "the Republic of Ostmark signed a framework agreement with Brightwater Munitions for 155mm artillery shells",
+     "chars": [
+      49,
+      155
+     ],
+     "modality": "occurred",
+     "asserted_by": null,
+     "event_date": "2026-09-14",
+     "ent": [
+      "SUPPORTED",
+      0.9483
+     ],
+     "hold": []
+    },
+    {
+     "doc": "fixture:syn-cancelled-dates",
+     "ext": "replay",
+     "claim": "The Ostmark procurement agency cancelled the framework agreement.",
+     "evidence": "the Ostmark procurement agency cancelled the agreement after a dispute over delivery schedules",
+     "chars": [
+      176,
+      270
+     ],
+     "modality": "cancelled",
+     "asserted_by": "Ostmark procurement agency",
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.6686
+     ],
+     "hold": [
+      "EVENT_DATE_EQUALS_PUBLICATION_DATE_NOT_IN_EVIDENCE"
+     ]
+    },
+    {
+     "doc": "fixture:syn-cancelled-dates",
+     "ext": "replay",
+     "claim": "Brightwater Munitions plans to build a filling plant in 2028.",
+     "evidence": "Brightwater Munitions plans to build a new filling plant in 2028 regardless of the cancellation",
+     "chars": [
+      298,
+      393
+     ],
+     "modality": "planned",
+     "asserted_by": "Brightwater Munitions",
+     "event_date": "2028",
+     "ent": [
+      "SUPPORTED",
+      0.9662
+     ],
+     "hold": []
+    },
+    {
+     "doc": "ixture:syn-contract-negation",
+     "ext": "replay",
+     "claim": "The Valdorian Ministry of Defence awarded Kestrel Dynamics a EUR 48 million contract for 30 counter-drone radar units.",
+     "evidence": "it awarded Kestrel Dynamics a contract worth EUR 48 million for 30 counter-drone radar units",
+     "chars": [
+      65,
+      157
+     ],
+     "modality": "announced",
+     "asserted_by": "Valdorian Ministry of Defence",
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.97
+     ],
+     "hold": []
+    },
+    {
+     "doc": "ixture:syn-contract-negation",
+     "ext": "replay",
+     "claim": "Kestrel Dynamics delivered the first radar units.",
+     "evidence": "Kestrel Dynamics will deliver the first units in early 2028",
+     "chars": [
+      159,
+      218
+     ],
+     "modality": "occurred",
+     "asserted_by": "Valdorian Ministry of Defence",
+     "event_date": "2028",
+     "ent": [
+      "NOT_SUPPORTED",
+      0.0386
+     ],
+     "hold": [
+      "PLAN_CUE_IN_SPAN_CONFLICTS_WITH_MODALITY",
+      "ASSERTED_BY_NOT_NAMED_IN_CONTEXT",
+      "ENTAILMENT_NOT_SUPPORTED"
+     ]
+    },
+    {
+     "doc": "ixture:syn-contract-negation",
+     "ext": "replay",
+     "claim": "Kestrel Dynamics received a second order from the Valdorian Navy.",
+     "evidence": "denied that the company had received a second order from the Valdorian Navy",
+     "chars": [
+      272,
+      347
+     ],
+     "modality": "occurred",
+     "asserted_by": "Kestrel Dynamics",
+     "event_date": null,
+     "ent": [
+      "NOT_SUPPORTED",
+      0.0182
+     ],
+     "hold": [
+      "NEGATION_CUE_IN_SPAN_CONFLICTS_WITH_MODALITY",
+      "ENTAILMENT_NOT_SUPPORTED"
+     ]
+    },
+    {
+     "doc": "ixture:syn-contract-negation",
+     "ext": "replay",
+     "claim": "Kestrel Dynamics may open a second assembly line in Ostrava.",
+     "evidence": "Kestrel Dynamics may open a second assembly line in Ostrava",
+     "chars": [
+      407,
+      466
+     ],
+     "modality": "speculative",
+     "asserted_by": null,
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.8971
+     ],
+     "hold": [
+      "ATTRIBUTION_CUE_BUT_ASSERTED_BY_UNKNOWN"
+     ]
+    },
+    {
+     "doc": "ixture:syn-contract-negation",
+     "ext": "replay",
+     "claim": "Kestrel Dynamics opened a factory in Ostrava in 2026.",
+     "evidence": "Kestrel Dynamics opened its Ostrava factory in 2026",
+     "chars": [
+      null,
+      null
+     ],
+     "modality": "occurred",
+     "asserted_by": null,
+     "event_date": null,
+     "ent": [
+      null,
+      null
+     ],
+     "hold": [
+      "SPAN_NOT_IN_STORED_TEXT",
+      "EVENT_DATE_NOT_IN_EVIDENCE",
+      "ENTAILMENT_SKIPPED_NO_ALIGNED_EVIDENCE"
+     ]
+    },
+    {
+     "doc": "ixture:syn-contract-negation",
+     "ext": "replay",
+     "claim": "The radar was first tested in June 2025.",
+     "evidence": "The radar was first tested in June 2025 at a range in northern Valdoria",
+     "chars": [
+      506,
+      577
+     ],
+     "modality": "occurred",
+     "asserted_by": null,
+     "event_date": "2025-06",
+     "ent": [
+      "SUPPORTED",
+      0.9037
+     ],
+     "hold": [
+      "EXTRACTOR_OFFSETS_DO_NOT_MATCH_SPAN"
+     ]
+    }
+   ]
+  },
+  "e1-fixtures-gemini-direct": {
+   "summary": {
+    "metrics": {
+     "records": 0,
+     "span_not_in_text_rate": "NOT MEASURED",
+     "unsupported_claim_rate_minicheck": "NOT MEASURED",
+     "all_hold": true,
+     "precision_span_match": "NOT MEASURED",
+     "recall_essential": "NOT MEASURED",
+     "attribution_accuracy": "NOT MEASURED",
+     "modality_accuracy": "NOT MEASURED",
+     "quality_note": "No gold labels for these documents; quality metrics are not computed."
+    },
+    "entailment_run": {
+     "scored": 0,
+     "seconds": 0.0
+    },
+    "resources": {
+     "wall_s": 3.002,
+     "max_rss_mb": 3312.8,
+     "cpu_user_s": 10.62
+    },
+    "measurements": null,
+    "run": {
+     "label": "e1-fixtures-gemini-direct",
+     "method": "gemini-direct",
+     "model": "gemini-3.5-flash-lite"
+    },
+    "validation_problems": 0,
+    "documents": [
+     {
+      "document_id": "fixture:syn-cancelled-dates",
+      "outcome": "EXTRACTION_FAILED:ValueError:MODEL_OUTPUT_HAS_NO_CLAIMS_LIST",
+      "candidates": null,
+      "text_chars": 550,
+      "extraction_meta": null,
+      "gold_eval": null
+     },
+     {
+      "document_id": "fixture:syn-contract-negation",
+      "outcome": "EXTRACTION_FAILED:ValueError:MODEL_OUTPUT_HAS_NO_CLAIMS_LIST",
+      "candidates": null,
+      "text_chars": 578,
+      "extraction_meta": null,
+      "gold_eval": null
+     },
+     {
+      "document_id": "fixture:syn-no-full-text",
+      "outcome": "SKIPPED_NO_FULL_TEXT",
+      "candidates": null,
+      "text_chars": 69,
+      "extraction_meta": null,
+      "gold_eval": null
+     }
+    ]
+   },
+   "records": []
+  },
+  "e2-fixtures-langextract": {
+   "summary": {
+    "metrics": {
+     "records": 8,
+     "span_not_in_text_rate": 0.0,
+     "unsupported_claim_rate_minicheck": 0.0,
+     "all_hold": true,
+     "precision_span_match": 1.0,
+     "recall_essential": 1.0,
+     "attribution_accuracy": 0.375,
+     "modality_accuracy": 0.625,
+     "quality_note": "Computed on 2 gold-labelled document(s). Small samples: not representative."
+    },
+    "entailment_run": {
+     "scored": 8,
+     "seconds": 3.511
+    },
+    "resources": {
+     "wall_s": 6.34,
+     "max_rss_mb": 3352.5,
+     "cpu_user_s": 17.79
+    },
+    "measurements": null,
+    "run": {
+     "label": "e2-fixtures-langextract",
+     "method": "langextract",
+     "model": "gemini-3.5-flash-lite"
+    },
+    "validation_problems": 0,
+    "documents": [
+     {
+      "document_id": "fixture:syn-cancelled-dates",
+      "outcome": "EXTRACTED",
+      "candidates": 3,
+      "text_chars": 550,
+      "extraction_meta": {
+       "extractor": "langextract",
+       "model": "gemini-3.5-flash-lite via budgeted provider",
+       "latency_s": 1.246,
+       "input_chars": 550,
+       "truncated": false,
+       "prompt_tokens": null,
+       "output_tokens": null,
+       "token_usage_source": "LEDGER"
+      },
+      "gold_eval": {
+       "predicted": 3,
+       "gold": 4,
+       "matched": 3,
+       "tp_essential": 3,
+       "essential": 3,
+       "attribution_correct": 1,
+       "modality_correct": 2,
+       "matched_detail": [
+        {
+         "gold": "Brightwater Munitions plans to build a new filling plant in 2028 regardless of t",
+         "pred_modality": "planned",
+         "gold_modality": "planned",
+         "pred_asserted_by": "its chief executive",
+         "gold_asserted_by": "Brightwater Munitions"
+        },
+        {
+         "gold": "the Ostmark procurement agency cancelled the agreement after a dispute over deli",
+         "pred_modality": "occurred",
+         "gold_modality": "cancelled",
+         "pred_asserted_by": "an agency statement",
+         "gold_asserted_by": "Ostmark procurement agency"
+        },
+        {
+         "gold": "the Republic of Ostmark signed a framework agreement with Brightwater Munitions ",
+         "pred_modality": "occurred",
+         "gold_modality": "occurred",
+         "pred_asserted_by": null,
+         "gold_asserted_by": null
+        }
+       ]
+      }
+     },
+     {
+      "document_id": "fixture:syn-contract-negation",
+      "outcome": "EXTRACTED",
+      "candidates": 5,
+      "text_chars": 578,
+      "extraction_meta": {
+       "extractor": "langextract",
+       "model": "gemini-3.5-flash-lite via budgeted provider",
+       "latency_s": 1.583,
+       "input_chars": 578,
+       "truncated": false,
+       "prompt_tokens": null,
+       "output_tokens": null,
+       "token_usage_source": "LEDGER"
+      },
+      "gold_eval": {
+       "predicted": 5,
+       "gold": 5,
+       "matched": 5,
+       "tp_essential": 4,
+       "essential": 4,
+       "attribution_correct": 2,
+       "modality_correct": 3,
+       "matched_detail": [
+        {
+         "gold": "The radar was first tested in June 2025 at a range in northern Valdoria",
+         "pred_modality": "occurred",
+         "gold_modality": "occurred",
+         "pred_asserted_by": null,
+         "gold_asserted_by": null
+        },
+        {
+         "gold": "Kestrel Dynamics may open a second assembly line in Ostrava",
+         "pred_modality": "speculative",
+         "gold_modality": "speculative",
+         "pred_asserted_by": "Harbour Defence Weekly",
+         "gold_asserted_by": "Harbour Defence Weekly"
+        },
+        {
+         "gold": "denied that the company had received a second order from the Valdorian Navy",
+         "pred_modality": "negated",
+         "gold_modality": "negated",
+         "pred_asserted_by": "A Kestrel Dynamics spokesperson",
+         "gold_asserted_by": "Kestrel Dynamics"
+        },
+        {
+         "gold": "Kestrel Dynamics will deliver the first units in early 2028",
+         "pred_modality": "announced",
+         "gold_modality": "planned",
+         "pred_asserted_by": "the ministry",
+         "gold_asserted_by": "Valdorian Ministry of Defence"
+        },
+        {
+         "gold": "it awarded Kestrel Dynamics a contract worth EUR 48 million for 30 counter-drone",
+         "pred_modality": "occurred",
+         "gold_modality": "announced",
+         "pred_asserted_by": "the Valdorian Ministry of Defence",
+         "gold_asserted_by": "Valdorian Ministry of Defence"
+        }
+       ]
+      }
+     },
+     {
+      "document_id": "fixture:syn-no-full-text",
+      "outcome": "SKIPPED_NO_FULL_TEXT",
+      "candidates": null,
+      "text_chars": 69,
+      "extraction_meta": null,
+      "gold_eval": null
+     }
+    ]
+   },
+   "records": [
+    {
+     "doc": "fixture:syn-cancelled-dates",
+     "ext": "langextract",
+     "claim": "The Republic of Ostmark signed a framework agreement with Brightwater Munitions for 155mm artillery shells.",
+     "evidence": "the Republic of Ostmark signed a framework agreement with Brightwater Munitions for 155mm artillery shells",
+     "chars": [
+      49,
+      155
+     ],
+     "modality": "occurred",
+     "asserted_by": null,
+     "event_date": "2026-09-14",
+     "ent": [
+      "SUPPORTED",
+      0.9651
+     ],
+     "hold": []
+    },
+    {
+     "doc": "fixture:syn-cancelled-dates",
+     "ext": "langextract",
+     "claim": "The Ostmark procurement agency cancelled the agreement after a dispute over delivery schedules.",
+     "evidence": "the Ostmark procurement agency cancelled the agreement after a dispute over delivery schedules",
+     "chars": [
+      176,
+      270
+     ],
+     "modality": "occurred",
+     "asserted_by": "an agency statement",
+     "event_date": "2026-10-02",
+     "ent": [
+      "SUPPORTED",
+      0.9586
+     ],
+     "hold": [
+      "CANCELLATION_CUE_IN_CONTEXT"
+     ]
+    },
+    {
+     "doc": "fixture:syn-cancelled-dates",
+     "ext": "langextract",
+     "claim": "Brightwater Munitions plans to build a new filling plant in 2028.",
+     "evidence": "Brightwater Munitions plans to build a new filling plant in 2028 regardless of the cancellation",
+     "chars": [
+      298,
+      393
+     ],
+     "modality": "planned",
+     "asserted_by": "its chief executive",
+     "event_date": "2028",
+     "ent": [
+      "SUPPORTED",
+      0.9235
+     ],
+     "hold": []
+    },
+    {
+     "doc": "ixture:syn-contract-negation",
+     "ext": "langextract",
+     "claim": "The Valdorian Ministry of Defence awarded Kestrel Dynamics a contract worth EUR 48 million for 30 counter-drone radar units.",
+     "evidence": "it awarded Kestrel Dynamics a contract worth EUR 48 million for 30 counter-drone radar units",
+     "chars": [
+      65,
+      157
+     ],
+     "modality": "occurred",
+     "asserted_by": "the Valdorian Ministry of Defence",
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9689
+     ],
+     "hold": []
+    },
+    {
+     "doc": "ixture:syn-contract-negation",
+     "ext": "langextract",
+     "claim": "Kestrel Dynamics will deliver the first units in early 2028.",
+     "evidence": "Kestrel Dynamics will deliver the first units in early 2028",
+     "chars": [
+      159,
+      218
+     ],
+     "modality": "announced",
+     "asserted_by": "the ministry",
+     "event_date": "2028",
+     "ent": [
+      "SUPPORTED",
+      0.9415
+     ],
+     "hold": [
+      "PLAN_CUE_IN_SPAN_CONFLICTS_WITH_MODALITY"
+     ]
+    },
+    {
+     "doc": "ixture:syn-contract-negation",
+     "ext": "langextract",
+     "claim": "A Kestrel Dynamics spokesperson denied that the company had received a second order from the Valdorian Navy.",
+     "evidence": "denied that the company had received a second order from the Valdorian Navy",
+     "chars": [
+      272,
+      347
+     ],
+     "modality": "negated",
+     "asserted_by": "A Kestrel Dynamics spokesperson",
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9504
+     ],
+     "hold": []
+    },
+    {
+     "doc": "ixture:syn-contract-negation",
+     "ext": "langextract",
+     "claim": "Kestrel Dynamics may open a second assembly line in Ostrava.",
+     "evidence": "Kestrel Dynamics may open a second assembly line in Ostrava",
+     "chars": [
+      407,
+      466
+     ],
+     "modality": "speculative",
+     "asserted_by": "Harbour Defence Weekly",
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.8971
+     ],
+     "hold": []
+    },
+    {
+     "doc": "ixture:syn-contract-negation",
+     "ext": "langextract",
+     "claim": "The radar was first tested in June 2025 at a range in northern Valdoria.",
+     "evidence": "The radar was first tested in June 2025 at a range in northern Valdoria",
+     "chars": [
+      506,
+      577
+     ],
+     "modality": "occurred",
+     "asserted_by": null,
+     "event_date": "2025-06",
+     "ent": [
+      "SUPPORTED",
+      0.9624
+     ],
+     "hold": []
+    }
+   ]
+  },
+  "e3c-pac3-langextract": {
+   "status": "NO_OUTPUT"
+  },
+  "e3b-pac3-gemini-direct": {
+   "status": "NO_OUTPUT"
+  },
+  "e3a-pac3-pilot-baseline": {
+   "status": "NO_OUTPUT"
+  }
+ }
+}
