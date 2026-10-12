@@ -33,6 +33,7 @@ def audit(pages, page_size, fetcher):
     processed = 0
     duplicates = 0
     missing_ids = 0
+    status_deadline_matrix = {}
     for page in range(1, pages + 1):
         data = fetcher(page, page_size)
         reported = data.get("totalResults")
@@ -55,6 +56,12 @@ def audit(pages, page_size, fetcher):
                 duplicates += 1
             else:
                 seen.add(key)
+            status = record["status_raw"] or "MISSING"
+            deadline_class = ("expired" if "expired_deadline" in record["qa_issues"]
+                              else "missing_or_invalid" if any(x in record["qa_issues"] for x in ("missing_deadline", "invalid_deadline"))
+                              else "not_expired")
+            bucket = status_deadline_matrix.setdefault(status, {"expired": 0, "not_expired": 0, "missing_or_invalid": 0})
+            bucket[deadline_class] += 1
             for issue in record["qa_issues"]:
                 qa_counts[issue] = qa_counts.get(issue, 0) + 1
         if processed >= total or len(hits) < page_size:
@@ -62,6 +69,7 @@ def audit(pages, page_size, fetcher):
     return {"reported_total": total, "processed": processed,
             "unique_identifiers": len(seen), "duplicate_identifiers": duplicates,
             "missing_identifiers": missing_ids, "qa_issue_counts": qa_counts,
+            "status_deadline_matrix": status_deadline_matrix,
             "complete": processed >= total if total is not None else False,
             "persisted": 0, "publication_approved": 0}
 
