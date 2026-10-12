@@ -1,0 +1,40 @@
+name: Eng09 Inoreader Evidence Local Gate (READ ONLY)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  existing-cloud-row-to-local-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install "psycopg[binary]"
+      - name: Read existing Inoreader metadata from canonical Supabase; no writes
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: python scripts/inoreader-evidence-local.py capture
+      - name: Repeat source metadata capture for local dedup
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: python scripts/inoreader-evidence-local.py capture
+      - name: Fresh process validates same local file and hash
+        run: python scripts/inoreader-evidence-local.py readback
+      - name: Publication gate must remain HOLD
+        run: |
+          python - <<'PY'
+          import json
+          p=json.load(open("output/inoreader-e2e/source-manifest.json"))
+          assert p["qa"]["decision"]=="HOLD" and p["qa"]["public_release"] is False
+          assert p["original_available"] is False
+          print("PASS: metadata provenance, local dedup, and fail-closed QA")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: inoreader-existing-row-local-evidence-hold
+          path: output/inoreader-e2e/
+          retention-days: 14
