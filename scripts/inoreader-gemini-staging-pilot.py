@@ -102,12 +102,32 @@ def choose_one_item():
     result = inoreader.api(
         "stream/contents/" + urllib.parse.quote(stream, safe="/"), token, {"n": 10}
     )
+    eligible = []
     for raw_item in result.get("items", []):
         normalized = inoreader.normalize(raw_item, folder)
         content = normalized["raw_data"]
         if normalized.get("url") and content["content_status"] != "METADATA_ONLY":
-            return raw_item, normalized
-    raise RuntimeError("NO_BODY_ITEM_IN_BOUNDED_RESPONSE")
+            eligible.append((raw_item, normalized))
+    if not eligible:
+        raise RuntimeError("NO_BODY_ITEM_IN_BOUNDED_RESPONSE")
+    # A publisher may prohibit automated retrieval. Respect that restriction
+    # and try the next already-discovered item without another Inoreader request.
+    for raw_item, normalized in eligible:
+        try:
+            original = fetch_original(normalized["url"])
+        except RuntimeError as exc:
+            if str(exc) in {"ROBOTS_DISALLOWS_FETCH", "ROBOTS_POLICY_UNAVAILABLE",
+                            "ORIGINAL_NOT_HTML", "ORIGINAL_TOO_LARGE",
+                            "ORIGINAL_TEXT_TOO_SHORT", "UNSAFE_ORIGINAL_URL",
+                            "NON_PUBLIC_ORIGINAL_HOST"}:
+                print(json.dumps({"stage": "ORIGINAL_SKIPPED", "reason": str(exc)}))
+                continue
+            raise
+        except (OSError, urllib.error.URLError, UnicodeError, LookupError):
+            print(json.dumps({"stage": "ORIGINAL_SKIPPED", "reason": "ORIGINAL_FETCH_FAILED"}))
+            continue
+        return raw_item, normalized, original
+    raise RuntimeError("NO_PERMITTED_ORIGINAL_IN_BOUNDED_RESPONSE")
 
 
 def call_gemini(evidence_id, source_url, evidence_text):
@@ -201,9 +221,9 @@ def ensure_schema(cur):
 
 def run():
     OUT.mkdir(parents=True, exist_ok=True)
-    raw_item, item = choose_one_item()
+    raw_item, item, original = choose_one_item()
     content = extract_inoreader_content(raw_item)
-    final_url, media_type, original_html, original_text = fetch_original(item["url"])
+    final_url, media_type, original_html, original_text = original
     original_sha = sha256(original_html.encode())
     document_id = stable_id("document", "inoreader", item["external_id"], original_sha)
     evidence_text = original_text[:12000]
