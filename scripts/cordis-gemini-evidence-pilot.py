@@ -60,6 +60,8 @@ def main():
     OUT.mkdir(parents=True,exist_ok=True)
     if args.call_gemini:
         candidate,usage=call_once(body)
+        if len(candidate.get("candidate_claims") or []) != 1:
+            raise RuntimeError("EXPECTED_EXACTLY_ONE_CANDIDATE_CLAIM")
         verification=validate_candidate(packet,candidate)
         result={"mode":"LIVE_GEMINI_CANDIDATE","model":MODEL,"source_sha256":meta["original_sha256"],
                 "validation":verification,"usage":usage,"qa_status":"HOLD","public_release":False,
