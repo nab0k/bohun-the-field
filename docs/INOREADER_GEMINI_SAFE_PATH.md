@@ -29,6 +29,7 @@ The collector now preserves returned HTML, SHA-256, and visible text. It does no
   "translation": {"text": "...", "evidence_ids": ["evidence-id"]},
   "candidate_claims": [
     {
+      "claim_id": "candidate-claim-id",
       "subject": "...",
       "predicate": "...",
       "object": {"value": "...", "datatype": "string", "unit": null},
@@ -44,6 +45,8 @@ The collector now preserves returned HTML, SHA-256, and visible text. It does no
 ```
 
 Gemini structured output constrains syntax, not truth. The validator, source policy, and human QA remain authoritative.
+
+The first deterministic validator is implemented in `intelligence/gemini_evidence_validator.py`. It rejects unknown evidence IDs, absent or invented exact spans, event references to unknown claims, duplicate claim IDs, and any model attempt to change `qa_status` from `HOLD`.
 
 ## Acceptance gates for the first live Inoreader item
 

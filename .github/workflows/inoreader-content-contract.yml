@@ -6,6 +6,8 @@ on:
       - 'collectors/inoreader/content_contract.py'
       - 'collectors/inoreader/sync.py'
       - 'tests/test_inoreader_content.py'
+      - 'intelligence/gemini_evidence_validator.py'
+      - 'tests/test_gemini_evidence_validator.py'
       - 'docs/INOREADER_GEMINI_SAFE_PATH.md'
       - '.github/workflows/inoreader-content-contract.yml'
   workflow_dispatch:
@@ -21,4 +23,4 @@ jobs:
         with:
           python-version: '3.12'
       - name: Verify body preservation and fail-closed evidence status
-        run: python -m unittest tests/test_inoreader_content.py
+        run: python -m unittest tests/test_inoreader_content.py tests/test_gemini_evidence_validator.py
