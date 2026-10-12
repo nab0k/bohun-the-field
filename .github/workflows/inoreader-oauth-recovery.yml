@@ -4,13 +4,12 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: inoreader-oauth-rotation
+  group: inoreader-oauth-shared
   cancel-in-progress: false
 jobs:
   recover:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    environment: inoreader-oauth-recovery
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
