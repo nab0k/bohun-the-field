@@ -15,7 +15,6 @@ import { mountAustriaInternalReview } from './eng04-internal.js';
 import { createAtlasState, mountM1Panels } from './m1-state.js';
 import { mountIntelligenceV1Internal } from './intelligence-v1-internal.js';
 import { mountLivePilot01 } from './live-pilot01.js';
-import v1Evidence from '../../intelligence/fixtures/vertical-slice-v1-internal.json' with { type: 'json' };
 import { mountCoverageControls } from './p2-coverage.js';
 import { createLive } from './live.js';
 import { createScaleDemo } from './scale-demo.js';
@@ -379,6 +378,7 @@ if(import.meta.env.DEV&&params.get('pilot')==='internal'){
 }
 // Dev-only approved contract review: QA HOLD evidence candidates never enter the public feed.
 if(import.meta.env.DEV && params.get('intelligence')==='review'){
+  const {default:v1Evidence}=await import('../../intelligence/fixtures/vertical-slice-v1-internal.json',{with:{type:'json'}});
   window.__intelligenceV1Mount=mountIntelligenceV1Internal({map,store:m1State,packets:v1Evidence.packets});
 }
 // Card selection uses the existing Claude onCard handler, mapped to research identity.
