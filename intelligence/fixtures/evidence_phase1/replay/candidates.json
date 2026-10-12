@@ -1,0 +1,16 @@
+{
+  "_comment": "Hand-written extractor outputs for offline tests. Some are deliberately WRONG to prove the guards keep them in HOLD with a reason. Not model output; not a quality measurement.",
+  "fixture:syn-contract-negation": [
+    {"claim_text": "The Valdorian Ministry of Defence awarded Kestrel Dynamics a EUR 48 million contract for 30 counter-drone radar units.", "evidence_text": "it awarded Kestrel Dynamics a contract worth EUR 48 million for 30 counter-drone radar units", "modality": "announced", "asserted_by": "Valdorian Ministry of Defence", "event_date": null},
+    {"claim_text": "Kestrel Dynamics delivered the first radar units.", "evidence_text": "Kestrel Dynamics will deliver the first units in early 2028", "modality": "occurred", "asserted_by": "Valdorian Ministry of Defence", "event_date": "2028"},
+    {"claim_text": "Kestrel Dynamics received a second order from the Valdorian Navy.", "evidence_text": "denied that the company had received a second order from the Valdorian Navy", "modality": "occurred", "asserted_by": "Kestrel Dynamics", "event_date": null},
+    {"claim_text": "Kestrel Dynamics may open a second assembly line in Ostrava.", "evidence_text": "Kestrel Dynamics may open a second assembly line in Ostrava", "modality": "speculative", "asserted_by": null, "event_date": null},
+    {"claim_text": "Kestrel Dynamics opened a factory in Ostrava in 2026.", "evidence_text": "Kestrel Dynamics opened its Ostrava factory in 2026", "modality": "occurred", "asserted_by": null, "event_date": "2026"},
+    {"claim_text": "The radar was first tested in June 2025.", "evidence_text": "The radar was first tested in June 2025 at a range in northern Valdoria", "modality": "occurred", "asserted_by": null, "event_date": "2025-06", "char_start": 3, "char_end": 40}
+  ],
+  "fixture:syn-cancelled-dates": [
+    {"claim_text": "Ostmark signed a framework agreement with Brightwater Munitions for 155mm shells.", "evidence_text": "the Republic of Ostmark signed a framework agreement with Brightwater Munitions for 155mm artillery shells", "modality": "occurred", "asserted_by": null, "event_date": "2026-09-14"},
+    {"claim_text": "The Ostmark procurement agency cancelled the framework agreement.", "evidence_text": "the Ostmark procurement agency cancelled the agreement after a dispute over delivery schedules", "modality": "cancelled", "asserted_by": "Ostmark procurement agency", "event_date": "2026-10-12"},
+    {"claim_text": "Brightwater Munitions plans to build a filling plant in 2028.", "evidence_text": "Brightwater Munitions plans to build a new filling plant in 2028 regardless of the cancellation", "modality": "planned", "asserted_by": "Brightwater Munitions", "event_date": "2028"}
+  ]
+}

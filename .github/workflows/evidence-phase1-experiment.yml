@@ -1,0 +1,145 @@
+name: Evidence Phase 1 Experiment (MANUAL, HOLD ONLY, NO WRITES)
+# Experimental claim extraction -> exact span -> MiniCheck entailment.
+# Manual dispatch only. Never publishes, never writes to Supabase (staging is read
+# in a READ ONLY transaction), never touches the existing staging pilot workflow.
+# Artifacts contain claim records with short evidence spans and metrics, not full texts.
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: 'fixtures = synthetic gold docs; staging = docs already stored by the pilot (read-only)'
+        type: choice
+        options: [fixtures, staging]
+        default: fixtures
+      title_like:
+        description: 'staging only: title filter (e.g. PAC-3)'
+        default: 'PAC-3'
+      extractor:
+        type: choice
+        options: [replay, gemini-direct, langextract]
+        default: replay
+      entailment:
+        type: choice
+        options: [none, minicheck]
+        default: none
+      max_docs:
+        description: 'hard cap 10 in code'
+        default: '3'
+      docling_pdf_url:
+        description: 'optional: one public PDF to measure Docling on (empty = skip)'
+        default: ''
+permissions:
+  contents: read
+concurrency:
+  group: evidence-phase1-experiment
+  cancel-in-progress: false
+env:
+  LANGEXTRACT_VERSION: '1.7.1'
+  MINICHECK_COMMIT: 'b58b9fa69acbd1015ec970fa65dd752413a053d2'
+  TRANSFORMERS_VERSION: '4.57.6'
+  DOCLING_VERSION: '2.138.0'
+  GEMINI_MODEL: 'gemini-3.5-flash-lite'
+
+jobs:
+  offline-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install "langextract==${LANGEXTRACT_VERSION}"
+      - name: New tests + regression tests of the existing pilot validator/content contract
+        run: |
+          python -m unittest tests.test_evidence_phase1 tests.test_gemini_evidence_validator tests.test_inoreader_content -v
+      - name: Offline replay run (deterministic, no secrets)
+        run: python scripts/evidence-phase1-experiment.py --source fixtures --extractor replay --label offline-replay
+      - uses: actions/upload-artifact@v4
+        with:
+          name: evidence-phase1-offline
+          path: output/evidence-phase1/
+          retention-days: 7
+
+  experiment:
+    needs: offline-tests
+    if: inputs.extractor != 'replay' || inputs.entailment != 'none' || inputs.source != 'fixtures'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install extractor deps
+        run: python -m pip install "langextract==${LANGEXTRACT_VERSION}" "psycopg[binary]"
+      - name: Install MiniCheck (pinned GitHub commit; PyPI 'minicheck' is a different project)
+        if: inputs.entailment == 'minicheck'
+        run: |
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install "transformers==${TRANSFORMERS_VERSION}" accelerate nltk numpy
+          python -m pip install --no-deps "git+https://github.com/Liyan06/MiniCheck.git@${MINICHECK_COMMIT}"
+          python -c "import nltk; nltk.download('punkt', quiet=True); nltk.download('punkt_tab', quiet=True)"
+      - uses: actions/cache@v4
+        if: inputs.entailment == 'minicheck'
+        with:
+          path: ckpts
+          key: minicheck-flan-t5-large-v1
+      - name: Run experiment (HOLD only)
+        env:
+          GEMINI_API_KEY: ${{ inputs.extractor != 'replay' && secrets.GEMINI_API_KEY || '' }}
+          SUPABASE_DB_PASSWORD: ${{ inputs.source == 'staging' && secrets.SUPABASE_DB_PASSWORD || '' }}
+          IN_SOURCE: ${{ inputs.source }}
+          IN_TITLE: ${{ inputs.title_like }}
+          IN_EXTRACTOR: ${{ inputs.extractor }}
+          IN_ENTAILMENT: ${{ inputs.entailment }}
+          IN_MAX_DOCS: ${{ inputs.max_docs }}
+        run: |
+          /usr/bin/time -v python scripts/evidence-phase1-experiment.py \
+            --source "$IN_SOURCE" --title-like "$IN_TITLE" \
+            --extractor "$IN_EXTRACTOR" --entailment "$IN_ENTAILMENT" \
+            --max-docs "$IN_MAX_DOCS" --label experiment 2> output-time.txt || status=$?
+          mkdir -p output/evidence-phase1 && mv output-time.txt output/evidence-phase1/experiment-time.txt
+          grep -E "Maximum resident|Elapsed|User time|System time" output/evidence-phase1/experiment-time.txt || true
+          exit ${status:-0}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: evidence-phase1-experiment
+          path: output/evidence-phase1/
+          retention-days: 7
+
+  docling-probe:
+    needs: offline-tests
+    if: inputs.docling_pdf_url != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Docling (CPU torch) and pilot deps
+        run: |
+          python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install "docling==${DOCLING_VERSION}" "psycopg[binary]" "langextract==${LANGEXTRACT_VERSION}"
+      - name: Convert one PDF, then extract (HOLD only)
+        env:
+          GEMINI_API_KEY: ${{ inputs.extractor != 'replay' && secrets.GEMINI_API_KEY || '' }}
+          IN_PDF: ${{ inputs.docling_pdf_url }}
+          IN_EXTRACTOR: ${{ inputs.extractor }}
+        run: |
+          # replay = convert and measure only (no model call, zero claims)
+          /usr/bin/time -v python scripts/evidence-phase1-experiment.py --source pdf \
+            --pdf-url "$IN_PDF" --extractor "$IN_EXTRACTOR" --max-docs 1 --label docling \
+            2> docling-time.txt || status=$?
+          mkdir -p output/evidence-phase1 && mv docling-time.txt output/evidence-phase1/
+          rm -rf output/evidence-phase1/pdf-work
+          grep -E "Maximum resident|Elapsed" output/evidence-phase1/docling-time.txt || true
+          exit ${status:-0}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: evidence-phase1-docling
+          path: output/evidence-phase1/
+          retention-days: 7

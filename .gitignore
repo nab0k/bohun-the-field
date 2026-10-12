@@ -12,3 +12,7 @@ output/live-pilot/
 output/supabase-staging/
 public/atlas/pilot-internal-feed.json
 scripts/__pycache__/
+
+# experimental evidence pipeline outputs (CI artifacts only)
+output/evidence-phase1/
+ckpts/
