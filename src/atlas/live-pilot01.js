@@ -6,17 +6,36 @@ export async function mountLivePilot01({map,store}){
  if(!r.ok)throw Error('PILOT_PERSISTED_READBACK_NOT_AVAILABLE');
  const feed=await r.json();
  if(!feed.internal_only||feed.qa_status!=='HOLD')throw Error('PILOT_FAIL_CLOSED');
+ const contract=feed.contract;
+ if(contract?.contract_version!=='bohun-intelligence-vertical-slice-v1')throw Error('PILOT_CONTRACT_MISSING');
+ if(contract.publications.some(x=>x.qa_status!=='HOLD'||x.public_release!==false||x.published_at!==null))throw Error('PILOT_PUBLICATION_GATE');
  const left=document.getElementById('m1-intelligence'),right=document.getElementById('m1-dossier');
  const add=(host,tag,value)=>{const e=document.createElement(tag);e.textContent=value;host.append(e);return e};
+ function renderFeed(){
+   left.replaceChildren();left.hidden=false;
+   add(left,'h2','Intelligence Feed · LIVE SOURCE PILOT');
+   add(left,'p','Internal source captures from a restarted persistent staging record; not approved public intelligence.');
+   for(const item of feed.items||[]){
+    if(item.qa?.decision!=='HOLD'||item.qa?.public_release!==false)throw Error('PILOT_QA_GATE');
+    const button=add(left,'button',item.headline+' · HOLD');
+    button.className='v1-internal-entry';button.type='button';button.addEventListener('click',()=>show(item));
+   }
+ }
  function show(row){
    store.selectEvent(row.event_id,row.company_id,row.country_iso2);
+   // The shared panel store renders the public empty state on selection. Restore
+   // this explicitly internal feed so the selected source does not disappear.
+   renderFeed();
    right.replaceChildren();right.hidden=false;
    add(right,'h2','Source dossier · INTERNAL HOLD');
    add(right,'p','Source ID: '+row.source_id);
+   add(right,'p','Event ID: '+row.event_id);
+   add(right,'p','Publication candidate: '+contract.publications[0].publication_id);
    add(right,'p','Original hash: '+row.source_sha256);
    add(right,'p','Persisted raw_item ID: '+row.raw_item_id);
    add(right,'p','Geo role: '+row.geo_role+' · No coordinates or map pin asserted');
    for(const fact of row.typed_facts||[])add(right,'p',fact.field+': '+fact.value+' · XML: '+fact.exact_evidence);
+   add(right,'p','Evidence links: '+row.claim_ids.length+' claims / '+contract.evidence.length+' exact XML locators');
    if(row.country_iso2==='RO'){
     if(!map.getLayer('pilot01-coordinator-country'))map.addLayer({id:'pilot01-coordinator-country',type:'line',source:'countries',filter:['==',['get','a3'],'ROU'],paint:{'line-color':'#f2cb72','line-width':3}});
    }
@@ -25,14 +44,9 @@ export async function mountLivePilot01({map,store}){
    add(right,'p','QA: HOLD · This is not an APPROVE publication');
    const a=add(right,'a','Original official CORDIS XML ↗');a.href=row.source_url;a.rel='noopener noreferrer';a.target='_blank';
  }
- left.replaceChildren();left.hidden=false;
- add(left,'h2','Intelligence Feed · LIVE SOURCE PILOT');
- add(left,'p','Internal source captures from a restarted persistent staging record; not approved public intelligence.');
- for(const item of feed.items||[]){
-  if(item.qa?.decision!=='HOLD'||item.qa?.public_release!==false)throw Error('PILOT_QA_GATE');
-  const button=add(left,'button',item.headline+' · HOLD');
-  button.className='v1-internal-entry';button.type='button';button.addEventListener('click',()=>show(item));
- }
- window.__livePilot01={from_db:true,db_ids:feed.items.map(x=>x.raw_item_id),count:feed.items.length,qa:'HOLD',published:false};
+ renderFeed();
+ window.__livePilot01={from_db:true,contract:contract.contract_version,db_ids:feed.items.map(x=>x.raw_item_id),count:feed.items.length,
+   sources:contract.sources.length,evidence:contract.evidence.length,claims:contract.claims.length,events:contract.events.length,
+   publications:contract.publications.length,qa:'HOLD',published:false};
  return window.__livePilot01;
 }
