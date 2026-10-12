@@ -1,5 +1,10 @@
 name: Eng09 Inoreader Evidence Local Gate (READ ONLY)
 on:
+  push:
+    branches: [eng09-inoreader-evidence-e2e-20261012]
+    paths:
+      - '.github/workflows/eng09-inoreader-evidence-readonly.yml'
+      - 'scripts/inoreader-evidence-local.py'
   workflow_dispatch:
 permissions:
   contents: read
