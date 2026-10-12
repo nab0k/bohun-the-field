@@ -1,0 +1,18 @@
+name: EDF paginated QA audit (manual, read-only)
+on:
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Offline paginated audit tests
+        run: python -m unittest discover -s tests -p 'test_eu_edf_paginated_audit.py' -v
+      - name: Read-only EDF paginated audit (no writes)
+        run: python -m collectors.opportunities.eu_edf_paginated_audit --pages 5 --page-size 10 --timeout 20
