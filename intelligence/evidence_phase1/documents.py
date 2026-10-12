@@ -41,6 +41,8 @@ def load_fixtures(names=None):
         if names and path.stem not in names:
             continue
         d = json.loads(path.read_text(encoding="utf-8"))
+        if "text" not in d:  # e.g. run-request.json
+            continue
         docs.append({
             "document_id": "fixture:" + path.stem,
             "source_url": d["source_url"],
