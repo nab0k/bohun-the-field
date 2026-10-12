@@ -1,6 +1,8 @@
 name: Evidence Phase 1 Experiment (MANUAL, HOLD ONLY, NO WRITES)
 # Experimental claim extraction -> exact span -> MiniCheck entailment.
-# Manual dispatch only. Never publishes, never writes to Supabase (staging is read
+# Manual dispatch (after merge), or an explicit run request committed to
+# intelligence/fixtures/evidence_phase1/run-request.json on this experiment branch
+# (same pattern as the existing staging pilot). Never publishes, never writes to Supabase (staging is read
 # in a READ ONLY transaction), never touches the existing staging pilot workflow.
 # Artifacts contain claim records with short evidence spans and metrics, not full texts.
 on:
@@ -28,6 +30,9 @@ on:
       docling_pdf_url:
         description: 'optional: one public PDF to measure Docling on (empty = skip)'
         default: ''
+  push:
+    branches: [experiment/evidence-phase1-20261013]
+    paths: ['intelligence/fixtures/evidence_phase1/run-request.json']
 permissions:
   contents: read
 concurrency:
@@ -41,7 +46,45 @@ env:
   GEMINI_MODEL: 'gemini-3.5-flash-lite'
 
 jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      source: ${{ steps.r.outputs.source }}
+      title_like: ${{ steps.r.outputs.title_like }}
+      extractor: ${{ steps.r.outputs.extractor }}
+      entailment: ${{ steps.r.outputs.entailment }}
+      max_docs: ${{ steps.r.outputs.max_docs }}
+      docling_pdf_url: ${{ steps.r.outputs.docling_pdf_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: r
+        env:
+          EVENT: ${{ github.event_name }}
+          INPUTS: ${{ toJSON(inputs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re
+          req = json.loads(os.environ["INPUTS"]) if os.environ["EVENT"] == "workflow_dispatch" else \
+                json.load(open("intelligence/fixtures/evidence_phase1/run-request.json"))
+          allowed = {"source": {"fixtures", "staging"}, "extractor": {"replay", "gemini-direct", "langextract"},
+                     "entailment": {"none", "minicheck"}}
+          out = {"source": req.get("source", "fixtures"), "extractor": req.get("extractor", "replay"),
+                 "entailment": req.get("entailment", "none"), "max_docs": str(req.get("max_docs", "3")),
+                 "title_like": req.get("title_like", ""), "docling_pdf_url": req.get("docling_pdf_url", "")}
+          for k, ok in allowed.items():
+              assert out[k] in ok, k
+          assert out["max_docs"].isdigit() and 1 <= int(out["max_docs"]) <= 10
+          assert re.fullmatch(r"[A-Za-z0-9 ._-]{0,40}", out["title_like"])
+          assert out["docling_pdf_url"] == "" or re.fullmatch(r"https://[^\s'\"]+\.pdf", out["docling_pdf_url"])
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              for k, v in out.items():
+                  fh.write(f"{k}={v}\n")
+          print(json.dumps(out))
+          PY
+
   offline-tests:
+    needs: resolve
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -62,8 +105,8 @@ jobs:
           retention-days: 7
 
   experiment:
-    needs: offline-tests
-    if: inputs.extractor != 'replay' || inputs.entailment != 'none' || inputs.source != 'fixtures'
+    needs: [resolve, offline-tests]
+    if: needs.resolve.outputs.extractor != 'replay' || needs.resolve.outputs.entailment != 'none' || needs.resolve.outputs.source != 'fixtures'
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
@@ -74,26 +117,26 @@ jobs:
       - name: Install extractor deps
         run: python -m pip install "langextract==${LANGEXTRACT_VERSION}" "psycopg[binary]"
       - name: Install MiniCheck (pinned GitHub commit; PyPI 'minicheck' is a different project)
-        if: inputs.entailment == 'minicheck'
+        if: needs.resolve.outputs.entailment == 'minicheck'
         run: |
           python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
           python -m pip install "transformers==${TRANSFORMERS_VERSION}" accelerate nltk numpy
           python -m pip install --no-deps "git+https://github.com/Liyan06/MiniCheck.git@${MINICHECK_COMMIT}"
           python -c "import nltk; nltk.download('punkt', quiet=True); nltk.download('punkt_tab', quiet=True)"
       - uses: actions/cache@v4
-        if: inputs.entailment == 'minicheck'
+        if: needs.resolve.outputs.entailment == 'minicheck'
         with:
           path: ckpts
           key: minicheck-flan-t5-large-v1
       - name: Run experiment (HOLD only)
         env:
-          GEMINI_API_KEY: ${{ inputs.extractor != 'replay' && secrets.GEMINI_API_KEY || '' }}
-          SUPABASE_DB_PASSWORD: ${{ inputs.source == 'staging' && secrets.SUPABASE_DB_PASSWORD || '' }}
-          IN_SOURCE: ${{ inputs.source }}
-          IN_TITLE: ${{ inputs.title_like }}
-          IN_EXTRACTOR: ${{ inputs.extractor }}
-          IN_ENTAILMENT: ${{ inputs.entailment }}
-          IN_MAX_DOCS: ${{ inputs.max_docs }}
+          GEMINI_API_KEY: ${{ needs.resolve.outputs.extractor != 'replay' && secrets.GEMINI_API_KEY || '' }}
+          SUPABASE_DB_PASSWORD: ${{ needs.resolve.outputs.source == 'staging' && secrets.SUPABASE_DB_PASSWORD || '' }}
+          IN_SOURCE: ${{ needs.resolve.outputs.source }}
+          IN_TITLE: ${{ needs.resolve.outputs.title_like }}
+          IN_EXTRACTOR: ${{ needs.resolve.outputs.extractor }}
+          IN_ENTAILMENT: ${{ needs.resolve.outputs.entailment }}
+          IN_MAX_DOCS: ${{ needs.resolve.outputs.max_docs }}
         run: |
           /usr/bin/time -v python scripts/evidence-phase1-experiment.py \
             --source "$IN_SOURCE" --title-like "$IN_TITLE" \
@@ -110,8 +153,8 @@ jobs:
           retention-days: 7
 
   docling-probe:
-    needs: offline-tests
-    if: inputs.docling_pdf_url != ''
+    needs: [resolve, offline-tests]
+    if: needs.resolve.outputs.docling_pdf_url != ''
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -125,9 +168,9 @@ jobs:
           python -m pip install "docling==${DOCLING_VERSION}" "psycopg[binary]" "langextract==${LANGEXTRACT_VERSION}"
       - name: Convert one PDF, then extract (HOLD only)
         env:
-          GEMINI_API_KEY: ${{ inputs.extractor != 'replay' && secrets.GEMINI_API_KEY || '' }}
-          IN_PDF: ${{ inputs.docling_pdf_url }}
-          IN_EXTRACTOR: ${{ inputs.extractor }}
+          GEMINI_API_KEY: ${{ needs.resolve.outputs.extractor != 'replay' && secrets.GEMINI_API_KEY || '' }}
+          IN_PDF: ${{ needs.resolve.outputs.docling_pdf_url }}
+          IN_EXTRACTOR: ${{ needs.resolve.outputs.extractor }}
         run: |
           # replay = convert and measure only (no model call, zero claims)
           /usr/bin/time -v python scripts/evidence-phase1-experiment.py --source pdf \

@@ -1,0 +1,7 @@
+{
+  "_comment": "Each commit to this file on experiment/evidence-phase1-20261013 triggers one HOLD-only run. Run 1: synthetic fixtures, replay extractor (no LLM, no secrets), MiniCheck on CPU.",
+  "source": "fixtures",
+  "extractor": "replay",
+  "entailment": "minicheck",
+  "max_docs": 3
+}

@@ -44,7 +44,7 @@ SOURCE → FULL DOCUMENT → TEXT EXTRACTION → CLAIM EXTRACTION → EXACT SPAN
   - `metrics.py` — precision/recall/attribution/modality считаются **только при наличии gold-разметки**, иначе `NOT MEASURED`; прогноз стоимости — линейная формула с явными входами.
   - `pipeline.py` — оркестрация, жёсткий лимит 10 документов на запуск.
 - `scripts/evidence-phase1-experiment.py` — CLI.
-- `.github/workflows/evidence-phase1-experiment.yml` — **только `workflow_dispatch`**; секреты передаются только в нужный шаг и только при выбранном режиме; входы передаются через `env` (без инъекции в shell); артефакты 7 дней, без полного текста источников.
+- `.github/workflows/evidence-phase1-experiment.yml` — `workflow_dispatch` (доступен после слияния в ветку по умолчанию) или push в `experiment/evidence-phase1-20261013` **только** при изменении `intelligence/fixtures/evidence_phase1/run-request.json` (тот же приём, что у пилота); параметры проверяются job `resolve` по белому списку; секреты передаются только в нужный шаг и только при выбранном режиме; входы передаются через `env` (без инъекции в shell); артефакты 7 дней, без полного текста источников.
 - `tests/test_evidence_phase1.py` — 30 тестов (2 из них используют реальную LangExtract): офсеты, отрицание, планы, отмена, третьи лица, дата публикации ≠ дата события, выдуманный span, отсутствие полного текста, fail-closed при ошибке Gemini и MiniCheck, отсутствие SQL-записей в пакете, ручной запуск workflow.
 - Фикстуры `intelligence/fixtures/evidence_phase1/` — **синтетические**, с вымышленными организациями, помечены как таковые; replay-кандидаты содержат намеренные ошибки для проверки guards.
 
@@ -105,9 +105,9 @@ SOURCE → FULL DOCUMENT → TEXT EXTRACTION → CLAIM EXTRACTION → EXACT SPAN
 
 Выводы с оговорками: до ~1 000 документов/сутки всё укладывается в бесплатные раннеры и единицы долларов на LLM; при 100 000 документов/сутки GitHub Actions уже неподходящая платформа (джобы до 6 ч, лимит параллельности), и потребуется отдельное решение, которое ТЗ запрещает принимать без разрешения. Бесплатный тариф Gemini не рассматривается как основа: его лимиты не проверены, а данные используются Google.
 
-## 7. Как запустить в облаке (после появления доступа на push)
+## 7. Как запустить в облаке
 
-1. `Actions → Evidence Phase 1 Experiment → Run workflow`.
+1. Пока workflow не в ветке по умолчанию, GitHub не даёт `workflow_dispatch` (API отвечает 404). Поэтому запуск — коммит в `intelligence/fixtures/evidence_phase1/run-request.json` на ветке эксперимента; после слияния — `Actions → Evidence Phase 1 Experiment → Run workflow`.
 2. Рекомендуемая последовательность (каждый шаг ≤ 3 документов):
    - `source=fixtures, extractor=replay, entailment=minicheck` — проверка загрузки MiniCheck, CPU/RAM, без затрат на LLM.
    - `source=fixtures, extractor=gemini-direct, entailment=minicheck` — первые реальные метрики на синтетической gold-разметке.

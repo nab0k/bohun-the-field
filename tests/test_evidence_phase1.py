@@ -220,9 +220,14 @@ class Safety(unittest.TestCase):
         wf = (ROOT / ".github/workflows/evidence-phase1-experiment.yml").read_text()
         on_block = wf.split("\non:", 1)[1].split("\npermissions:", 1)[0]
         self.assertIn("workflow_dispatch", on_block)
-        for trigger in ("push:", "pull_request", "schedule:"):
+        for trigger in ("pull_request", "schedule:"):
             self.assertNotIn(trigger, on_block)
+        # push is allowed only for this experiment branch and only for the explicit run-request file
+        push = on_block.split("push:", 1)[1]
+        self.assertIn("branches: [experiment/evidence-phase1-20261013]", push)
+        self.assertIn("paths: ['intelligence/fixtures/evidence_phase1/run-request.json']", push)
         self.assertIn("contents: read", wf)
+        self.assertNotIn("${{ inputs.", wf.split("  experiment:", 1)[1])  # inputs only via validated resolve job
 
     def test_cost_projection_is_linear_and_explicit(self):
         rows = project_costs(prompt_tokens_per_doc=1000, output_tokens_per_doc=100, price_in_per_m=0.30,
