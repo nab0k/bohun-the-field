@@ -28,7 +28,7 @@ jobs:
       - name: Verify Python modules compile
         run: python -m py_compile scripts/cordis-gemini-evidence-pilot.py intelligence/gemini_evidence_validator.py scripts/test-cordis-gemini-evidence-offline.py
       - name: Run deterministic evidence gate tests
-        run: python -m unittest discover -s scripts -p 'test-cordis-gemini-evidence-offline.py'
+        run: PYTHONPATH=. python scripts/test-cordis-gemini-evidence-offline.py -v
       - name: Fetch genuine official CORDIS XML, validate offline evidence contract
         env:
           BOHUN_APPROVE_ONE_GEMINI_CALL: "NO"
