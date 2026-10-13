@@ -1,0 +1,49 @@
+name: Intelligence v1 Vertical Slice Internal (NO DEPLOY)
+on:
+  push:
+    branches: [intelligence-v1-vertical-slice-review]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  internal-end-to-end:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Source-to-claim deterministic integrity and QA HOLD
+        run: node scripts/test-intelligence-v1.mjs
+      - name: Existing app tests
+        run: |
+          npm test
+          node scripts/test-m1-state.mjs
+          node scripts/test-p2-coverage.mjs
+      - name: Production build compiles but never deploys
+        run: npm run build:site
+      - name: Read-only first-party CORDIS SMART/HIVE XML attempt (HOLD if inaccessible)
+        run: python scripts/cordis_official_xml_capture.py
+      - name: Install Chromium
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Run original Atlas locally
+        run: |
+          mkdir -p output/intelligence-v1
+          (npm run dev -- --host 127.0.0.1 --port 5174 > output/intelligence-v1/vite.log 2>&1 &)
+          for i in $(seq 1 30); do if curl -fsS http://127.0.0.1:5174/atlas.html >/dev/null; then exit 0; fi; sleep 2; done
+          exit 1
+      - name: Desktop + mobile real end-to-end source evidence claim event map dossier
+        run: node scripts/intelligence-v1-browser.mjs
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: intelligence-v1-internal-au-f35-desktop-mobile
+          path: |
+            output/intelligence-v1/
+            output/cordis-original-xml/
+          retention-days: 14

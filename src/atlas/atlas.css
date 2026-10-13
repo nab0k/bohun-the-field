@@ -321,3 +321,18 @@ button[data-journey], .demo-tag { display:none !important; }
  .nav-drawer-toggle{top:72px !important;left:12px !important;padding:9px 10px !important;font-size:10px !important;max-width:calc(100vw - 24px)}
  .brand-logo[hidden]{display:none !important}
 }
+
+
+/* R1: one site, three-pane map workspace. Retain existing map and legacy navigation. */
+@media (min-width:1100px){
+ #m1-intelligence:not([hidden]){left:14px !important;right:auto !important;top:calc(var(--top) + 72px) !important;bottom:12px !important;width:min(310px,24vw) !important;max-height:calc(100vh - var(--top) - 86px) !important}
+ #m1-dossier:not([hidden]){right:14px !important;left:auto !important;top:calc(var(--top) + 72px) !important;bottom:12px !important;width:min(320px,25vw) !important;max-height:calc(100vh - var(--top) - 86px) !important}
+}
+#m1-intelligence article{padding:10px 0;border-top:1px solid #8d886744}
+#m1-intelligence article button{display:block;width:100%;text-align:left;padding:8px;background:#20271a;border:1px solid #8d886766;color:#f3eddb}
+#m1-intelligence a,#m1-dossier a{color:#f5dfaa;text-underline-offset:3px}
+#m1-intelligence button:focus-visible{outline:2px solid #f5dfaa;outline-offset:2px}
+@media (max-width:1099px) and (min-width:761px){
+ #m1-intelligence:not([hidden]){left:12px !important;right:auto !important}
+ #m1-dossier:not([hidden]){right:12px !important;left:auto !important}
+}

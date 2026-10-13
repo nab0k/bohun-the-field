@@ -1,0 +1,132 @@
+{
+  "contract": "intelligence-vertical-slice-contract-v1",
+  "status": "INTERNAL_QA_HOLD",
+  "review_only": true,
+  "source_of_truth": "Existing Supabase holds operational records; this GitHub file is a transient evidence-linked read-only review packet, NOT a new database.",
+  "packets": [
+    {
+      "case_id": "AU-F35-01",
+      "state": "INTERNAL_CANDIDATE",
+      "source": {
+        "source_id": "AU-F35-01-K6",
+        "original_url": "https://lockheedmartinau.mediaroom.com/index.php?item=122738&s=2429",
+        "publisher": "Lockheed Martin Australia",
+        "fetched_at": "2026-10-11T19:22:00Z",
+        "content_sha256": "0c170c2e1453108b0276014ae1c5f54deaa6486eb67706e176f8d5b8fce98ecd",
+        "source_family": "MANUFACTURER_ANNOUNCEMENT",
+        "published_at": null,
+        "event_dateline": "2026-09-09",
+        "rights": "UNKNOWN_NEEDS_QA",
+        "snapshot_artifact": "https://github.com/nab0k/bohun-the-field/actions/runs/38167702561/artifacts/11712303077"
+      },
+      "evidence": [
+        {
+          "evidence_id": "EV-4bf1d6fc59d364948b9d",
+          "source_id": "AU-F35-01-K6",
+          "content_sha256": "0c170c2e1453108b0276014ae1c5f54deaa6486eb67706e176f8d5b8fce98ecd",
+          "locator": "visible-text-offsets-4365-4740",
+          "exact_excerpt": "ospace & Defence industry, has been selected as the latest participant in its Mentor Protégé Program (MPP). This partnership will provide Ferra with a 12‑month intensive mentoring experience designed to enhance its core operational and commercial capabilities. “Ferra’s expertise in the manufacturing of precision aerospace & weapon systems assemblies positions it as an in",
+          "extraction_version": "eng09-k6-html-v1"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "CLAIM-AU-F35-01-01",
+          "statement": "Publisher says Ferra Group joined Lockheed Martin Australia's 12-month Mentor Protégé Program.",
+          "subject_entity_id": null,
+          "predicate": "PUBLISHER_REPORTS_MENTOR_PROGRAMME_PARTICIPATION",
+          "object": "Ferra Group",
+          "evidence_ids": [
+            "EV-4bf1d6fc59d364948b9d"
+          ],
+          "attribution": "Lockheed Martin Australia",
+          "epistemic_status": "PUBLISHER_REPORTED",
+          "independent_validation": "NOT_ENOUGH_INFO"
+        }
+      ],
+      "event": {
+        "event_id": "AU-F35-01",
+        "event_type": "announcement",
+        "stage": "PUBLISHER_ANNOUNCED_NOT_PROCUREMENT_AWARD",
+        "actors": [
+          {
+            "name": "Lockheed Martin Australia",
+            "company_id": null,
+            "role": "ANNOUNCER"
+          },
+          {
+            "name": "Ferra Group",
+            "company_id": null,
+            "role": "NAMED_PARTICIPANT_UNRESOLVED_LEGAL_ENTITY"
+          }
+        ],
+        "country_iso2": "AU",
+        "geo_role": "COUNTRY_ONLY",
+        "coordinates": null,
+        "event_date": "2026-09-09",
+        "published_at": null,
+        "source_ids": [
+          "AU-F35-01-K6"
+        ]
+      },
+      "analysis": {
+        "analysis_id": "AN-AU-F35-01-REVIEW",
+        "model": "gemini-3.5-flash-lite",
+        "existing_test": "https://github.com/nab0k/bohun-the-field/actions/runs/38165862206",
+        "state": "HOLD",
+        "limitation": "Original model extraction missed central K6 event due to 3500-character truncation. This packet is evidence-grounded editorial candidate, NOT a rerun or approved Gemini analysis."
+      },
+      "publication": {
+        "publication_id": null,
+        "version": 0,
+        "type": "INTELLIGENCE_BRIEF",
+        "qa_status": "HOLD",
+        "public_release": false,
+        "rights_review": "PENDING",
+        "published_at": null
+      },
+      "headline": "Lockheed Martin Australia reports Ferra Group mentor programme",
+      "summary": "Publisher announcement describes a 12-month supplier mentoring programme. It does not establish a new F-35 procurement award.",
+      "unknowns": [
+        "independent QA claim assessment",
+        "legal entity/brand crosswalk",
+        "web publication timestamp conflict",
+        "rights review"
+      ]
+    },
+    {
+      "case_id": "FREQUENTIS-2026-05-05",
+      "state": "BLOCKED_ORIGINAL_PDF_SPANS",
+      "source": {
+        "source_id": "FREQUENTIS-PR-2026-05-05",
+        "original_url": "https://www.frequentis.com/sites/default/files/pr/2026-05/20260505-pr-Frequentis-BMLV_Flugfunksystem_EN.pdf",
+        "content_sha256": null
+      },
+      "evidence": [],
+      "claims": [],
+      "event": null,
+      "publication": {
+        "qa_status": "HOLD",
+        "public_release": false
+      },
+      "blocker": "Need full original PDF bytes, hash, immutable quote spans; existing test sentinel not evidence."
+    },
+    {
+      "case_id": "TED-699594-2026",
+      "state": "BLOCKED_PROCUREMENT04",
+      "source": {
+        "source_id": "TED-699594-2026",
+        "original_url": null,
+        "content_sha256": null
+      },
+      "evidence": [],
+      "claims": [],
+      "event": null,
+      "publication": {
+        "qa_status": "HOLD",
+        "public_release": false
+      },
+      "blocker": "Procurement04 official published notice XML/PDF, immutable hash and award/competition stage not yet supplied."
+    }
+  ]
+}
