@@ -13,6 +13,8 @@ try {
     calls++;
     assert.equal(new URL(url).hostname,'db.example.org');
     assert.equal(opts.headers.apikey,'read-only-test-key');
+    assert.equal(opts.headers['accept-profile'],'publication');
+    assert.equal(new URL(url).pathname,'/rest/v1/public_approved_intelligence');
     return new Response(JSON.stringify([good]),{status:200,headers:{'content-type':'application/json'}});
   };
   let r=await onRequestGet({env:{SUPABASE_URL:'https://db.example.org',SUPABASE_APPROVED_READ_KEY:'read-only-test-key'}});
