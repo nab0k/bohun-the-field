@@ -1,5 +1,5 @@
 {
-  "_comment": "Each commit to this file on experiment/evidence-phase1-20261013 triggers one HOLD-only run. Run 7: pre-registered control-set selection (scripts/evidence-phase1-controlset.py, committed before this run) from data already in intelligence.items, plus free descriptive experiments. READ ONLY, no Gemini key, no Supabase writes, no schema change, no new originals.",
+  "_comment": "Each commit to this file on experiment/evidence-phase1-20261013 triggers one HOLD-only run. Run 8: control-set selection rules v2 (amendment committed before this run) (scripts/evidence-phase1-controlset.py, committed before this run) from data already in intelligence.items, plus free descriptive experiments. READ ONLY, no Gemini key, no Supabase writes, no schema change, no new originals.",
   "source": "fixtures",
   "extractor": "replay",
   "entailment": "none",
