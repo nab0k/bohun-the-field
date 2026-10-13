@@ -13,6 +13,7 @@ import assets from '../game/data/assets.json' with { type: 'json' };
 import { createNight } from './night.js';
 import { mountAustriaInternalReview } from './eng04-internal.js';
 import { createAtlasState, mountM1Panels } from './m1-state.js';
+import { loadApprovedIntelligence } from './approved-feed.js';
 import { mountCoverageControls } from './p2-coverage.js';
 import { createLive } from './live.js';
 import { createScaleDemo } from './scale-demo.js';
@@ -33,7 +34,9 @@ navDrawerToggle.addEventListener('click',()=>setDrawerOpen(!navDrawer.classList.
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&navDrawer.classList.contains('m1-drawer-open'))setDrawerOpen(false);});
 
 const m1State=createAtlasState();
-mountM1Panels({store:m1State,records:[]});
+// Approved-only read endpoint. Missing endpoint or invalid data preserves the honest empty state.
+const approvedRecords = await loadApprovedIntelligence();
+mountM1Panels({store:m1State,records:approvedRecords});
 if(import.meta.env.DEV) window.__bohunM1State=m1State;
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
