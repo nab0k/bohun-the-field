@@ -14,7 +14,7 @@ export async function onRequestGet({env}){
  let u;try{u=new URL(root);if(u.protocol!=='https:'||u.username||u.password)return json({error:'approved feed unavailable'},503);}catch{return json({error:'approved feed unavailable'},503);}
  const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),7000);
  try{
-  const res=await fetch(new URL('/rest/v1/public_approved_intelligence?select=*&limit=100',u),{headers:{apikey:key,authorization:'Bearer '+key,accept:'application/json'},signal:controller.signal});
+  const res=await fetch(new URL('/rest/v1/public_approved_intelligence?select=event_id,headline,published_at,country_iso2,source_url,content_hash,takeaway,qa&limit=100',u),{headers:{apikey:key,authorization:'Bearer '+key,accept:'application/json','accept-profile':'publication'},signal:controller.signal});
   if(!res.ok)return json({error:'approved feed unavailable'},503);
   const rows=await res.json();
   if(!Array.isArray(rows)||rows.length>100||!rows.every(valid))return json({error:'approved feed unavailable'},503);
