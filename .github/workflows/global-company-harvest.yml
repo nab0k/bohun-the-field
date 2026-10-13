@@ -62,6 +62,17 @@ jobs:
           assert report['public_release_count']==0
           print('Real source archive ingestion PASS:',report['archives'])
           PY
+      - name: Private staging upsert (manual trusted dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          SUPABASE_STAGING_DATABASE_URL: ${{ secrets.SUPABASE_STAGING_DATABASE_URL }}
+        run: |
+          if [ -z "$SUPABASE_STAGING_DATABASE_URL" ]; then
+            echo "No staging DB credential; artifact-only run, zero cloud writes"
+            exit 0
+          fi
+          python3 -m pip install "psycopg[binary]>=3.2,<4"
+          python3 scripts/import_harvest_to_supabase.py .local/harvest/cordis-*.jsonl
       - name: Upload private research artifact (NOT a public site deploy)
         if: always()
         uses: actions/upload-artifact@v4
