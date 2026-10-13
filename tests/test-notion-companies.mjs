@@ -23,3 +23,6 @@ try {
 
 // Offline mass-harvest contract (no external network or mutations).
 await import('./test-harvest-companies.mjs');
+
+import {execFileSync} from 'node:child_process';
+execFileSync('python3',['-m','unittest','discover','-s','tests','-p','test_global_harvester.py','-v'],{stdio:'inherit'});
