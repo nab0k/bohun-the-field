@@ -44,3 +44,6 @@ assert.equal(unavailable.status,503);
 assert.equal((await unavailable.json()).error,'approved feed unavailable');
 const insecure=await onRequestGet({env:{SUPABASE_URL:'http://localhost',SUPABASE_APPROVED_READ_KEY:'not-a-real-key'}});
 assert.equal(insecure.status,503);
+
+// Run Cloudflare endpoint positive and adversarial regressions in the existing CI gate.
+await import('./test-approved-endpoint.mjs');
