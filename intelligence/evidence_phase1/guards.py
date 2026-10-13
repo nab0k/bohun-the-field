@@ -14,6 +14,12 @@ CANCEL_CUES = r"\b(cancel(l)?ed|cancel(l)?ation|terminated|termination|withdr[ae
 REPORTED_CUES = r"\b(said|says|according to|claimed|claims|told|announced|stated|reported(ly)?|confirmed|alleged(ly)?|sources?)\b"
 SPECULATIVE_CUES = r"\b(reportedly|rumou?red|allegedly|could|may|might|possibly|likely|unconfirmed|is said to)\b"
 
+# Claim-side presence is checked with word stems, so a paraphrase that keeps the meaning
+# ("plans a plant" for "plans to build a plant") does not count as dropping the cue.
+CLAIM_PLAN_STEMS = r"\b(will|would|shall|plan\w*|intend\w*|intent\w*|expect\w*|aim\w*|target\w*|propos\w*|schedul\w*|set to|seek\w*|could|may|might|potential\w*|future|to be|upcoming|forthcoming)\b"
+CLAIM_SPECULATIVE_STEMS = r"\b(may|might|could|report\w*|alleg\w*|possibl\w*|likely|rumou?r\w*|unconfirm\w*|said to|reportedly)\b"
+CLAIM_NEGATION_STEMS = r"\b(not|no|never|den(y|ies|ied|ial)\w*|reject\w*|refut\w*|without|neither|nor|\w+n't|yet to|fail\w*)\b"
+
 MONTHS = [calendar.month_name[i] for i in range(1, 13)]
 
 
@@ -30,8 +36,35 @@ def context_window(text, start, end, radius=400):
     return text[left:right].strip()
 
 
+def wide_window(text, start, end, radius=1200):
+    """Paragraph-sized window: the sentence window plus neighbouring sentences up to radius."""
+    if start is None:
+        return ""
+    left_floor = max(0, start - radius)
+    cut = text.find(". ", left_floor, start)  # first sentence boundary inside the left margin
+    left = cut + 2 if cut != -1 and cut + 2 <= start else left_floor
+    right_cap = min(len(text), end + radius)
+    cut = text.rfind(". ", end, right_cap)  # last sentence boundary inside the right margin
+    right = cut + 1 if cut != -1 else right_cap
+    return text[left:right].strip()
+
+
+def _hits(pattern, s):
+    """Cue matches, ignoring capitalised words in mid-sentence (parts of proper names such as
+    'Future Interceptor'). Added after run 38324082330, where such names caused false PLAN cues."""
+    out = []
+    for m in re.finditer(pattern, s, flags=re.IGNORECASE):
+        word = m.group(0)
+        before = s[:m.start()].rstrip()
+        sentence_start = not before or before[-1] in ".!?:;\"'“”(\n"
+        if word[0].isupper() and not sentence_start:
+            continue
+        out.append(word.lower())
+    return out
+
+
 def _has(pattern, s):
-    return re.search(pattern, s, flags=re.IGNORECASE) is not None
+    return bool(_hits(pattern, s))
 
 
 def looks_english(text):
@@ -108,6 +141,14 @@ def apply_guards(record, text):
         record["hold_reasons"].append("CANCELLED_WITHOUT_CANCELLATION_CUE")
     if modality == "planned" and not _has(PLAN_CUES, window):
         record["hold_reasons"].append("PLANNED_WITHOUT_PLAN_CUE")
+    # A hedge, plan or negation present in the cited span but absent from the claim is the
+    # failure MiniCheck missed in run 38324082330 ("would represent" -> "represents").
+    claim = record.get("claim_text") or ""
+    for name, pattern, claim_pattern in (("PLAN", PLAN_CUES, CLAIM_PLAN_STEMS),
+                                         ("SPECULATIVE", SPECULATIVE_CUES, CLAIM_SPECULATIVE_STEMS),
+                                         ("NEGATION", NEGATION_CUES, CLAIM_NEGATION_STEMS)):
+        if _has(pattern, span) and not _has(claim_pattern, claim):
+            record["hold_reasons"].append(f"CLAIM_DROPS_{name}_CUE_FROM_SPAN")
     if _has(REPORTED_CUES, window) and not record.get("asserted_by"):
         record["hold_reasons"].append("ATTRIBUTION_CUE_BUT_ASSERTED_BY_UNKNOWN")
     if record.get("asserted_by") and record["asserted_by"].lower() not in window.lower():

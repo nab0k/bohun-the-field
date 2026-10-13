@@ -29,7 +29,7 @@ class ReplayExtractor:
                          "prompt_tokens": None, "output_tokens": None, "input_chars": len(text)}}
 
 
-def run(documents, extractor, scorer=None, max_docs=3):
+def run(documents, extractor, scorer=None, max_docs=3, wide_context=True):
     if max_docs > HARD_MAX_DOCS:
         raise ValueError(f"max_docs>{HARD_MAX_DOCS} needs separate approval")
     t_start = time.perf_counter()
@@ -64,7 +64,7 @@ def run(documents, extractor, scorer=None, max_docs=3):
         records.extend(doc_records)
         doc_results.append(res)
         per_doc_gold.append((doc, doc_records))
-    ent = apply_entailment(records, texts, scorer)
+    ent = apply_entailment(records, texts, scorer, wide_context=wide_context)
     gold_scores = []
     for item, res in zip(per_doc_gold, doc_results):
         if item is None:

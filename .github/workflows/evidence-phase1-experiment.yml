@@ -74,7 +74,7 @@ jobs:
                  "entailment": req.get("entailment", "none"), "max_docs": str(req.get("max_docs", "3")),
                  "title_like": req.get("title_like", ""), "docling_pdf_url": req.get("docling_pdf_url", ""),
                  "series": req.get("series", "")}
-          assert out["series"] in {"", "phase1-paid-v1"}, "series"
+          assert out["series"] in {"", "phase1-paid-v1", "phase1-rescore-v1"}, "series"
           for k, ok in allowed.items():
               assert out[k] in ok, k
           assert out["max_docs"].isdigit() and 1 <= int(out["max_docs"]) <= 10
@@ -257,5 +257,38 @@ jobs:
         if: always()
         with:
           name: evidence-phase1-paid-series
+          path: output/evidence-phase1/
+          retention-days: 7
+
+  # Free re-scoring of the paid series records: no Gemini key is given to this job.
+  rescore:
+    needs: [resolve, offline-tests]
+    if: needs.resolve.outputs.series == 'phase1-rescore-v1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deps (psycopg, MiniCheck pinned commit, CPU torch)
+        run: |
+          python -m pip install "psycopg[binary]"
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install "transformers==${TRANSFORMERS_VERSION}" accelerate nltk numpy
+          python -m pip install --no-deps "git+https://github.com/Liyan06/MiniCheck.git@${MINICHECK_COMMIT}"
+          python -c "import nltk; nltk.download('punkt', quiet=True); nltk.download('punkt_tab', quiet=True)"
+      - uses: actions/cache@v4
+        with:
+          path: ckpts
+          key: minicheck-flan-t5-large-v1
+      - name: Re-score stored records (no LLM calls, staging READ ONLY)
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: python scripts/evidence-phase1-rescore.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: evidence-phase1-rescore
           path: output/evidence-phase1/
           retention-days: 7

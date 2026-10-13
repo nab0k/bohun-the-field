@@ -221,6 +221,65 @@ class Pipeline(unittest.TestCase):
         self.assertIn('{"result": "x"}', bad["documents"][0]["outcome"])
 
 
+class PostSeriesFixes(unittest.TestCase):
+    """Fixes driven by run 38324082330 (in-sample: these cases were seen before the fix)."""
+
+    def test_capitalised_cue_inside_proper_name_is_ignored(self):
+        from intelligence.evidence_phase1.guards import _hits, PLAN_CUES
+        self.assertEqual(_hits(PLAN_CUES, "selected for the Army's Future Interceptor program"), [])
+        self.assertEqual(_hits(PLAN_CUES, "Future deliveries are planned"), ["future", "planned"])
+        self.assertEqual(_hits(PLAN_CUES, "the firm will deliver"), ["will"])
+
+    def test_claim_that_drops_hedge_is_held(self):
+        doc = dict(NEG, text=NEG["text"] + " Analysts said the radar would represent the top tier of short-range sensors.",
+                   document_id="fixture:hedge")
+        r = build_record(document=doc, extractor_name="t", candidate={
+            "claim_text": "The radar represents the top tier of short-range sensors.",
+            "evidence_text": "the radar would represent the top tier of short-range sensors", "modality": None})
+        apply_guards(r, doc["text"])
+        self.assertIn("CLAIM_DROPS_PLAN_CUE_FROM_SPAN", r["hold_reasons"])
+
+    def test_claim_keeping_negation_is_not_flagged(self):
+        r = rec(NEG, claim_text="A Kestrel Dynamics spokesperson denied receiving a second order.", modality="negated",
+                asserted_by="Kestrel Dynamics",
+                evidence_text="denied that the company had received a second order from the Valdorian Navy")
+        self.assertNotIn("CLAIM_DROPS_NEGATION_CUE_FROM_SPAN", r["hold_reasons"])
+
+    def test_wider_context_reason_replaces_not_supported(self):
+        class Fake:
+            def score(self, docs, claims):
+                labels = [1 if "Valdorian Ministry" in d else 0 for d in docs]
+                return labels, [0.9 if l else 0.05 for l in labels], None, None
+        r = rec(NEG, claim_text="Kestrel Dynamics will deliver the first units in early 2028.", modality="planned",
+                asserted_by="the ministry", evidence_text="Kestrel Dynamics will deliver the first units in early 2028")
+        apply_entailment([r], {NEG["document_id"]: NEG["text"]}, MiniCheckScorer(backend=Fake()), wide_context=True)
+        self.assertEqual((r["entailment_label"], r["entailment_label_wide"]), ("NOT_SUPPORTED", "SUPPORTED"))
+        self.assertIn("ENTAILMENT_NEEDS_WIDER_CONTEXT", r["hold_reasons"])
+        self.assertNotIn("ENTAILMENT_NOT_SUPPORTED", r["hold_reasons"])
+        self.assertEqual(r["verification_status"], "HOLD")
+
+    def test_lenient_attribution_accepts_containment_not_unresolved_reference(self):
+        from intelligence.evidence_phase1.metrics import attribution_lenient
+        self.assertTrue(attribution_lenient("A Kestrel Dynamics spokesperson", "Kestrel Dynamics"))
+        self.assertTrue(attribution_lenient("The Valdorian Ministry of Defence", "Valdorian Ministry of Defence"))
+        self.assertFalse(attribution_lenient("the ministry", "Valdorian Ministry of Defence"))
+        self.assertFalse(attribution_lenient("its chief executive", "Brightwater Munitions"))
+        self.assertTrue(attribution_lenient(None, None))
+
+    def test_gold_by_offsets_and_hash_without_text(self):
+        import hashlib
+        from intelligence.evidence_phase1.metrics import score_against_gold
+        span = "it awarded Kestrel Dynamics a contract worth EUR 48 million for 30 counter-drone radar units"
+        s = NEG["text"].index(span)
+        gold = [{"char_start": s, "char_end": s + len(span), "span_sha256": hashlib.sha256(span.encode()).hexdigest(),
+                 "modality": "announced", "asserted_by": "Valdorian Ministry of Defence", "essential": True}]
+        r = rec(NEG, claim_text="x.", evidence_text=span, modality="announced", asserted_by="The Valdorian Ministry of Defence")
+        g = score_against_gold([r], dict(NEG, gold=gold))
+        self.assertEqual((g["matched"], g["attribution_correct"], g["attribution_correct_lenient"]), (1, 0, 1))
+        with self.assertRaises(ValueError):
+            score_against_gold([r], dict(NEG, gold=[dict(gold[0], span_sha256="0" * 64)]))
+
+
 class Safety(unittest.TestCase):
     def test_package_has_no_write_sql(self):
         for path in (ROOT / "intelligence/evidence_phase1").glob("*.py"):

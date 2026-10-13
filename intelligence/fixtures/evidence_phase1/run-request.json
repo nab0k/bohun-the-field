@@ -1,8 +1,8 @@
 {
-  "_comment": "Each commit to this file on experiment/evidence-phase1-20261013 triggers one HOLD-only run. Run 4 (after fixing staging READ ONLY start and Gemini-direct output parsing; prior spend $0.0053 carried into the cap): owner-approved paid series (2026-10-13, authorization $1 total). Software cap $0.50, max 40 Gemini calls, <=8000 input / <=2048 output tokens per call, no retries. E0 replay baseline, E1 Gemini-direct, E2 LangExtract+Gemini on identical synthetic fixtures; E3 PAC-3 Edge from bohun_staging (read-only): pilot baseline vs Gemini-direct vs LangExtract on the same first 12,000 chars. MiniCheck on all.",
+  "_comment": "Each commit to this file on experiment/evidence-phase1-20261013 triggers one HOLD-only run. Run 5: FREE re-scoring of run 38324082330 records with post-series guards and two-window MiniCheck. No Gemini key is passed to the job; staging READ ONLY.",
   "source": "fixtures",
   "extractor": "replay",
   "entailment": "none",
   "max_docs": 3,
-  "series": "phase1-paid-v1"
+  "series": "phase1-rescore-v1"
 }
