@@ -1,0 +1,81 @@
+name: CORDIS Gemini Evidence Offline QA Gate
+on:
+  push:
+    branches: [pilot/cordis-gemini-evidence-20261012]
+    paths:
+      - 'scripts/cordis-gemini-evidence-pilot.py'
+      - 'intelligence/gemini_evidence_validator.py'
+      - 'scripts/test-cordis-gemini-evidence-offline.py'
+      - '.github/workflows/cordis-gemini-evidence-offline.yml'
+  pull_request:
+    branches: [rescue/working-model-20261012]
+    paths:
+      - 'scripts/cordis-gemini-evidence-pilot.py'
+      - 'scripts/test-cordis-gemini-evidence-offline.py'
+      - '.github/workflows/cordis-gemini-evidence-offline.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify Python modules compile
+        run: python -m py_compile scripts/cordis-gemini-evidence-pilot.py intelligence/gemini_evidence_validator.py scripts/test-cordis-gemini-evidence-offline.py
+      - name: Run deterministic evidence gate tests
+        run: PYTHONPATH=. python scripts/test-cordis-gemini-evidence-offline.py -v
+      - name: Fetch genuine official CORDIS XML, validate offline evidence contract
+        env:
+          BOHUN_APPROVE_ONE_GEMINI_CALL: "NO"
+        run: python scripts/cordis-gemini-evidence-pilot.py
+      - name: Assert QA HOLD, no Gemini, no cloud write
+        run: |
+          python - <<'PY'
+          import json
+          p=json.load(open('output/cordis-gemini-pilot/result.json'))
+          assert p['mode']=='OFFLINE_CONTRACT_ONLY_GEMINI_NOT_CALLED'
+          assert p['evidence_locator_verified'] is True
+          assert p['qa_status']=='HOLD' and p['public_release'] is False
+          assert p['supabase_write'] is False
+          assert len(p['source_sha256'])==64 and p['source_bytes']>0
+          assert len(p['model_request_sha256'])==64
+          assert p['model_response']=='NOT_CALLED'
+          assert p['offline_contract_validation']['pass'] is True
+          from pathlib import Path
+          import hashlib
+          raw=Path('output/cordis-gemini-pilot/original-cordis.xml').read_bytes()
+          e=json.load(open('output/cordis-gemini-pilot/evidence-packet.json'))
+          assert hashlib.sha256(raw).hexdigest()==e['original_sha256']==p['source_sha256']
+          assert e['exact_excerpt'].encode() in raw
+          pos=raw.decode('utf-8').find(e['exact_excerpt'])
+          assert e['locator']['char_start']==pos
+          assert e['locator']['char_end']==pos+len(e['exact_excerpt'])
+          assert e['qa']['decision']=='HOLD' and e['qa']['public_release'] is False
+          assert e['rights']=='UNREVIEWED' and e['gemini_called'] is False
+          print('OFFLINE EVIDENCE QA HOLD PASS')
+          PY
+      - name: Record exact CI identity in evidence artifact
+        if: always()
+        run: |
+          mkdir -p output/cordis-gemini-pilot
+          python - <<'PY'
+          import json,os,pathlib
+          obj={'run_id':os.environ.get('GITHUB_RUN_ID'),'commit_sha':os.environ.get('GITHUB_SHA'),'repository':os.environ.get('GITHUB_REPOSITORY'),'branch':os.environ.get('GITHUB_REF_NAME'),'is_private_qa_hold':True}
+          pathlib.Path('output/cordis-gemini-pilot/ci-provenance.json').write_text(json.dumps(obj,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cordis-gemini-offline-qa-hold
+          path: |
+            output/cordis-gemini-pilot/result.json
+            output/cordis-gemini-pilot/model-request.json
+            output/cordis-gemini-pilot/evidence-packet.json
+            output/cordis-gemini-pilot/original-cordis.xml
+            output/cordis-gemini-pilot/ci-provenance.json
+          retention-days: 14
