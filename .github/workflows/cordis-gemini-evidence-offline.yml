@@ -7,6 +7,12 @@ on:
       - 'intelligence/gemini_evidence_validator.py'
       - 'scripts/test-cordis-gemini-evidence-offline.py'
       - '.github/workflows/cordis-gemini-evidence-offline.yml'
+  pull_request:
+    branches: [rescue/working-model-20261012]
+    paths:
+      - 'scripts/cordis-gemini-evidence-pilot.py'
+      - 'scripts/test-cordis-gemini-evidence-offline.py'
+      - '.github/workflows/cordis-gemini-evidence-offline.yml'
   workflow_dispatch:
 permissions:
   contents: read
