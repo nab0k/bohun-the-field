@@ -5,7 +5,7 @@ import {join} from 'node:path';
 import {parseCSV,processCandidates,harvest} from '../scripts/harvest-companies.mjs';
 assert.deepEqual(parseCSV('name,id\n"ABC, Inc.",1\n'),[{name:'ABC, Inc.',id:'1'}]);
 assert.throws(()=>parseCSV('name,id\n"oops,1\n'));
-const sample=[{name:'Acme Defence',id:'1',country:'GB',website:'https://acme.example'},{name:'Acme Defence',id:'1',country:'GB'},{name:'Other Group',id:'2',country:'GB'},{name:'Broken',id:'3',country:'EU'}];
+const sample=[{name:'Acme Defence',id:'1',country:'GB',website:'https://acme.example'},{name:'Acme Defence',id:'1',country:'GB'},{name:'Other Group',id:'2',country:'GB'},{name:'Broken',id:'3',country:'EUR'}];
 const r=processCandidates(sample,{sourceId:'test2026',sourceUrl:'https://example.org/list',sourceHash:'hash'});
 assert.equal(r.metrics.accepted,2);assert.equal(r.metrics.source_duplicate,1);assert.equal(r.metrics.holds,1);assert(r.accepted.every(c=>!c.publication_approved&&c.evidence_layer==='D_LEAD_ONLY'));
 const dir=await mkdtemp(join(tmpdir(),'bohun-harvest-'));
