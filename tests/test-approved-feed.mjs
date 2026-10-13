@@ -36,3 +36,11 @@ for (const malformed of [
  {...good,country_iso2:'AUT'},
  {...good,qa:{decision:'HOLD',public_release:true}}
 ]) assert.deepEqual(selectApproved([malformed],state),[]);
+
+// #55 server endpoint must fail closed before approved projection is provisioned.
+const {onRequestGet}=await import('../functions/api/intelligence/approved.js');
+const unavailable=await onRequestGet({env:{}});
+assert.equal(unavailable.status,503);
+assert.equal((await unavailable.json()).error,'approved feed unavailable');
+const insecure=await onRequestGet({env:{SUPABASE_URL:'http://localhost',SUPABASE_APPROVED_READ_KEY:'not-a-real-key'}});
+assert.equal(insecure.status,503);
