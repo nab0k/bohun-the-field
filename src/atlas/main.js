@@ -421,7 +421,7 @@ $('#n-companies').textContent = `${atData.companies.length} · Austria`;
 const norm = (t) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const countryFeature = Object.fromEntries(countries.features.map((f) => [f.properties.a3, f]));
 // Independent Notion-verified company layer: country polygons only, no factory coordinates.
-const NOTION_A3={AT:'AUT',DE:'DEU',BE:'BEL',NL:'NLD',PL:'POL',FR:'FRA',GB:'GBR',US:'USA',CA:'CAN',ES:'ESP',IT:'ITA',SE:'SWE',PT:'PRT',AU:'AUS'};
+const NOTION_A3={AT:'AUT',BE:'BEL',NL:'NLD',DE:'DEU',PL:'POL',BG:'BGR',HR:'HRV',CY:'CYP',CZ:'CZE',DK:'DNK',EE:'EST',FI:'FIN',FR:'FRA',GR:'GRC',HU:'HUN',IE:'IRL',IT:'ITA',LV:'LVA',LT:'LTU',LU:'LUX',MT:'MLT',PT:'PRT',RO:'ROU',SK:'SVK',SI:'SVN',ES:'ESP',SE:'SWE',US:'USA',CA:'CAN',GB:'GBR',IN:'IND',PK:'PAK',MY:'MYS',AU:'AUS',NZ:'NZL'};
 void loadNotionCompanies().then(records=>{
  if(!records.length)return;
  mountNotionCompanyDirectory({records,store:m1State,onCountry:iso=>{
