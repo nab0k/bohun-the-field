@@ -1,0 +1,12 @@
+{
+  "_comment": "Template for third-party articles: no source text in the public repo. See docs/EVIDENCE_GOLD_GUIDE.md. Not loaded as a fixture (no 'text' field).",
+  "document_id": "document:<id in bohun_staging.inoreader_documents>",
+  "text_bound": "first 12000 chars of original_visible_text",
+  "labelled_by": "<name>",
+  "labelled_at": "YYYY-MM-DD",
+  "guide_version": "EVIDENCE_GOLD_GUIDE 2026-10-13",
+  "gold": [
+    {"char_start": 0, "char_end": 0, "span_sha256": "<sha256 of text[char_start:char_end]>",
+     "claim": "", "modality": "unknown", "asserted_by": null, "event_date": null, "year_missing": false, "essential": true}
+  ]
+}
