@@ -4,6 +4,8 @@ on:
     branches: [r1-unified-site-review-20261011]
     paths:
       - '.github/workflows/p0-github-pages-release-check.yml'
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
