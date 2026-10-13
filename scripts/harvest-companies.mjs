@@ -51,14 +51,14 @@ export function processCandidates(input,{sourceId,sourceUrl,sourceHash}){
 }
 export async function harvest({input,sourceId,sourceUrl,outDir}){
  const bytes=await readFile(input);const hash=createHash('sha256').update(bytes).digest('hex');
- const raw=bytes.toString('utf8').replace(/^\\uFEFF/,'');
+ const raw=bytes.toString('utf8').replace(/^\uFEFF/,'');
  const records=extname(input).toLowerCase()==='.csv'?parseCSV(raw):JSON.parse(raw);
  const {accepted,holds,metrics}=processCandidates(records,{sourceId,sourceUrl,sourceHash:hash});
  await mkdir(outDir,{recursive:true});
- await writeFile(join(outDir,'candidates.jsonl'),accepted.map(x=>JSON.stringify(x)).join('\\n')+(accepted.length?'\\n':''));
- await writeFile(join(outDir,'holds.jsonl'),holds.map(x=>JSON.stringify(x)).join('\\n')+(holds.length?'\\n':''));
+ await writeFile(join(outDir,'candidates.jsonl'),accepted.map(x=>JSON.stringify(x)).join('\n')+(accepted.length?'\n':''));
+ await writeFile(join(outDir,'holds.jsonl'),holds.map(x=>JSON.stringify(x)).join('\n')+(holds.length?'\n':''));
  const report={source_id:sourceId,source_url:sourceUrl,source_sha256:hash,...metrics,public_release_count:0};
- await writeFile(join(outDir,'report.json'),JSON.stringify(report,null,2)+'\\n');
+ await writeFile(join(outDir,'report.json'),JSON.stringify(report,null,2)+'\n');
  return report;
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href){
