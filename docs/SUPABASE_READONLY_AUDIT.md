@@ -18,7 +18,8 @@ will not dispatch a newly added workflow that is absent from the default branch.
 The artifact `supabase-intelligence-schema-audit` contains `report.json` with:
 
 - actual relations, columns and PostgreSQL types in `intelligence`;
-- RLS flags and table-level grants (custom role names are hashed);
+- RLS flags, sanitized policies and table-level grants (custom role names are hashed);
+- foreign-key metadata needed to prove the source/provenance join chain;
 - view definitions with comments and string literals removed;
 - coarse `APPROVE`, `HOLD`, `REJECT`, `PUBLISHED`, `OTHER`, and `NULL` counts for
   status-like columns;

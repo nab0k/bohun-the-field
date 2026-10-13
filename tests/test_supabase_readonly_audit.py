@@ -32,6 +32,7 @@ class SupabaseReadonlyAuditTests(unittest.TestCase):
         self.assertNotIn("secret", result["sanitized_definition"])
         self.assertNotIn("private", result["sanitized_definition"])
         self.assertRegex(result["definition_sha256"], r"^[a-f0-9]{64}$")
+        self.assertEqual(AUDIT.sanitize_expression("owner = 'private'"), "owner = '<literal>'")
 
     def test_custom_role_names_are_hashed(self):
         self.assertEqual(AUDIT.safe_grantee("anon"), "anon")

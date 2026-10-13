@@ -25,6 +25,24 @@ FROM information_schema.role_table_grants
 WHERE table_schema = 'intelligence'
 ORDER BY table_name, privilege_type, grantee;
 
+SELECT tc.constraint_name, tc.table_name, kcu.column_name,
+       ccu.table_name AS foreign_table_name,
+       ccu.column_name AS foreign_column_name
+FROM information_schema.table_constraints tc
+JOIN information_schema.key_column_usage kcu
+  ON kcu.constraint_name = tc.constraint_name
+ AND kcu.constraint_schema = tc.constraint_schema
+JOIN information_schema.constraint_column_usage ccu
+  ON ccu.constraint_name = tc.constraint_name
+ AND ccu.constraint_schema = tc.constraint_schema
+WHERE tc.constraint_schema = 'intelligence' AND tc.constraint_type = 'FOREIGN KEY'
+ORDER BY tc.table_name, tc.constraint_name, kcu.ordinal_position;
+
+SELECT tablename, policyname, permissive, roles, cmd, qual, with_check
+FROM pg_catalog.pg_policies
+WHERE schemaname = 'intelligence'
+ORDER BY tablename, policyname;
+
 -- After the metadata query identifies the actual QA/status column, an operator
 -- may run this template with identifiers substituted. Do not select row content.
 -- SELECT CASE

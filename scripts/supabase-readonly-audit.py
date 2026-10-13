@@ -57,6 +57,26 @@ METADATA_QUERIES = {
         WHERE table_schema = %s
         ORDER BY table_name, privilege_type, grantee
     """,
+    "foreign_keys": """
+        SELECT tc.constraint_name, tc.table_name, kcu.column_name,
+               ccu.table_name AS foreign_table_name,
+               ccu.column_name AS foreign_column_name
+        FROM information_schema.table_constraints tc
+        JOIN information_schema.key_column_usage kcu
+          ON kcu.constraint_name = tc.constraint_name
+         AND kcu.constraint_schema = tc.constraint_schema
+        JOIN information_schema.constraint_column_usage ccu
+          ON ccu.constraint_name = tc.constraint_name
+         AND ccu.constraint_schema = tc.constraint_schema
+        WHERE tc.constraint_schema = %s AND tc.constraint_type = 'FOREIGN KEY'
+        ORDER BY tc.table_name, tc.constraint_name, kcu.ordinal_position
+    """,
+    "policies": """
+        SELECT tablename, policyname, permissive, roles, cmd, qual, with_check
+        FROM pg_catalog.pg_policies
+        WHERE schemaname = %s
+        ORDER BY tablename, policyname
+    """,
 }
 
 
@@ -85,6 +105,12 @@ def sanitize_view_definition(definition: str) -> dict:
         "sanitized_definition": " ".join(sanitized.split())[:4000],
         "definition_sha256": hashlib.sha256(definition.encode()).hexdigest(),
     }
+
+
+def sanitize_expression(expression: str | None) -> str | None:
+    if expression is None:
+        return None
+    return sanitize_view_definition(expression)["sanitized_definition"]
 
 
 def safe_grantee(grantee: str) -> str:
@@ -164,6 +190,24 @@ def audit() -> dict:
                     }
                     for relation, grantee, privilege, grantable in cursor.fetchall()
                 ]
+                cursor.execute(METADATA_QUERIES["foreign_keys"], (SCHEMA,))
+                foreign_keys = [
+                    dict(zip(("constraint", "relation", "column", "foreign_relation", "foreign_column"), row))
+                    for row in cursor.fetchall()
+                ]
+                cursor.execute(METADATA_QUERIES["policies"], (SCHEMA,))
+                policies = [
+                    {
+                        "relation": relation,
+                        "name": name,
+                        "permissive": permissive,
+                        "roles": [safe_grantee(role) for role in roles],
+                        "command": command,
+                        "using": sanitize_expression(qual),
+                        "with_check": sanitize_expression(with_check),
+                    }
+                    for relation, name, permissive, roles, command, qual, with_check in cursor.fetchall()
+                ]
 
                 relation_kinds = {row["name"]: row["kind"] for row in relations}
                 status_counts = []
@@ -201,6 +245,8 @@ def audit() -> dict:
                     "relations": relations,
                     "views": views,
                     "grants": grants,
+                    "foreign_keys": foreign_keys,
+                    "policies": policies,
                     "status_counts": status_counts,
                     "pr53_contract_candidates": contract_map(columns),
                 })
