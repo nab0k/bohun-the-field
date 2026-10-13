@@ -74,7 +74,7 @@ jobs:
                  "entailment": req.get("entailment", "none"), "max_docs": str(req.get("max_docs", "3")),
                  "title_like": req.get("title_like", ""), "docling_pdf_url": req.get("docling_pdf_url", ""),
                  "series": req.get("series", "")}
-          assert out["series"] in {"", "phase1-paid-v1", "phase1-rescore-v1"}, "series"
+          assert out["series"] in {"", "phase1-paid-v1", "phase1-rescore-v1", "phase1-controlset-v1"}, "series"
           for k, ok in allowed.items():
               assert out[k] in ok, k
           assert out["max_docs"].isdigit() and 1 <= int(out["max_docs"]) <= 10
@@ -292,3 +292,20 @@ jobs:
           name: evidence-phase1-rescore
           path: output/evidence-phase1/
           retention-days: 7
+
+  # Control set selection + free descriptive experiments. READ ONLY, no LLM key, no writes.
+  controlset:
+    needs: [resolve, offline-tests]
+    if: needs.resolve.outputs.series == 'phase1-controlset-v1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install "psycopg[binary]"
+      - name: Select pre-registered control set and run descriptive experiments (READ ONLY)
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: python scripts/evidence-phase1-controlset.py

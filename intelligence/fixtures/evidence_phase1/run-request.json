@@ -1,8 +1,8 @@
 {
-  "_comment": "Each commit to this file on experiment/evidence-phase1-20261013 triggers one HOLD-only run. Run 6: FREE re-scoring (adds governing-prefix hedge check) of run 38324082330 records with post-series guards and two-window MiniCheck. No Gemini key is passed to the job; staging READ ONLY.",
+  "_comment": "Each commit to this file on experiment/evidence-phase1-20261013 triggers one HOLD-only run. Run 7: pre-registered control-set selection (scripts/evidence-phase1-controlset.py, committed before this run) from data already in intelligence.items, plus free descriptive experiments. READ ONLY, no Gemini key, no Supabase writes, no schema change, no new originals.",
   "source": "fixtures",
   "extractor": "replay",
   "entailment": "none",
   "max_docs": 3,
-  "series": "phase1-rescore-v1"
+  "series": "phase1-controlset-v1"
 }
