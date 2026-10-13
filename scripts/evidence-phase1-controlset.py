@@ -14,6 +14,20 @@ PRE-REGISTERED SELECTION (committed before the first run; do not change after se
   frozen     the manifest stores ids, titles, URLs, text length and SHA-256 of the exact text used;
              texts themselves stay in Supabase (third-party content, public repo).
 
+AMENDMENT v2 (committed 2026-10-13 after run 38360407128 and before any v2 run): the v1 pool was
+empty — none of the 2,767 stored news items has a body (metadata only) and TED items store only
+short structured fields. Without loading originals (not allowed), selection is done on METADATA:
+  news       item_type='news', http(s) URL, title >= 30 chars with <= 10 % non-Latin letters,
+             not PAC-3 / staging; normalised-title duplicates and near-duplicate titles
+             (word Jaccard >= 0.8) skipped; publisher = raw_data.origin_title or source name.
+  tenders    up to MAX_TED_V2 TED notices (official structured records, different gold path).
+  sampling   unchanged (seed, publisher round-robin, <= MAX_PER_PUBLISHER) until TARGET.
+  texts      not stored: the human labeler reads the publisher page; the Codex labelling tool
+             later aligns quotes to a stored version (offsets + SHA-256), when storage is allowed.
+Free experiments on NEW data are therefore limited to titles and metadata:
+  E-C' duplicate / near-duplicate titles across all stored news (syndication proxy),
+  E-B' guard cue rates on headlines, raw vs proper-name filter (Title Case robustness).
+
 HOLD-OUT RULE: until human labels exist, the control set is used ONLY for descriptive statistics.
 No rule, prompt or threshold may be tuned on it.
 
@@ -46,6 +60,9 @@ MAX_TED = 6
 MAX_PER_PUBLISHER = 2
 MIN_CHARS = 1200
 JACCARD_DUP = 0.5
+RULES_VERSION = 2
+MAX_TED_V2 = 4
+TITLE_JACCARD_DUP = 0.8
 OUT = ROOT / "output/evidence-phase1"
 TRUNCATION = re.compile(r"(read more|continue reading|\[…\]|\[\.\.\.\]|…\s*$|the post .{0,200} appeared first on)", re.I)
 BOILERPLATE = re.compile(r"(cookie|subscribe|newsletter|sign up|all rights reserved|privacy policy)", re.I)
@@ -147,6 +164,7 @@ def main():
             publisher = "TED"
         news_or_ted = news if itype == "news" else tenders
         news_or_ted.append({"item_id": item_id, "item_type": itype, "external_id": ext, "title": title, "url": url,
+                            "folder": raw.get("folder"), "raw_keys": sorted(raw)[:30],
                             "published_at": pub.isoformat() if pub else None, "publisher": publisher,
                             "text_field": field, "text": text})
 
@@ -203,12 +221,65 @@ def main():
                 taken[p] += 1
                 progress = True
                 break
+    report["v1_selection"] = {"rules_version": 1, "selected": len(chosen), "skipped_near_duplicates": skipped_dup,
+                              "note": "v1 pool requires stored text >= MIN_CHARS; superseded by v2"}
+
+    def title_ok(t):
+        letters = [c for c in (t or "") if c.isalpha()]
+        if len((t or "").strip()) < 30 or not letters:
+            return False
+        return sum(not ("a" <= c.lower() <= "z") for c in letters) / len(letters) <= 0.10
+
+    def eligible_v2(x):
+        if not (x["url"] or "").startswith(("http://", "https://")):
+            return "NO_URL"
+        if x["url"] in staged_urls or "pac-3-edge" in (x["url"] or ""):
+            return "KNOWN_EXCLUDED"
+        if x["item_type"] == "news" and not title_ok(x["title"]):
+            return "TITLE_NOT_ELIGIBLE"
+        return None
+
+    report["eligibility_v2"] = dict(collections.Counter(eligible_v2(x) or "ELIGIBLE" for x in news + tenders))
+    rng = random.Random(SEED)
+    pool = collections.defaultdict(list)
+    for x in news + tenders:
+        if not eligible_v2(x):
+            pool[x["publisher"]].append(x)
+    publishers = sorted(pool)
+    rng.shuffle(publishers)
+    for p in publishers:
+        rng.shuffle(pool[p])
+    chosen, titles, title_sets, skipped_dup = [], set(), [], 0
+    taken = collections.Counter()
+    progress = True
+    while len(chosen) < TARGET and progress:
+        progress = False
+        for p in publishers:
+            if len(chosen) >= TARGET:
+                break
+            if taken[p] >= (MAX_TED_V2 if p == "TED" else MAX_PER_PUBLISHER):
+                continue
+            while pool[p]:
+                x = pool[p].pop(0)
+                tw = set(norm_title(x["title"]).split())
+                if norm_title(x["title"]) in titles or any(jaccard(tw, o) >= TITLE_JACCARD_DUP for o in title_sets):
+                    skipped_dup += 1
+                    continue
+                chosen.append(x)
+                titles.add(norm_title(x["title"]))
+                title_sets.append(tw)
+                taken[p] += 1
+                progress = True
+                break
+    report["selection"] = {"rules_version": RULES_VERSION, "selected": len(chosen), "skipped_duplicate_titles": skipped_dup,
+                           "per_publisher": dict(taken), "publishers_available": len(publishers),
+                           "target_met": len(chosen) >= 20}
+
     manifest = [{"rank": i + 1, "item_id": x["item_id"], "item_type": x["item_type"], "external_id": x["external_id"],
                  "publisher": x["publisher"], "title": (x["title"] or "")[:200], "url": x["url"],
-                 "published_at": x["published_at"], "text_field": x["text_field"], "text_chars": len(x["text"]),
-                 "text_sha256": hashlib.sha256(x["text"].encode()).hexdigest()} for i, x in enumerate(chosen)]
-    report["selection"] = {"selected": len(manifest), "skipped_near_duplicates": skipped_dup,
-                           "per_publisher": dict(taken), "target_met": len(manifest) >= 20}
+                 "published_at": x["published_at"],
+                 "folder": x.get("folder"), "stored_text": "NONE (metadata only; labeler reads the publisher page)"
+                 if x["item_type"] == "news" else "structured TED fields only"} for i, x in enumerate(chosen)]
 
     # ---- free descriptive experiments: KNOWN vs NEW ----
     known = [d["text"] for d in D.load_fixtures(["syn-contract-negation", "syn-cancelled-dates"])]
@@ -217,16 +288,21 @@ def main():
         known.append(pac)
     except Exception as exc:
         report["errors"].append("PAC3_READ_FAILED:" + type(exc).__name__)
-    new = [x["text"] for x in chosen]
-    report["E-A_text_quality"] = {"known": quality(known), "new": quality(new)}
-    report["E-B_guard_cue_rates"] = {"known": cue_rates(known), "new": cue_rates(new),
-                                     "note": "descriptive only: cue frequency, not accuracy"}
-    bodies = [x for x in news if len(x["text"]) >= 300]
-    title_dups = sum(c - 1 for c in collections.Counter(norm_title(x["title"]) for x in news).values() if c > 1)
-    sh = [shingles(x["text"]) for x in bodies]
-    near = sum(1 for i in range(len(sh)) for j in range(i + 1, len(sh)) if jaccard(sh[i], sh[j]) >= JACCARD_DUP)
-    report["E-C_syndication"] = {"news_items": len(news), "duplicate_titles_beyond_first": title_dups,
-                                 "bodies_compared": len(bodies), "near_duplicate_body_pairs_jaccard_ge_0_5": near}
+    report["E-A_text_quality"] = {"known": quality(known), "new": "NOT AVAILABLE: no stored texts for new items"}
+    all_titles = [x["title"] or "" for x in news]
+    report["E-B_guard_cue_rates"] = {"known_texts": cue_rates(known),
+                                     "new_headlines_all_stored_news": cue_rates(all_titles),
+                                     "new_headlines_control_set": cue_rates([x["title"] or "" for x in chosen]),
+                                     "note": "descriptive only: cue frequency, not accuracy; headlines are often Title Case"}
+    groups = collections.Counter(norm_title(t) for t in all_titles)
+    url_groups = collections.Counter(x["url"] for x in news if x["url"])
+    report["E-C_syndication"] = {"news_items": len(news),
+                                 "distinct_normalised_titles": len(groups),
+                                 "items_in_repeated_title_groups": sum(c for c in groups.values() if c > 1),
+                                 "largest_title_group": max(groups.values()) if groups else 0,
+                                 "distinct_urls": len(url_groups),
+                                 "items_sharing_a_url": sum(c for c in url_groups.values() if c > 1),
+                                 "raw_data_key_sets_top3": collections.Counter(tuple(x["raw_keys"]) for x in news).most_common(3)}
 
     (OUT / "controlset-manifest.json").write_text(json.dumps(manifest, indent=1, ensure_ascii=False))
     (OUT / "controlset-report.json").write_text(json.dumps(report, indent=1, ensure_ascii=False, default=str))
