@@ -1,5 +1,12 @@
 name: Global company harvest (private artifact)
 on:
+  push:
+    branches:
+      - feature/m0-approved-intelligence-feed-20261013
+    paths:
+      - 'scripts/global_harvester.py'
+      - '.github/workflows/global-company-harvest.yml'
+      - 'tests/test_global_harvester.py'
   workflow_dispatch:
     inputs:
       programmes:
