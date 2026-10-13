@@ -279,6 +279,19 @@ class PostSeriesFixes(unittest.TestCase):
         with self.assertRaises(ValueError):
             score_against_gold([r], dict(NEG, gold=[dict(gold[0], span_sha256="0" * 64)]))
 
+    def test_hedge_just_before_span_is_checked(self):
+        doc = dict(NEG, text=NEG["text"] + " The new radar would represent the top tier of short-range sensors.",
+                   document_id="fixture:hedge2")
+        r = build_record(document=doc, extractor_name="t", candidate={
+            "claim_text": "The radar represents the top tier of short-range sensors.",
+            "evidence_text": "the top tier of short-range sensors", "modality": None})
+        apply_guards(r, doc["text"])
+        self.assertIn("CLAIM_DROPS_PLAN_CUE_GOVERNING_SPAN", r["hold_reasons"])
+        ok = rec(NEG, claim_text="The ministry awarded Kestrel a radar contract.", modality="announced",
+                 asserted_by="Valdorian Ministry of Defence",
+                 evidence_text="awarded Kestrel Dynamics a contract worth EUR 48 million")
+        self.assertFalse([h for h in ok["hold_reasons"] if h.startswith("CLAIM_DROPS")])
+
 
 class Safety(unittest.TestCase):
     def test_package_has_no_write_sql(self):

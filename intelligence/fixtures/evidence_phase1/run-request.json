@@ -1,5 +1,5 @@
 {
-  "_comment": "Each commit to this file on experiment/evidence-phase1-20261013 triggers one HOLD-only run. Run 5: FREE re-scoring of run 38324082330 records with post-series guards and two-window MiniCheck. No Gemini key is passed to the job; staging READ ONLY.",
+  "_comment": "Each commit to this file on experiment/evidence-phase1-20261013 triggers one HOLD-only run. Run 6: FREE re-scoring (adds governing-prefix hedge check) of run 38324082330 records with post-series guards and two-window MiniCheck. No Gemini key is passed to the job; staging READ ONLY.",
   "source": "fixtures",
   "extractor": "replay",
   "entailment": "none",

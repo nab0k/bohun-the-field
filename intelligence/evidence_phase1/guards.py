@@ -49,6 +49,15 @@ def wide_window(text, start, end, radius=1200):
     return text[left:right].strip()
 
 
+def governing_prefix(text, start, max_chars=60):
+    """Up to max_chars immediately before the span, cut at the sentence start."""
+    if start is None:
+        return ""
+    prefix = text[max(0, start - max_chars):start]
+    cut = max(prefix.rfind(". "), prefix.rfind("\n"))
+    return prefix[cut + 1:] if cut != -1 else prefix
+
+
 def _hits(pattern, s):
     """Cue matches, ignoring capitalised words in mid-sentence (parts of proper names such as
     'Future Interceptor'). Added after run 38324082330, where such names caused false PLAN cues."""
@@ -149,6 +158,10 @@ def apply_guards(record, text):
                                          ("NEGATION", NEGATION_CUES, CLAIM_NEGATION_STEMS)):
         if _has(pattern, span) and not _has(claim_pattern, claim):
             record["hold_reasons"].append(f"CLAIM_DROPS_{name}_CUE_FROM_SPAN")
+        # A cue just before the span in the same sentence can govern it while being left out
+        # of the cited span ("a new interceptor that would represent | the top tier ...").
+        elif _has(pattern, governing_prefix(text, record.get("char_start"))) and not _has(claim_pattern, claim):
+            record["hold_reasons"].append(f"CLAIM_DROPS_{name}_CUE_GOVERNING_SPAN")
     if _has(REPORTED_CUES, window) and not record.get("asserted_by"):
         record["hold_reasons"].append("ATTRIBUTION_CUE_BUT_ASSERTED_BY_UNKNOWN")
     if record.get("asserted_by") and record["asserted_by"].lower() not in window.lower():
