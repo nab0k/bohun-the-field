@@ -35,11 +35,16 @@ jobs:
           assert p['qa_status']=='HOLD' and p['public_release'] is False
           assert p['supabase_write'] is False
           assert len(p['source_sha256'])==64 and p['source_bytes']>0
+          assert len(p['model_request_sha256'])==64
+          assert p['model_response']=='NOT_CALLED'
+          assert p['offline_contract_validation']['pass'] is True
           print('OFFLINE EVIDENCE QA HOLD PASS')
           PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: cordis-gemini-offline-qa-hold
-          path: output/cordis-gemini-pilot/result.json
+          path: |
+            output/cordis-gemini-pilot/result.json
+            output/cordis-gemini-pilot/model-request.json
           retention-days: 14
