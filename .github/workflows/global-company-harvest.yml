@@ -1,0 +1,52 @@
+name: Global company harvest (private artifact)
+on:
+  workflow_dispatch:
+    inputs:
+      programmes:
+        description: "CORDIS archives to read (cordis-horizon,cordis-h2020,cordis-fp7)"
+        required: false
+        default: "cordis-horizon"
+      discover_feeds:
+        description: "Find RSS/Atom links on listed sources (true/false)"
+        required: false
+        default: "true"
+  # Deliberately no schedule until source access, licensing and QA are reviewed.
+permissions:
+  contents: read
+jobs:
+  intake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Test offline archive parser and discovery structure
+        run: python3 -m unittest discover -s tests -p 'test_global_harvester.py' -v
+      - name: Read real CORDIS bulk archive and discover RSS
+        continue-on-error: false
+        env:
+          HARVEST_PROGRAMMES: ${{ inputs.programmes || 'cordis-horizon' }}
+          DISCOVER_FEEDS: ${{ inputs.discover_feeds || 'true' }}
+        run: |
+          args=()
+          if [ "$DISCOVER_FEEDS" = "true" ]; then args+=(--discover-feeds --max-sites 30); fi
+          python3 scripts/global_harvester.py --programmes "$HARVEST_PROGRAMMES" --out-dir .local/harvest --max-download-mb 120 "${args[@]}"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          report=json.loads(Path('.local/harvest/report.json').read_text())
+          if not report['archives']:
+              raise SystemExit('No real archive ingested. Inspect source errors; NOT marking run successful.')
+          assert report['public_release_count']==0
+          print('Real source archive ingestion PASS:',report['archives'])
+          PY
+      - name: Upload private research artifact (NOT a public site deploy)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: global-company-harvest-internal
+          path: .local/harvest/
+          retention-days: 7
+          if-no-files-found: warn
