@@ -7,6 +7,8 @@ on:
       - 'src/atlas/main.js'
       - 'scripts/test-steelfin-internal.mjs'
       - '.github/workflows/eng09-steelfin-internal-ui.yml'
+  pull_request:
+    branches: [r1-unified-site-review-20261011]
   workflow_dispatch:
 permissions:
   contents: read
