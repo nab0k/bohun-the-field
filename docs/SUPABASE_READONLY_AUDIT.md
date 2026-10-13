@@ -9,6 +9,12 @@ optionally use `SUPABASE_DB_HOST`, `SUPABASE_DB_PORT`, `SUPABASE_DB_USER`, and
 `SUPABASE_DB_NAME` environment overrides. The workflow never prints credentials,
 record bodies, titles, URLs, coordinates, or people.
 
+Before the standalone workflow reaches the default branch, use the existing
+**M0 Public Release Readiness (NO DEPLOY)** workflow with the
+`supabase_schema_audit` input enabled. That input skips its normal release jobs and
+runs only the same read-only audit. This bootstrap path is necessary because GitHub
+will not dispatch a newly added workflow that is absent from the default branch.
+
 The artifact `supabase-intelligence-schema-audit` contains `report.json` with:
 
 - actual relations, columns and PostgreSQL types in `intelligence`;
