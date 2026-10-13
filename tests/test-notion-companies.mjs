@@ -20,3 +20,6 @@ try {
  assert.equal(new Set(file.companies.map(x=>x.notion_url)).size,file.companies.length,'Duplicate Notion identity');
  console.log('Validated actual Notion company snapshot:',file.companies.length);
 } catch(e){if(e.code!=='ENOENT')throw e;console.log('Snapshot not yet generated; adapter contract tests only');}
+
+// Offline mass-harvest contract (no external network or mutations).
+await import('./test-harvest-companies.mjs');
