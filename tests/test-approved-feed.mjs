@@ -24,3 +24,15 @@ assert.deepEqual(await loadApprovedIntelligence({ fetchImpl: async () => reply([
 assert.deepEqual(await loadApprovedIntelligence({ fetchImpl: async () => reply([good], false) }), []);
 assert.deepEqual(await loadApprovedIntelligence({ fetchImpl: async () => { throw Error('offline'); } }), []);
 console.log('approved intelligence feed: fail-closed checks passed');
+
+import { createAtlasState, selectApproved } from '../src/atlas/m1-state.js';
+const state=createAtlasState().get();
+assert.deepEqual(selectApproved([good],state),[good]);
+for (const malformed of [
+ {...good,content_hash:'invalid'},
+ {...good,source_url:'https://user:password@example.org/original'},
+ {...good,headline:''},
+ {...good,published_at:'unknown'},
+ {...good,country_iso2:'AUT'},
+ {...good,qa:{decision:'HOLD',public_release:true}}
+]) assert.deepEqual(selectApproved([malformed],state),[]);
