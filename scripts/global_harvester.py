@@ -63,7 +63,7 @@ def records_zip(raw,source,existing,out,limit=0):
    sniff=text.readline();text.seek(0)
    dialect=csv.excel
    if "\t" in sniff and ";" not in sniff:dialect=csv.excel_tab
-   elif sniff.count(";")>sniff.count(","):dialect=csv.excel;dialect.delimiter=";" # local dialect only
+   elif sniff.count(";")>sniff.count(","):dialect="excel-semicolon"\n   if dialect=="excel-semicolon":\n    reader=csv.DictReader(text,delimiter=";")\n   else:\n    reader=csv.DictReader(text,dialect=dialect)
    reader=csv.DictReader(text,dialect=dialect)
    if not reader.fieldnames:raise ValueError("no CSV headers")
    for r in reader:
