@@ -33,7 +33,7 @@ function validate(r) {
   if (typeof r.source_url!=='string') return false;
   try {const u=new URL(r.source_url);if(u.protocol!=='https:'||u.username||u.password)return false;}catch{return false;}
   if(typeof r.headline!=='string'||!r.headline.trim()||r.headline.length>300)return false;
-  if(typeof r.published_at!=='string'||!/^\\d{4}-\\d\\d-\\d\\d/.test(r.published_at))return false;
+  if(typeof r.published_at!=='string'||!/^\d{4}-\d\d-\d\d/.test(r.published_at))return false;
   if(r.country_iso2!=null&&!/^[A-Z]{2}$/.test(r.country_iso2))return false;
   if(r.takeaway!=null&&(typeof r.takeaway!=='string'||r.takeaway.length>1200))return false;
   return true;
