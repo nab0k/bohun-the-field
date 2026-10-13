@@ -1,0 +1,33 @@
+name: Supabase intelligence schema audit (READ ONLY)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test audit safety
+        run: python -m unittest tests/test_supabase_readonly_audit.py
+      - name: Install PostgreSQL driver
+        run: python -m pip install --disable-pip-version-check "psycopg[binary]"
+      - name: Audit live intelligence schema without record content
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: python scripts/supabase-readonly-audit.py
+      - name: Upload redacted audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-intelligence-schema-audit
+          path: output/supabase-readonly-audit/report.json
+          retention-days: 7
+          if-no-files-found: error
