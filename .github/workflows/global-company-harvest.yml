@@ -40,7 +40,7 @@ jobs:
         continue-on-error: false
         env:
           HARVEST_PROGRAMMES: ${{ inputs.programmes || 'cordis-horizon' }}
-          DISCOVER_FEEDS: ${{ inputs.discover_feeds || 'true' }}
+          DISCOVER_FEEDS: ${{ inputs.discover_feeds || 'false' }}
         run: |
           args=()
           if [ "$DISCOVER_FEEDS" = "true" ]; then args+=(--discover-feeds --max-sites 30); fi
