@@ -62,6 +62,20 @@ def main():
     request_json=json.dumps(body,sort_keys=True,ensure_ascii=False,separators=(",",":"))
     request_sha256=hashlib.sha256(request_json.encode()).hexdigest()
     (OUT/"model-request.json").write_text(request_json)
+    # Private CI artifact for independent QA: original bytes, immutable hash and locator.
+    # Never publish or deploy this packet; rights remain UNREVIEWED.
+    (OUT/"original-cordis.xml").write_bytes(raw)
+    (OUT/"evidence-packet.json").write_text(json.dumps({
+        "source_url": meta["source_url"],
+        "original_sha256": meta["original_sha256"],
+        "document_version": meta["original_sha256"],
+        "evidence_id": meta["evidence_id"],
+        "exact_excerpt": meta["exact_excerpt"],
+        "locator": meta["locator"],
+        "rights": "UNREVIEWED",
+        "qa": {"decision":"HOLD","public_release":False,"independent_review":"PENDING"},
+        "gemini_called": bool(args.call_gemini)
+    },sort_keys=True,ensure_ascii=False,indent=2))
     if not args.call_gemini:
         expected=body["contents"][0]["parts"][0]["text"]
         instruction=json.loads(expected)
