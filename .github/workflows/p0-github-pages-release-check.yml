@@ -1,0 +1,55 @@
+name: P0 GitHub Pages Atlas Release Candidate (NO DEPLOY)
+on:
+  push:
+    branches: [r1-unified-site-review-20261011]
+    paths:
+      - '.github/workflows/p0-github-pages-release-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  release-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - run: npm test
+      - name: Build real GitHub Pages root candidate
+        run: npm run build:site
+      - name: Assert site pages and fail-closed feed
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import {selectApproved,createAtlasState} from './src/atlas/m1-state.js';
+          const pages=['index.html','about.html','services.html','about-project.html','support-project.html','contact.html','privacy.html','404.html'];
+          for(const page of pages){if(!fs.existsSync('dist/'+page))throw Error('Missing route '+page)}
+          const doc=fs.readFileSync('dist/index.html','utf8');
+          if(!doc.includes('id="map"')) throw Error('Atlas map missing');
+          if(!doc.includes('m1-mobile-menu')) throw Error('Mobile navigation missing');
+          const denied={qa:{decision:'HOLD',public_release:true},source_url:'https://example.com',content_hash:'abc'};
+          const denied2={qa:{decision:'APPROVE',public_release:false},source_url:'https://example.com',content_hash:'abc'};
+          if(selectApproved([denied,denied2],createAtlasState().get()).length)throw Error('HOLD or non-release accepted');
+          const files=[];
+          function walk(dir){for(const d of fs.readdirSync(dir,{withFileTypes:true})){const p=dir+'/'+d.name;d.isDirectory()?walk(p):files.push(p)}}
+          walk('dist');
+          for(const p of files.filter(x=>/\.(html|json|js)$/.test(x))){
+            const t=fs.readFileSync(p,'utf8');
+            if(/event:issuer-announcement:steelfin:2026-10-12|INTERNAL REVIEW · QA HOLD|tag:google.com,2005:reader\/item\/0000000bd4c065db/.test(t))throw Error('QA HOLD leaked: '+p);
+          }
+          fs.writeFileSync('dist/CNAME','bohundefence.com\n');
+          const manifest={source_branch:process.env.GITHUB_REF_NAME,source_sha:process.env.GITHUB_SHA,release_candidate_only:true,production_deploy:false,verified_notional_companies:0,approved_intelligence_events:0,pages,files:files.length};
+          fs.writeFileSync('p0-release-manifest.json',JSON.stringify(manifest,null,2));
+          console.log('PASS',JSON.stringify(manifest));
+          JS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p0-pages-atlas-reviewed-dist
+          path: |
+            dist/
+            p0-release-manifest.json
+          retention-days: 7
