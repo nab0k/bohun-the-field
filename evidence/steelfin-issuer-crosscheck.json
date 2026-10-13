@@ -1,0 +1,17 @@
+{
+  "type": "review_only_crosscheck",
+  "rss_item_id": "tag:google.com,2005:reader/item/0000000bd4c065db",
+  "rss_metadata_hash": "dd3e9c17b00bccb102590cd53c0043821f308f1e8a694608a972eb5141aa8184",
+  "twz": "https://www.twz.com/land/anduril-unveils-steelfin-family-of-modular-surface-to-air-missiles",
+  "official_issuer": "https://www.anduril.com/news/steelfin",
+  "announced": "Steelfin product family",
+  "plans_not_proven": [
+    "manufacture several thousand per year",
+    "flight tests in 2027",
+    "system compatibility"
+  ],
+  "original_bytes_hash": null,
+  "license": "UNREVIEWED",
+  "qa": "HOLD",
+  "public_release": false
+}
