@@ -15,27 +15,52 @@ SOURCE_URL="https://cordis.europa.eu/project/id/101289409?format=xml"
 MODEL=os.getenv("GEMINI_MODEL","gemini-2.5-flash-lite")
 OUT=ROOT/"output/cordis-gemini-pilot"
 
+def resolve_financial_element(root, xpath):
+    """Resolve the canonical XML locator using the CORDIS namespace, not string XPath guessing."""
+    if xpath!="/project/ecMaxContribution":
+        raise ValueError("UNSUPPORTED_FINANCIAL_XPATH")
+    ns="http://cordis.europa.eu"
+    if root.tag!="{"+ns+"}project":
+        raise ValueError("UNEXPECTED_CORDIS_NAMESPACE")
+    matches=root.findall("{"+ns+"}ecMaxContribution")
+    if len(matches)!=1 or not matches[0].text:
+        raise ValueError("MISSING_OR_AMBIGUOUS_FINANCIAL_ELEMENT")
+    return matches[0].text.strip()
+
+def validate_financial_claim(claim, expected_amount):
+    if claim.get("predicate")!="reported_ec_max_contribution":
+        raise ValueError("UNSUPPORTED_FINANCIAL_PREDICATE")
+    obj=claim.get("object")
+    if not isinstance(obj,dict) or obj.get("value")!=expected_amount or obj.get("unit")!="EUR":
+        raise ValueError("FINANCIAL_AMOUNT_OR_UNIT_MISMATCH")
+    if obj.get("datatype")!="decimal":
+        raise ValueError("FINANCIAL_DATATYPE_MISMATCH")
+    return True
+
 def make_packet(xml_bytes):
     text=xml_bytes.decode("utf-8")
     root=ET.fromstring(xml_bytes)
     ns={"c":"http://cordis.europa.eu"}
     if root.findtext("c:id",default="",namespaces=ns)!="101289409":
         raise ValueError("PROJECT_ID_MISMATCH")
-    value=root.findtext("c:ecMaxContribution",default="",namespaces=ns)
+    value=resolve_financial_element(root,"/project/ecMaxContribution")
     if not value: raise ValueError("NO_SOURCE_FACT")
     excerpt,locator=exact_locator(text,"ecMaxContribution",value)
+    if resolve_financial_element(root,locator["xpath"])!=value:
+        raise ValueError("NAMESPACE_AWARE_LOCATOR_MISMATCH")
+    locator["namespace_uri"]="http://cordis.europa.eu"
     doc_hash=hashlib.sha256(xml_bytes).hexdigest()
     evidence_id="evidence:cordis:101289409:ecMaxContribution:"+doc_hash[:12]
     packet={"evidence":[{"evidence_id":evidence_id,"exact_excerpt":excerpt}]}
     return packet,{"source_url":SOURCE_URL,"original_sha256":doc_hash,"source_kind":"official_xml",
                    "rights":"UNREVIEWED","qa_status":"HOLD","public_release":False,
-                   "exact_excerpt":excerpt,"locator":locator,"evidence_id":evidence_id}
+                   "exact_excerpt":excerpt,"locator":locator,"evidence_id":evidence_id,"financial_value":value}
 
 def model_request(packet,meta):
-    prompt={"instruction":"Produce EXACTLY one conservative candidate from the original XML excerpt. Use an exact contiguous evidence span, do not infer other facts. qa_status must be HOLD. JSON only.",
+    prompt={"instruction":"Produce EXACTLY one conservative candidate: predicate reported_ec_max_contribution, decimal value from official XML and unit EUR. This is MAXIMUM EU contribution to project, NOT funds paid, expenditure, contract award or total budget. Use exact contiguous span. qa_status MUST be HOLD. JSON only.",
      "source_url":meta["source_url"],"evidence_id":meta["evidence_id"],
-     "evidence_text":meta["exact_excerpt"],
-     "required_shape":{"qa_status":"HOLD","candidate_claims":[{"claim_id":"string","subject":"string","predicate":"string","object":{"value":"string","datatype":"string","unit":None},"evidence_ids":[meta["evidence_id"]],"exact_spans":[meta["exact_excerpt"]],"confidence":0.0}],"candidate_event":{"type":"source_update","claim_ids":["same claim_id"]},"uncertainties":[]}}
+     "evidence_text":meta["exact_excerpt"],"financial_value":meta["financial_value"],
+     "required_shape":{"qa_status":"HOLD","candidate_claims":[{"claim_id":"string","subject":"string","predicate":"string","object":{"value":meta["financial_value"],"datatype":"decimal","unit":"EUR"},"evidence_ids":[meta["evidence_id"]],"exact_spans":[meta["exact_excerpt"]],"confidence":0.0}],"candidate_event":{"type":"source_update","claim_ids":["same claim_id"]},"uncertainties":[]}}
     return {"contents":[{"parts":[{"text":json.dumps(prompt,ensure_ascii=False)}]}],
             "generationConfig":{"responseMimeType":"application/json","maxOutputTokens":500,"temperature":0}}
 
@@ -84,10 +109,11 @@ def main():
         # An intentionally local candidate checks wiring only, not the truth of a model response.
         local_claim={"claim_id":"offline:claim:cordis:101289409:amount",
           "subject":"CORDIS:101289409","predicate":"reported_ec_max_contribution",
-          "object":{"value":meta["exact_excerpt"],"datatype":"source_excerpt","unit":None},
+          "object":{"value":meta["financial_value"],"datatype":"decimal","unit":"EUR"},
           "evidence_ids":[meta["evidence_id"]],"exact_spans":[meta["exact_excerpt"]]}
         local_candidate={"qa_status":"HOLD","candidate_claims":[local_claim],
           "candidate_event":{"type":"source_update","claim_ids":[local_claim["claim_id"]]}}
+        validate_financial_claim(local_claim,meta["financial_value"])
         contract_validation=validate_candidate(packet,local_candidate)
         if not contract_validation["pass"] or contract_validation["qa_status"]!="HOLD":
             raise RuntimeError("OFFLINE_CONTRACT_VALIDATION_FAILED")
@@ -96,6 +122,7 @@ def main():
         if len(candidate.get("candidate_claims") or []) != 1:
             raise RuntimeError("EXPECTED_EXACTLY_ONE_CANDIDATE_CLAIM")
         verification=validate_candidate(packet,candidate)
+        validate_financial_claim(candidate["candidate_claims"][0],meta["financial_value"])
         result={"mode":"LIVE_GEMINI_CANDIDATE","model":MODEL,"source_sha256":meta["original_sha256"],
                 "validation":verification,"usage":usage,"qa_status":"HOLD","public_release":False,
                 "supabase_write":False,"independent_review":"PENDING"}
