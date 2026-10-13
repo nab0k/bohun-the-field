@@ -38,6 +38,17 @@ jobs:
           assert len(p['model_request_sha256'])==64
           assert p['model_response']=='NOT_CALLED'
           assert p['offline_contract_validation']['pass'] is True
+          from pathlib import Path
+          import hashlib
+          raw=Path('output/cordis-gemini-pilot/original-cordis.xml').read_bytes()
+          e=json.load(open('output/cordis-gemini-pilot/evidence-packet.json'))
+          assert hashlib.sha256(raw).hexdigest()==e['original_sha256']==p['source_sha256']
+          assert e['exact_excerpt'].encode() in raw
+          pos=raw.decode('utf-8').find(e['exact_excerpt'])
+          assert e['locator']['char_start']==pos
+          assert e['locator']['char_end']==pos+len(e['exact_excerpt'])
+          assert e['qa']['decision']=='HOLD' and e['qa']['public_release'] is False
+          assert e['rights']=='UNREVIEWED' and e['gemini_called'] is False
           print('OFFLINE EVIDENCE QA HOLD PASS')
           PY
       - uses: actions/upload-artifact@v4
@@ -47,4 +58,6 @@ jobs:
           path: |
             output/cordis-gemini-pilot/result.json
             output/cordis-gemini-pilot/model-request.json
+            output/cordis-gemini-pilot/evidence-packet.json
+            output/cordis-gemini-pilot/original-cordis.xml
           retention-days: 14
