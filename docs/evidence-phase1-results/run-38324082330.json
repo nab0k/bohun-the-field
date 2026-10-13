@@ -1,0 +1,2072 @@
+{
+ "run_id": "38324082330",
+ "workflow": "Evidence Phase 1 Experiment",
+ "job": "paid-series",
+ "source": "GitHub check-run annotations",
+ "note": "PAC-3 (third-party article) evidence spans are replaced by sha256 + char offsets into the stored text (first 12,000 chars of bohun_staging.inoreader_documents.original_visible_text); synthetic fixture spans are kept.",
+ "series_log": {
+  "started": "2026-10-12T23:51:28Z",
+  "pac3": {
+   "document_id": "document:6cccf56a0b0676f88ef754b0",
+   "source_url": "https://www.twz.com/land/pac-3-edge-will-be-the-most-capable-patriot-interceptor-ever",
+   "title": "PAC-3 Edge Will Be The Most Capable Patriot Interceptor Ever",
+   "publication_date": "2026-10-12",
+   "stored_text_chars": 18767,
+   "experiment_text_chars": 12000
+  },
+  "preflight": {
+   "plan": [
+    {
+     "doc": "fixture:syn-cancelled-dates",
+     "direct_calls": 1,
+     "langextract_calls_max": 3,
+     "worst_usd": 0.02332
+    },
+    {
+     "doc": "fixture:syn-contract-negation",
+     "direct_calls": 1,
+     "langextract_calls_max": 3,
+     "worst_usd": 0.02333
+    },
+    {
+     "doc": "document:6cccf56a0b0676f88ef754b0",
+     "direct_calls": 1,
+     "langextract_calls_max": 17,
+     "worst_usd": 0.10848
+    }
+   ],
+   "worst_case_total_usd": 0.15513,
+   "prior_spend_usd": 0.0053,
+   "planned_calls_max": 26,
+   "fits_cap": true
+  },
+  "minicheck": {
+   "model": "MiniCheck/lytang/MiniCheck-Flan-T5-Large",
+   "load_s": 1.04,
+   "commit": "b58b9fa69acbd1015ec970fa65dd752413a053d2"
+  },
+  "pilot_baseline": [
+   {
+    "model_run_id": "model-run:2bfc177d75efda9c207e5666",
+    "model": "gemini-3.5-flash-lite",
+    "usage": {
+     "serviceTier": "standard",
+     "totalTokenCount": 2890,
+     "promptTokenCount": 2635,
+     "promptTokensDetails": [
+      {
+       "modality": "TEXT",
+       "tokenCount": 2635
+      }
+     ],
+     "candidatesTokenCount": 255
+    },
+    "created_at": "2026-10-12T20:59:33.293930+00:00"
+   }
+  ],
+  "ledger": {
+   "limit_type": "PROGRAMMATIC_ESTIMATE_NOT_BILLING_GUARANTEE",
+   "model": "gemini-3.5-flash-lite",
+   "price": {
+    "input_per_m": 0.3,
+    "output_per_m": 2.5,
+    "source": "https://ai.google.dev/gemini-api/docs/pricing",
+    "checked": "2026-10-13"
+   },
+   "cap_usd": 0.5,
+   "max_calls": 40,
+   "max_input_tokens_per_call": 8000,
+   "max_output_tokens_per_call_incl_thinking": 2048,
+   "retries": 0,
+   "calls_attempted": 14,
+   "calls_ok": 14,
+   "prompt_tokens": 12395,
+   "output_tokens": 5092,
+   "thought_tokens": 0,
+   "spent_usd_paid_tier_estimate": 0.021749,
+   "model_versions": [
+    "gemini-3.5-flash-lite"
+   ],
+   "stopped": null
+  },
+  "errors": [],
+  "total_seconds": 62.12
+ },
+ "calls": [
+  {
+   "tag": "e1",
+   "outcome": "OK",
+   "counted_input_tokens": 410,
+   "prompt_tokens": 410,
+   "output_tokens": 308,
+   "thought_tokens": 0,
+   "finish_reason": "STOP",
+   "latency_s": 1.067,
+   "cost_usd": 0.000893,
+   "cost_basis": "usageMetadata",
+   "worst_case_usd": 0.005243,
+   "model_version": "gemini-3.5-flash-lite"
+  },
+  {
+   "tag": "e1",
+   "outcome": "OK",
+   "counted_input_tokens": 420,
+   "prompt_tokens": 420,
+   "output_tokens": 491,
+   "thought_tokens": 0,
+   "finish_reason": "STOP",
+   "latency_s": 1.627,
+   "cost_usd": 0.001354,
+   "cost_basis": "usageMetadata",
+   "worst_case_usd": 0.005246,
+   "model_version": "gemini-3.5-flash-lite"
+  },
+  {
+   "tag": "e2",
+   "outcome": "OK",
+   "counted_input_tokens": 697,
+   "prompt_tokens": 697,
+   "output_tokens": 320,
+   "thought_tokens": 0,
+   "finish_reason": "STOP",
+   "latency_s": 1.162,
+   "cost_usd": 0.001009,
+   "cost_basis": "usageMetadata",
+   "worst_case_usd": 0.005329,
+   "model_version": "gemini-3.5-flash-lite"
+  },
+  {
+   "tag": "e2",
+   "outcome": "OK",
+   "counted_input_tokens": 707,
+   "prompt_tokens": 707,
+   "output_tokens": 616,
+   "thought_tokens": 0,
+   "finish_reason": "STOP",
+   "latency_s": 1.697,
+   "cost_usd": 0.001752,
+   "cost_basis": "usageMetadata",
+   "worst_case_usd": 0.005332,
+   "model_version": "gemini-3.5-flash-lite"
+  },
+  {
+   "tag": "e3b",
+   "outcome": "OK",
+   "counted_input_tokens": 2657,
+   "prompt_tokens": 2657,
+   "output_tokens": 892,
+   "thought_tokens": 0,
+   "finish_reason": "STOP",
+   "latency_s": 2.205,
+   "cost_usd": 0.003027,
+   "cost_basis": "usageMetadata",
+   "worst_case_usd": 0.005917,
+   "model_version": "gemini-3.5-flash-lite"
+  },
+  {
+   "tag": "e3c",
+   "outcome": "OK",
+   "counted_input_tokens": 828,
+   "prompt_tokens": 828,
+   "output_tokens": 10,
+   "thought_tokens": 0,
+   "finish_reason": "STOP",
+   "latency_s": 0.526,
+   "cost_usd": 0.000273,
+   "cost_basis": "usageMetadata",
+   "worst_case_usd": 0.005368,
+   "model_version": "gemini-3.5-flash-lite"
+  },
+  {
+   "tag": "e3c",
+   "outcome": "OK",
+   "counted_input_tokens": 922,
+   "prompt_tokens": 922,
+   "output_tokens": 95,
+   "thought_tokens": 0,
+   "finish_reason": "STOP",
+   "latency_s": 0.722,
+   "cost_usd": 0.000514,
+   "cost_basis": "usageMetadata",
+   "worst_case_usd": 0.005397,
+   "model_version": "gemini-3.5-flash-lite"
+  },
+  {
+   "tag": "e3c",
+   "outcome": "OK",
+   "counted_input_tokens": 857,
+   "prompt_tokens": 857,
+   "output_tokens": 405,
+   "thought_tokens": 0,
+   "finish_reason": "STOP",
+   "latency_s": 1.359,
+   "cost_usd": 0.00127,
+   "cost_basis": "usageMetadata",
+   "worst_case_usd": 0.005377,
+   "model_version": "gemini-3.5-flash-lite"
+  },
+  {
+   "tag": "e3c",
+   "outcome": "OK",
+   "counted_input_tokens": 823,
+   "prompt_tokens": 823,
+   "output_tokens": 531,
+   "thought_tokens": 0,
+   "finish_reason": "STOP",
+   "latency_s": 1.539,
+   "cost_usd": 0.001574,
+   "cost_basis": "usageMetadata",
+   "worst_case_usd": 0.005367,
+   "model_version": "gemini-3.5-flash-lite"
+  },
+  {
+   "tag": "e3c",
+   "outcome": "OK",
+   "counted_input_tokens": 815,
+   "prompt_tokens": 815,
+   "output_tokens": 505,
+   "thought_tokens": 0,
+   "finish_reason": "STOP",
+   "latency_s": 1.669,
+   "cost_usd": 0.001507,
+   "cost_basis": "usageMetadata",
+   "worst_case_usd": 0.005365,
+   "model_version": "gemini-3.5-flash-lite"
+  },
+  {
+   "tag": "e3c",
+   "outcome": "OK",
+   "counted_input_tokens": 833,
+   "prompt_tokens": 833,
+   "output_tokens": 106,
+   "thought_tokens": 0,
+   "finish_reason": "STOP",
+   "latency_s": 0.983,
+   "cost_usd": 0.000515,
+   "cost_basis": "usageMetadata",
+   "worst_case_usd": 0.00537,
+   "model_version": "gemini-3.5-flash-lite"
+  },
+  {
+   "tag": "e3c",
+   "outcome": "OK",
+   "counted_input_tokens": 861,
+   "prompt_tokens": 861,
+   "output_tokens": 110,
+   "thought_tokens": 0,
+   "finish_reason": "STOP",
+   "latency_s": 0.781,
+   "cost_usd": 0.000533,
+   "cost_basis": "usageMetadata",
+   "worst_case_usd": 0.005378,
+   "model_version": "gemini-3.5-flash-lite"
+  },
+  {
+   "tag": "e3c",
+   "outcome": "OK",
+   "counted_input_tokens": 851,
+   "prompt_tokens": 851,
+   "output_tokens": 240,
+   "thought_tokens": 0,
+   "finish_reason": "STOP",
+   "latency_s": 1.199,
+   "cost_usd": 0.000855,
+   "cost_basis": "usageMetadata",
+   "worst_case_usd": 0.005375,
+   "model_version": "gemini-3.5-flash-lite"
+  },
+  {
+   "tag": "e3c",
+   "outcome": "OK",
+   "counted_input_tokens": 714,
+   "prompt_tokens": 714,
+   "output_tokens": 463,
+   "thought_tokens": 0,
+   "finish_reason": "STOP",
+   "latency_s": 1.321,
+   "cost_usd": 0.001372,
+   "cost_basis": "usageMetadata",
+   "worst_case_usd": 0.005334,
+   "model_version": "gemini-3.5-flash-lite"
+  }
+ ],
+ "experiments": {
+  "e0-fixtures-replay": {
+   "summary": {
+    "metrics": {
+     "records": 9,
+     "span_not_in_text_rate": 0.1111,
+     "unsupported_claim_rate_minicheck": 0.25,
+     "all_hold": true,
+     "precision_span_match": 0.8889,
+     "recall_essential": 1.0,
+     "attribution_accuracy": 0.875,
+     "modality_accuracy": 0.75,
+     "quality_note": "Computed on 2 gold-labelled document(s). Small samples: not representative."
+    },
+    "entailment_run": {
+     "scored": 8,
+     "seconds": 3.634
+    },
+    "resources": {
+     "wall_s": 3.636,
+     "max_rss_mb": 3306.7,
+     "cpu_user_s": 10.64
+    },
+    "measurements": null,
+    "run": {
+     "label": "e0-fixtures-replay",
+     "method": "replay (hand-written, deliberate errors)"
+    },
+    "validation_problems": 0,
+    "documents": [
+     {
+      "document_id": "fixture:syn-cancelled-dates",
+      "outcome": "EXTRACTED",
+      "candidates": 3,
+      "text_chars": 550,
+      "extraction_meta": {
+       "extractor": "replay",
+       "latency_s": 0.0,
+       "token_usage_source": "NOT_APPLICABLE",
+       "prompt_tokens": null,
+       "output_tokens": null,
+       "input_chars": 550
+      },
+      "gold_eval": {
+       "predicted": 3,
+       "gold": 4,
+       "matched": 3,
+       "tp_essential": 3,
+       "essential": 3,
+       "attribution_correct": 3,
+       "modality_correct": 3,
+       "matched_detail": [
+        {
+         "gold": "Brightwater Munitions plans to build a new filling plant in 2028 regardless of t",
+         "pred_modality": "planned",
+         "gold_modality": "planned",
+         "pred_asserted_by": "Brightwater Munitions",
+         "gold_asserted_by": "Brightwater Munitions"
+        },
+        {
+         "gold": "the Ostmark procurement agency cancelled the agreement after a dispute over deli",
+         "pred_modality": "cancelled",
+         "gold_modality": "cancelled",
+         "pred_asserted_by": "Ostmark procurement agency",
+         "gold_asserted_by": "Ostmark procurement agency"
+        },
+        {
+         "gold": "the Republic of Ostmark signed a framework agreement with Brightwater Munitions ",
+         "pred_modality": "occurred",
+         "gold_modality": "occurred",
+         "pred_asserted_by": null,
+         "gold_asserted_by": null
+        }
+       ]
+      }
+     },
+     {
+      "document_id": "fixture:syn-contract-negation",
+      "outcome": "EXTRACTED",
+      "candidates": 6,
+      "text_chars": 578,
+      "extraction_meta": {
+       "extractor": "replay",
+       "latency_s": 0.0,
+       "token_usage_source": "NOT_APPLICABLE",
+       "prompt_tokens": null,
+       "output_tokens": null,
+       "input_chars": 578
+      },
+      "gold_eval": {
+       "predicted": 6,
+       "gold": 5,
+       "matched": 5,
+       "tp_essential": 4,
+       "essential": 4,
+       "attribution_correct": 4,
+       "modality_correct": 3,
+       "matched_detail": [
+        {
+         "gold": "The radar was first tested in June 2025 at a range in northern Valdoria",
+         "pred_modality": "occurred",
+         "gold_modality": "occurred",
+         "pred_asserted_by": null,
+         "gold_asserted_by": null
+        },
+        {
+         "gold": "Kestrel Dynamics may open a second assembly line in Ostrava",
+         "pred_modality": "speculative",
+         "gold_modality": "speculative",
+         "pred_asserted_by": null,
+         "gold_asserted_by": "Harbour Defence Weekly"
+        },
+        {
+         "gold": "denied that the company had received a second order from the Valdorian Navy",
+         "pred_modality": "occurred",
+         "gold_modality": "negated",
+         "pred_asserted_by": "Kestrel Dynamics",
+         "gold_asserted_by": "Kestrel Dynamics"
+        },
+        {
+         "gold": "Kestrel Dynamics will deliver the first units in early 2028",
+         "pred_modality": "occurred",
+         "gold_modality": "planned",
+         "pred_asserted_by": "Valdorian Ministry of Defence",
+         "gold_asserted_by": "Valdorian Ministry of Defence"
+        },
+        {
+         "gold": "it awarded Kestrel Dynamics a contract worth EUR 48 million for 30 counter-drone",
+         "pred_modality": "announced",
+         "gold_modality": "announced",
+         "pred_asserted_by": "Valdorian Ministry of Defence",
+         "gold_asserted_by": "Valdorian Ministry of Defence"
+        }
+       ]
+      }
+     },
+     {
+      "document_id": "fixture:syn-no-full-text",
+      "outcome": "SKIPPED_NO_FULL_TEXT",
+      "candidates": null,
+      "text_chars": 69,
+      "extraction_meta": null,
+      "gold_eval": null
+     }
+    ]
+   },
+   "records": [
+    {
+     "doc": "fixture:syn-cancelled-dates",
+     "ext": "replay",
+     "claim": "Ostmark signed a framework agreement with Brightwater Munitions for 155mm shells.",
+     "evidence": "the Republic of Ostmark signed a framework agreement with Brightwater Munitions for 155mm artillery shells",
+     "chars": [
+      49,
+      155
+     ],
+     "modality": "occurred",
+     "asserted_by": null,
+     "event_date": "2026-09-14",
+     "ent": [
+      "SUPPORTED",
+      0.9483
+     ],
+     "hold": []
+    },
+    {
+     "doc": "fixture:syn-cancelled-dates",
+     "ext": "replay",
+     "claim": "The Ostmark procurement agency cancelled the framework agreement.",
+     "evidence": "the Ostmark procurement agency cancelled the agreement after a dispute over delivery schedules",
+     "chars": [
+      176,
+      270
+     ],
+     "modality": "cancelled",
+     "asserted_by": "Ostmark procurement agency",
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.6686
+     ],
+     "hold": [
+      "EVENT_DATE_EQUALS_PUBLICATION_DATE_NOT_IN_EVIDENCE"
+     ]
+    },
+    {
+     "doc": "fixture:syn-cancelled-dates",
+     "ext": "replay",
+     "claim": "Brightwater Munitions plans to build a filling plant in 2028.",
+     "evidence": "Brightwater Munitions plans to build a new filling plant in 2028 regardless of the cancellation",
+     "chars": [
+      298,
+      393
+     ],
+     "modality": "planned",
+     "asserted_by": "Brightwater Munitions",
+     "event_date": "2028",
+     "ent": [
+      "SUPPORTED",
+      0.9662
+     ],
+     "hold": []
+    },
+    {
+     "doc": "ixture:syn-contract-negation",
+     "ext": "replay",
+     "claim": "The Valdorian Ministry of Defence awarded Kestrel Dynamics a EUR 48 million contract for 30 counter-drone radar units.",
+     "evidence": "it awarded Kestrel Dynamics a contract worth EUR 48 million for 30 counter-drone radar units",
+     "chars": [
+      65,
+      157
+     ],
+     "modality": "announced",
+     "asserted_by": "Valdorian Ministry of Defence",
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.97
+     ],
+     "hold": []
+    },
+    {
+     "doc": "ixture:syn-contract-negation",
+     "ext": "replay",
+     "claim": "Kestrel Dynamics delivered the first radar units.",
+     "evidence": "Kestrel Dynamics will deliver the first units in early 2028",
+     "chars": [
+      159,
+      218
+     ],
+     "modality": "occurred",
+     "asserted_by": "Valdorian Ministry of Defence",
+     "event_date": "2028",
+     "ent": [
+      "NOT_SUPPORTED",
+      0.0386
+     ],
+     "hold": [
+      "PLAN_CUE_IN_SPAN_CONFLICTS_WITH_MODALITY",
+      "ASSERTED_BY_NOT_NAMED_IN_CONTEXT",
+      "ENTAILMENT_NOT_SUPPORTED"
+     ]
+    },
+    {
+     "doc": "ixture:syn-contract-negation",
+     "ext": "replay",
+     "claim": "Kestrel Dynamics received a second order from the Valdorian Navy.",
+     "evidence": "denied that the company had received a second order from the Valdorian Navy",
+     "chars": [
+      272,
+      347
+     ],
+     "modality": "occurred",
+     "asserted_by": "Kestrel Dynamics",
+     "event_date": null,
+     "ent": [
+      "NOT_SUPPORTED",
+      0.0182
+     ],
+     "hold": [
+      "NEGATION_CUE_IN_SPAN_CONFLICTS_WITH_MODALITY",
+      "ENTAILMENT_NOT_SUPPORTED"
+     ]
+    },
+    {
+     "doc": "ixture:syn-contract-negation",
+     "ext": "replay",
+     "claim": "Kestrel Dynamics may open a second assembly line in Ostrava.",
+     "evidence": "Kestrel Dynamics may open a second assembly line in Ostrava",
+     "chars": [
+      407,
+      466
+     ],
+     "modality": "speculative",
+     "asserted_by": null,
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.8971
+     ],
+     "hold": [
+      "ATTRIBUTION_CUE_BUT_ASSERTED_BY_UNKNOWN"
+     ]
+    },
+    {
+     "doc": "ixture:syn-contract-negation",
+     "ext": "replay",
+     "claim": "Kestrel Dynamics opened a factory in Ostrava in 2026.",
+     "evidence": "Kestrel Dynamics opened its Ostrava factory in 2026",
+     "chars": [
+      null,
+      null
+     ],
+     "modality": "occurred",
+     "asserted_by": null,
+     "event_date": null,
+     "ent": [
+      null,
+      null
+     ],
+     "hold": [
+      "SPAN_NOT_IN_STORED_TEXT",
+      "EVENT_DATE_NOT_IN_EVIDENCE",
+      "ENTAILMENT_SKIPPED_NO_ALIGNED_EVIDENCE"
+     ]
+    },
+    {
+     "doc": "ixture:syn-contract-negation",
+     "ext": "replay",
+     "claim": "The radar was first tested in June 2025.",
+     "evidence": "The radar was first tested in June 2025 at a range in northern Valdoria",
+     "chars": [
+      506,
+      577
+     ],
+     "modality": "occurred",
+     "asserted_by": null,
+     "event_date": "2025-06",
+     "ent": [
+      "SUPPORTED",
+      0.9037
+     ],
+     "hold": [
+      "EXTRACTOR_OFFSETS_DO_NOT_MATCH_SPAN"
+     ]
+    }
+   ]
+  },
+  "e1-fixtures-gemini-direct": {
+   "summary": {
+    "metrics": {
+     "records": 8,
+     "span_not_in_text_rate": 0.125,
+     "unsupported_claim_rate_minicheck": 0.0,
+     "all_hold": true,
+     "precision_span_match": 0.875,
+     "recall_essential": 0.8571,
+     "attribution_accuracy": 0.4286,
+     "modality_accuracy": 1.0,
+     "quality_note": "Computed on 2 gold-labelled document(s). Small samples: not representative."
+    },
+    "entailment_run": {
+     "scored": 7,
+     "seconds": 3.259
+    },
+    "resources": {
+     "wall_s": 6.177,
+     "max_rss_mb": 3319.8,
+     "cpu_user_s": 18.27
+    },
+    "measurements": null,
+    "run": {
+     "label": "e1-fixtures-gemini-direct",
+     "method": "gemini-direct",
+     "model": "gemini-3.5-flash-lite"
+    },
+    "validation_problems": 0,
+    "documents": [
+     {
+      "document_id": "fixture:syn-cancelled-dates",
+      "outcome": "EXTRACTED",
+      "candidates": 3,
+      "text_chars": 550,
+      "extraction_meta": {
+       "extractor": "gemini-direct",
+       "model": "gemini-3.5-flash-lite",
+       "latency_s": 1.199,
+       "input_chars": 550,
+       "truncated": false,
+       "prompt_tokens": 410,
+       "output_tokens": 308,
+       "token_usage_source": "provider_usageMetadata"
+      },
+      "gold_eval": {
+       "predicted": 3,
+       "gold": 4,
+       "matched": 3,
+       "tp_essential": 3,
+       "essential": 3,
+       "attribution_correct": 1,
+       "modality_correct": 3,
+       "matched_detail": [
+        {
+         "gold": "Brightwater Munitions plans to build a new filling plant in 2028 regardless of t",
+         "pred_modality": "planned",
+         "gold_modality": "planned",
+         "pred_asserted_by": "its chief executive",
+         "gold_asserted_by": "Brightwater Munitions"
+        },
+        {
+         "gold": "the Ostmark procurement agency cancelled the agreement after a dispute over deli",
+         "pred_modality": "cancelled",
+         "gold_modality": "cancelled",
+         "pred_asserted_by": "an agency statement",
+         "gold_asserted_by": "Ostmark procurement agency"
+        },
+        {
+         "gold": "the Republic of Ostmark signed a framework agreement with Brightwater Munitions ",
+         "pred_modality": "occurred",
+         "gold_modality": "occurred",
+         "pred_asserted_by": null,
+         "gold_asserted_by": null
+        }
+       ]
+      }
+     },
+     {
+      "document_id": "fixture:syn-contract-negation",
+      "outcome": "EXTRACTED",
+      "candidates": 5,
+      "text_chars": 578,
+      "extraction_meta": {
+       "extractor": "gemini-direct",
+       "model": "gemini-3.5-flash-lite",
+       "latency_s": 1.718,
+       "input_chars": 578,
+       "truncated": false,
+       "prompt_tokens": 420,
+       "output_tokens": 491,
+       "token_usage_source": "provider_usageMetadata"
+      },
+      "gold_eval": {
+       "predicted": 5,
+       "gold": 5,
+       "matched": 4,
+       "tp_essential": 3,
+       "essential": 4,
+       "attribution_correct": 2,
+       "modality_correct": 4,
+       "matched_detail": [
+        {
+         "gold": "Kestrel Dynamics may open a second assembly line in Ostrava",
+         "pred_modality": "speculative",
+         "gold_modality": "speculative",
+         "pred_asserted_by": "Harbour Defence Weekly",
+         "gold_asserted_by": "Harbour Defence Weekly"
+        },
+        {
+         "gold": "Kestrel Dynamics will deliver the first units in early 2028",
+         "pred_modality": "planned",
+         "gold_modality": "planned",
+         "pred_asserted_by": "The Valdorian Ministry of Defence",
+         "gold_asserted_by": "Valdorian Ministry of Defence"
+        },
+        {
+         "gold": "The radar was first tested in June 2025 at a range in northern Valdoria",
+         "pred_modality": "occurred",
+         "gold_modality": "occurred",
+         "pred_asserted_by": null,
+         "gold_asserted_by": null
+        },
+        {
+         "gold": "denied that the company had received a second order from the Valdorian Navy",
+         "pred_modality": "negated",
+         "gold_modality": "negated",
+         "pred_asserted_by": "A Kestrel Dynamics spokesperson",
+         "gold_asserted_by": "Kestrel Dynamics"
+        }
+       ]
+      }
+     },
+     {
+      "document_id": "fixture:syn-no-full-text",
+      "outcome": "SKIPPED_NO_FULL_TEXT",
+      "candidates": null,
+      "text_chars": 69,
+      "extraction_meta": null,
+      "gold_eval": null
+     }
+    ]
+   },
+   "records": [
+    {
+     "doc": "fixture:syn-cancelled-dates",
+     "ext": "gemini-direct",
+     "claim": "The Republic of Ostmark signed a framework agreement with Brightwater Munitions for 155mm artillery shells.",
+     "evidence": "the Republic of Ostmark signed a framework agreement with Brightwater Munitions for 155mm artillery shells.",
+     "chars": [
+      49,
+      156
+     ],
+     "modality": "occurred",
+     "asserted_by": null,
+     "event_date": "2026-09-14",
+     "ent": [
+      "SUPPORTED",
+      0.9678
+     ],
+     "hold": [
+      "CANCELLATION_CUE_IN_CONTEXT",
+      "ATTRIBUTION_CUE_BUT_ASSERTED_BY_UNKNOWN"
+     ]
+    },
+    {
+     "doc": "fixture:syn-cancelled-dates",
+     "ext": "gemini-direct",
+     "claim": "The Ostmark procurement agency cancelled the framework agreement.",
+     "evidence": "the Ostmark procurement agency cancelled the agreement after a dispute over delivery schedules",
+     "chars": [
+      176,
+      270
+     ],
+     "modality": "cancelled",
+     "asserted_by": "an agency statement",
+     "event_date": "2026-10-02",
+     "ent": [
+      "SUPPORTED",
+      0.6686
+     ],
+     "hold": []
+    },
+    {
+     "doc": "fixture:syn-cancelled-dates",
+     "ext": "gemini-direct",
+     "claim": "Brightwater Munitions plans to build a new filling plant in 2028 regardless of the cancellation.",
+     "evidence": "Brightwater Munitions plans to build a new filling plant in 2028 regardless of the cancellation",
+     "chars": [
+      298,
+      393
+     ],
+     "modality": "planned",
+     "asserted_by": "its chief executive",
+     "event_date": "2028",
+     "ent": [
+      "SUPPORTED",
+      0.9318
+     ],
+     "hold": []
+    },
+    {
+     "doc": "ixture:syn-contract-negation",
+     "ext": "gemini-direct",
+     "claim": "The Valdorian Ministry of Defence awarded Kestrel Dynamics a contract worth EUR 48 million for 30 counter-drone radar units.",
+     "evidence": "the Valdorian Ministry of Defence said it awarded Kestrel Dynamics a contract worth EUR 48 million for 30 counter-drone radar units.",
+     "chars": [
+      null,
+      null
+     ],
+     "modality": "announced",
+     "asserted_by": "The Valdorian Ministry of Defence",
+     "event_date": null,
+     "ent": [
+      null,
+      null
+     ],
+     "hold": [
+      "SPAN_NOT_IN_STORED_TEXT",
+      "ENTAILMENT_SKIPPED_NO_ALIGNED_EVIDENCE"
+     ]
+    },
+    {
+     "doc": "ixture:syn-contract-negation",
+     "ext": "gemini-direct",
+     "claim": "Kestrel Dynamics will deliver the first units in early 2028.",
+     "evidence": "Kestrel Dynamics will deliver the first units in early 2028",
+     "chars": [
+      159,
+      218
+     ],
+     "modality": "planned",
+     "asserted_by": "The Valdorian Ministry of Defence",
+     "event_date": "2028",
+     "ent": [
+      "SUPPORTED",
+      0.9415
+     ],
+     "hold": [
+      "ASSERTED_BY_NOT_NAMED_IN_CONTEXT"
+     ]
+    },
+    {
+     "doc": "ixture:syn-contract-negation",
+     "ext": "gemini-direct",
+     "claim": "A Kestrel Dynamics spokesperson denied that the company had received a second order from the Valdorian Navy.",
+     "evidence": "A Kestrel Dynamics spokesperson denied that the company had received a second order from the Valdorian Navy.",
+     "chars": [
+      240,
+      348
+     ],
+     "modality": "negated",
+     "asserted_by": "A Kestrel Dynamics spokesperson",
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9429
+     ],
+     "hold": []
+    },
+    {
+     "doc": "ixture:syn-contract-negation",
+     "ext": "gemini-direct",
+     "claim": "Kestrel Dynamics may open a second assembly line in Ostrava.",
+     "evidence": "Kestrel Dynamics may open a second assembly line in Ostrava",
+     "chars": [
+      407,
+      466
+     ],
+     "modality": "speculative",
+     "asserted_by": "Harbour Defence Weekly",
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.8971
+     ],
+     "hold": []
+    },
+    {
+     "doc": "ixture:syn-contract-negation",
+     "ext": "gemini-direct",
+     "claim": "The radar was first tested in June 2025 at a range in northern Valdoria.",
+     "evidence": "The radar was first tested in June 2025 at a range in northern Valdoria.",
+     "chars": [
+      506,
+      578
+     ],
+     "modality": "occurred",
+     "asserted_by": null,
+     "event_date": "2025-06",
+     "ent": [
+      "SUPPORTED",
+      0.9624
+     ],
+     "hold": []
+    }
+   ]
+  },
+  "e2-fixtures-langextract": {
+   "summary": {
+    "metrics": {
+     "records": 9,
+     "span_not_in_text_rate": 0.0,
+     "unsupported_claim_rate_minicheck": 0.0,
+     "all_hold": true,
+     "precision_span_match": 0.8889,
+     "recall_essential": 1.0,
+     "attribution_accuracy": 0.375,
+     "modality_accuracy": 0.75,
+     "quality_note": "Computed on 2 gold-labelled document(s). Small samples: not representative."
+    },
+    "entailment_run": {
+     "scored": 9,
+     "seconds": 4.008
+    },
+    "resources": {
+     "wall_s": 7.064,
+     "max_rss_mb": 3345.3,
+     "cpu_user_s": 26.44
+    },
+    "measurements": null,
+    "run": {
+     "label": "e2-fixtures-langextract",
+     "method": "langextract",
+     "model": "gemini-3.5-flash-lite"
+    },
+    "validation_problems": 0,
+    "documents": [
+     {
+      "document_id": "fixture:syn-cancelled-dates",
+      "outcome": "EXTRACTED",
+      "candidates": 3,
+      "text_chars": 550,
+      "extraction_meta": {
+       "extractor": "langextract",
+       "model": "gemini-3.5-flash-lite via budgeted provider",
+       "latency_s": 1.259,
+       "input_chars": 550,
+       "truncated": false,
+       "prompt_tokens": null,
+       "output_tokens": null,
+       "token_usage_source": "LEDGER"
+      },
+      "gold_eval": {
+       "predicted": 3,
+       "gold": 4,
+       "matched": 3,
+       "tp_essential": 3,
+       "essential": 3,
+       "attribution_correct": 1,
+       "modality_correct": 2,
+       "matched_detail": [
+        {
+         "gold": "Brightwater Munitions plans to build a new filling plant in 2028 regardless of t",
+         "pred_modality": "planned",
+         "gold_modality": "planned",
+         "pred_asserted_by": "its chief executive",
+         "gold_asserted_by": "Brightwater Munitions"
+        },
+        {
+         "gold": "the Republic of Ostmark signed a framework agreement with Brightwater Munitions ",
+         "pred_modality": "occurred",
+         "gold_modality": "occurred",
+         "pred_asserted_by": null,
+         "gold_asserted_by": null
+        },
+        {
+         "gold": "the Ostmark procurement agency cancelled the agreement after a dispute over deli",
+         "pred_modality": "occurred",
+         "gold_modality": "cancelled",
+         "pred_asserted_by": "an agency statement",
+         "gold_asserted_by": "Ostmark procurement agency"
+        }
+       ]
+      }
+     },
+     {
+      "document_id": "fixture:syn-contract-negation",
+      "outcome": "EXTRACTED",
+      "candidates": 6,
+      "text_chars": 578,
+      "extraction_meta": {
+       "extractor": "langextract",
+       "model": "gemini-3.5-flash-lite via budgeted provider",
+       "latency_s": 1.796,
+       "input_chars": 578,
+       "truncated": false,
+       "prompt_tokens": null,
+       "output_tokens": null,
+       "token_usage_source": "LEDGER"
+      },
+      "gold_eval": {
+       "predicted": 6,
+       "gold": 5,
+       "matched": 5,
+       "tp_essential": 4,
+       "essential": 4,
+       "attribution_correct": 2,
+       "modality_correct": 4,
+       "matched_detail": [
+        {
+         "gold": "The radar was first tested in June 2025 at a range in northern Valdoria",
+         "pred_modality": "occurred",
+         "gold_modality": "occurred",
+         "pred_asserted_by": null,
+         "gold_asserted_by": null
+        },
+        {
+         "gold": "Kestrel Dynamics may open a second assembly line in Ostrava",
+         "pred_modality": "speculative",
+         "gold_modality": "speculative",
+         "pred_asserted_by": "Harbour Defence Weekly",
+         "gold_asserted_by": "Harbour Defence Weekly"
+        },
+        {
+         "gold": "denied that the company had received a second order from the Valdorian Navy",
+         "pred_modality": "negated",
+         "gold_modality": "negated",
+         "pred_asserted_by": "A Kestrel Dynamics spokesperson",
+         "gold_asserted_by": "Kestrel Dynamics"
+        },
+        {
+         "gold": "Kestrel Dynamics will deliver the first units in early 2028",
+         "pred_modality": "announced",
+         "gold_modality": "planned",
+         "pred_asserted_by": "the ministry",
+         "gold_asserted_by": "Valdorian Ministry of Defence"
+        },
+        {
+         "gold": "it awarded Kestrel Dynamics a contract worth EUR 48 million for 30 counter-drone",
+         "pred_modality": "announced",
+         "gold_modality": "announced",
+         "pred_asserted_by": "the Valdorian Ministry of Defence",
+         "gold_asserted_by": "Valdorian Ministry of Defence"
+        }
+       ]
+      }
+     },
+     {
+      "document_id": "fixture:syn-no-full-text",
+      "outcome": "SKIPPED_NO_FULL_TEXT",
+      "candidates": null,
+      "text_chars": 69,
+      "extraction_meta": null,
+      "gold_eval": null
+     }
+    ]
+   },
+   "records": [
+    {
+     "doc": "fixture:syn-cancelled-dates",
+     "ext": "langextract",
+     "claim": "The Republic of Ostmark signed a framework agreement with Brightwater Munitions for 155mm artillery shells.",
+     "evidence": "signed a framework agreement with Brightwater Munitions for 155mm artillery shells",
+     "chars": [
+      73,
+      155
+     ],
+     "modality": "occurred",
+     "asserted_by": null,
+     "event_date": "2026-09-14",
+     "ent": [
+      "SUPPORTED",
+      0.9651
+     ],
+     "hold": []
+    },
+    {
+     "doc": "fixture:syn-cancelled-dates",
+     "ext": "langextract",
+     "claim": "The Ostmark procurement agency cancelled the agreement.",
+     "evidence": "Ostmark procurement agency cancelled the agreement",
+     "chars": [
+      180,
+      230
+     ],
+     "modality": "occurred",
+     "asserted_by": "an agency statement",
+     "event_date": "2026-10-02",
+     "ent": [
+      "SUPPORTED",
+      0.9547
+     ],
+     "hold": [
+      "CANCELLATION_CUE_IN_CONTEXT"
+     ]
+    },
+    {
+     "doc": "fixture:syn-cancelled-dates",
+     "ext": "langextract",
+     "claim": "Brightwater Munitions plans to build a new filling plant in 2028.",
+     "evidence": "Brightwater Munitions plans to build a new filling plant in 2028 regardless of the cancellation",
+     "chars": [
+      298,
+      393
+     ],
+     "modality": "planned",
+     "asserted_by": "its chief executive",
+     "event_date": "2028",
+     "ent": [
+      "SUPPORTED",
+      0.9235
+     ],
+     "hold": []
+    },
+    {
+     "doc": "ixture:syn-contract-negation",
+     "ext": "langextract",
+     "claim": "The Valdorian Ministry of Defence awarded Kestrel Dynamics a contract worth EUR 48 million for 30 counter-drone radar units.",
+     "evidence": "awarded Kestrel Dynamics a contract worth EUR 48 million for 30 counter-drone radar units",
+     "chars": [
+      68,
+      157
+     ],
+     "modality": "announced",
+     "asserted_by": "the Valdorian Ministry of Defence",
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9689
+     ],
+     "hold": []
+    },
+    {
+     "doc": "ixture:syn-contract-negation",
+     "ext": "langextract",
+     "claim": "Kestrel Dynamics will deliver the first units in early 2028.",
+     "evidence": "Kestrel Dynamics will deliver the first units in early 2028",
+     "chars": [
+      159,
+      218
+     ],
+     "modality": "announced",
+     "asserted_by": "the ministry",
+     "event_date": "2028",
+     "ent": [
+      "SUPPORTED",
+      0.9415
+     ],
+     "hold": [
+      "PLAN_CUE_IN_SPAN_CONFLICTS_WITH_MODALITY"
+     ]
+    },
+    {
+     "doc": "ixture:syn-contract-negation",
+     "ext": "langextract",
+     "claim": "A Kestrel Dynamics spokesperson denied that the company had received a second order from the Valdorian Navy.",
+     "evidence": "denied that the company had received a second order from the Valdorian Navy",
+     "chars": [
+      272,
+      347
+     ],
+     "modality": "negated",
+     "asserted_by": "A Kestrel Dynamics spokesperson",
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9504
+     ],
+     "hold": []
+    },
+    {
+     "doc": "ixture:syn-contract-negation",
+     "ext": "langextract",
+     "claim": "Kestrel Dynamics may open a second assembly line in Ostrava.",
+     "evidence": "Kestrel Dynamics may open a second assembly line in Ostrava",
+     "chars": [
+      407,
+      466
+     ],
+     "modality": "speculative",
+     "asserted_by": "Harbour Defence Weekly",
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.8971
+     ],
+     "hold": []
+    },
+    {
+     "doc": "ixture:syn-contract-negation",
+     "ext": "langextract",
+     "claim": "The company did not confirm the report that it may open a second assembly line in Ostrava.",
+     "evidence": "the company did not confirm",
+     "chars": [
+      477,
+      504
+     ],
+     "modality": "negated",
+     "asserted_by": "the company",
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9718
+     ],
+     "hold": []
+    },
+    {
+     "doc": "ixture:syn-contract-negation",
+     "ext": "langextract",
+     "claim": "The radar was first tested in June 2025 at a range in northern Valdoria.",
+     "evidence": "The radar was first tested in June 2025 at a range in northern Valdoria",
+     "chars": [
+      506,
+      577
+     ],
+     "modality": "occurred",
+     "asserted_by": null,
+     "event_date": "2025-06",
+     "ent": [
+      "SUPPORTED",
+      0.9624
+     ],
+     "hold": []
+    }
+   ]
+  },
+  "e3a-pac3-pilot-baseline": {
+   "summary": {
+    "metrics": {
+     "records": 1,
+     "span_not_in_text_rate": 0.0,
+     "unsupported_claim_rate_minicheck": 0.0,
+     "all_hold": true,
+     "precision_span_match": "NOT MEASURED",
+     "recall_essential": "NOT MEASURED",
+     "attribution_accuracy": "NOT MEASURED",
+     "modality_accuracy": "NOT MEASURED",
+     "quality_note": "No gold labels for these documents; quality metrics are not computed."
+    },
+    "entailment_run": {
+     "scored": 1,
+     "seconds": 0.566
+    },
+    "resources": {
+     "wall_s": 0.566,
+     "max_rss_mb": 3312.2,
+     "cpu_user_s": 11.77
+    },
+    "measurements": null,
+    "run": {
+     "label": "e3a-pac3-pilot-baseline",
+     "method": "existing pilot claim (bohun_staging.model_candidates, read-only)"
+    },
+    "validation_problems": 0,
+    "documents": [
+     {
+      "document_id": "document:6cccf56a0b0676f88ef754b0",
+      "outcome": "EXTRACTED",
+      "candidates": 1,
+      "text_chars": 12000,
+      "extraction_meta": {
+       "extractor": "replay",
+       "latency_s": 0.0,
+       "token_usage_source": "NOT_APPLICABLE",
+       "prompt_tokens": null,
+       "output_tokens": null,
+       "input_chars": 12000
+      },
+      "gold_eval": null
+     }
+    ]
+   },
+   "records": [
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "replay",
+     "claim": "PAC-3 Edge represents the top tier of the U.S. Army’s Patriot air defense missile family",
+     "chars": [
+      2431,
+      2497
+     ],
+     "modality": "unknown",
+     "asserted_by": null,
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9713
+     ],
+     "hold": [],
+     "evidence_preview_sha256": "1584d0df8d6ef381343831effe844f95dc60e82db8899b164bbe6240ba24bf4f",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    }
+   ]
+  },
+  "e3b-pac3-gemini-direct": {
+   "summary": {
+    "metrics": {
+     "records": 8,
+     "span_not_in_text_rate": 0.125,
+     "unsupported_claim_rate_minicheck": 0.2857,
+     "all_hold": true,
+     "precision_span_match": "NOT MEASURED",
+     "recall_essential": "NOT MEASURED",
+     "attribution_accuracy": "NOT MEASURED",
+     "modality_accuracy": "NOT MEASURED",
+     "quality_note": "No gold labels for these documents; quality metrics are not computed."
+    },
+    "entailment_run": {
+     "scored": 7,
+     "seconds": 4.224
+    },
+    "resources": {
+     "wall_s": 6.524,
+     "max_rss_mb": 3364.7,
+     "cpu_user_s": 34.85
+    },
+    "measurements": null,
+    "run": {
+     "label": "e3b-pac3-gemini-direct",
+     "method": "gemini-direct",
+     "model": "gemini-3.5-flash-lite"
+    },
+    "validation_problems": 0,
+    "documents": [
+     {
+      "document_id": "document:6cccf56a0b0676f88ef754b0",
+      "outcome": "EXTRACTED",
+      "candidates": 8,
+      "text_chars": 12000,
+      "extraction_meta": {
+       "extractor": "gemini-direct",
+       "model": "gemini-3.5-flash-lite",
+       "latency_s": 2.299,
+       "input_chars": 12000,
+       "truncated": false,
+       "prompt_tokens": 2657,
+       "output_tokens": 892,
+       "token_usage_source": "provider_usageMetadata"
+      },
+      "gold_eval": null
+     }
+    ]
+   },
+   "records": [
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "gemini-direct",
+     "claim": "Lockheed Martin unveiled the PAC-3 Edge interceptor.",
+     "chars": [
+      2347,
+      2498
+     ],
+     "modality": "occurred",
+     "asserted_by": "Lockheed Martin",
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9781
+     ],
+     "hold": [
+      "PLAN_CUE_IN_SPAN_CONFLICTS_WITH_MODALITY"
+     ],
+     "evidence_preview_sha256": "9f22e5d751d518cafa5bf1343eb5c025e013f31b9c8ab0008f8f3064e5e3d561",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "gemini-direct",
+     "claim": "Lockheed announced it was selected to advance to the next phase of the Army's Future Interceptor program.",
+     "chars": [
+      3560,
+      3688
+     ],
+     "modality": "occurred",
+     "asserted_by": "Lockheed",
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9693
+     ],
+     "hold": [
+      "PLAN_CUE_IN_SPAN_CONFLICTS_WITH_MODALITY",
+      "EVENT_DATE_NOT_IN_EVIDENCE"
+     ],
+     "evidence_preview_sha256": "2142f8e9508759471af31ae90ee63491e3fc6622596aaf31ea0c26f50b4e9ea6",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "gemini-direct",
+     "claim": "Testing for the PAC-3 Edge is expected to begin in 2027.",
+     "chars": [
+      3689,
+      3792
+     ],
+     "modality": "planned",
+     "asserted_by": "Company officials",
+     "event_date": "2027",
+     "ent": [
+      "NOT_SUPPORTED",
+      0.0596
+     ],
+     "hold": [
+      "ENTAILMENT_NOT_SUPPORTED"
+     ],
+     "evidence_preview_sha256": "11b7a86fc9aad2d930bfb613acd69003aab389232e59505b7825277d95d4f300",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "gemini-direct",
+     "claim": "Initial deployment of the PAC-3 Edge is targeted for 2031.",
+     "chars": [
+      3689,
+      3792
+     ],
+     "modality": "planned",
+     "asserted_by": "Company officials",
+     "event_date": "2031",
+     "ent": [
+      "NOT_SUPPORTED",
+      0.0723
+     ],
+     "hold": [
+      "ENTAILMENT_NOT_SUPPORTED"
+     ],
+     "evidence_preview_sha256": "11b7a86fc9aad2d930bfb613acd69003aab389232e59505b7825277d95d4f300",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "gemini-direct",
+     "claim": "The Army abandoned its Lower-Tier Future Interceptor program in 2024.",
+     "chars": [
+      3994,
+      4178
+     ],
+     "modality": "occurred",
+     "asserted_by": null,
+     "event_date": "2024",
+     "ent": [
+      "SUPPORTED",
+      0.9155
+     ],
+     "hold": [
+      "PLAN_CUE_IN_SPAN_CONFLICTS_WITH_MODALITY",
+      "CANCELLATION_CUE_IN_CONTEXT"
+     ],
+     "evidence_preview_sha256": "0e77d6fc387ce4ff1a5678822b5cc6293367a197e6bb8305db2a679666d90b71",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "gemini-direct",
+     "claim": "Lockheed announced a seven-year agreement with the Pentagon in January to triple annual PAC-3 MSE production capacity.",
+     "chars": [
+      10730,
+      10946
+     ],
+     "modality": "occurred",
+     "asserted_by": "Lockheed Martin",
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9721
+     ],
+     "hold": [],
+     "evidence_preview_sha256": "3d10d6e636787bd405f40a59f042d9894fe576c34e378ec889b1359975442d9e",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "gemini-direct",
+     "claim": "The U.S. government awarded Lockheed a contract modification worth up to $53.86 billion in July.",
+     "chars": [
+      10947,
+      11167
+     ],
+     "modality": "occurred",
+     "asserted_by": null,
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9868
+     ],
+     "hold": [
+      "ATTRIBUTION_CUE_BUT_ASSERTED_BY_UNKNOWN",
+      "CLAIM_HAS_MULTIPLE_SENTENCES"
+     ],
+     "evidence_preview_sha256": "66a70e770334b10ce8aff8c870589a4d8cb10a66f59ebceb774cedf4866b68bc",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "gemini-direct",
+     "claim": "The PAC-3 Edge will be manufactured on the existing PAC-3 production line in Camden, Arkansas.",
+     "chars": [
+      null,
+      null
+     ],
+     "modality": "planned",
+     "asserted_by": "The company",
+     "event_date": null,
+     "ent": [
+      null,
+      null
+     ],
+     "hold": [
+      "SPAN_NOT_IN_STORED_TEXT",
+      "ENTAILMENT_SKIPPED_NO_ALIGNED_EVIDENCE"
+     ],
+     "evidence_preview_sha256": "9858a468547eed575a785a5b689ad97c25a1d2d822ae4ff083351fb0ec7c8b07",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    }
+   ]
+  },
+  "e3c-pac3-langextract": {
+   "summary": {
+    "metrics": {
+     "records": 24,
+     "span_not_in_text_rate": 0.0833,
+     "unsupported_claim_rate_minicheck": 0.0,
+     "all_hold": true,
+     "precision_span_match": "NOT MEASURED",
+     "recall_essential": "NOT MEASURED",
+     "attribution_accuracy": "NOT MEASURED",
+     "modality_accuracy": "NOT MEASURED",
+     "quality_note": "No gold labels for these documents; quality metrics are not computed."
+    },
+    "entailment_run": {
+     "scored": 22,
+     "seconds": 11.434
+    },
+    "resources": {
+     "wall_s": 22.313,
+     "max_rss_mb": 3387.4,
+     "cpu_user_s": 57.67
+    },
+    "measurements": null,
+    "run": {
+     "label": "e3c-pac3-langextract",
+     "method": "langextract",
+     "model": "gemini-3.5-flash-lite"
+    },
+    "validation_problems": 0,
+    "documents": [
+     {
+      "document_id": "document:6cccf56a0b0676f88ef754b0",
+      "outcome": "EXTRACTED",
+      "candidates": 24,
+      "text_chars": 12000,
+      "extraction_meta": {
+       "extractor": "langextract",
+       "model": "gemini-3.5-flash-lite via budgeted provider",
+       "latency_s": 10.871,
+       "input_chars": 12000,
+       "truncated": false,
+       "prompt_tokens": null,
+       "output_tokens": null,
+       "token_usage_source": "LEDGER"
+      },
+      "gold_eval": null
+     }
+    ]
+   },
+   "records": [
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "langextract",
+     "claim": "Lockheed Martin unveiled the PAC-3 Edge interceptor.",
+     "chars": [
+      2347,
+      2390
+     ],
+     "modality": "occurred",
+     "asserted_by": null,
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9712
+     ],
+     "hold": [],
+     "evidence_preview_sha256": "a8160243df0ec12c06e2389497a77ff3836bd2c57f88a6c062669087078c5d43",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "langextract",
+     "claim": "Lockheed was selected to advance to the next phase of the Army’s Future Interceptor program.",
+     "chars": [
+      3560,
+      3687
+     ],
+     "modality": "announced",
+     "asserted_by": "Lockheed",
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9567
+     ],
+     "hold": [
+      "PLAN_CUE_IN_SPAN_CONFLICTS_WITH_MODALITY"
+     ],
+     "evidence_preview_sha256": "dc5c2ba14aa9d830378996e6b81044e35469fa150b85b8dfe0aceb94e64c7e13",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "langextract",
+     "claim": "Testing is expected to begin in 2027.",
+     "chars": [
+      3712,
+      3748
+     ],
+     "modality": "planned",
+     "asserted_by": "Company officials",
+     "event_date": "2027",
+     "ent": [
+      "SUPPORTED",
+      0.9678
+     ],
+     "hold": [],
+     "evidence_preview_sha256": "ffca69d463050ac180b4befd649aa4f878de02d4ecfd6a114c837e77ba049a8a",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "langextract",
+     "claim": "Initial deployment is targeted for 2031.",
+     "chars": [
+      3755,
+      3791
+     ],
+     "modality": "planned",
+     "asserted_by": "Company officials",
+     "event_date": "2031",
+     "ent": [
+      "SUPPORTED",
+      0.9336
+     ],
+     "hold": [],
+     "evidence_preview_sha256": "366733c0a11ff74751601d32264e0da83386a581801cc7fdd6d2103cb298a6ba",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "langextract",
+     "claim": "The Army abandoned its Lower-Tier Future Interceptor (LTFI) program in 2024.",
+     "chars": [
+      3994,
+      4080
+     ],
+     "modality": "occurred",
+     "asserted_by": null,
+     "event_date": "2024",
+     "ent": [
+      "SUPPORTED",
+      0.9329
+     ],
+     "hold": [
+      "PLAN_CUE_IN_SPAN_CONFLICTS_WITH_MODALITY",
+      "CANCELLATION_CUE_IN_CONTEXT"
+     ],
+     "evidence_preview_sha256": "94ea3a3b072ddd46d1d7f862059637f68beaeac5b30a6283147d92712f3eac11",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "langextract",
+     "claim": "The PAC-3 Edge interceptor is intended to preserve existing PAC-3 advantages while improving range and altitude capabilities for engaging targets.",
+     "chars": [
+      4388,
+      4596
+     ],
+     "modality": "announced",
+     "asserted_by": null,
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9786
+     ],
+     "hold": [
+      "PLAN_CUE_IN_SPAN_CONFLICTS_WITH_MODALITY"
+     ],
+     "evidence_preview_sha256": "679a30ed3f86728ce3cb4c652220584e37d96fdad2d2d3b01192348e24c8fc8c",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "langextract",
+     "claim": "Lockheed Martin’s Strigo Product Center is developing a new seeker as part of the central changes.",
+     "chars": [
+      4597,
+      4699
+     ],
+     "modality": "occurred",
+     "asserted_by": null,
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9835
+     ],
+     "hold": [
+      "ATTRIBUTION_CUE_BUT_ASSERTED_BY_UNKNOWN"
+     ],
+     "evidence_preview_sha256": "ffc885cd3c553d11cfea28e96f0e64d95992581088afea3c40f697d9a389370a",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "langextract",
+     "claim": "The company states the technology will improve target detection and tracking to handle more demanding threats.",
+     "chars": [
+      4700,
+      4833
+     ],
+     "modality": "announced",
+     "asserted_by": "Lockheed Martin",
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9803
+     ],
+     "hold": [
+      "PLAN_CUE_IN_SPAN_CONFLICTS_WITH_MODALITY",
+      "ASSERTED_BY_NOT_NAMED_IN_CONTEXT"
+     ],
+     "evidence_preview_sha256": "9fdeb875dabe8604f150f569b42d0f903c6878c89d61abbefd7fb412175f59a8",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "langextract",
+     "claim": "The company has not disclosed the technical details of the seeker.",
+     "chars": [
+      4834,
+      4894
+     ],
+     "modality": "negated",
+     "asserted_by": null,
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9642
+     ],
+     "hold": [],
+     "evidence_preview_sha256": "bec91f33a463ee3908293885cc6efaa141183bf6751fdcd13e5dc0f6694545e5",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "langextract",
+     "claim": "The seeker technology used in PAC-3 Edge will also be used in future offensive and defensive systems.",
+     "chars": [
+      5329,
+      5477
+     ],
+     "modality": "planned",
+     "asserted_by": "Tim Cahill",
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9722
+     ],
+     "hold": [],
+     "evidence_preview_sha256": "0b0ccd5b941efef889b2000c7f0467f178e254fd4752805621496116c9ddf5d0",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "langextract",
+     "claim": "Hardware assemblies and components are being tested in the lab.",
+     "chars": [
+      5788,
+      5854
+     ],
+     "modality": "occurred",
+     "asserted_by": "Martin",
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9748
+     ],
+     "hold": [],
+     "evidence_preview_sha256": "9496aeee917f10c7910f700fa159186938d963144efa6a8cbeea2423617641c5",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "langextract",
+     "claim": "Seekers have been flown on aircraft testbeds.",
+     "chars": [
+      5865,
+      5909
+     ],
+     "modality": "occurred",
+     "asserted_by": "Martin",
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9721
+     ],
+     "hold": [],
+     "evidence_preview_sha256": "18acb4d417f606f2b00fe5c95aa3b71270efc0f1af766a1cc76152f418130dfc",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "langextract",
+     "claim": "The missile will use a three-pulse solid rocket motor designed by Northrop Grumman.",
+     "chars": [
+      5932,
+      6046
+     ],
+     "modality": "planned",
+     "asserted_by": null,
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9759
+     ],
+     "hold": [],
+     "evidence_preview_sha256": "2bfe6f8e74f5effd72542f1a7dfaca15fc574db4532d891dc71aabfa76b04bf5",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "langextract",
+     "claim": "The combination of the new seeker, propulsion system, and control system improvements will provide greater maneuverability and improve performance at extended r",
+     "chars": [
+      6343,
+      6544
+     ],
+     "modality": "announced",
+     "asserted_by": "Lockheed",
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9698
+     ],
+     "hold": [
+      "PLAN_CUE_IN_SPAN_CONFLICTS_WITH_MODALITY"
+     ],
+     "evidence_preview_sha256": "33f795aae7f7a01987208935422f54ce7eb0e70ca2af2ef3c2dfb607a7be204e",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "langextract",
+     "claim": "The new missile adds a greater number of more capable attitude control motors compared to the PAC-3 MSE.",
+     "chars": [
+      6703,
+      6815
+     ],
+     "modality": "occurred",
+     "asserted_by": "Jason Reynolds",
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9778
+     ],
+     "hold": [],
+     "evidence_preview_sha256": "2cd9f13a1372869f528f7a96d86c77481cfcf3222b348e55bc96263b6fd9e08e",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "langextract",
+     "claim": "The company has yet to demonstrate PAC-3 Edge’s performance in flight testing.",
+     "chars": [
+      7152,
+      7229
+     ],
+     "modality": "negated",
+     "asserted_by": null,
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9613
+     ],
+     "hold": [
+      "NEGATED_WITHOUT_NEGATION_CUE"
+     ],
+     "evidence_preview_sha256": "39a5120251807874d1a06d8abdbf1806c1e6fac62be63b271b01c9de4f3bf7a2",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "langextract",
+     "claim": "The Army planned to expand its Patriot air defense force by roughly a quarter by adding four battalions.",
+     "chars": [
+      8339,
+      8436
+     ],
+     "modality": "planned",
+     "asserted_by": null,
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9733
+     ],
+     "hold": [
+      "ATTRIBUTION_CUE_BUT_ASSERTED_BY_UNKNOWN"
+     ],
+     "evidence_preview_sha256": "82b9d5eb054c7cce5cc6be50c35029b551c1259daabb801b8012af53c98f2ccc",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "langextract",
+     "claim": "In January, Lockheed Martin announced a seven-year agreement with the Pentagon to more than triple annual PAC-3 MSE production capacity",
+     "chars": [
+      null,
+      null
+     ],
+     "modality": "announced",
+     "asserted_by": "Lockheed Martin",
+     "event_date": null,
+     "ent": [
+      null,
+      null
+     ],
+     "hold": [
+      "SPAN_NOT_IN_STORED_TEXT",
+      "EXTRACTOR_ALIGNMENT_NOT_EXACT:unaligned",
+      "EVENT_DATE_UNPARSEABLE",
+      "ENTAILMENT_SKIPPED_NO_ALIGNED_EVIDENCE"
+     ],
+     "evidence_preview_sha256": "3ac2a0449547a2a503c349e5a19d831c1c901909d6887e829e3f85cdd8798aea",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "langextract",
+     "claim": "the U.S. government awarded Lockheed a contract modification worth up to $53.86 billion",
+     "chars": [
+      null,
+      null
+     ],
+     "modality": "occurred",
+     "asserted_by": null,
+     "event_date": null,
+     "ent": [
+      null,
+      null
+     ],
+     "hold": [
+      "SPAN_NOT_IN_STORED_TEXT",
+      "EXTRACTOR_ALIGNMENT_NOT_EXACT:unaligned",
+      "EVENT_DATE_UNPARSEABLE",
+      "ENTAILMENT_SKIPPED_NO_ALIGNED_EVIDENCE"
+     ],
+     "evidence_preview_sha256": "82aba7fbbe82dfd3a39f876b336d9689d5f030d5b9c427501837bea70b0821df",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "langextract",
+     "claim": "The effort is intended to more than triple production by the end of 2030.",
+     "chars": [
+      11208,
+      11254
+     ],
+     "modality": "announced",
+     "asserted_by": "Lockheed",
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9422
+     ],
+     "hold": [
+      "EVENT_DATE_NOT_IN_EVIDENCE"
+     ],
+     "evidence_preview_sha256": "5c6d89d4ecfe10d10aa4d3b1217a24abf07a7bd65ba989a057ecb4cdad614dad",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "langextract",
+     "claim": "The new interceptor will be manufactured on its existing PAC-3 production line in Camden, Arkansas.",
+     "chars": [
+      11495,
+      11594
+     ],
+     "modality": "announced",
+     "asserted_by": "Lockheed",
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9775
+     ],
+     "hold": [
+      "PLAN_CUE_IN_SPAN_CONFLICTS_WITH_MODALITY"
+     ],
+     "evidence_preview_sha256": "8b8f0426276b5ffc69f73e4950c7d771e4df8440d83387f7e7cf9645b393f258",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "langextract",
+     "claim": "Factory modernization is expected to support the eventual transition.",
+     "chars": [
+      11601,
+      11666
+     ],
+     "modality": "announced",
+     "asserted_by": null,
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9734
+     ],
+     "hold": [
+      "PLAN_CUE_IN_SPAN_CONFLICTS_WITH_MODALITY",
+      "ATTRIBUTION_CUE_BUT_ASSERTED_BY_UNKNOWN"
+     ],
+     "evidence_preview_sha256": "6377a404bc7af725261f79afc3feb8dc4a2a4e9e11e3db5a91f8002c235fd6e1",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "langextract",
+     "claim": "PAC-3 MSE is in production in Camden, Arkansas.",
+     "chars": [
+      11668,
+      11711
+     ],
+     "modality": "occurred",
+     "asserted_by": null,
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.9048
+     ],
+     "hold": [],
+     "evidence_preview_sha256": "3b396674ef4c05a9c5e0f54ee92ceb386abb8e612693c715a346c813a9944f89",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    },
+    {
+     "doc": "ent:6cccf56a0b0676f88ef754b0",
+     "ext": "langextract",
+     "claim": "The company has highlighted substantial internal investment in the new missile and its seeker technology.",
+     "chars": [
+      11750,
+      11838
+     ],
+     "modality": "announced",
+     "asserted_by": "The company",
+     "event_date": null,
+     "ent": [
+      "SUPPORTED",
+      0.961
+     ],
+     "hold": [],
+     "evidence_preview_sha256": "854fcba243b1857a9d10a1b7fdec70ff61d42390eef98ce635a0a626c904e0a9",
+     "evidence_redacted": "third-party text; recover from staging via chars"
+    }
+   ]
+  }
+ }
+}

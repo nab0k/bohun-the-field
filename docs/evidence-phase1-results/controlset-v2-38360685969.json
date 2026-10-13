@@ -1,0 +1,471 @@
+{
+ "run_id": "38360685969",
+ "rules": "scripts/evidence-phase1-controlset.py v2 (commit bcbf499, pre-registered before the run); v1 commit 879e3cb (run 38360407128, empty pool)",
+ "hold_out_rule": "descriptive statistics only until human labels exist; no tuning of rules, prompts or thresholds on these items",
+ "report": {
+  "seed": 20261013,
+  "target": 24,
+  "min_chars": 1200,
+  "errors": [],
+  "snapshot_at": "2026-10-13T07:08:09.330276+00:00",
+  "inventory": {
+   "items_by_type": {
+    "tender": 167,
+    "news": 2767
+   },
+   "news_content_status": {
+    "NO_CONTENT_STATUS_FIELD": 2767
+   },
+   "news_with_text_ge_300": 0,
+   "news_with_text_ge_min_chars": 0,
+   "tenders_with_text_ge_min_chars": 2,
+   "tender_text_fields": {
+    "raw_data._bohun_ted_v4.raw_json": 167
+   },
+   "staging_documents": 1
+  },
+  "eligibility": {
+   "SHORT": 2932,
+   "ELIGIBLE": 2
+  },
+  "v1_selection": {
+   "rules_version": 1,
+   "selected": 1,
+   "skipped_near_duplicates": 1,
+   "note": "v1 pool requires stored text >= MIN_CHARS; superseded by v2"
+  },
+  "eligibility_v2": {
+   "ELIGIBLE": 2689,
+   "TITLE_NOT_ELIGIBLE": 236,
+   "KNOWN_EXCLUDED": 9
+  },
+  "selection": {
+   "rules_version": 2,
+   "selected": 24,
+   "skipped_duplicate_titles": 0,
+   "per_publisher": {
+    "APDR": 1,
+    "govinfo": 1,
+    "Naval News": 1,
+    "Department of War News Feed": 1,
+    "Ministry of Defence - Activity on GOV.UK": 1,
+    "Crunchbase News": 1,
+    "Zone Militaire": 1,
+    "Defence Industry Europe": 1,
+    "Ukrinform": 1,
+    "Indian Defence Review": 1,
+    "Army Technology": 1,
+    "Defence and Security Accelerator - Activity on GOV.UK": 1,
+    "Defense News": 1,
+    "DRONES": 1,
+    "Air & Space Forces Magazine": 1,
+    "Militär Aktuell – Sicherheit im Fokus": 1,
+    "Naval Technology": 1,
+    "SBIR.gov": 1,
+    "L3Harris Technologies": 1,
+    "Sifted": 1,
+    "Quantum Systems Inc.": 1,
+    "Tech.eu": 1,
+    "Shield AI": 1,
+    "European Security & Defence": 1
+   },
+   "publishers_available": 44,
+   "target_met": true
+  },
+  "E-A_text_quality": {
+   "known": {
+    "n": 3,
+    "chars_median": 578,
+    "chars_min": 550,
+    "chars_max": 12000,
+    "with_truncation_marker": 0,
+    "with_boilerplate_marker": 2
+   },
+   "new": "NOT AVAILABLE: no stored texts for new items"
+  },
+  "E-B_guard_cue_rates": {
+   "known_texts": {
+    "PLAN": {
+     "raw_per_1k_words": 21.7,
+     "filtered_per_1k_words": 19.17,
+     "removed_by_proper_name_filter": 5
+    },
+    "NEGATION": {
+     "raw_per_1k_words": 4.04,
+     "filtered_per_1k_words": 4.04,
+     "removed_by_proper_name_filter": 0
+    },
+    "CANCEL": {
+     "raw_per_1k_words": 1.51,
+     "filtered_per_1k_words": 1.51,
+     "removed_by_proper_name_filter": 0
+    },
+    "SPECULATIVE": {
+     "raw_per_1k_words": 4.54,
+     "filtered_per_1k_words": 4.54,
+     "removed_by_proper_name_filter": 0
+    },
+    "words": 1982
+   },
+   "new_headlines_all_stored_news": {
+    "PLAN": {
+     "raw_per_1k_words": 3.78,
+     "filtered_per_1k_words": 2.38,
+     "removed_by_proper_name_filter": 38
+    },
+    "NEGATION": {
+     "raw_per_1k_words": 1.28,
+     "filtered_per_1k_words": 1.21,
+     "removed_by_proper_name_filter": 2
+    },
+    "CANCEL": {
+     "raw_per_1k_words": 0.04,
+     "filtered_per_1k_words": 0.04,
+     "removed_by_proper_name_filter": 0
+    },
+    "SPECULATIVE": {
+     "raw_per_1k_words": 0.73,
+     "filtered_per_1k_words": 0.51,
+     "removed_by_proper_name_filter": 6
+    },
+    "words": 27266
+   },
+   "new_headlines_control_set": {
+    "PLAN": {
+     "raw_per_1k_words": 0.0,
+     "filtered_per_1k_words": 0.0,
+     "removed_by_proper_name_filter": 0
+    },
+    "NEGATION": {
+     "raw_per_1k_words": 0.0,
+     "filtered_per_1k_words": 0.0,
+     "removed_by_proper_name_filter": 0
+    },
+    "CANCEL": {
+     "raw_per_1k_words": 0.0,
+     "filtered_per_1k_words": 0.0,
+     "removed_by_proper_name_filter": 0
+    },
+    "SPECULATIVE": {
+     "raw_per_1k_words": 0.0,
+     "filtered_per_1k_words": 0.0,
+     "removed_by_proper_name_filter": 0
+    },
+    "words": 253
+   },
+   "note": "descriptive only: cue frequency, not accuracy; headlines are often Title Case"
+  },
+  "E-C_syndication": {
+   "news_items": 2767,
+   "distinct_normalised_titles": 2486,
+   "items_in_repeated_title_groups": 450,
+   "largest_title_group": 10,
+   "distinct_urls": 2509,
+   "items_sharing_a_url": 406,
+   "raw_data_key_sets_top3": [
+    [
+     [
+      "folder",
+      "inoreader_id",
+      "origin_stream_id",
+      "origin_title",
+      "published",
+      "title",
+      "url"
+     ],
+     2767
+    ]
+   ]
+  }
+ },
+ "manifest": [
+  {
+   "rank": 1,
+   "item_id": 8781,
+   "item_type": "news",
+   "external_id": "tag:google.com,2005:reader/item/0000000bd0182421",
+   "publisher": "APDR",
+   "title": "Saronic awarded production contract for Marauder",
+   "url": "https://asiapacificdefencereporter.com/saronic-awarded-production-contract-for-marauder/",
+   "published_at": "2026-10-04T21:16:31+00:00",
+   "folder": "BOHUN_MEDIA",
+   "stored_text": "NONE (metadata only; labeler reads the publisher page)"
+  },
+  {
+   "rank": 2,
+   "item_id": 8393,
+   "item_type": "news",
+   "external_id": "tag:google.com,2005:reader/item/00000007ea7da529",
+   "publisher": "govinfo",
+   "title": "Anniversary of the First Patent Issued in the United States",
+   "url": "https://www.govinfo.gov/features/anniversary-first-patent",
+   "published_at": "2022-07-29T11:37:25+00:00",
+   "folder": "BOHUN_GOV",
+   "stored_text": "NONE (metadata only; labeler reads the publisher page)"
+  },
+  {
+   "rank": 3,
+   "item_id": 585,
+   "item_type": "news",
+   "external_id": "tag:google.com,2005:reader/item/0000000bd1cfc55a",
+   "publisher": "Naval News",
+   "title": "HD Hyundai Signs Strategic Teaming Agreement With Croatia’s Iskra Shipyard for Multirole Corvettes and Expanded Maritime Cooperation",
+   "url": "https://www.navalnews.com/naval-news/2026/10/hd-hyundai-signs-strategic-teaming-agreement-with-croatias-iskra-shipyard-for-multirole-corvettes-and-expanded-maritime-cooperation/",
+   "published_at": "2026-10-07T10:20:09+00:00",
+   "folder": "BOHUN_01_DEFENCE_MEDIA",
+   "stored_text": "NONE (metadata only; labeler reads the publisher page)"
+  },
+  {
+   "rank": 4,
+   "item_id": 3065,
+   "item_type": "news",
+   "external_id": "tag:google.com,2005:reader/item/0000000bcd03c3ff",
+   "publisher": "Department of War News Feed",
+   "title": "Robotics Competition Winners Advance Military Exploration of Humanoid Capabilities",
+   "url": "https://www.war.gov/News/News-Stories/Article/Article/4613847/robotics-competition-winners-advance-military-exploration-of-humanoid-capabilit/",
+   "published_at": "2026-09-29T18:43:00+00:00",
+   "folder": "BOHUN_03_GOVERNMENT",
+   "stored_text": "NONE (metadata only; labeler reads the publisher page)"
+  },
+  {
+   "rank": 5,
+   "item_id": 2049,
+   "item_type": "news",
+   "external_id": "tag:google.com,2005:reader/item/0000000bc0a4ee74",
+   "publisher": "Ministry of Defence - Activity on GOV.UK",
+   "title": "Guidance: Aircraft post-crash and incident management officers course (APCIMO) and overseas brief (OSB APCIMO)",
+   "url": "https://www.gov.uk/government/publications/post-crash-management-incident-officers-course-pcmioc",
+   "published_at": "2026-09-10T10:23:01+00:00",
+   "folder": "BOHUN_03_GOVERNMENT",
+   "stored_text": "NONE (metadata only; labeler reads the publisher page)"
+  },
+  {
+   "rank": 6,
+   "item_id": 2351,
+   "item_type": "news",
+   "external_id": "tag:google.com,2005:reader/item/0000000bcecd06e4",
+   "publisher": "Crunchbase News",
+   "title": "Reporter’s Notebook: Europe’s Sovereign AI Push Needs Customers As Well As Capital",
+   "url": "https://news.crunchbase.com/ai/humanx-amsterdam-europe-sovereign-ai-user-push/",
+   "published_at": "2026-10-02T11:00:13+00:00",
+   "folder": "BOHUN_08_INVESTORS_VC",
+   "stored_text": "NONE (metadata only; labeler reads the publisher page)"
+  },
+  {
+   "rank": 7,
+   "item_id": 1610,
+   "item_type": "news",
+   "external_id": "tag:google.com,2005:reader/item/0000000bd37b1bda",
+   "publisher": "Zone Militaire",
+   "title": "La Direction générale de l’armement sélectionne trois drones de surface pour la protection des bases et des navires de la Marine",
+   "url": "https://www.opex360.com/2026/10/09/la-direction-generale-de-larmement-selectionne-trois-drones-de-surface-pour-la-protection-des-bases-et-des-navires-de-la-marine/",
+   "published_at": "2026-10-09T16:22:32+00:00",
+   "folder": "BOHUN_01_DEFENCE_MEDIA",
+   "stored_text": "NONE (metadata only; labeler reads the publisher page)"
+  },
+  {
+   "rank": 8,
+   "item_id": 26174,
+   "item_type": "news",
+   "external_id": "tag:google.com,2005:reader/item/0000000bd520739e",
+   "publisher": "Defence Industry Europe",
+   "title": "Lockheed Martin says proven interceptors underpin its expanding missile defense portfolio",
+   "url": "https://defence-industry.eu/lockheed-martin-says-proven-interceptors-underpin-its-expanding-missile-defense-portfolio/",
+   "published_at": "2026-10-12T16:44:41+00:00",
+   "folder": "BOHUN_01_DEFENCE_MEDIA",
+   "stored_text": "NONE (metadata only; labeler reads the publisher page)"
+  },
+  {
+   "rank": 9,
+   "item_id": 18585,
+   "item_type": "news",
+   "external_id": "tag:google.com,2005:reader/item/0000000bd489df7f",
+   "publisher": "Ukrinform",
+   "title": "Russian forces attack Dnipropetrovsk region over 50 times on Sunday",
+   "url": "https://www.ukrinform.net/rubric-ato/4173317-russian-forces-attack-dnipropetrovsk-region-over-50-times-on-sunday.html",
+   "published_at": "2026-10-11T17:15:00+00:00",
+   "folder": "BOHUN_13_UKRAINE",
+   "stored_text": "NONE (metadata only; labeler reads the publisher page)"
+  },
+  {
+   "rank": 10,
+   "item_id": 15601,
+   "item_type": "news",
+   "external_id": "tag:google.com,2005:reader/item/0000000bd46d79a5",
+   "publisher": "Indian Defence Review",
+   "title": "Scientists Uncover a Bizarre Enzyme That Eats Plastic and Can Also Disable Antibiotics",
+   "url": "https://indiandefencereview.com/scientists-uncover-a-bizarre-enzyme/",
+   "published_at": "2026-10-11T12:35:00+00:00",
+   "folder": "BOHUN_01_DEFENCE_MEDIA",
+   "stored_text": "NONE (metadata only; labeler reads the publisher page)"
+  },
+  {
+   "rank": 11,
+   "item_id": 28216,
+   "item_type": "news",
+   "external_id": "tag:google.com,2005:reader/item/0000000bd54d51bf",
+   "publisher": "Army Technology",
+   "title": "Anduril unveils Steelfin surface-to-air interceptor family ",
+   "url": "https://www.army-technology.com/news/anduril-steelfin-interceptor-family/",
+   "published_at": "2026-10-12T23:26:27+00:00",
+   "folder": "BOHUN_01_DEFENCE_MEDIA",
+   "stored_text": "NONE (metadata only; labeler reads the publisher page)"
+  },
+  {
+   "rank": 12,
+   "item_id": 2097,
+   "item_type": "news",
+   "external_id": "tag:google.com,2005:reader/item/0000000ba75deee3",
+   "publisher": "Defence and Security Accelerator - Activity on GOV.UK",
+   "title": "UKDI Standard Terms and Conditions",
+   "url": "https://www.gov.uk/guidance/defence-and-security-accelerator-terms-and-conditions-and-contract-guidance",
+   "published_at": "2026-07-31T08:51:23+00:00",
+   "folder": "BOHUN_04_PROCUREMENT",
+   "stored_text": "NONE (metadata only; labeler reads the publisher page)"
+  },
+  {
+   "rank": 13,
+   "item_id": 26178,
+   "item_type": "news",
+   "external_id": "tag:google.com,2005:reader/item/0000000bd51c05ee",
+   "publisher": "Defense News",
+   "title": "US Army, GM Defense agree to add 12,000 Infantry Squad Vehicles to fleet",
+   "url": "https://www.defensenews.com/news/your-army/2026/10/12/us-army-gm-defense-agree-to-add-12000-infantry-squad-vehicles-to-fleet/",
+   "published_at": "2026-10-12T15:30:46+00:00",
+   "folder": "BOHUN_01_DEFENCE_MEDIA",
+   "stored_text": "NONE (metadata only; labeler reads the publisher page)"
+  },
+  {
+   "rank": 14,
+   "item_id": 8731,
+   "item_type": "news",
+   "external_id": "tag:google.com,2005:reader/item/0000000bd104d770",
+   "publisher": "DRONES",
+   "title": "Elbit Systems to Showcase Advanced Operational Capabilities at Marrakech Air Show 2026",
+   "url": "https://www.drones-magazin.de/presse/elbit-systems-to-showcase-advanced-operational-capabilities-at-marrakech-air-show-2026/",
+   "published_at": "2026-10-06T07:57:04+00:00",
+   "folder": "BOHUN_MEDIA",
+   "stored_text": "NONE (metadata only; labeler reads the publisher page)"
+  },
+  {
+   "rank": 15,
+   "item_id": 1698,
+   "item_type": "news",
+   "external_id": "tag:google.com,2005:reader/item/0000000bd2f0dedf",
+   "publisher": "Air & Space Forces Magazine",
+   "title": "Counter-Drone Task Force Taps Directed Energy Systems for December Shoot-Off",
+   "url": "https://www.airandspaceforces.com/counter-drone-task-force-directed-energy-systems-shoot-off/",
+   "published_at": "2026-10-08T21:04:05+00:00",
+   "folder": "BOHUN_01_DEFENCE_MEDIA",
+   "stored_text": "NONE (metadata only; labeler reads the publisher page)"
+  },
+  {
+   "rank": 16,
+   "item_id": 8771,
+   "item_type": "news",
+   "external_id": "tag:google.com,2005:reader/item/0000000bd05c635f",
+   "publisher": "Militär Aktuell – Sicherheit im Fokus",
+   "title": "Embraer & Mahindra treiben Pl&auml;ne f&uuml;r indische C-390M voran",
+   "url": "https://militaeraktuell.at/embraer-mahindra-plaene-indische-c-390m/",
+   "published_at": "2026-10-05T09:31:05+00:00",
+   "folder": "BOHUN_MEDIA",
+   "stored_text": "NONE (metadata only; labeler reads the publisher page)"
+  },
+  {
+   "rank": 17,
+   "item_id": 575,
+   "item_type": "news",
+   "external_id": "tag:google.com,2005:reader/item/0000000bd1f39884",
+   "publisher": "Naval Technology",
+   "title": "US Navy, Anduril plan $6.6bn Arsenal-2 shipyard in Maryland",
+   "url": "https://www.naval-technology.com/news/arsenal-2-shipyard-us-navy/",
+   "published_at": "2026-10-07T13:13:03+00:00",
+   "folder": "BOHUN_01_DEFENCE_MEDIA",
+   "stored_text": "NONE (metadata only; labeler reads the publisher page)"
+  },
+  {
+   "rank": 18,
+   "item_id": 8268,
+   "item_type": "news",
+   "external_id": "tag:google.com,2005:reader/item/0000000a859b7883",
+   "publisher": "SBIR.gov",
+   "title": "Internal & External SBIR/STTR Town Hall w/ Q&A",
+   "url": "https://www.sbir.gov/event/internal-external-sbirsttr-town-hall-w-qa",
+   "published_at": "2025-05-21T17:06:00+00:00",
+   "folder": "BOHUN_GOV",
+   "stored_text": "NONE (metadata only; labeler reads the publisher page)"
+  },
+  {
+   "rank": 19,
+   "item_id": 8424,
+   "item_type": "news",
+   "external_id": "tag:google.com,2005:reader/item/0000000bd3e9d09a",
+   "publisher": "L3Harris Technologies",
+   "title": "Strengthening Australia&#039;s Maritime Capability: L3Harris at the Forefront",
+   "url": "https://www.l3harris.com/newsroom/editorial/2026/09/strengthening-australias-maritime-capability-l3harris-forefront",
+   "published_at": "2026-09-22T19:50:51+00:00",
+   "folder": "BOHUN_INDUSTRY",
+   "stored_text": "NONE (metadata only; labeler reads the publisher page)"
+  },
+  {
+   "rank": 20,
+   "item_id": 669,
+   "item_type": "news",
+   "external_id": "tag:google.com,2005:reader/item/0000000bcd258403",
+   "publisher": "Sifted",
+   "title": "Exclusive: Sequoia-backed Juicebox lands in London to take on Jack & Jill",
+   "url": "https://sifted.eu/articles/uicebox-lands-in-london/",
+   "published_at": "2026-09-30T04:30:06+00:00",
+   "folder": "BOHUN_08_INVESTORS_VC",
+   "stored_text": "NONE (metadata only; labeler reads the publisher page)"
+  },
+  {
+   "rank": 21,
+   "item_id": 8406,
+   "item_type": "news",
+   "external_id": "tag:google.com,2005:reader/item/0000000bd3eb342f",
+   "publisher": "Quantum Systems Inc.",
+   "title": "Field Support Engineer – Quantum Systems USA",
+   "url": "https://quantum-systems.com/us/jobs/field-support-engineer-quantum-systems-usa/",
+   "published_at": "2026-09-18T15:40:53+00:00",
+   "folder": "BOHUN_INDUSTRY",
+   "stored_text": "NONE (metadata only; labeler reads the publisher page)"
+  },
+  {
+   "rank": 22,
+   "item_id": 8941,
+   "item_type": "news",
+   "external_id": "tag:google.com,2005:reader/item/0000000bc80efda5",
+   "publisher": "Tech.eu",
+   "title": "Primo raises $8M to bring autonomous AI agents to IT operations",
+   "url": "https://tech.eu/2026/09/22/primo-raises-8m-to-bring-autonomous-ai-agents-to-it-operations/",
+   "published_at": "2026-09-22T07:30:00+00:00",
+   "folder": "BOHUN_OPPORTUNITIES",
+   "stored_text": "NONE (metadata only; labeler reads the publisher page)"
+  },
+  {
+   "rank": 23,
+   "item_id": 8442,
+   "item_type": "news",
+   "external_id": "tag:google.com,2005:reader/item/0000000bd3276c79",
+   "publisher": "Shield AI",
+   "title": "A New Tempo for Defense Software",
+   "url": "https://shield.ai/a-new-tempo-for-defense-software/",
+   "published_at": "2026-09-24T14:59:26+00:00",
+   "folder": "BOHUN_INDUSTRY",
+   "stored_text": "NONE (metadata only; labeler reads the publisher page)"
+  },
+  {
+   "rank": 24,
+   "item_id": 24016,
+   "item_type": "news",
+   "external_id": "tag:google.com,2005:reader/item/0000000bd4dde55f",
+   "publisher": "European Security & Defence",
+   "title": "Airbus U740 Valkyrie uncrewed combat aircraft takes off for its maiden flight in Europe",
+   "url": "https://euro-sd.com/2026/10/news/air/54297/airbus-u740-valkyrie/",
+   "published_at": "2026-10-12T09:29:46+00:00",
+   "folder": "BOHUN_01_DEFENCE_MEDIA",
+   "stored_text": "NONE (metadata only; labeler reads the publisher page)"
+  }
+ ]
+}

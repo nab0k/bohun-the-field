@@ -1,0 +1,14 @@
+{
+  "provenance": "SYNTHETIC_TEST_FIXTURE: fictitious organisations and events, written for Bohun Evidence Phase 1 tests. Not a real news item.",
+  "source_url": "https://example.invalid/synthetic/cancelled-dates",
+  "publication_date": "2026-10-12",
+  "retrieved_at": "2026-10-13T00:00:00+00:00",
+  "language": "en",
+  "text": "Published 12 October 2026. On 14 September 2026, the Republic of Ostmark signed a framework agreement with Brightwater Munitions for 155mm artillery shells. On 2 October 2026, the Ostmark procurement agency cancelled the agreement after a dispute over delivery schedules, an agency statement said. Brightwater Munitions plans to build a new filling plant in 2028 regardless of the cancellation, its chief executive told reporters. Officials did not say whether a new tender would be launched. The company is not affiliated with any state-owned group.",
+  "gold": [
+    {"evidence_text": "the Republic of Ostmark signed a framework agreement with Brightwater Munitions for 155mm artillery shells", "modality": "occurred", "asserted_by": null, "essential": true},
+    {"evidence_text": "the Ostmark procurement agency cancelled the agreement after a dispute over delivery schedules", "modality": "cancelled", "asserted_by": "Ostmark procurement agency", "essential": true},
+    {"evidence_text": "Brightwater Munitions plans to build a new filling plant in 2028 regardless of the cancellation", "modality": "planned", "asserted_by": "Brightwater Munitions", "essential": true},
+    {"evidence_text": "The company is not affiliated with any state-owned group", "modality": "negated", "asserted_by": null, "essential": false}
+  ]
+}

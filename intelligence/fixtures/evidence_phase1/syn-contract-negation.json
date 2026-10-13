@@ -1,0 +1,15 @@
+{
+  "provenance": "SYNTHETIC_TEST_FIXTURE: fictitious organisations and events, written for Bohun Evidence Phase 1 tests. Not a real news item.",
+  "source_url": "https://example.invalid/synthetic/contract-negation",
+  "publication_date": "2026-10-09",
+  "retrieved_at": "2026-10-13T00:00:00+00:00",
+  "language": "en",
+  "text": "VALDORIA, 9 October 2026. The Valdorian Ministry of Defence said it awarded Kestrel Dynamics a contract worth EUR 48 million for 30 counter-drone radar units. Kestrel Dynamics will deliver the first units in early 2028, the ministry added. A Kestrel Dynamics spokesperson denied that the company had received a second order from the Valdorian Navy. According to the trade newsletter Harbour Defence Weekly, Kestrel Dynamics may open a second assembly line in Ostrava, a report the company did not confirm. The radar was first tested in June 2025 at a range in northern Valdoria.",
+  "gold": [
+    {"evidence_text": "it awarded Kestrel Dynamics a contract worth EUR 48 million for 30 counter-drone radar units", "modality": "announced", "asserted_by": "Valdorian Ministry of Defence", "essential": true},
+    {"evidence_text": "Kestrel Dynamics will deliver the first units in early 2028", "modality": "planned", "asserted_by": "Valdorian Ministry of Defence", "essential": true},
+    {"evidence_text": "denied that the company had received a second order from the Valdorian Navy", "modality": "negated", "asserted_by": "Kestrel Dynamics", "essential": true},
+    {"evidence_text": "Kestrel Dynamics may open a second assembly line in Ostrava", "modality": "speculative", "asserted_by": "Harbour Defence Weekly", "essential": true},
+    {"evidence_text": "The radar was first tested in June 2025 at a range in northern Valdoria", "modality": "occurred", "asserted_by": null, "essential": false}
+  ]
+}

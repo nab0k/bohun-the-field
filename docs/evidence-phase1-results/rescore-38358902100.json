@@ -1,0 +1,915 @@
+{
+ "run_id": "38358902100",
+ "source_run": "38324082330",
+ "in_sample_warning": true,
+ "overview": {
+  "source_run": "38324082330",
+  "in_sample_warning": true,
+  "errors": [],
+  "e1-fixtures-gemini-direct": {
+   "rescored": 7,
+   "skipped_unaligned_or_unknown_doc": 1,
+   "integrity_failures": 0,
+   "validation_problems": 0,
+   "all_hold": true,
+   "flag_counts_old_vs_new": {
+    "PLAN_CUE_IN_SPAN": [
+     0,
+     0
+    ],
+    "CANCELLATION_CUE": [
+     1,
+     1
+    ],
+    "SPECULATIVE_CUE": [
+     0,
+     0
+    ],
+    "NEGATION_CUE_IN_SPAN": [
+     0,
+     0
+    ],
+    "CLAIM_DROPS_PLAN": [
+     0,
+     0
+    ],
+    "CLAIM_DROPS_SPECULATIVE": [
+     0,
+     0
+    ],
+    "CLAIM_DROPS_NEGATION": [
+     0,
+     0
+    ],
+    "ENTAILMENT_NOT_SUPPORTED": [
+     0,
+     0
+    ],
+    "ENTAILMENT_NEEDS_WIDER_CONTEXT": [
+     0,
+     0
+    ]
+   },
+   "metrics_fixtures": {
+    "records": 7,
+    "span_not_in_text_rate": 0.0,
+    "unsupported_claim_rate_minicheck": 0.0,
+    "all_hold": true,
+    "precision_span_match": 1.0,
+    "recall_essential": 0.8571,
+    "attribution_accuracy": 0.4286,
+    "attribution_accuracy_lenient_posthoc": 0.7143,
+    "modality_accuracy": 1.0,
+    "quality_note": "Computed on 2 gold-labelled document(s). Small samples: not representative."
+   }
+  },
+  "e2-fixtures-langextract": {
+   "rescored": 9,
+   "skipped_unaligned_or_unknown_doc": 0,
+   "integrity_failures": 0,
+   "validation_problems": 0,
+   "all_hold": true,
+   "flag_counts_old_vs_new": {
+    "PLAN_CUE_IN_SPAN": [
+     1,
+     1
+    ],
+    "CANCELLATION_CUE": [
+     1,
+     1
+    ],
+    "SPECULATIVE_CUE": [
+     0,
+     0
+    ],
+    "NEGATION_CUE_IN_SPAN": [
+     0,
+     0
+    ],
+    "CLAIM_DROPS_PLAN": [
+     0,
+     0
+    ],
+    "CLAIM_DROPS_SPECULATIVE": [
+     0,
+     0
+    ],
+    "CLAIM_DROPS_NEGATION": [
+     0,
+     0
+    ],
+    "ENTAILMENT_NOT_SUPPORTED": [
+     0,
+     0
+    ],
+    "ENTAILMENT_NEEDS_WIDER_CONTEXT": [
+     0,
+     0
+    ]
+   },
+   "metrics_fixtures": {
+    "records": 9,
+    "span_not_in_text_rate": 0.0,
+    "unsupported_claim_rate_minicheck": 0.0,
+    "all_hold": true,
+    "precision_span_match": 0.8889,
+    "recall_essential": 1.0,
+    "attribution_accuracy": 0.375,
+    "attribution_accuracy_lenient_posthoc": 0.625,
+    "modality_accuracy": 0.75,
+    "quality_note": "Computed on 2 gold-labelled document(s). Small samples: not representative."
+   }
+  },
+  "e3a-pac3-pilot-baseline": {
+   "rescored": 1,
+   "skipped_unaligned_or_unknown_doc": 0,
+   "integrity_failures": 0,
+   "validation_problems": 0,
+   "all_hold": true,
+   "flag_counts_old_vs_new": {
+    "PLAN_CUE_IN_SPAN": [
+     0,
+     0
+    ],
+    "CANCELLATION_CUE": [
+     0,
+     0
+    ],
+    "SPECULATIVE_CUE": [
+     0,
+     0
+    ],
+    "NEGATION_CUE_IN_SPAN": [
+     0,
+     0
+    ],
+    "CLAIM_DROPS_PLAN": [
+     0,
+     1
+    ],
+    "CLAIM_DROPS_SPECULATIVE": [
+     0,
+     0
+    ],
+    "CLAIM_DROPS_NEGATION": [
+     0,
+     0
+    ],
+    "ENTAILMENT_NOT_SUPPORTED": [
+     0,
+     0
+    ],
+    "ENTAILMENT_NEEDS_WIDER_CONTEXT": [
+     0,
+     0
+    ]
+   },
+   "metrics_fixtures": null
+  },
+  "e3b-pac3-gemini-direct": {
+   "rescored": 7,
+   "skipped_unaligned_or_unknown_doc": 1,
+   "integrity_failures": 0,
+   "validation_problems": 0,
+   "all_hold": true,
+   "flag_counts_old_vs_new": {
+    "PLAN_CUE_IN_SPAN": [
+     3,
+     1
+    ],
+    "CANCELLATION_CUE": [
+     1,
+     1
+    ],
+    "SPECULATIVE_CUE": [
+     0,
+     0
+    ],
+    "NEGATION_CUE_IN_SPAN": [
+     0,
+     0
+    ],
+    "CLAIM_DROPS_PLAN": [
+     0,
+     1
+    ],
+    "CLAIM_DROPS_SPECULATIVE": [
+     0,
+     0
+    ],
+    "CLAIM_DROPS_NEGATION": [
+     0,
+     0
+    ],
+    "ENTAILMENT_NOT_SUPPORTED": [
+     2,
+     0
+    ],
+    "ENTAILMENT_NEEDS_WIDER_CONTEXT": [
+     0,
+     2
+    ]
+   },
+   "metrics_fixtures": null
+  },
+  "e3c-pac3-langextract": {
+   "rescored": 22,
+   "skipped_unaligned_or_unknown_doc": 2,
+   "integrity_failures": 0,
+   "validation_problems": 0,
+   "all_hold": true,
+   "flag_counts_old_vs_new": {
+    "PLAN_CUE_IN_SPAN": [
+     7,
+     5
+    ],
+    "CANCELLATION_CUE": [
+     1,
+     1
+    ],
+    "SPECULATIVE_CUE": [
+     0,
+     0
+    ],
+    "NEGATION_CUE_IN_SPAN": [
+     0,
+     0
+    ],
+    "CLAIM_DROPS_PLAN": [
+     0,
+     0
+    ],
+    "CLAIM_DROPS_SPECULATIVE": [
+     0,
+     0
+    ],
+    "CLAIM_DROPS_NEGATION": [
+     0,
+     0
+    ],
+    "ENTAILMENT_NOT_SUPPORTED": [
+     0,
+     0
+    ],
+    "ENTAILMENT_NEEDS_WIDER_CONTEXT": [
+     0,
+     0
+    ]
+   },
+   "metrics_fixtures": null
+  }
+ },
+ "records": {
+  "e1-fixtures-gemini-direct": [
+   {
+    "claim": "The Republic of Ostmark signed a framework agreement with Brightwater Munitions for 155mm artillery shells.",
+    "modality": "occurred",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9678
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9742
+    ],
+    "hold_new": [
+     "CANCELLATION_CUE_IN_CONTEXT",
+     "ATTRIBUTION_CUE_BUT_ASSERTED_BY_UNKNOWN"
+    ]
+   },
+   {
+    "claim": "The Ostmark procurement agency cancelled the framework agreement.",
+    "modality": "cancelled",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.6686
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9773
+    ],
+    "hold_new": []
+   },
+   {
+    "claim": "Brightwater Munitions plans to build a new filling plant in 2028 regardless of the cancellation.",
+    "modality": "planned",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9318
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9731
+    ],
+    "hold_new": []
+   },
+   {
+    "claim": "Kestrel Dynamics will deliver the first units in early 2028.",
+    "modality": "planned",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9415
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9784
+    ],
+    "hold_new": [
+     "ASSERTED_BY_NOT_NAMED_IN_CONTEXT"
+    ]
+   },
+   {
+    "claim": "A Kestrel Dynamics spokesperson denied that the company had received a second order from the Valdorian Navy.",
+    "modality": "negated",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9429
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9567
+    ],
+    "hold_new": []
+   },
+   {
+    "claim": "Kestrel Dynamics may open a second assembly line in Ostrava.",
+    "modality": "speculative",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.8971
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9377
+    ],
+    "hold_new": []
+   },
+   {
+    "claim": "The radar was first tested in June 2025 at a range in northern Valdoria.",
+    "modality": "occurred",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9624
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9797
+    ],
+    "hold_new": []
+   }
+  ],
+  "e2-fixtures-langextract": [
+   {
+    "claim": "The Republic of Ostmark signed a framework agreement with Brightwater Munitions for 155mm artillery shells.",
+    "modality": "occurred",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9651
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9742
+    ],
+    "hold_new": []
+   },
+   {
+    "claim": "The Ostmark procurement agency cancelled the agreement.",
+    "modality": "occurred",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9547
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9741
+    ],
+    "hold_new": [
+     "CANCELLATION_CUE_IN_CONTEXT"
+    ]
+   },
+   {
+    "claim": "Brightwater Munitions plans to build a new filling plant in 2028.",
+    "modality": "planned",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9235
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9715
+    ],
+    "hold_new": []
+   },
+   {
+    "claim": "The Valdorian Ministry of Defence awarded Kestrel Dynamics a contract worth EUR 48 million for 30 counter-drone radar un",
+    "modality": "announced",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9689
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9796
+    ],
+    "hold_new": []
+   },
+   {
+    "claim": "Kestrel Dynamics will deliver the first units in early 2028.",
+    "modality": "announced",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9415
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9784
+    ],
+    "hold_new": [
+     "PLAN_CUE_IN_SPAN_CONFLICTS_WITH_MODALITY"
+    ]
+   },
+   {
+    "claim": "A Kestrel Dynamics spokesperson denied that the company had received a second order from the Valdorian Navy.",
+    "modality": "negated",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9504
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9567
+    ],
+    "hold_new": []
+   },
+   {
+    "claim": "Kestrel Dynamics may open a second assembly line in Ostrava.",
+    "modality": "speculative",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.8971
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9377
+    ],
+    "hold_new": []
+   },
+   {
+    "claim": "The company did not confirm the report that it may open a second assembly line in Ostrava.",
+    "modality": "negated",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9718
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9762
+    ],
+    "hold_new": []
+   },
+   {
+    "claim": "The radar was first tested in June 2025 at a range in northern Valdoria.",
+    "modality": "occurred",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9624
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9797
+    ],
+    "hold_new": []
+   }
+  ],
+  "e3a-pac3-pilot-baseline": [
+   {
+    "claim": "PAC-3 Edge represents the top tier of the U.S. Army’s Patriot air defense missile family",
+    "modality": "unknown",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9713
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9815
+    ],
+    "hold_new": [
+     "CLAIM_DROPS_PLAN_CUE_GOVERNING_SPAN"
+    ]
+   }
+  ],
+  "e3b-pac3-gemini-direct": [
+   {
+    "claim": "Lockheed Martin unveiled the PAC-3 Edge interceptor.",
+    "modality": "occurred",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9781
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9813
+    ],
+    "hold_new": [
+     "PLAN_CUE_IN_SPAN_CONFLICTS_WITH_MODALITY",
+     "CLAIM_DROPS_PLAN_CUE_FROM_SPAN"
+    ]
+   },
+   {
+    "claim": "Lockheed announced it was selected to advance to the next phase of the Army's Future Interceptor program.",
+    "modality": "occurred",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9693
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9845
+    ],
+    "hold_new": []
+   },
+   {
+    "claim": "Testing for the PAC-3 Edge is expected to begin in 2027.",
+    "modality": "planned",
+    "ent_sentence": [
+     "NOT_SUPPORTED",
+     0.0596
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9903
+    ],
+    "hold_new": [
+     "ENTAILMENT_NEEDS_WIDER_CONTEXT"
+    ]
+   },
+   {
+    "claim": "Initial deployment of the PAC-3 Edge is targeted for 2031.",
+    "modality": "planned",
+    "ent_sentence": [
+     "NOT_SUPPORTED",
+     0.0723
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.987
+    ],
+    "hold_new": [
+     "ENTAILMENT_NEEDS_WIDER_CONTEXT"
+    ]
+   },
+   {
+    "claim": "The Army abandoned its Lower-Tier Future Interceptor program in 2024.",
+    "modality": "occurred",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9155
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.964
+    ],
+    "hold_new": [
+     "CANCELLATION_CUE_IN_CONTEXT"
+    ]
+   },
+   {
+    "claim": "Lockheed announced a seven-year agreement with the Pentagon in January to triple annual PAC-3 MSE production capacity.",
+    "modality": "occurred",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9721
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9876
+    ],
+    "hold_new": []
+   },
+   {
+    "claim": "The U.S. government awarded Lockheed a contract modification worth up to $53.86 billion in July.",
+    "modality": "occurred",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9868
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9903
+    ],
+    "hold_new": [
+     "ATTRIBUTION_CUE_BUT_ASSERTED_BY_UNKNOWN",
+     "CLAIM_HAS_MULTIPLE_SENTENCES"
+    ]
+   }
+  ],
+  "e3c-pac3-langextract": [
+   {
+    "claim": "Lockheed Martin unveiled the PAC-3 Edge interceptor.",
+    "modality": "occurred",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9712
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9805
+    ],
+    "hold_new": []
+   },
+   {
+    "claim": "Lockheed was selected to advance to the next phase of the Army’s Future Interceptor program.",
+    "modality": "announced",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9567
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9859
+    ],
+    "hold_new": []
+   },
+   {
+    "claim": "Testing is expected to begin in 2027.",
+    "modality": "planned",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9678
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9893
+    ],
+    "hold_new": []
+   },
+   {
+    "claim": "Initial deployment is targeted for 2031.",
+    "modality": "planned",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9336
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9857
+    ],
+    "hold_new": []
+   },
+   {
+    "claim": "The Army abandoned its Lower-Tier Future Interceptor (LTFI) program in 2024.",
+    "modality": "occurred",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9329
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9651
+    ],
+    "hold_new": [
+     "CANCELLATION_CUE_IN_CONTEXT"
+    ]
+   },
+   {
+    "claim": "The PAC-3 Edge interceptor is intended to preserve existing PAC-3 advantages while improving range and altitude capabili",
+    "modality": "announced",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9786
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9873
+    ],
+    "hold_new": [
+     "PLAN_CUE_IN_SPAN_CONFLICTS_WITH_MODALITY"
+    ]
+   },
+   {
+    "claim": "Lockheed Martin’s Strigo Product Center is developing a new seeker as part of the central changes.",
+    "modality": "occurred",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9835
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9883
+    ],
+    "hold_new": [
+     "ATTRIBUTION_CUE_BUT_ASSERTED_BY_UNKNOWN"
+    ]
+   },
+   {
+    "claim": "The company states the technology will improve target detection and tracking to handle more demanding threats.",
+    "modality": "announced",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9803
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9866
+    ],
+    "hold_new": [
+     "PLAN_CUE_IN_SPAN_CONFLICTS_WITH_MODALITY",
+     "ASSERTED_BY_NOT_NAMED_IN_CONTEXT"
+    ]
+   },
+   {
+    "claim": "The company has not disclosed the technical details of the seeker.",
+    "modality": "negated",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9642
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.974
+    ],
+    "hold_new": []
+   },
+   {
+    "claim": "The seeker technology used in PAC-3 Edge will also be used in future offensive and defensive systems.",
+    "modality": "planned",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9722
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9824
+    ],
+    "hold_new": []
+   },
+   {
+    "claim": "Hardware assemblies and components are being tested in the lab.",
+    "modality": "occurred",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9748
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.984
+    ],
+    "hold_new": []
+   },
+   {
+    "claim": "Seekers have been flown on aircraft testbeds.",
+    "modality": "occurred",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9721
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9807
+    ],
+    "hold_new": []
+   },
+   {
+    "claim": "The missile will use a three-pulse solid rocket motor designed by Northrop Grumman.",
+    "modality": "planned",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9759
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9856
+    ],
+    "hold_new": []
+   },
+   {
+    "claim": "The combination of the new seeker, propulsion system, and control system improvements will provide greater maneuverabili",
+    "modality": "announced",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.5827
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.8983
+    ],
+    "hold_new": [
+     "PLAN_CUE_IN_SPAN_CONFLICTS_WITH_MODALITY"
+    ]
+   },
+   {
+    "claim": "The new missile adds a greater number of more capable attitude control motors compared to the PAC-3 MSE.",
+    "modality": "occurred",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9778
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9899
+    ],
+    "hold_new": []
+   },
+   {
+    "claim": "The company has yet to demonstrate PAC-3 Edge’s performance in flight testing.",
+    "modality": "negated",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9613
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9855
+    ],
+    "hold_new": [
+     "NEGATED_WITHOUT_NEGATION_CUE"
+    ]
+   },
+   {
+    "claim": "The Army planned to expand its Patriot air defense force by roughly a quarter by adding four battalions.",
+    "modality": "planned",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9733
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9825
+    ],
+    "hold_new": [
+     "ATTRIBUTION_CUE_BUT_ASSERTED_BY_UNKNOWN"
+    ]
+   },
+   {
+    "claim": "The effort is intended to more than triple production by the end of 2030.",
+    "modality": "announced",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9422
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9902
+    ],
+    "hold_new": []
+   },
+   {
+    "claim": "The new interceptor will be manufactured on its existing PAC-3 production line in Camden, Arkansas.",
+    "modality": "announced",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9775
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9864
+    ],
+    "hold_new": [
+     "PLAN_CUE_IN_SPAN_CONFLICTS_WITH_MODALITY"
+    ]
+   },
+   {
+    "claim": "Factory modernization is expected to support the eventual transition.",
+    "modality": "announced",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9734
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9836
+    ],
+    "hold_new": [
+     "PLAN_CUE_IN_SPAN_CONFLICTS_WITH_MODALITY",
+     "ATTRIBUTION_CUE_BUT_ASSERTED_BY_UNKNOWN"
+    ]
+   },
+   {
+    "claim": "PAC-3 MSE is in production in Camden, Arkansas.",
+    "modality": "occurred",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.9048
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9705
+    ],
+    "hold_new": []
+   },
+   {
+    "claim": "The company has highlighted substantial internal investment in the new missile and its seeker technology.",
+    "modality": "announced",
+    "ent_sentence": [
+     "SUPPORTED",
+     0.961
+    ],
+    "ent_wide": [
+     "SUPPORTED",
+     0.9602
+    ],
+    "hold_new": []
+   }
+  ]
+ }
+}

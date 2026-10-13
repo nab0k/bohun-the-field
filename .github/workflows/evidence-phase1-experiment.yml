@@ -1,0 +1,311 @@
+name: Evidence Phase 1 Experiment (MANUAL, HOLD ONLY, NO WRITES)
+# Experimental claim extraction -> exact span -> MiniCheck entailment.
+# Manual dispatch (after merge), or an explicit run request committed to
+# intelligence/fixtures/evidence_phase1/run-request.json on this experiment branch
+# (same pattern as the existing staging pilot). Never publishes, never writes to Supabase (staging is read
+# in a READ ONLY transaction), never touches the existing staging pilot workflow.
+# Artifacts contain claim records with short evidence spans and metrics, not full texts.
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: 'fixtures = synthetic gold docs; staging = docs already stored by the pilot (read-only)'
+        type: choice
+        options: [fixtures, staging]
+        default: fixtures
+      title_like:
+        description: 'staging only: title filter (e.g. PAC-3)'
+        default: 'PAC-3'
+      extractor:
+        type: choice
+        options: [replay, gemini-direct, langextract]
+        default: replay
+      entailment:
+        type: choice
+        options: [none, minicheck]
+        default: none
+      max_docs:
+        description: 'hard cap 10 in code'
+        default: '3'
+      docling_pdf_url:
+        description: 'optional: one public PDF to measure Docling on (empty = skip)'
+        default: ''
+  push:
+    branches: [experiment/evidence-phase1-20261013]
+    paths: ['intelligence/fixtures/evidence_phase1/run-request.json']
+permissions:
+  contents: read
+concurrency:
+  group: evidence-phase1-experiment
+  cancel-in-progress: false
+env:
+  LANGEXTRACT_VERSION: '1.7.1'
+  MINICHECK_COMMIT: 'b58b9fa69acbd1015ec970fa65dd752413a053d2'
+  TRANSFORMERS_VERSION: '4.57.6'
+  DOCLING_VERSION: '2.138.0'
+  GEMINI_MODEL: 'gemini-3.5-flash-lite'
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      source: ${{ steps.r.outputs.source }}
+      title_like: ${{ steps.r.outputs.title_like }}
+      extractor: ${{ steps.r.outputs.extractor }}
+      entailment: ${{ steps.r.outputs.entailment }}
+      max_docs: ${{ steps.r.outputs.max_docs }}
+      docling_pdf_url: ${{ steps.r.outputs.docling_pdf_url }}
+      series: ${{ steps.r.outputs.series }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: r
+        env:
+          EVENT: ${{ github.event_name }}
+          INPUTS: ${{ toJSON(inputs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re
+          req = json.loads(os.environ["INPUTS"]) if os.environ["EVENT"] == "workflow_dispatch" else \
+                json.load(open("intelligence/fixtures/evidence_phase1/run-request.json"))
+          allowed = {"source": {"fixtures", "staging"}, "extractor": {"replay", "gemini-direct", "langextract"},
+                     "entailment": {"none", "minicheck"}}
+          out = {"source": req.get("source", "fixtures"), "extractor": req.get("extractor", "replay"),
+                 "entailment": req.get("entailment", "none"), "max_docs": str(req.get("max_docs", "3")),
+                 "title_like": req.get("title_like", ""), "docling_pdf_url": req.get("docling_pdf_url", ""),
+                 "series": req.get("series", "")}
+          assert out["series"] in {"", "phase1-paid-v1", "phase1-rescore-v1", "phase1-controlset-v1"}, "series"
+          for k, ok in allowed.items():
+              assert out[k] in ok, k
+          assert out["max_docs"].isdigit() and 1 <= int(out["max_docs"]) <= 10
+          assert re.fullmatch(r"[A-Za-z0-9 ._-]{0,40}", out["title_like"])
+          assert out["docling_pdf_url"] == "" or re.fullmatch(r"https://[^\s'\"]+\.pdf", out["docling_pdf_url"])
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              for k, v in out.items():
+                  fh.write(f"{k}={v}\n")
+          print(json.dumps(out))
+          PY
+
+  offline-tests:
+    needs: resolve
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install "langextract==${LANGEXTRACT_VERSION}"
+      - name: New tests + regression tests of the existing pilot validator/content contract
+        run: |
+          python -m unittest tests.test_evidence_phase1 tests.test_gemini_evidence_validator tests.test_inoreader_content -v
+      - name: Offline replay run (deterministic, no secrets)
+        run: python scripts/evidence-phase1-experiment.py --source fixtures --extractor replay --label offline-replay
+      - run: python scripts/evidence-phase1-annotate.py offline-replay
+      - uses: actions/upload-artifact@v4
+        with:
+          name: evidence-phase1-offline
+          path: output/evidence-phase1/
+          retention-days: 7
+
+  experiment:
+    needs: [resolve, offline-tests]
+    if: needs.resolve.outputs.series == '' && (needs.resolve.outputs.extractor != 'replay' || needs.resolve.outputs.entailment != 'none' || needs.resolve.outputs.source != 'fixtures')
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install extractor deps
+        run: python -m pip install "langextract==${LANGEXTRACT_VERSION}" "psycopg[binary]"
+      - name: Install MiniCheck (pinned GitHub commit; PyPI 'minicheck' is a different project)
+        if: needs.resolve.outputs.entailment == 'minicheck'
+        run: |
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install "transformers==${TRANSFORMERS_VERSION}" accelerate nltk numpy
+          python -m pip install --no-deps "git+https://github.com/Liyan06/MiniCheck.git@${MINICHECK_COMMIT}"
+          python -c "import nltk; nltk.download('punkt', quiet=True); nltk.download('punkt_tab', quiet=True)"
+      - uses: actions/cache@v4
+        if: needs.resolve.outputs.entailment == 'minicheck'
+        with:
+          path: ckpts
+          key: minicheck-flan-t5-large-v1
+      - name: Run experiment (HOLD only)
+        env:
+          GEMINI_API_KEY: ${{ needs.resolve.outputs.extractor != 'replay' && secrets.GEMINI_API_KEY || '' }}
+          SUPABASE_DB_PASSWORD: ${{ needs.resolve.outputs.source == 'staging' && secrets.SUPABASE_DB_PASSWORD || '' }}
+          IN_SOURCE: ${{ needs.resolve.outputs.source }}
+          IN_TITLE: ${{ needs.resolve.outputs.title_like }}
+          IN_EXTRACTOR: ${{ needs.resolve.outputs.extractor }}
+          IN_ENTAILMENT: ${{ needs.resolve.outputs.entailment }}
+          IN_MAX_DOCS: ${{ needs.resolve.outputs.max_docs }}
+        run: |
+          /usr/bin/time -v python scripts/evidence-phase1-experiment.py \
+            --source "$IN_SOURCE" --title-like "$IN_TITLE" \
+            --extractor "$IN_EXTRACTOR" --entailment "$IN_ENTAILMENT" \
+            --max-docs "$IN_MAX_DOCS" --label experiment 2> output-time.txt || status=$?
+          mkdir -p output/evidence-phase1 && mv output-time.txt output/evidence-phase1/experiment-time.txt
+          grep -E "Maximum resident|Elapsed|User time|System time" output/evidence-phase1/experiment-time.txt || true
+          exit ${status:-0}
+      - name: Results as annotations (metrics + compact records)
+        if: always()
+        run: python scripts/evidence-phase1-annotate.py experiment || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: evidence-phase1-experiment
+          path: output/evidence-phase1/
+          retention-days: 7
+
+  docling-probe:
+    needs: [resolve, offline-tests]
+    if: needs.resolve.outputs.docling_pdf_url != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Docling (CPU torch) and pilot deps
+        run: |
+          python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install "docling==${DOCLING_VERSION}" "psycopg[binary]" "langextract==${LANGEXTRACT_VERSION}"
+      - name: Convert one PDF, then extract (HOLD only)
+        env:
+          GEMINI_API_KEY: ${{ needs.resolve.outputs.extractor != 'replay' && secrets.GEMINI_API_KEY || '' }}
+          IN_PDF: ${{ needs.resolve.outputs.docling_pdf_url }}
+          IN_EXTRACTOR: ${{ needs.resolve.outputs.extractor }}
+        run: |
+          # replay = convert and measure only (no model call, zero claims)
+          /usr/bin/time -v python scripts/evidence-phase1-experiment.py --source pdf \
+            --pdf-url "$IN_PDF" --extractor "$IN_EXTRACTOR" --max-docs 1 --label docling \
+            2> docling-time.txt || status=$?
+          mkdir -p output/evidence-phase1 && mv docling-time.txt output/evidence-phase1/
+          rm -rf output/evidence-phase1/pdf-work
+          grep -E "Maximum resident|Elapsed" output/evidence-phase1/docling-time.txt || true
+          exit ${status:-0}
+      - name: Results as annotations
+        if: always()
+        run: python scripts/evidence-phase1-annotate.py docling || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: evidence-phase1-docling
+          path: output/evidence-phase1/
+          retention-days: 7
+
+  # Owner-approved paid series (2026-10-13, total authorization $1). One process and one
+  # spending ledger for every Gemini call: cap $0.50, max 40 calls, <= 8000 input tokens
+  # and <= 2048 output tokens (incl. thinking) per call, no retries. Software limit,
+  # not a billing guarantee. Staging is read in a READ ONLY transaction.
+  paid-series:
+    needs: [resolve, offline-tests]
+    if: needs.resolve.outputs.series == 'phase1-paid-v1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deps (LangExtract, psycopg, MiniCheck pinned commit, CPU torch)
+        run: |
+          python -m pip install "langextract==${LANGEXTRACT_VERSION}" "psycopg[binary]"
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install "transformers==${TRANSFORMERS_VERSION}" accelerate nltk numpy
+          python -m pip install --no-deps "git+https://github.com/Liyan06/MiniCheck.git@${MINICHECK_COMMIT}"
+          python -c "import nltk; nltk.download('punkt', quiet=True); nltk.download('punkt_tab', quiet=True)"
+      - uses: actions/cache@v4
+        with:
+          path: ckpts
+          key: minicheck-flan-t5-large-v1
+      - name: Run series (HOLD only)
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          /usr/bin/time -v python scripts/evidence-phase1-series.py 2> series-time.txt || status=$?
+          mkdir -p output/evidence-phase1 && mv series-time.txt output/evidence-phase1/
+          grep -E "Maximum resident|Elapsed|User time" output/evidence-phase1/series-time.txt || true
+          tail -5 output/evidence-phase1/series-time.txt | grep -v "^\s*$" || true
+          exit ${status:-0}
+      - name: Annotate ledger
+        if: always()
+        run: python scripts/evidence-phase1-annotate.py series-log || true
+      - name: Annotate E0 baseline
+        if: always()
+        run: python scripts/evidence-phase1-annotate.py e0-fixtures-replay || true
+      - name: Annotate E1
+        if: always()
+        run: python scripts/evidence-phase1-annotate.py e1-fixtures-gemini-direct || true
+      - name: Annotate E2
+        if: always()
+        run: python scripts/evidence-phase1-annotate.py e2-fixtures-langextract || true
+      - name: Annotate E3a pilot baseline
+        if: always()
+        run: python scripts/evidence-phase1-annotate.py e3a-pac3-pilot-baseline || true
+      - name: Annotate E3b
+        if: always()
+        run: python scripts/evidence-phase1-annotate.py e3b-pac3-gemini-direct || true
+      - name: Annotate E3c
+        if: always()
+        run: python scripts/evidence-phase1-annotate.py e3c-pac3-langextract || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: evidence-phase1-paid-series
+          path: output/evidence-phase1/
+          retention-days: 7
+
+  # Free re-scoring of the paid series records: no Gemini key is given to this job.
+  rescore:
+    needs: [resolve, offline-tests]
+    if: needs.resolve.outputs.series == 'phase1-rescore-v1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deps (psycopg, MiniCheck pinned commit, CPU torch)
+        run: |
+          python -m pip install "psycopg[binary]"
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install "transformers==${TRANSFORMERS_VERSION}" accelerate nltk numpy
+          python -m pip install --no-deps "git+https://github.com/Liyan06/MiniCheck.git@${MINICHECK_COMMIT}"
+          python -c "import nltk; nltk.download('punkt', quiet=True); nltk.download('punkt_tab', quiet=True)"
+      - uses: actions/cache@v4
+        with:
+          path: ckpts
+          key: minicheck-flan-t5-large-v1
+      - name: Re-score stored records (no LLM calls, staging READ ONLY)
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: python scripts/evidence-phase1-rescore.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: evidence-phase1-rescore
+          path: output/evidence-phase1/
+          retention-days: 7
+
+  # Control set selection + free descriptive experiments. READ ONLY, no LLM key, no writes.
+  controlset:
+    needs: [resolve, offline-tests]
+    if: needs.resolve.outputs.series == 'phase1-controlset-v1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install "psycopg[binary]"
+      - name: Select pre-registered control set and run descriptive experiments (READ ONLY)
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: python scripts/evidence-phase1-controlset.py
