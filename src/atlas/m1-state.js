@@ -1,3 +1,4 @@
+import { validatePublicRecord } from './approved-feed.js';
 // M1 single-source UI state for the existing Claude MapLibre atlas.
 // Inert by default: data panels render ONLY when approved real records exist.
 const initial=Object.freeze({country:null,geographyA3:null,company:null,event:null,filters:{sectors:[],types:[],query:''},period:{from:null,to:null},layer:'companies'});
@@ -21,7 +22,7 @@ export function createAtlasState(seed={}){
 }
 export function selectApproved(currentRecords,state){
  if(!Array.isArray(currentRecords))return[];
- return currentRecords.filter(r=>r?.qa?.decision==='APPROVE'&&r?.qa?.public_release===true&&/^https:\/\//.test(r?.source_url||'')&&r?.content_hash
+ return currentRecords.filter(r=>validatePublicRecord(r)
    &&(!state.country||r.country_iso2===state.country)
    &&(!state.company||r.company_id===state.company)
    &&(!state.event||r.event_id===state.event)
