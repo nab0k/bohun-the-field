@@ -47,3 +47,5 @@ assert.equal(insecure.status,503);
 
 // Run Cloudflare endpoint positive and adversarial regressions in the existing CI gate.
 await import('./test-approved-endpoint.mjs');
+
+await import('./test-notion-companies.mjs');
