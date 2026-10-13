@@ -20,8 +20,8 @@ export function createAtlasState(seed={}){
  return Object.freeze({get:copy,set,subscribe(fn){listeners.add(fn);fn(copy());return()=>listeners.delete(fn);},selectCountry:country=>set({country,company:null,event:null}),selectCompany:(company,country)=>set({company,country:country||state.country,event:null}),selectEvent:(event,company,country)=>set({event,company:company??state.company,country:country??state.country}),setPeriod:(from,to)=>set({period:{from,to}}),setFilters:filters=>set({filters}),selectLayer:layer=>set({layer})});
 }
 export function selectApproved(currentRecords,state){
- if(!Array.isArray(records))return[];
- return records.filter(r=>r?.qa?.decision==='APPROVE'&&r?.qa?.public_release===true&&/^https:\/\//.test(r?.source_url||'')&&r?.content_hash
+ if(!Array.isArray(currentRecords))return[];
+ return currentRecords.filter(r=>r?.qa?.decision==='APPROVE'&&r?.qa?.public_release===true&&/^https:\/\//.test(r?.source_url||'')&&r?.content_hash
    &&(!state.country||r.country_iso2===state.country)
    &&(!state.company||r.company_id===state.company)
    &&(!state.event||r.event_id===state.event)
@@ -53,7 +53,7 @@ export function mountM1Panels({store,records=[]}){
     for(const box of [feed,dossier,signals]){box.replaceChildren();box.hidden=true;}
     feed.hidden=false;
     text(feed,'h2','Intelligence Feed');
-    const allowed=selectApproved(records,state);
+    const allowed=selectApproved(currentRecords,state);
     if(!allowed.length){
       dossier.hidden=window.matchMedia('(max-width:760px)').matches;
       text(dossier,'h2','Company & event dossier');
