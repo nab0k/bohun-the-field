@@ -419,6 +419,21 @@ $('#n-companies').textContent = `${atData.companies.length} · Austria`;
 // ---------- search: companies, capitals and Ukrainian centres, countries ----------
 const norm = (t) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const countryFeature = Object.fromEntries(countries.features.map((f) => [f.properties.a3, f]));
+// Approved feed selections focus only a corroborated COUNTRY polygon (not an
+// inferred event site or company facility). Country-less items never move map.
+// Initially constrain ISO mapping to the country needed by the verified AT pilot.
+const feedCountryA3=Object.freeze({AT:'AUT'});
+let previousFeedEvent=null;
+m1State.subscribe(state=>{
+  if(!state.event || state.event===previousFeedEvent)return;
+  previousFeedEvent=state.event;
+  const a3=feedCountryA3[state.country];
+  const feature=a3&&countryFeature[a3];
+  if(feature?.geometry)map.fitBounds(bboxOf(feature.geometry),{
+    padding:65,maxZoom:6,pitch:0,duration:reduced?0:1100
+  });
+});
+
 mountCoverageControls({store:m1State,industry,atData,countries,places,
  onCountry:a3=>{const f=countryFeature[a3];if(f)map.fitBounds(bboxOf(f.geometry),{padding:65,maxZoom:6,pitch:0,duration:1200});},
  onLayer:layer=>document.getElementById(layer==='world'?'all':layer)?.click()
