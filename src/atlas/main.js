@@ -14,6 +14,7 @@ import { createNight } from './night.js';
 import { mountAustriaInternalReview } from './eng04-internal.js';
 import { createAtlasState, mountM1Panels } from './m1-state.js';
 import { loadApprovedIntelligence } from './approved-feed.js';
+import { loadNotionCompanies, mountNotionCompanyDirectory } from './notion-companies.js';
 import { mountCoverageControls } from './p2-coverage.js';
 import { createLive } from './live.js';
 import { createScaleDemo } from './scale-demo.js';
@@ -419,6 +420,15 @@ $('#n-companies').textContent = `${atData.companies.length} · Austria`;
 // ---------- search: companies, capitals and Ukrainian centres, countries ----------
 const norm = (t) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const countryFeature = Object.fromEntries(countries.features.map((f) => [f.properties.a3, f]));
+// Independent Notion-verified company layer: country polygons only, no factory coordinates.
+const NOTION_A3={AT:'AUT',DE:'DEU',BE:'BEL',NL:'NLD',PL:'POL',FR:'FRA',GB:'GBR',US:'USA',CA:'CAN',ES:'ESP',IT:'ITA',SE:'SWE',PT:'PRT',AU:'AUS'};
+void loadNotionCompanies().then(records=>{
+ if(!records.length)return;
+ mountNotionCompanyDirectory({records,store:m1State,onCountry:iso=>{
+  const f=countryFeature[NOTION_A3[iso]];
+  if(f?.geometry)map.fitBounds(bboxOf(f.geometry),{padding:65,maxZoom:6,pitch:0,duration:reduced?0:1100});
+ }});
+});
 // Approved feed selections focus only a corroborated COUNTRY polygon (not an
 // inferred event site or company facility). Country-less items never move map.
 // Initially constrain ISO mapping to the country needed by the verified AT pilot.
