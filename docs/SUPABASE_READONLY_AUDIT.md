@@ -34,3 +34,32 @@ No API implementation is authorized until the artifact identifies the exact sour
 relation/view, immutable provenance field, QA decision field, and public-release
 predicate. If no single approved projection supplies all of those fields, issue #55
 remains blocked; this audit does not authorize a migration.
+
+## Verified result — 2026-10-13
+
+GitHub Actions run [38360422753](https://github.com/nab0k/bohun-the-field/actions/runs/38360422753)
+completed successfully against the actual Supabase `intelligence` schema. The
+redacted artifact is named `supabase-intelligence-schema-audit`.
+
+- Ten base tables exist: `events`, `item_changes`, `item_locations`,
+  `item_organizations`, `items`, `locations`, `opportunities`, `organizations`,
+  `signals`, and `sources`. There are no views.
+- RLS is enabled but not forced on every table. No RLS policies were returned.
+- The connected `postgres` role has all table privileges; the audit did not find a
+  least-privilege read-only API role.
+- The provenance join `items.source_id → sources.id` exists. Item/event geography
+  can join through `events.location_id → locations.id` or `item_locations`.
+- `items` supplies `title`, `url`, `published_at`, and `summary`; locations/sources
+  supply `country_code`.
+- No relation supplies `content_hash`, `public_release`, a QA decision, or an
+  approved-only projection. The only status-like field is `opportunities.status`;
+  all 167 rows fall outside APPROVE/HOLD/REJECT/PUBLISHED buckets.
+
+Therefore the number of records demonstrably allowed for public release is **zero**.
+There is no exact source view or QA predicate that issue #55 can safely query. The
+PR #53 browser adapter must continue to show its honest empty state.
+
+Unblocking #55 requires owner-authorized database work outside this PR: create a
+reviewed approved-only projection containing immutable source provenance and an
+explicit public-release decision, then provide Cloudflare with a SELECT-only
+credential limited to that projection. No current table should be exposed directly.
