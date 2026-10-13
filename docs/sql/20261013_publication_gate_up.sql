@@ -79,12 +79,13 @@ CREATE VIEW publication.public_approved_intelligence
    AND rights_checked AND evidence_checked
    AND reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL;
 ALTER TABLE publication.release_decisions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE publication.release_decisions FORCE ROW LEVEL SECURITY;
 ALTER TABLE publication.decision_audit ENABLE ROW LEVEL SECURITY;
-ALTER TABLE publication.decision_audit FORCE ROW LEVEL SECURITY;
 REVOKE ALL ON SCHEMA publication FROM PUBLIC;
 REVOKE ALL ON ALL TABLES IN SCHEMA publication FROM PUBLIC;
 REVOKE ALL ON ALL SEQUENCES IN SCHEMA publication FROM PUBLIC;
+-- The view owner must own release_decisions to read the approved projection.
+-- Do not use FORCE RLS here: with zero policies it would make the view always empty.
+-- Restrict direct access through REVOKE and a separately granted SELECT on the view.
 -- No API role created/granted and no exposed schema setting changed here.
 -- A reviewed dedicated read-only credential plus PostgREST schema exposure is required separately.
 COMMIT;
