@@ -19,7 +19,7 @@ export function createAtlasState(seed={}){
  };
  return Object.freeze({get:copy,set,subscribe(fn){listeners.add(fn);fn(copy());return()=>listeners.delete(fn);},selectCountry:country=>set({country,company:null,event:null}),selectCompany:(company,country)=>set({company,country:country||state.country,event:null}),selectEvent:(event,company,country)=>set({event,company:company??state.company,country:country??state.country}),setPeriod:(from,to)=>set({period:{from,to}}),setFilters:filters=>set({filters}),selectLayer:layer=>set({layer})});
 }
-export function selectApproved(records,state){
+export function selectApproved(currentRecords,state){
  if(!Array.isArray(records))return[];
  return records.filter(r=>r?.qa?.decision==='APPROVE'&&r?.qa?.public_release===true&&/^https:\/\//.test(r?.source_url||'')&&r?.content_hash
    &&(!state.country||r.country_iso2===state.country)
@@ -31,6 +31,7 @@ export function selectApproved(records,state){
    &&(!state.filters.sectors?.length||state.filters.sectors.includes(r.sector)));
 }
 export function mountM1Panels({store,records=[]}){
+  let currentRecords=records;
   const create=(id,title,left)=>{
     const box=document.createElement('aside');
     box.id=id;box.hidden=true;box.setAttribute('aria-label',title);box.setAttribute('role','region');
@@ -83,5 +84,5 @@ export function mountM1Panels({store,records=[]}){
     }
   };
   const disposeSubscription=store.subscribe(render);
-  return {feed,dossier,signals,dispose(){disposeSubscription();for(const box of [feed,dossier,signals])box.remove();}};
+  return {feed,dossier,signals,setRecords(next){currentRecords=Array.isArray(next)?next:[];render(store.get());},dispose(){disposeSubscription();for(const box of [feed,dossier,signals])box.remove();}};
 }
