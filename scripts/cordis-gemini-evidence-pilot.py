@@ -58,6 +58,25 @@ def main():
     packet,meta=make_packet(raw)
     body=model_request(packet,meta)
     OUT.mkdir(parents=True,exist_ok=True)
+    # Store the exact *request* for reproducibility, never mislabel it as Gemini output.
+    request_json=json.dumps(body,sort_keys=True,ensure_ascii=False,separators=(",",":"))
+    request_sha256=hashlib.sha256(request_json.encode()).hexdigest()
+    (OUT/"model-request.json").write_text(request_json)
+    if not args.call_gemini:
+        expected=body["contents"][0]["parts"][0]["text"]
+        instruction=json.loads(expected)
+        if instruction["evidence_id"]!=meta["evidence_id"] or instruction["evidence_text"]!=meta["exact_excerpt"]:
+            raise RuntimeError("OFFLINE_REQUEST_EVIDENCE_MISMATCH")
+        # An intentionally local candidate checks wiring only, not the truth of a model response.
+        local_claim={"claim_id":"offline:claim:cordis:101289409:amount",
+          "subject":"CORDIS:101289409","predicate":"reported_ec_max_contribution",
+          "object":{"value":meta["exact_excerpt"],"datatype":"source_excerpt","unit":None},
+          "evidence_ids":[meta["evidence_id"]],"exact_spans":[meta["exact_excerpt"]]}
+        local_candidate={"qa_status":"HOLD","candidate_claims":[local_claim],
+          "candidate_event":{"type":"source_update","claim_ids":[local_claim["claim_id"]]}}
+        contract_validation=validate_candidate(packet,local_candidate)
+        if not contract_validation["pass"] or contract_validation["qa_status"]!="HOLD":
+            raise RuntimeError("OFFLINE_CONTRACT_VALIDATION_FAILED")
     if args.call_gemini:
         candidate,usage=call_once(body)
         if len(candidate.get("candidate_claims") or []) != 1:
@@ -70,7 +89,7 @@ def main():
         result={"mode":"OFFLINE_CONTRACT_ONLY_GEMINI_NOT_CALLED","source_sha256":meta["original_sha256"],
                 "source_url":SOURCE_URL,"evidence_spans":len(packet["evidence"]),
                 "evidence_locator_verified":meta["exact_excerpt"] in raw.decode("utf-8"),
-                "source_bytes":len(raw),"qa_status":"HOLD","public_release":False,
+                "source_bytes":len(raw),"model_request_sha256":request_sha256,"offline_contract_validation":contract_validation,"model_response":"NOT_CALLED", "qa_status":"HOLD","public_release":False,
                 "supabase_write":False}
     (OUT/"result.json").write_text(json.dumps(result,indent=2,ensure_ascii=False))
     print(json.dumps(result,ensure_ascii=False))
