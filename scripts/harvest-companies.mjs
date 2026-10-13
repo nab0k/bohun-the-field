@@ -21,7 +21,7 @@ export function parseCSV(str){
  const headers=rows.shift()||[];if(!headers.length||new Set(headers).size!==headers.length)throw Error('CSV headers missing or duplicated');
  return rows.map((r,i)=>{if(r.length!==headers.length)throw Error('CSV column mismatch at record '+(i+1));return Object.fromEntries(headers.map((h,j)=>[h.trim(),r[j].trim()]));});
 }
-const norm=x=>String(x||'').normalize('NFKC').toLowerCase().replace(/[\\p{P}\\p{S}]+/gu,' ').replace(/\\s+/g,' ').trim();
+const norm=x=>String(x||'').normalize('NFKC').toLowerCase().replace(/[\p{P}\p{S}]+/gu,' ').replace(/\s+/g,' ').trim();
 const https=x=>{if(!x)return null;try{const u=new URL(x);return (u.protocol==='https:'&&!u.username&&!u.password)?u.href:null;}catch{return null;}};
 export function processCandidates(input,{sourceId,sourceUrl,sourceHash}){
  if(!Array.isArray(input))throw Error('Input must be an array');
