@@ -1,0 +1,9 @@
+# GitHub Pages intelligence release gate
+
+Production is `nab0k/bohundefense` GitHub Pages, not Cloudflare Workers. A Pages site cannot run `functions/api/intelligence/approved.js`; the client reads `/intelligence/approved.json` instead.
+
+The default committed snapshot is `{ "records": [] }`. It must remain empty unless an independent QA reviewer signs the **exact UTF-8 bytes** of a JSON object `{ "records": [...] }` with an Ed25519 private key held outside GitHub. The build runner receives three paths: payload JSON, base64 detached signature and corresponding QA public key (PEM). Run `node scripts/build-approved-pages-feed.mjs "$PAYLOAD" "$SIGNATURE" "$QA_PUBLIC_KEY" public/intelligence/approved.json` **before** `npm run build:site`. Never put private keys, unpublished records or raw licensed documents into this repository or the public artifact. The script rejects invalid signatures, HOLD, missing provenance and invalid URLs; it does not independently assess truth, rights or sanctions. The signer must complete those checks before signing. No QA sign-off means no records.
+
+Before any production transfer: run `node tests/test-approved-pages-feed.mjs`, `node tests/test-approved-feed.mjs`, `npm test`, `npm run build:site`; verify `dist/intelligence/approved.json`, inspect output for HOLD and private secrets, compare `CNAME` and existing pages/assets in `nab0k/bohundefense`, review desktop/mobile, open PR into production and confirm GitHub Pages deployment after approval. Do not merge #58/#59 wholesale or ship Cloudflare Function code as if GitHub Pages could execute it.
+
+**Status:** staging integration only. No signed QA payload, no live Gemini, no public intelligence items, no production deploy. Future work: audited source→immutable evidence→Gemini candidate→independent QA→signed release payload→static Pages snapshot; recurring automation only after rights and approval gates are proven.
