@@ -7,6 +7,11 @@ on:
       - 'scripts/global_harvester.py'
       - '.github/workflows/global-company-harvest.yml'
       - 'tests/test_global_harvester.py'
+  pull_request:
+    paths:
+      - 'scripts/global_harvester.py'
+      - '.github/workflows/global-company-harvest.yml'
+      - 'tests/test_global_harvester.py'
   workflow_dispatch:
     inputs:
       programmes:
