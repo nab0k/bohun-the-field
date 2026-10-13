@@ -36,6 +36,13 @@ jobs:
           python-version: "3.12"
       - name: Test offline archive parser and discovery structure
         run: python3 -m unittest discover -s tests -p 'test_global_harvester.py' -v
+      - name: Read private Notion baseline (manual trusted dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_COMPANIES_DATA_SOURCE: ec8c6312-3bfc-48e8-9a27-3c5827e72fda
+        run: |
+          if [ -n "$NOTION_TOKEN" ]; then python3 scripts/export_notion_baseline.py .local/notion-baseline.jsonl; fi
       - name: Read real CORDIS bulk archive and discover RSS
         continue-on-error: false
         env:
@@ -44,6 +51,7 @@ jobs:
         run: |
           args=()
           if [ "$DISCOVER_FEEDS" = "true" ]; then args+=(--discover-feeds --max-sites 30); fi
+          if [ -f .local/notion-baseline.jsonl ]; then args+=(--notion-jsonl .local/notion-baseline.jsonl); fi
           python3 scripts/global_harvester.py --programmes "$HARVEST_PROGRAMMES" --out-dir .local/harvest --max-download-mb 120 "${args[@]}"
           python3 - <<'PY'
           import json
