@@ -39,8 +39,9 @@ export function mountM1Panels({store,records=[]}){
       'width:min(310px,calc(100vw - 28px));max-height:58vh;overflow:auto;background:#111b18;color:#f3eddb;padding:14px;border:1px solid #8d8867;border-radius:8px';
     document.body.append(box);return box;
   };
-  const feed=create('m1-intelligence','Verified Intelligence',false);
-  const dossier=create('m1-dossier','Company evidence dossier',true);
+  const feed=create('m1-intelligence','Verified Intelligence',true);
+  feed.style.top='90px';feed.style.bottom='14px';feed.style.maxHeight='none';feed.style.width='min(330px,calc(100vw - 28px))';
+  const dossier=create('m1-dossier','Company evidence dossier',false);
   dossier.hidden=false;
   const signals=create('m1-signals','Evidence-backed signals',false);
   signals.style.top='auto';signals.style.bottom='25px';
@@ -48,6 +49,17 @@ export function mountM1Panels({store,records=[]}){
   const link=(node,url)=>{
     const a=document.createElement('a');a.href=url;a.textContent='Primary source';
     a.target='_blank';a.rel='noopener noreferrer';node.append(a);
+  };
+  const context=(node,item)=>{
+    const fields=[['Strategic Theme',item.strategic_themes],['Potential Signal',item.potential_signal],['Why It Matters',item.why_it_matters],['What to Watch',item.watch_next]];
+    for(const [label,value] of fields){
+      const values=Array.isArray(value)?value.filter(v=>typeof v==='string'&&v.trim()):typeof value==='string'&&value.trim()?[value]:[];
+      if(!values.length)continue;
+      const section=document.createElement('section');
+      text(section,'h4',label);
+      for(const value of values)text(section,'p',value);
+      node.append(section);
+    }
   };
   const render=state=>{
     for(const box of [feed,dossier,signals]){box.replaceChildren();box.hidden=true;}
@@ -68,6 +80,7 @@ export function mountM1Panels({store,records=[]}){
       const title=document.createElement('button');title.type='button';title.textContent=item.headline;
       title.addEventListener('click',()=>store.selectEvent(item.event_id,item.company_id,item.country_iso2));
       entry.append(title);text(entry,'p',item.takeaway||'');
+      context(entry,item);
       link(entry,item.source_url);feed.append(entry);
     }
     const focused=state.company?allowed.filter(r=>r.company_id===state.company):[];
@@ -75,7 +88,7 @@ export function mountM1Panels({store,records=[]}){
       dossier.hidden=false;text(dossier,'h2','Company · Evidence Dossier');
       text(dossier,'p',focused[0].company_name||state.company);
       text(dossier,'p',String(focused.length)+' source-backed approved item(s)');
-      for(const item of focused.slice(0,10))link(dossier,item.source_url);
+      for(const item of focused.slice(0,10)){text(dossier,'h3',item.headline);context(dossier,item);link(dossier,item.source_url);}
     }
     const verifiedSignals=allowed.filter(r=>r.signal===true&&r.qa?.risk_certified===true);
     if(verifiedSignals.length){
@@ -83,6 +96,17 @@ export function mountM1Panels({store,records=[]}){
       for(const item of verifiedSignals.slice(0,10)){text(signals,'p',item.headline);link(signals,item.source_url);}
     }
   };
+  const mobile=window.matchMedia('(max-width:760px)');
+  const layout=()=>{
+    if(mobile.matches){
+      feed.style.top='auto';feed.style.bottom='0';feed.style.left='0';feed.style.width='100%';feed.style.maxHeight='35vh';
+      dossier.style.top='72px';dossier.style.right='0';dossier.style.width='min(310px,100vw)';
+    }else{
+      feed.style.top='90px';feed.style.bottom='14px';feed.style.left='14px';feed.style.width='min(330px,calc(100vw - 28px))';feed.style.maxHeight='none';
+      dossier.style.top='90px';dossier.style.right='14px';dossier.style.width='min(310px,calc(100vw - 28px))';
+    }
+  };
+  layout();mobile.addEventListener?.('change',layout);
   const disposeSubscription=store.subscribe(render);
-  return {feed,dossier,signals,setRecords(next){currentRecords=Array.isArray(next)?next:[];render(store.get());},dispose(){disposeSubscription();for(const box of [feed,dossier,signals])box.remove();}};
+  return {feed,dossier,signals,setRecords(next){currentRecords=Array.isArray(next)?next:[];render(store.get());},dispose(){disposeSubscription();mobile.removeEventListener?.('change',layout);for(const box of [feed,dossier,signals])box.remove();}};
 }
