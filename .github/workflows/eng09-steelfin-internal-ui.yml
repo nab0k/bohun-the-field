@@ -1,0 +1,32 @@
+name: Steelfin DEV-only UI / QA HOLD Gate
+on:
+  push:
+    branches: [eng09-inoreader-evidence-e2e-20261012]
+    paths:
+      - 'src/atlas/steelfin-internal-review.js'
+      - 'src/atlas/main.js'
+      - 'scripts/test-steelfin-internal.mjs'
+      - '.github/workflows/eng09-steelfin-internal-ui.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  qa-hold:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - name: Assert unpublished candidate cannot enter approved feed
+        run: node scripts/test-steelfin-internal.mjs
+      - name: Build review branch site without leaking dev HOLD module
+        run: npm run build
+      - name: Verify DEV-only review text absent from production bundles
+        run: |
+          if grep -R -E 'INTERNAL REVIEW · QA HOLD|event:issuer-announcement:steelfin:2026-10-12|tag:google.com,2005:reader/item/0000000bd4c065db' dist; then
+            echo 'FAIL: HOLD candidate leaked to dist'; exit 1;
+          fi
+          echo 'PASS: dist has no Steelfin HOLD candidate'
