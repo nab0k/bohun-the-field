@@ -101,6 +101,51 @@ def stream_items(folder, token, max_pages):
         time.sleep(0.25)
 
 
+def text_field_audit(item):
+    """Return only field presence and visible-ish lengths, never the actual text."""
+    from html.parser import HTMLParser
+    class TextOnly(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.parts = []
+        def handle_data(self, data):
+            self.parts.append(data)
+    result = {}
+    for name in ("summary", "content", "description", "body"):
+        value = item.get(name)
+        if isinstance(value, dict):
+            value = value.get("content") or value.get("value")
+        if isinstance(value, str) and value.strip():
+            parser = TextOnly()
+            parser.feed(value)
+            result[name] = len(" ".join(parser.parts).strip())
+    return result
+
+
+def audit_upstream_content(token, folders, *, max_items=20):
+    """One folder, at most one API page, no Supabase reads/writes or text output."""
+    folder = folders[0]
+    stream = "user/-/label/" + folder
+    response = api("stream/contents/" + urllib.parse.quote(stream, safe="/"),
+                   token, {"n": max_items})
+    items = response.get("items", [])[:max_items]
+    counts = {"items": len(items), "any_text": 0, "ge_500": 0, "ge_2000": 0}
+    fields = {}
+    for item in items:
+        lengths = text_field_audit(item)
+        for key in lengths:
+            fields[key] = fields.get(key, 0) + 1
+        top = max(lengths.values(), default=0)
+        counts["any_text"] += int(top > 0)
+        counts["ge_500"] += int(top >= 500)
+        counts["ge_2000"] += int(top >= 2000)
+    print(json.dumps({"mode": "upstream_inoreader_read_only_audit",
+                      "folder_count": 1, "requested_items": max_items,
+                      "counts": counts, "field_presence": fields,
+                      "note": "lengths not proof of full article; no content exported"},
+                     sort_keys=True))
+
+
 def normalize(item, folder):
     links = item.get("canonical") or item.get("alternate") or []
     url = next((link.get("href") for link in links if link.get("href")), None)
@@ -171,6 +216,7 @@ def import_items(items):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--audit-text", action="store_true", help="Audit up to 20 upstream items in one folder; never store content or write Supabase")
     parser.add_argument("--max-pages", type=int, default=2, help="Per BOHUN folder, max 100 items per page")
     args = parser.parse_args()
     if not 1 <= args.max_pages <= 20:
@@ -181,6 +227,9 @@ def main():
     print(f"DISCOVERED subscriptions={len(subscriptions)} bohun_subscriptions={source_count} folders={len(folders)}")
     if not folders:
         raise RuntimeError("No BOHUN_ folders found; refusing empty successful run")
+    if args.audit_text:
+        audit_upstream_content(token, folders)
+        return
     unique = {}
     for folder in folders:
         count = 0

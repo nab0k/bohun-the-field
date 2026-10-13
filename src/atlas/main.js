@@ -37,6 +37,11 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&navDrawer.c
 const m1State=createAtlasState();
 mountM1Panels({store:m1State,records:[]});
 if(import.meta.env.DEV) window.__bohunM1State=m1State;
+// Deliberately absent from production bundles; source-linked HOLD dossier only in local dev.
+if(import.meta.env.DEV && new URLSearchParams(location.search).get('steelfin-review')==='1'){
+  const {mountSteelfinReview}=await import('./steelfin-internal-review.js');
+  mountSteelfinReview();
+}
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const params = new URLSearchParams(location.search);
