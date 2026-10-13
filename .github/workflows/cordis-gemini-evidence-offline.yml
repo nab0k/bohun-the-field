@@ -19,6 +19,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Verify Python modules compile
+        run: python -m py_compile scripts/cordis-gemini-evidence-pilot.py intelligence/gemini_evidence_validator.py scripts/test-cordis-gemini-evidence-offline.py
       - name: Run deterministic evidence gate tests
         run: python -m unittest discover -s scripts -p 'test-cordis-gemini-evidence-offline.py'
       - name: Fetch genuine official CORDIS XML, validate offline evidence contract
@@ -51,6 +53,15 @@ jobs:
           assert e['rights']=='UNREVIEWED' and e['gemini_called'] is False
           print('OFFLINE EVIDENCE QA HOLD PASS')
           PY
+      - name: Record exact CI identity in evidence artifact
+        if: always()
+        run: |
+          mkdir -p output/cordis-gemini-pilot
+          python - <<'PY'
+          import json,os,pathlib
+          obj={'run_id':os.environ.get('GITHUB_RUN_ID'),'commit_sha':os.environ.get('GITHUB_SHA'),'repository':os.environ.get('GITHUB_REPOSITORY'),'branch':os.environ.get('GITHUB_REF_NAME'),'is_private_qa_hold':True}
+          pathlib.Path('output/cordis-gemini-pilot/ci-provenance.json').write_text(json.dumps(obj,indent=2))
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -60,4 +71,5 @@ jobs:
             output/cordis-gemini-pilot/model-request.json
             output/cordis-gemini-pilot/evidence-packet.json
             output/cordis-gemini-pilot/original-cordis.xml
+            output/cordis-gemini-pilot/ci-provenance.json
           retention-days: 14
