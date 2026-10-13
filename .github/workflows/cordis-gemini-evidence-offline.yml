@@ -1,0 +1,42 @@
+name: CORDIS Gemini Evidence Offline QA Gate
+on:
+  push:
+    branches: [pilot/cordis-gemini-evidence-20261012]
+    paths:
+      - 'scripts/cordis-gemini-evidence-pilot.py'
+      - 'intelligence/gemini_evidence_validator.py'
+      - '.github/workflows/cordis-gemini-evidence-offline.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fetch genuine official CORDIS XML, validate offline evidence contract
+        env:
+          BOHUN_APPROVE_ONE_GEMINI_CALL: "NO"
+        run: python scripts/cordis-gemini-evidence-pilot.py
+      - name: Assert QA HOLD, no Gemini, no cloud write
+        run: |
+          python - <<'PY'
+          import json
+          p=json.load(open('output/cordis-gemini-pilot/result.json'))
+          assert p['mode']=='OFFLINE_CONTRACT_ONLY_GEMINI_NOT_CALLED'
+          assert p['evidence_locator_verified'] is True
+          assert p['qa_status']=='HOLD' and p['public_release'] is False
+          assert p['supabase_write'] is False
+          assert len(p['source_sha256'])==64 and p['source_bytes']>0
+          print('OFFLINE EVIDENCE QA HOLD PASS')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cordis-gemini-offline-qa-hold
+          path: output/cordis-gemini-pilot/result.json
+          retention-days: 14
