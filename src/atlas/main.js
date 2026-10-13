@@ -35,8 +35,9 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&navDrawer.c
 
 const m1State=createAtlasState();
 // Approved-only read endpoint. Missing endpoint or invalid data preserves the honest empty state.
-const approvedRecords = await loadApprovedIntelligence();
-mountM1Panels({store:m1State,records:approvedRecords});
+const m1Panels=mountM1Panels({store:m1State,records:[]});
+// Do not block globe initialization while the read-only feed endpoint responds.
+void loadApprovedIntelligence().then(records=>m1Panels.setRecords(records));
 if(import.meta.env.DEV) window.__bohunM1State=m1State;
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
