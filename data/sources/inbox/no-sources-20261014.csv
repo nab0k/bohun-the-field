@@ -1,0 +1,23 @@
+name,site_url,feed_url,country,language,signal_hint,tier_hint,notes
+Norwegian Ministry of Defence - News,https://www.regjeringen.no/en/whatsnew/more-cases-from-the-ministry/id2947373/,https://www.regjeringen.no/no/aktuelt/rss/id2581966/,NO,no,policy_budgets,P1,Ministry of Defence; Официальный сайт правительства; RSS настраивается по фильтрам; английская версия доступна
+Norwegian Defence Materiel Agency (Forsvarsmateriell),https://www.fma.no/aktuelt-og-media,not_found,NO,no,procurement_award,P1,Defence Procurement; RSS не найден; рекомендуется sitemap.xml или RSS Parrot; только норвежский язык
+Norwegian Defence Research Establishment (FFI),https://www.ffi.no/aktuelt,not_found,NO,no,innovation_rd,P1,Defence Innovation / R&D; RSS не найден; есть новостная рассылка; только норвежский язык (частично английский)
+Standing Committee on Foreign Affairs and Defence (Stortinget),https://www.stortinget.no/en/In-English/Standing-Commitees/The-Standing-Committee-on-Foreign-Affairs,https://stortinget.no/rss,NO,no,law_regulation,P1,Parliamentary Committee; RSS доступен для комитетов и тем; английская версия страницы
+Norwegian Agency for Export Control and Sanctions (DEKSA),https://deksa.no/nyheter,not_found,NO,no,export_rules,P1,Export Control; RSS не найден; sitemap.xml; только норвежский язык (частично английский)
+Norwegian Defence and Security Industries Association (FSi),https://www.fsi.no/start/nyheter-startsiden/,not_found,NO,no,industry_capacity,P1,Industry Association; RSS не найден; рекомендуется RSS Parrot; только норвежский язык
+Nordic Defence Sector,https://nordicdefencesector.com/en/news,not_found,NO,no,media,P1,"Defence Media; RSS не найден; охватывает Норвегию,  Швецию,  Данию,  Финляндию; английский язык"
+Folk og Forsvar,https://folkogforsvar.no/aktuelt,not_found,NO,no,media,P1,Defence Media; RSS не найден; независимый информационный канал об обороне; только норвежский язык
+Forsvarets forum,https://forsvaretsforum.no,not_found,NO,no,media,P1,Defence Media; RSS не найден; независимый журнал о обороне; только норвежский язык
+NRK - Defence section,https://www.nrk.no/emne/forsvaret-1.11616106,not_found,NO,no,media,P1,Defence Media; RSS не найден; крупнейшая государственная телерадиокомпания; норвежский язык
+E24,https://e24.no,not_found,NO,no,capital_investments,P1,Business Media; RSS не найден; деловое издание; норвежский язык
+Dagens Næringsliv,https://www.dn.no,not_found,NO,no,capital_investments,P1,Business Media; RSS не найден; платный доступ; норвежский язык
+ArcticStartup,https://arcticstartup.com,https://arcticstartup.com/feed/,NO,no,capital_investments,P1,Startup Media; RSS валиден; освещает стартапы Северных стран; английский язык
+TechSavvy,https://techsavvy.media,not_found,NO,no,capital_investments,P1,Startup Media; RSS не найден; технологические новости; английский/норвежский
+Investinor,https://investinor.no/nyheter,not_found,NO,no,capital_investments,P1,State Investment Fund; RSS не найден; государственный венчурный фонд; норвежский язык
+Startuplab,https://startuplab.no/news,not_found,NO,no,grants_challenges,P1,Startup Accelerator; RSS не найден; акселератор; английский/норвежский
+Kongsberg Gruppen,https://www.kongsberg.com/newsroom/,not_found,NO,no,industry_capacity,P1,Defence Company; RSS не найден; sitemap.xml; английский/норвежский
+Nammo,https://www.nammo.com/news/,not_found,NO,no,industry_capacity,P1,Defence Company; RSS не найден; английский/норвежский
+Six Robotics,https://sixrobotics.com/news/,not_found,NO,no,innovation_rd,P1,Defence Startup; RSS не найден; английский язык
+Stendr,https://stendr.no,not_found,NO,no,innovation_rd,P1,Defence Startup; RSS не найден; сайт может быть недоступен; английский язык
+Halodyne,https://halodyne.no,not_found,NO,no,innovation_rd,P1,Defence Startup; RSS не найден; английский язык
+High North News,https://en.highnorthnews.com,not_found,NO,no,media,P1,Regional News; RSS не найден; освещает северные регионы; английский язык
