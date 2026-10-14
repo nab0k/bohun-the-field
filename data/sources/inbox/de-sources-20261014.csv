@@ -1,0 +1,25 @@
+name,site_url,feed_url,country,language,type_no,signal_hint,tier_hint,last_news_date,notes
+Bundesministerium der Verteidigung (BMVg),https://www.bmvg.de/de/aktuelles,,DE,de,1,policy_budgets,P0,2026-10-14,Primärquelle; Pressemitteilungen und Reden
+Bundesamt für Ausrüstung Informationstechnik und Nutzung der Bundeswehr (BAAINBw),https://www.bundeswehr.de/de/organisation/ausruestung-baainbw/aktuelles,,DE,de,2,procurement_award,P0,2026-10-14,Pressemitteilungen über news aktuell Presseportal
+e-Vergabe Plattform des Bundes,https://www.evergabe-online.de/,,DE,de,3,procurement_award,P0,2026-10-14,Nationales Vergabeportal; auch für Verteidigung
+Cyberagentur,https://www.cyberagentur.de/presse/,,DE,de,4,innovation_rd,P0,2026-09-30,Innovationsagentur Cybersicherheit; Dual-Use-Forschung
+Cyber Innovation Hub der Bundeswehr (CIHBw),https://www.cyberinnovationhub.de/,,DE,de,4,innovation_rd,P0,2026-09-02,Innovationseinheit der Bundeswehr; Startup-Schnittstelle
+Verteidigungsausschuss Deutscher Bundestag,https://www.bundestag.de/verteidigungsausschuss,,DE,de,5,law_regulation,P0,2026-04-22,Parlamentsausschuss; Sitzungen und Berichte
+Bundesamt für Wirtschaft und Ausfuhrkontrolle (BAFA),https://www.bafa.de/DE/Aussenwirtschaft/aussenwirtschaft_node.html,,DE,de,6,export_rules,P0,2026-03-31,Exportkontrolle und Rüstungsexportgenehmigungen
+Bundesverband der Deutschen Sicherheits- und Verteidigungsindustrie (BDSV),https://www.bdsv.eu/aktuelles/,,DE,de,7,industry_capacity,P1,2026-09-01,Industrieverband; 550 Mitgliedsunternehmen
+Bundesverband der Deutschen Luft- und Raumfahrtindustrie (BDLI),https://www.bdli.de/meldungen,,DE,de,7,industry_capacity,P1,2026-05-27,Aerospace- und Verteidigungsverband; Meldungen
+Hartpunkt – Monitor für Defence und Sicherheitspolitik,https://www.hartpunkt.de/,,DE,de,8,media,P0,2026-10-14,Profilmedium Defence; exklusive Beschaffungsinformationen
+Soldat & Technik (S&T),https://soldat-und-technik.de/,,DE,de,8,media,P1,2026-02-20,Fachmedium Heer und Beschaffung; Mittler Report
+Europäische Sicherheit & Technik (ES&T / ESUT),https://esut.de/,,DE,de,8,media,P1,2026-10-14,Führendes deutschsprachiges Verteidigungsfachmedium
+Handelsblatt – Sicherheit & Verteidigung,https://www.handelsblatt.com/,,DE,de,9,media,P1,2026-07-24,Wirtschaftszeitung; Hintergrund Sicherheit & Verteidigung
+WirtschaftsWoche – Rüstung,https://www.wiwo.de/,,DE,de,9,media,P1,2026-08-20,Wirtschaftsmagazin; Rüstungs- und Verteidigungsberichterstattung
+deutsche-startups.de,https://www.deutsche-startups.de/,,DE,de,10,capital_investments,P1,2026-10-12,Startup-News; DefenseTech-Gründungen und Finanzierungen
+Startbase,https://www.startbase.de/,,DE,de,10,capital_investments,P1,2026-02-03,Startup-Datenbank und News; DefenseTech-Finanzierungen
+NATO Innovation Fund (NIF),https://www.nif.fund/,,DE,en,11,capital_investments,P1,2026-06-12,1 Mrd. EUR Deep-Tech-Fonds; investiert in deutsche Defence-Techs
+Rheinmetall AG,https://www.rheinmetall.com/de/,,DE,de,12,industry_capacity,P0,2026-10-12,Größter deutscher Rüstungskonzern; Pressemitteilungen
+HENSOLDT AG,https://www.hensoldt.net/news/,,DE,de,12,industry_capacity,P1,2026-04-02,Sensorspezialist; Aufträge und Entwicklungsverträge
+Diehl Defence,https://new.diehl.com/defence/en/press-media/news/,,DE,de,12,industry_capacity,P1,2026-10-14,Luftverteidigung IRIS-T; Zertifizierungen und Kooperationen
+KNDS Deutschland,https://knds.com/en/press-releases/,,DE,de,12,industry_capacity,P1,2026-07-21,Landverteidigungssysteme; LEOPARD 2 und RCH 155
+MBDA Deutschland,https://www.mbda-deutschland.de/,,DE,de,12,industry_capacity,P1,2026-07-13,Lenkflugkörper und Luftverteidigung; Pressemitteilungen
+Deutsche Welle (DW) – Germany News,https://www.dw.com/en/germany/s-1432,,DE,en,13,media,P1,2026-10-14,Staatlicher Auslandssender; englischsprachige Berichterstattung
+deutschland.de – Newsroom,https://www.deutschland.de/en/news,,DE,en,13,media,P1,2026-10-09,Bundesregierung; englischsprachige Verteidigungsnachrichten
