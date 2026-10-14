@@ -1,0 +1,20 @@
+name,site_url,feed_url,country,language,signal_hint,tier_hint,notes
+Ministerie van Defensie – Nieuws,https://www.defensie.nl/actueel/nieuws,https://www.defensie.nl/actueel/nieuws.rss,NL,nl,policy_budgets,P0,type 1; RSS
+Rijksoverheid – Defensie nieuws,https://www.rijksoverheid.nl/onderwerpen/defensie,https://feeds.rijksoverheid.nl/onderwerpen/defensie/nieuws.rss,NL,nl,policy_budgets,P0,type 1; RSS
+Defensie Materieel Organisatie (DMO/COMMIT),https://www.defensie.nl/organisatie/dmo,,NL,nl,procurement_award,P0,type 2
+SecFund (Defensie innovatie/investeringen),https://www.secfund.nl,,NL,nl,capital_investments,P1,type 3/9
+TNO – Defensie en Veiligheid,https://www.tno.nl/nl/defensie-veiligheid/,,NL,nl,innovation_rd,P1,type 3
+Tweede Kamer – vaste commissie voor Defensie,https://www.tweedekamer.nl/commissies/defensie,,NL,nl,law_regulation,P1,type 4; OData API available
+Eerste Kamer – commissie BDO,https://www.eerstekamer.nl/commissies/buitenlandse_zaken_defensie_en_ontwikkelingssamenwerking,,NL,nl,law_regulation,P2,type 4
+CDIU (Douane) – strategic goods,https://www.douane.nl/onderwerpen/cdiu,,NL,nl,export_rules,P1,type 5
+Rijksoverheid – Exportcontrole strategische goederen,https://www.rijksoverheid.nl/themas/economie/exportcontrole-strategische-goederen,https://feeds.rijksoverheid.nl/onderwerpen/exportcontrole-strategische-goederen/nieuws.rss,NL,nl,export_rules,P0,type 5; RSS
+NIDV,https://www.nidv.eu,,NL,nl,industry_capacity,P1,type 6
+NLR – Royal Netherlands Aerospace Centre,https://www.nlr.org/news,,NL,en,innovation_rd,P1,type 6
+Defensie Dichtbij,https://www.defensiedichtbij.nl,,NL,nl,media,P2,type 7
+Marineschepen.nl,https://marineschepen.nl/nieuws,,NL,nl,media,P1,type 7
+Het Financieele Dagblad (FD),https://fd.nl,,NL,nl,capital_investments,P1,type 8; paywall
+DutchStartup.ai,https://www.dutchstartup.ai,,NL,en,capital_investments,P2,type 8
+Holland High Tech,https://www.hollandhightech.nl,,NL,en,industry_capacity,P2,type 8
+Keen Venture Partners,https://www.keenventurepartners.com,,NL,en,capital_investments,P2,type 9; defence-tech VC
+Thales Nederland,https://www.thalesgroup.com/nl/news-centre,,NL,nl,industry_capacity,P2,type 10
+Damen Shipyards,https://www.damen.com/news,,NL,en,industry_capacity,P1,type 10
