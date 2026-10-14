@@ -1,3 +1,37 @@
 name,site_url,feed_url,country,language,signal_hint,tier_hint,notes
 Ministerio de Defensa de España,https://www.defensa.gob.es/gabinete/notasPrensa/,https://www.defensa.gob.es/rss/notasPrensa.xml,ES,es,policy_budgets,P0,1. Ministerio de Defensa — página de notas de prensa. RSS oficial disponible.
 Secretaría de Estado de Defensa (SEDEF),https://www.defensa.gob.es/areasTematicas/secretariaEstadoDefensa/,,ES,es,procurement_award,P0,2. Secretaría de Estado de Defensa. Publica contratos en la Plataforma de Contratación del Sector Público. Sin RSS específico.
+Dirección General de Estrategia e Innovación de la Industria de Defensa (DIGEID) — ETID,https://tecnologiaeinnovacion.defensa.gob.es/,https://tecnologiaeinnovacion.defensa.gob.es/rss.xml,ES,es,innovation_rd,P0,"3. Agencia de innovación en defensa. Publica noticias sobre I+D,  DIANA,  aceleradora nacional. RSS propio."
+Comisión de Defensa del Congreso de los Diputados,https://www.congreso.es/es/comisiones?p_p_id=comisiones&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_comisiones_mode=mostrarComision&_comisiones_idComision=131,,ES,es,law_regulation,P0,"4. Comisión de Defensa. Publica órdenes del día,  comparecencias y notas de prensa. Sin RSS específico."
+Subdirección General de Comercio Internacional de Material de Defensa y Doble Uso,https://comercio.gob.es/ImportacionExportacion/Informes_Estadisticas/Paginas/MaterialDefensaDobleUso.aspx,,ES,es,export_rules,P0,5. Órgano de control de exportaciones. Publica estadísticas semestrales e informes. Sin RSS.
+TEDAE,https://tedae.org/notas-de-prensa/,https://tedae.org/feed/,ES,es,industry_capacity,P0,"6. Asociación industrial de defensa,  seguridad,  aeronáutica y espacio. RSS de notas de prensa."
+AESMIDE,https://aesmide.es/actualidad/,https://aesmide.es/feed/,ES,es,industry_capacity,P1,6. Asociación de pymes y cadena de suministro de defensa. RSS de actualidad.
+Infodefensa,https://www.infodefensa.com/,https://www.infodefensa.com/rss,ES,es,media,P0,7. Principal medio especializado en defensa de España. RSS disponible.
+Defensa.com,https://www.defensa.com/,https://www.defensa.com/rss,ES,es,media,P0,"7. Medio especializado en defensa,  fuerzas armadas y armamento. RSS."
+Revista Española de Defensa,https://www.defensa.gob.es/Galerias/revistaDefensa/,,ES,es,research_analysis,P1,7. Revista oficial del Ministerio de Defensa. Sin RSS (publicación periódica en PDF).
+El Confidencial Digital — Defensa,https://www.elconfidencialdigital.com/defensa/,https://www.elconfidencialdigital.com/rss/defensa,ES,es,media,P1,"8. Sección de defensa de medio digital. Cubre contratos,  industria y política. RSS."
+Forbes España — Empresas,https://forbes.es/empresas/,https://forbes.es/feed/,ES,es,capital_investments,P1,"8. Cobertura de startups,  venture capital e inversión en defensa y dual-use. RSS."
+Nazca Capital — Fondo Aeroespacial y Defensa,https://www.nazca.es/fondos/aeroespacial-y-defensa/,,ES,es,capital_investments,P1,9. Fondo de capital riesgo especializado en aeroespacial y defensa. Sin RSS.
+CDTI Innovación,https://www.cdti.es/noticias,https://www.cdti.es/rss.xml,ES,es,grants_challenges,P0,9. Agencia pública de financiación de I+D+i. Gestiona fondos Innvierte y convocatorias dual-use. RSS.
+Indra Group — Noticias,https://www.indragroup.com/es/noticias,https://www.indragroup.com/es/rss,ES,es,industry_capacity,P0,10. Principal empresa española de defensa y tecnología. Newsroom con RSS.
+Navantia — Sala de Prensa,https://www.navantia.es/es/sala-de-prensa/noticias/,,ES,es,industry_capacity,P0,"10. Astillero público. Noticias sobre programas navales,  contratos e I+D. Sin RSS directo."
+Airbus Defence and Space — España,https://www.airbus.com/es/noticias/,https://www.airbus.com/rss/newsroom,ES,en,industry_capacity,P1,10. Newsroom de Airbus (incluye defensa y espacio). RSS general.
+ISDEFE,https://www.isdefe.es/index.php/noticias,,ES,es,research_analysis,P1,10. Empresa pública de consultoría técnica y estratégica en defensa. Sin RSS.
+Alias Robotics,https://aliasrobotics.com/news/,,ES,en,innovation_rd,P2,10. Startup de ciberseguridad para IA y sistemas autónomos. Seleccionada por DIANA. Newsroom en inglés.
+Vig-Sec Drone,https://vig-sec.com/noticias/,,ES,es,innovation_rd,P2,10. Startup de control de espacio aéreo de baja altura. Seleccionada por DIANA. Publica noticias.
+FuVeX,https://fuvex.com/noticias/,,ES,es,innovation_rd,P2,10. Startup de drones de largo alcance dual-use. Rondas de financiación y proyectos de defensa.
+FOSSA Systems,https://fossa.systems/news/,,ES,en,innovation_rd,P2,10. Startup de comunicaciones satelitales seguras. Seleccionada por DIANA. Noticias en inglés.
+Plataforma de Contratación del Sector Público,https://contrataciondelestado.es/wps/portal/plataforma,,ES,es,procurement_award,P0,2. Portal oficial de contratación pública. Incluye licitaciones de defensa. Sin RSS directo.
+Boletín Oficial del Estado (BOE),https://www.boe.es/,,ES,es,law_regulation,P0,2. Publica anuncios de formalización de contratos de defensa. Sin RSS específico de defensa.
+Instituto Español de Estudios Estratégicos (IEEE),https://www.ieee.es/,,ES,es,research_analysis,P1,10. Think tank del Ministerio de Defensa. Publica análisis y documentos. Sin RSS.
+Real Instituto Elcano,https://www.realinstitutoelcano.org/,,ES,es,research_analysis,P1,10. Think tank de referencia en seguridad y defensa. Publica informes y análisis. Sin RSS.
+El Confidencial — Defensa,https://www.elconfidencial.com/temas/defensa/,,ES,es,media,P1,7. Sección de defensa de medio digital. Cubre industria y contratos. Sin RSS específico.
+Europa Press — Defensa,https://www.europapress.es/temas/defensa/,,ES,es,media,P1,8. Cobertura de defensa de agencia de noticias. Sin RSS específico.
+El Referente,https://elreferente.es/,,ES,es,capital_investments,P1,8. Medio especializado en startups y venture capital. Cubre defensa y dual-use. Sin RSS.
+Okdiario — Defensa,https://okdiario.com/defensa/,,ES,es,media,P2,7. Sección de defensa de medio digital. Cobertura de contratos y programas. Sin RSS específico.
+Libertad Digital — Defensa,https://www.libertaddigital.com/defensa/,,ES,es,media,P2,7. Sección de defensa. Cobertura de industria y fuerzas armadas. Sin RSS específico.
+The Objective — Defensa,https://theobjective.com/defensa/,,ES,es,media,P2,7. Sección de defensa. Cobertura de programas y contratos. Sin RSS específico.
+Vozpópuli — Defensa,https://www.vozpopuli.com/defensa/,,ES,es,media,P2,7. Sección de defensa. Cobertura de industria y programas. Sin RSS específico.
+Público — Defensa,https://www.publico.es/temas/defensa/,,ES,es,media,P2,7. Sección de defensa. Cobertura de gasto militar y contratos. Sin RSS específico.
+El Periódico — Defensa,https://www.elperiodico.com/es/defensa/,,ES,es,media,P2,7. Sección de defensa. Cobertura de industria y programas. Sin RSS específico.
+SEPI,https://www.sepi.es/,,ES,es,capital_investments,P1,9. Sociedad Estatal de Participaciones Industriales. Invierte en defensa. Sin RSS.
