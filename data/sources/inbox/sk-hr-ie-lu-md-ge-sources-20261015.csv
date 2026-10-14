@@ -1,0 +1,43 @@
+name,site_url,feed_url,country,language,signal_hint,tier_hint,notes
+Ministry of Defence of the Slovak Republic,https://www.mosr.sk/,,SK,sk,policy_budgets,P0,"Type 1; официальный сайт Минобороны Словакии, раздел новостей и пресс-релизов; RSS не обнаружен"
+Akvizičná agentúra Ministerstva obrany SR,https://www.uvostat.sk/,,SK,sk,procurement_award,P0,"Type 2; закупочное агентство МО Словакии, информация о тендерах и контрактах; RSS не обнаружен"
+NATO DIANA (Slovakia),https://www.mosr.sk/severoatlanticky-akcelerator-pre-obranne-inovacie-diana/,,SK,sk,innovation_rd,P1,"Type 3; акселератор НАТО DIANA для оборонных инноваций, Словакия участвует; RSS не обнаружен"
+Výbor NR SR pre obranu a bezpečnosť,https://www.nrsr.sk/,,SK,sk,law_regulation,P0,Type 4; комитет по обороне и безопасности Национального совета Словакии; RSS не обнаружен
+Ministerstvo hospodárstva SR,https://www.mhsr.sk/,,SK,sk,export_rules,P0,Type 5; орган экспортного контроля (отдел контроля торговли); RSS не обнаружен
+ZBOP SR (Security and Defence Industry Association),https://www.zbop.sk/,,SK,sk,industry_capacity,P0,"Type 6; ассоциация оборонной промышленности Словакии, 75 членов; RSS не обнаружен"
+Baryon Investment Fund,,,SK,en,capital_investments,P1,"not_found; Type 9; венчурный фонд из Братиславы, инвестирует в оборонные технологии Восточной Европы; RSS нет"
+ZVS holding,https://www.zvsholding.sk/,,SK,sk,industry_capacity,P1,"Type 10; словацкий производитель боеприпасов, часть CSG Group; RSS не обнаружен"
+Ministry of Defence of the Republic of Croatia,https://morh.gov.hr/,,HR,hr,policy_budgets,P0,"Type 1; официальный сайт Минобороны Хорватии, пресс-релизы и новости; RSS не обнаружен"
+Odbor za obranu Hrvatskog sabora,https://www.sabor.hr/,,HR,hr,law_regulation,P0,Type 4; комитет по обороне парламента Хорватии; RSS не обнаружен
+Ministarstvo vanjskih i europskih poslova RH,https://mvep.gov.hr/,,HR,hr,export_rules,P0,Type 5; экспортный контроль (двойное назначение и военные товары); RSS не обнаружен
+HKKOI (Croatian Defence Industry Competitiveness Cluster),https://hgk.hr/,,HR,hr,industry_capacity,P1,"Type 6; кластер оборонной промышленности Хорватии, партнёрство с HUP; RSS не обнаружен"
+Orqa,https://www.orqa.com/,,HR,en,industry_capacity,P1,"Type 10; хорватский производитель дронов, привлёк €12.7M Series A; RSS не обнаружен"
+DOK-ING,https://www.dok-ing.hr/,,HR,hr,industry_capacity,P1,"Type 10; хорватский производитель робототехники, партнёрство с Rheinmetall; RSS не обнаружен"
+KONČAR,https://www.koncar.hr/,,HR,hr,industry_capacity,P1,"Type 10; хорватский электротехнический концерн, участвует в оборонных проектах; RSS не обнаружен"
+Defence Research, Technology and Innovation (RTI) Unit,https://www.military.ie/,not_found,IE,en,innovation_rd,P1
+Research Ireland – Defence Innovation Challenge,https://www.researchireland.ie/,,IE,en,grants_challenges,P1,Type 3; программа грантов на оборонные инновации; RSS не обнаружен
+Joint Committee on Defence and National Security,https://www.oireachtas.ie/,,IE,en,law_regulation,P0,Type 4; совместный комитет по обороне и национальной безопасности; RSS не обнаружен
+Department of Enterprise, Trade and Employment (Export Control),https://enterprise.gov.ie/,not_found,IE,en,export_rules,P0
+Irish Defence and Security Association (IDSA),https://defenceandsecurity.ie/,,IE,en,industry_capacity,P0,Type 6; ассоциация оборонной промышленности Ирландии; RSS не обнаружен
+Silicon Republic (Defence),https://www.siliconrepublic.com/,,IE,en,capital_investments,P2,"Type 8; ирландское технологическое издание, оборонные стартапы; RSS не обнаружен"
+Ireland Strategic Investment Fund (ISIF),https://www.ntma.ie/,,IE,en,capital_investments,P0,"Type 9; государственный инвестиционный фонд Ирландии, может инвестировать в оборону; RSS не обнаружен"
+Enterprise Ireland,https://www.enterprise-ireland.com/,,IE,en,capital_investments,P0,"Type 9; государственное агентство, поддерживает оборонные компании; RSS не обнаружен"
+Reamda Ltd,https://www.reamda.com/,,IE,en,industry_capacity,P2,Type 10; ирландский производитель робототехники для разминирования; RSS не обнаружен
+Ministère de la Défense (Luxembourg),https://defense.gouvernement.lu/,,LU,fr,policy_budgets,P0,Type 1; официальный сайт Минобороны Люксембурга; RSS не обнаружен
+Fit 4 Start (Defence vertical),https://luxinnovation.lu/,,LU,en,innovation_rd,P1,Type 3; акселератор Luxinnovation с оборонным направлением; RSS не обнаружен
+Commission de la Défense (Luxembourg),https://www.chd.lu/,,LU,fr,law_regulation,P0,Type 4; комиссия по обороне парламента Люксембурга; RSS не обнаружен
+Luxembourg Times (Defence),https://www.luxtimes.lu/,,LU,en,media,P1,"Type 7; англоязычное издание Люксембурга, оборонная тематика; RSS не обнаружен"
+RTL Today (Defence),https://today.rtl.lu/,,LU,en,media,P1,"Type 7; люксембургское новостное издание, оборона; RSS не обнаружен"
+Paperjam (Defence),https://en.paperjam.lu/,,LU,en,capital_investments,P2,"Type 8; люксембургское деловое издание, оборонные инвестиции; RSS не обнаружен"
+National Defence Fund (FND),https://www.snci.lu/,,LU,en,capital_investments,P0,Type 9; национальный оборонный фонд Люксембурга (€150M); RSS не обнаружен
+Ministry of Defence of Moldova,https://www.army.md/,,MD,ro,policy_budgets,P0,Type 1; официальный сайт Минобороны Молдовы; RSS не обнаружен
+Comisia securitate națională, apărare și ordine publică,https://old.parlament.md/,not_found,MD,ro,law_regulation,P0
+Moldpres (Defence),https://www.moldpres.md/,,MD,ro,media,P1,"Type 7; молдавское государственное агентство новостей, оборона; RSS не обнаружен"
+Radio Moldova (Defence),https://radiomoldova.md/,,MD,ro,media,P1,"Type 7; молдавское радио, оборонная тематика; RSS не обнаружен"
+Ministry of Defence of Georgia,https://mod.gov.ge/,,GE,ka,policy_budgets,P0,"Type 1; официальный сайт Минобороны Грузии, новости; RSS не обнаружен"
+State Procurement Agency (Georgia),https://procurement.gov.ge/,,GE,ka,procurement_award,P0,"Type 2; агентство госзакупок Грузии, тендеры; RSS не обнаружен"
+Innovation and Technology Agency (Georgia),https://grants.gov.ge/,,GE,ka,innovation_rd,P2,"Type 3; агентство инноваций и технологий, программа акселерации стартапов; RSS не обнаружен"
+Defence and Security Committee (Georgia),https://parliament.ge/,,GE,ka,law_regulation,P0,Type 4; комитет по обороне и безопасности парламента Грузии; RSS не обнаружен
+Ministry of Defense (Export Control),https://exportcontrol.mod.gov.ge/,,GE,ka,export_rules,P0,Type 5; экспортный контроль военной продукции; RSS не обнаружен
+Agenda.ge (Defence),https://agenda.ge/,,GE,en,media,P1,"Type 7; грузинское англоязычное издание, оборона; RSS не обнаружен"
+Delta (State Military Scientific-Technical Center),https://www.delta.gov.ge/,,GE,ka,industry_capacity,P1,Type 10; грузинский государственный оборонный научно-технический центр; RSS не обнаружен

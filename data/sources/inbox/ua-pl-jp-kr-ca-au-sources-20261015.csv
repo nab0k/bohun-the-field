@@ -1,0 +1,88 @@
+name,site_url,feed_url,country,language,signal_hint,tier_hint,notes
+Ministry of Defence of Ukraine,https://www.mil.gov.ua/,,UA,uk,policy_budgets,P0,"Type 1; официальный сайт Минобороны Украины, раздел новостей и пресс-релизов; RSS не обнаружен"
+Defence Procurement Agency DOT,https://dot.gov.ua/,,UA,uk,procurement_award,P0,Type 2; единое закупочное агентство МО Украины с 1 января 2026; DOT-Chain Defence система; RSS не обнаружен
+Brave1,https://brave1.gov.ua/,,UA,uk,innovation_rd,P0,"Type 3; государственный defence-tech акселератор, создан в апреле 2023; гранты, поддержка стартапов; RSS не обнаружен"
+State Agency for Innovations in Security and Defense,,,UA,uk,innovation_rd,P0,not_found; Type 3; новое центральное агентство по оборонным инновациям (законопроект поддержан профильным комитетом в июне 2026); сайт ещё не создан
+Verkhovna Rada Committee on National Security,https://www.rada.gov.ua/,,UA,uk,law_regulation,P0,"Type 4; комитет по национальной безопасности, обороне и разведке; RSS не обнаружен"
+UCDI 'Zbroyary',https://zbroyary.org/,,UA,uk,industry_capacity,P0,"Type 6; Украинский совет оборонной промышленности, ассоциация ассоциаций, создана в феврале 2025, около 100 компаний; RSS не обнаружен"
+NAUDI,https://naudi.org.ua/,,UA,uk,industry_capacity,P1,"Type 6; Национальная ассоциация оборонной промышленности Украины, создана в 2020, объединяет 130+ частных предприятий; RSS не обнаружен"
+Armada,https://armada.net.ua/,,UA,uk,industry_capacity,P2,"Type 6; отраслевая ассоциация, основана в апреле 2025, около 100 компаний, входит в наблюдательный совет UCDI; RSS не обнаружен"
+ArmyInform,https://armyinform.com.ua/,,UA,uk,media,P0,"Type 7; онлайн-медиа Министерства обороны Украины, основано в декабре 2018; RSS не обнаружен"
+Militarnyi,https://mil.in.ua/,,UA,uk,media,P1,"Type 7; украинское оборонное издание, освещает закупки, технологии, стартапы; RSS не обнаружен"
+Defence Builder Accelerator,https://defencebuilder.com/,,UA,uk,grants_challenges,P1,"Type 3; украинский defence-tech акселератор, Batch 4.0; 24 портфельные компании получили более $650K грантов; RSS не обнаружен"
+Resist.UA Fund,,,UA,en,capital_investments,P1,"not_found; Type 9; фонд для украинских defence-tech стартапов, цель €50M; RSS нет"
+MITS Capital,https://mitscapital.com/,,UA,en,capital_investments,P1,"Type 9; американско-украинская инвестиционная группа, поддерживает defence-tech и dual-use; RSS не обнаружен"
+UFORCE,https://uforce.ua/,,UA,en,industry_capacity,P1,"Type 10; украинская defence-tech компания, объединяет 9 оборонных компаний, оценка приближается к $1B; RSS не обнаружен"
+Ministry of National Defence of Poland,https://www.gov.pl/web/national-defence,,PL,pl,policy_budgets,P0,"Type 1; официальный сайт Минобороны Польши, новости; RSS не обнаружен"
+Agencja Uzbrojenia,https://www.gov.pl/web/au,,PL,pl,procurement_award,P0,"Type 2; Агентство вооружений, портфель контрактов около 700 млрд PLN; RSS не обнаружен"
+OSA (Ośrodek Systemów Autonomicznych),,,PL,pl,innovation_rd,P1,"not_found; Type 3; Центр автономных систем в Варшаве, создан ITWL и PGZ; RSS нет"
+NCBR MilTech Akces,https://www.gov.pl/web/ncbr,,PL,pl,grants_challenges,P1,"Type 3; программа поддержки оборонных инноваций, гранты до 300K PLN; RSS не обнаружен"
+Sejm Committee on National Defence,https://www.sejm.gov.pl/,,PL,pl,law_regulation,P0,Type 4; комитет по национальной обороне Сейма; RSS не обнаружен
+Ministry of Development and Technology,https://www.gov.pl/web/rozwoj-technologia,,PL,pl,export_rules,P0,Type 5; экспортный контроль военной продукции; RSS не обнаружен
+PIPnROK,https://przemysl-obronny.pl/,,PL,pl,industry_capacity,P0,"Type 6; Польская палата производителей на нужды обороны, представляет 140+ предприятий; RSS не обнаружен"
+ZPPPiOL,https://zpppiol.pl/,,PL,pl,industry_capacity,P1,Type 6; Союз работодателей польской оборонной и авиационной промышленности; RSS не обнаружен
+Polska Izba Dual Use,https://pidu.pl/,,PL,pl,industry_capacity,P1,"Type 6; Польская палата dual-use, представляет компании в сфере безопасности и dual-use технологий; RSS не обнаружен"
+Defence24,https://defence24.pl/,,PL,pl,media,P0,"Type 7; крупнейшая польская медиагруппа по обороне, безопасности и кибербезопасности; RSS не обнаружен"
+Polska Zbrojna,https://polska-zbrojna.pl/,,PL,pl,media,P1,Type 7; старейшее польское военное издание (с 1921); RSS не обнаружен
+Expeditions Fund II,,,PL,en,capital_investments,P1,"not_found; Type 9; варшавский VC-фонд €100M (цель €150M), инвестирует в dual-use deep-tech; RSS нет"
+PGZ (Polska Grupa Zbrojeniowa),https://grupapgz.pl/,,PL,pl,industry_capacity,P1,Type 10; крупнейший польский оборонный холдинг; RSS не обнаружен
+WB Group,https://wbgroup.pl/,,PL,pl,industry_capacity,P1,"Type 10; польский производитель разведывательно-ударных БПЛА, контракты с Agencja Uzbrojenia; RSS не обнаружен"
+Ministry of Defense of Japan,https://www.mod.go.jp/,,JP,ja,policy_budgets,P0,"Type 1; официальный сайт Минобороны Японии, пресс-конференции министра, RSS не обнаружен"
+Acquisition, Technology and Logistics Agency (ATLA),https://www.mod.go.jp/atla/,not_found,JP,ja,procurement_award,P0
+ATLA Fast Pass Procurement,,,JP,ja,innovation_rd,P1,not_found; Type 3; схема быстрых закупок для стартапов; RSS нет
+Defense Technology Foundation,https://www.defense-tech.or.jp/,,JP,ja,innovation_rd,P1,Type 3; фонд поддержки оборонных R&D; RSS не обнаружен
+Diet Committee on Security,https://www.shugiin.go.jp/,,JP,ja,law_regulation,P0,Type 4; комитет по безопасности Палаты представителей; RSS не обнаружен
+Ministry of Economy, Trade and Industry (METI),https://www.meti.go.jp/,not_found,JP,ja,export_rules,P0
+Japan Association of Defense Industry (JADI),https://www.jadi.or.jp/,,JP,ja,industry_capacity,P0,Type 6; ассоциация оборонной промышленности Японии; RSS не обнаружен
+Society of Japanese Aerospace Companies (SJAC),https://www.sjac.or.jp/,,JP,ja,industry_capacity,P1,Type 6; ассоциация аэрокосмической промышленности; RSS не обнаружен
+MAMOR,https://www.mod.go.jp/j/publication/mamor/,,JP,ja,media,P1,Type 7; официальный журнал Минобороны Японии; RSS не обнаружен
+Japan Defense Focus (JDF),https://www.mod.go.jp/e/jdf/,,JP,en,media,P1,Type 7; английский бюллетень Минобороны; RSS не обнаружен
+Development Bank of Japan (DBJ),https://www.dbj.jp/,,JP,ja,capital_investments,P0,"Type 9; государственный банк, снял ограничения на инвестиции в оборонные компании; RSS не обнаружен"
+aSTART,,,JP,ja,capital_investments,P2,"not_found; Type 9; венчурный фонд из Токио, инвестирует в aerospace/defense; RSS нет"
+Andreessen Horowitz Japan,,,JP,en,capital_investments,P1,"not_found; Type 9; американский VC открыл офис в Японии, планирует инвестиции в оборону и робототехнику; RSS нет"
+Sakana AI,,,JP,ja,industry_capacity,P1,"not_found; Type 10; японский AI-стартап, привлёк 31 млрд иен в H1 2026 на военные применения AI; RSS нет"
+Mitsubishi Heavy Industries,https://www.mhi.com/,,JP,ja,industry_capacity,P1,Type 10; крупнейший оборонный подрядчик Японии; RSS не обнаружен
+Ministry of National Defense of South Korea,https://www.mnd.go.kr/,,KR,ko,policy_budgets,P0,"Type 1; официальный сайт Минобороны Южной Кореи, инициатива Defense Innovation 4.0; RSS не обнаружен"
+Defense Acquisition Program Administration (DAPA),https://www.dapa.go.kr/,,KR,ko,procurement_award,P0,Type 2; агентство оборонных закупок; RSS не обнаружен
+Korea Defense Industry Association (KDIA),https://www.kdia.org/,,KR,ko,industry_capacity,P0,"Type 6; ассоциация оборонной промышленности, 800+ членов; RSS не обнаружен"
+Korea Startup Forum Defense Council,,,KR,ko,industry_capacity,P1,"not_found; Type 6; совет по оборонной промышленности при Korea Startup Forum, создан в мае 2026; RSS нет"
+KFN TV,https://kookbang.dema.mil.kr/,,KR,ko,media,P0,"Type 7; государственный оборонный телеканал, 20 лет; RSS не обнаружен"
+Korea Growth Finance Defense Fund,,,KR,ko,capital_investments,P1,"not_found; Type 9; второй фонд инноваций в оборонных технологиях, бюджет 52 млрд вон; RSS нет"
+E&Investment,,,KR,ko,capital_investments,P1,not_found; Type 9; создаёт фонд E&K Defense Technology Innovation Fund на 40 млрд вон; RSS нет
+Korea Eximbank,https://www.koreaexim.go.kr/,,KR,ko,capital_investments,P0,"Type 9; первый VC-инвестиционный фонд для обороны и цепочек поставок, 112.5 млрд вон; RSS не обнаружен"
+AD System,,,KR,ko,industry_capacity,P1,"not_found; Type 10; производитель стелс-дронов, Series A 13 млрд вон; RSS нет"
+Airbility,,,KR,ko,industry_capacity,P1,"not_found; Type 10; анти-дроновый стартап, Series A $4.7M; RSS нет"
+Hanwha Aerospace,https://www.hanwhaaerospace.com/,,KR,ko,industry_capacity,P1,"Type 10; крупнейший оборонный экспортёр Кореи, контракт с Польшей на 5.6 трлн вон; RSS не обнаружен"
+Department of National Defence (Canada),https://www.canada.ca/en/department-national-defence.html,,CA,en,policy_budgets,P0,"Type 1; официальный сайт Минобороны Канады, Departmental Plans; RSS не обнаружен"
+Defence Investment Agency (DIA),https://www.canada.ca/en/public-services-procurement/services/defence-investment-agency.html,,CA,en,procurement_award,P0,"Type 2; новое агентство оборонных инвестиций, создано в октябре 2025; RSS не обнаружен"
+IDEaS (Innovation for Defence Excellence and Security),https://www.canada.ca/en/department-national-defence/programs/defence-ideas.html,,CA,en,grants_challenges,P0,"Type 3; программа поддержки оборонных инноваций, трёхэтапное финансирование; RSS не обнаружен"
+Standing Committee on National Defence,https://www.ourcommons.ca/,,CA,en,law_regulation,P0,Type 4; постоянный комитет по национальной обороне; RSS не обнаружен
+Global Affairs Canada (Export Controls),https://www.international.gc.ca/,,CA,en,export_rules,P0,Type 5; экспортный контроль военной продукции и dual-use; RSS не обнаружен
+CADSI,https://www.defenceandsecurity.ca/,,CA,en,industry_capacity,P0,Type 6; Канадская ассоциация оборонной иsecurity промышленности; RSS не обнаружен
+ACDC,,,CA,en,industry_capacity,P1,"not_found; Type 6; Alliance of Canadian Defence Companies, создан в феврале 2026; RSS нет"
+AIAC,https://aiac.ca/,,CA,en,industry_capacity,P1,Type 6; Ассоциация аэрокосмической промышленности Канады; RSS не обнаружен
+Canadian Military Journal,https://www.journal.forces.gc.ca/,,CA,en,media,P1,Type 7; официальный профессиональный журнал ВС Канады; RSS не обнаружен
+Vanguard Canada,https://vanguardcanada.com/,,CA,en,media,P1,"Type 7; канадское оборонное издание, подкасты и аналитика; RSS не обнаружен"
+CBC Defence,https://www.cbc.ca/news/politics,,CA,en,media,P0,"Type 7; CBC News, старший корреспондент по обороне Murray Brewster; RSS не обнаружен"
+BDC Defence Fund,https://www.bdc.ca/,,CA,en,capital_investments,P0,Type 9; $500M фонд фондов для оборонных и dual-use технологий; RSS не обнаружен
+StrongNorth Fund,,,CA,en,capital_investments,P0,not_found; Type 9; $300M прямой VC-фонд BDC для ранних стадий оборонных стартапов; RSS нет
+ONE9,https://one9.ca/,,CA,en,capital_investments,P1,"Type 9; управляет ~C$2.1B, строит оборонную франшизу, соучредитель CANDIN; RSS не обнаружен"
+Dominion Dynamics,https://dominiondynamics.ca/,,CA,en,industry_capacity,P1,"Type 10; крупнейший Series A в истории канадской обороны, $139M; RSS не обнаружен"
+Landing Zones Canada,,,CA,en,industry_capacity,P2,not_found; Type 10; получил инвестиции от StrongNorth Defence Fund; RSS нет
+MDA Space Launchpad Ventures,,,CA,en,capital_investments,P1,not_found; Type 9; программа MDA Space для инвестиций в космические и оборонные SME; RSS нет
+Department of Defence (Australia),https://www.defence.gov.au/,,AU,en,policy_budgets,P0,"Type 1; официальный сайт Минобороны Австралии, Defence News; RSS не обнаружен"
+Defence Delivery Agency (DDA),,,AU,en,procurement_award,P0,"not_found; Type 2; новое агентство по закупкам, с 1 июля 2027, заменит CASG; RSS нет"
+Defence Innovation Hub,https://www.defence.gov.au/innovation,,AU,en,innovation_rd,P1,Type 3; инновационное подразделение Минобороны; RSS не обнаружен
+Parliamentary Joint Committee on Defence,https://www.aph.gov.au/,,AU,en,law_regulation,P0,Type 4; парламентский объединённый комитет по обороне; RSS не обнаружен
+Defence Export Controls,https://www.defence.gov.au/export-controls,,AU,en,export_rules,P0,Type 5; орган экспортного контроля; RSS не обнаружен
+AIDN,https://aidn.org.au/,,AU,en,industry_capacity,P0,"Type 6; Australian Industry & Defence Network, пиковая ассоциация SME; RSS не обнаружен"
+DTC,https://dtc.org.au/,,AU,en,industry_capacity,P1,"Type 6; Defence Teaming Centre, ведущая отраслевая ассоциация; RSS не обнаружен"
+ADIESA,https://adiesa.org.au/,,AU,en,industry_capacity,P2,Type 6; ассоциация оборонных информационных и электронных систем; RSS не обнаружен
+Australian Defence Magazine,https://www.australiandefence.com.au/,,AU,en,media,P0,Type 7; ведущее издание по оборонным закупкам и возможностям; RSS не обнаружен
+Defence Connect,https://www.defenceconnect.com.au/,,AU,en,media,P0,"Type 7; ежедневные оборонные новости, подкасты; RSS не обнаружен"
+The Strategist (ASPI),https://www.aspistrategist.org.au/,,AU,en,research_analysis,P1,Type 7; аналитический центр ASPI; RSS не обнаружен
+Defence Industry Development Grants,https://business.gov.au/,,AU,en,grants_challenges,P0,"Type 3; программа грантов, продлена до 2030, дополнительно $80M; RSS не обнаружен"
+Beaten Zone Venture Partners,,,AU,en,capital_investments,P1,"not_found; Type 9; VC-фонд, закрыл первый фонд на A$26M; RSS нет"
+Salus Ventures,,,AU,en,capital_investments,P1,"not_found; Type 9; сиднейский VC, инвестирует в national security, defense; RSS нет"
+Advanced Capability Investment Fund (ACIF),,,AU,en,capital_investments,P0,not_found; Type 9; правительственный фонд $500M для co-инвестиций в оборонные технологии; RSS нет
+Arkeus,,,AU,en,industry_capacity,P1,"not_found; Type 10; оборонный tech-производитель, привлёк $25M под руководством QIC Ventures; RSS нет"
