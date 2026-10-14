@@ -1,0 +1,10 @@
+name,site_url,feed_url,country,language,signal_hint,tier_hint,notes
+Ministry of Defence,https://www.gov.me/mod,not_found,ME,sr,policy_budgets,P2,type 1; Ministry of Defence
+Uprava za javne nabavke,https://www.ujn.gov.me,not_found,ME,sr,procurement_award,P2,type 2; Uprava za javne nabavke; public procurement
+Fond za inovacije Crne Gore,https://fondzainovacije.me,not_found,ME,sr,innovation_rd,P2,type 3; Fond za inovacije Crne Gore
+Security and defence committee,https://www.skupstina.me/me/radna-tijela/odbor-za-bezbjednost-i-odbranu,not_found,ME,sr,law_regulation,P2,type 4; Security and defence committee; JS site
+Ministry of Economic Development,https://www.gov.me/mek,not_found,ME,sr,export_rules,P2,type 5; Ministry of Economic Development; export control
+Chamber of Economy,https://www.komora.me,not_found,ME,sr,industry_capacity,P2,type 6; Chamber of Economy
+Business media,https://investitor.me,not_found,ME,sr,capital_investments,P2,type 8; Business media
+Forbes Montenegro,https://forbes.me,not_found,ME,sr,capital_investments,P2,type 8; Forbes Montenegro
+Montenegrin Investment Agency,https://mia.gov.me,not_found,ME,sr,capital_investments,P2,type 9; Montenegrin Investment Agency

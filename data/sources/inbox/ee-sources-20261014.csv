@@ -1,0 +1,23 @@
+name,site_url,feed_url,country,language,signal_hint,tier_hint,notes
+Ministry of Defence,https://www.kaitseministeerium.ee/en/news,not_found,EE,et,policy_budgets,P1,1. Ministry of Defence; RSS Parrot; только местный язык (эстонский) и английский
+Estonian Centre for Defence Investments (ECDI),https://www.kaitseinvesteeringud.ee/en/news/,not_found,EE,et,procurement_award,P1,2. Defence Procurement Agency; RSS Parrot; только местный язык (эстонский) и английский
+Estonian Business and Innovation Agency (EIS),https://eis.ee/en/news/,not_found,EE,et,innovation_rd,P1,3. Defence Innovation / R&D; RSS Parrot; только местный язык (эстонский)
+Metrosert,https://metrosert.ee/en/news/,not_found,EE,et,innovation_rd,P1,3. Defence Innovation / R&D; RSS Parrot; только местный язык (эстонский) и английский
+Defence Business Lab (Estonia.ee),https://estonia.ee/defence/news/,not_found,EE,et,innovation_rd,P1,3. Defence Innovation / R&D; RSS Parrot; только местный язык (эстонский) и английский
+National Defence Committee,https://www.riigikogu.ee/en/riigikogu/committees/national-defence-committee/,not_found,EE,et,law_regulation,P1,4. Parliamentary Defence Committee; RSS Parrot; только местный язык (эстонский) и английский
+Strategic Goods Commission (Ministry of Foreign Affairs),https://vm.ee/en/news,not_found,EE,et,export_rules,P1,5. Export Control; RSS Parrot; только местный язык (эстонский) и английский
+Estonian Defence and Aerospace Industry Association (EDIA),https://defence.ee/news/,not_found,EE,et,industry_capacity,P1,6. Defence Industry Association; RSS Parrot; только местный язык (эстонский) и английский
+ERR News (Defence section),https://news.err.ee/defence,not_found,EE,et,media,P1,7. Defence Media (Local Language); RSS Parrot; только местный язык (эстонский) и английский
+Postimees (Defence section),https://www.postimees.ee/teemad/kaitsevägi,not_found,EE,et,media,P1,7. Defence Media (Local Language); RSS Parrot; только местный язык (эстонский)
+Delfi (Defence section),https://www.delfi.ee/teemad/kaitsevägi,not_found,EE,et,media,P1,7. Defence Media (Local Language); RSS Parrot; только местный язык (эстонский)
+Sõdurileht,https://mil.ee/sodurileht/,not_found,EE,et,media,P1,7. Defence Media (Local Language); RSS Parrot; только местный язык (эстонский)
+Kaitse Kodu!,https://riigikaitsest.ee/kaitse-kodu/,not_found,EE,et,media,P1,7. Defence Media (Local Language); RSS Parrot; только местный язык (эстонский)
+Äripäev,https://www.aripaev.ee/,not_found,EE,et,capital_investments,P1,8. Business & Startup Media; RSS Parrot; только местный язык (эстонский)
+Geenius,https://www.geenius.ee/,not_found,EE,et,capital_investments,P1,8. Business & Startup Media; RSS Parrot; только местный язык (эстонский)
+Startup Estonia,https://startupestonia.ee/,not_found,EE,et,capital_investments,P1,8. Business & Startup Media; RSS Parrot; только местный язык (эстонский) и английский
+SmartCap (Defence Fund),https://smartcap.ee/,not_found,EE,et,capital_investments,P1,9. State Investment Fund; RSS Parrot; только местный язык (эстонский) и английский
+Milrem Robotics,https://milremrobotics.com/news/,not_found,EE,et,industry_capacity,P1,10. Defence Companies / Startups; RSS Parrot; только местный язык (эстонский) и английский
+Threod Systems,https://www.threod.com/news/,not_found,EE,et,industry_capacity,P1,10. Defence Companies / Startups; RSS Parrot; только местный язык (эстонский) и английский
+Frankenburg Technologies,https://frankenburg.tech/news/,not_found,EE,et,industry_capacity,P1,10. Defence Companies / Startups; RSS Parrot; только местный язык (эстонский) и английский
+DefSecIntel,https://defsecintel.com/news/,not_found,EE,et,industry_capacity,P1,10. Defence Companies / Startups; RSS Parrot; только местный язык (эстонский) и английский
+Vegvisir,https://vegvisir.ee/news/,not_found,EE,et,industry_capacity,P1,10. Defence Companies / Startups; RSS Parrot; только местный язык (эстонский) и английский
