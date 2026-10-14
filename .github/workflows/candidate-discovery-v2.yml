@@ -1,0 +1,24 @@
+name: Candidate Discovery v2 (directory traversal)
+on:
+  workflow_dispatch:
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install requests beautifulsoup4
+      - name: Traverse directory and pagination links
+        run: python tools/candidate_discovery_v2.py --max-pages-per-seed 30 --max-depth 3
+      - name: Upload candidates and audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bohun-candidate-discovery-v2
+          path: output/candidate-discovery-v2/
+          retention-days: 30
