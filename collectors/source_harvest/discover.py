@@ -174,8 +174,13 @@ def run(input_csv, output_dir, *, limit=None, client=None, workers=12, deadline_
         for future in as_completed(futures):
             results[futures[future]] = future.result()
     feeds, pending = [], []
+    seen_feeds = set()
     for index in range(len(candidates)):
         feed, miss = results[index]
+        if feed and feed["feed_id"] in seen_feeds:
+            continue  # two candidates of one site resolved to the same feed: keep one row, or items are counted twice
+        if feed:
+            seen_feeds.add(feed["feed_id"])
         (feeds if feed else pending).append(feed or miss)
     fields = ["feed_id", "site_id", "feed_url", "final_url", "format", "entries_count", "oldest_entry", "newest_entry", "median_interval_hours", "has_dates", "language", "etag", "last_modified", "discovery_method"]
     output = Path(output_dir)

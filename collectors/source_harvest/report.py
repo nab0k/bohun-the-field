@@ -21,7 +21,11 @@ def build(output_dir, *, duration_seconds=0, request_count=0, gemini_spend=0):
     statuses = Counter(row.get("status") for row in metrics)
     methods = Counter(row.get("discovery_method") for row in feeds)
     provenance = Counter(part for row in candidates for part in row.get("provenance", "").split("|") if part)
-    names = {row.get("site_id"): row.get("name") or row.get("site_url", "") for row in candidates}
+    names = {}
+    for row in candidates:
+        name = row.get("name") or row.get("site_url", "")
+        if row.get("site_id") not in names or names[row.get("site_id")].lower().startswith("comments"):
+            names[row.get("site_id")] = name
     for row in metrics:
         row["name"] = names.get(row.get("site_id"), "")
     top = sorted(metrics, key=lambda row: -float(row.get("unique_relevant_per_week") or 0))[:30]

@@ -84,6 +84,11 @@ def _inoreader_candidates(max_calls=20):
     return out, {"blocked": False, "calls": 3, "subscriptions": len(subscriptions), "subscriptions_before": len(subscriptions), "subscriptions_after": len(subscriptions_after), "subscription_delta": len(subscriptions_after) - len(subscriptions), "tags": len(tags)}
 
 
+def _is_comment_feed(url, title=""):
+    from .discover import is_comment_feed
+    return bool(url) and is_comment_feed(url, title) or str(title or "").strip().lower().startswith(("comments for", "comments on"))
+
+
 def collect(root=".", *, use_inoreader=False, quota_confirmed=False, max_candidates=2000, inoreader_call_budget=20):
     root = Path(root)
     raw = []
@@ -118,6 +123,8 @@ def collect(root=".", *, use_inoreader=False, quota_confirmed=False, max_candida
     for row in raw:
         target = row["site_url"] or row["feed_url"]
         reason = rejected_reason(target)
+        if not reason and _is_comment_feed(row["feed_url"], row.get("name", "")):
+            reason = "comment_feed"  # the site's main feed is still found through its other candidates or discovery
         if reason:
             rejected.append({**row, "reason": reason})
             continue

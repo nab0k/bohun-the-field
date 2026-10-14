@@ -226,6 +226,21 @@ class FollowUpTests(unittest.TestCase):
         self.assertTrue(discover.is_comment_feed("https://site.example/feed", "Comments for EDR Magazine"))
         self.assertFalse(discover.is_comment_feed("https://site.example/feed/", "EDR Magazine"))
 
+    def test_comment_feed_candidates_rejected_and_feeds_deduplicated(self):
+        self.assertTrue(inputs._is_comment_feed("https://edr.example/comments/feed", "Comments for EDR"))
+        self.assertTrue(inputs._is_comment_feed("", "Comments for EDR"))
+        self.assertFalse(inputs._is_comment_feed("https://edr.example/feed", "EDR Magazine"))
+        rss = (FIXTURES / "rss.xml").read_text()
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "candidates.csv"
+            with path.open("w", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=["candidate_id", "site_id", "site_url", "feed_url"])
+                writer.writeheader()
+                writer.writerow({"candidate_id": "c1", "site_id": "s1", "site_url": "https://a.example", "feed_url": "https://a.example/feed"})
+                writer.writerow({"candidate_id": "c2", "site_id": "s1", "site_url": "https://a.example", "feed_url": "https://a.example/feed"})
+            feeds, _, _ = discover.run(path, tmp, client=FakeClient({"https://a.example/feed": rss}))
+        self.assertEqual(len(feeds), 1)
+
     def test_backlog_sends_no_conditional_headers(self):
         seen = []
         class Client(FakeClient):
