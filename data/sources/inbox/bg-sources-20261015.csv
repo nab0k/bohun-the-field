@@ -1,0 +1,32 @@
+name,site_url,feed_url,country,language,signal_hint,tier_hint,notes
+Ministry of Defence of Bulgaria,https://www.mod.bg,,BG,bg,policy_budgets,P1,"Министерство обороны; Официальный сайт. Новости, пресс-релизы, закупки."
+Българска армия (Armymedia.bg),https://armymedia.bg,,BG,bg,policy_budgets,P1,"Министерство обороны; Официальное издание Минобороны. Новости, аналитика, закупки."
+Агенция по обществени поръчки,https://www.aop.bg,,BG,bg,procurement_award,P1,Закупочное агентство; Официальный портал госзакупок.
+Център за иновации в отбраната (Sofia Tech Park),https://sofiatech.bg,,BG,bg,innovation_rd,P1,Агентство оборонных инноваций; Национальная платформа для dual-use инноваций.
+CEDAR (Център за върхови постижения),https://www.mig.government.bg,,BG,bg,innovation_rd,P1,"Агентство оборонных инноваций; Центр в Казанлък. Передовые материалы, топлива, боеприпасы."
+Комисия по отбрана,https://www.parliament.bg,,BG,bg,law_regulation,P1,Парламентский комитет; Комиссия по обороне Народного собрания. Протоколы заседаний.
+Междуведомствена комисия,https://exportcontrol.mi.government.bg,,BG,bg,export_rules,P1,Орган экспортного контроля; Национальный орган экспортного контроля. Лицензии.
+Bulgarian Defence Industries Association (BDIA),https://bdia-bg.com,,BG,bg,industry_capacity,P1,Отраслевая ассоциация; Ассоциация оборонной промышленности. Член EDA.
+BulgarianMilitary.com,https://bulgarianmilitary.com,,BG,bg,media,P1,Профильные СМИ; Новости оборонной политики и промышленности.
+Capital.bg,https://www.capital.bg,,BG,bg,capital_investments,P1,"Деловые медиа; Ведущее деловое издание. Оборонная промышленность, фонды."
+Money.bg,https://money.bg,,BG,bg,capital_investments,P1,Деловые медиа; Деловые новости. Рейтинги оборонных компаний.
+Investor.bg,https://www.investor.bg,,BG,bg,capital_investments,P1,Деловые медиа; Финансовые и инвестиционные новости. Оборонные фонды.
+Epicenter.bg,https://epicenter.bg,,BG,bg,capital_investments,P1,"Деловые медиа; Деловые новости. Оборонная промышленность, контракты."
+Фонд на фондовете (FMFIB),https://fmfib.bg,,BG,bg,capital_investments,P1,"Государственный инвестфонд; Государственный фонд. Управляет ""Фондом стратегических технологий и обороны""."
+Arsenal AD,https://www.arsenal-bg.com,,BG,bg,industry_capacity,P1,Крупные оборонные компании; Крупнейший производитель боеприпасов. Новый завод нитроцеллюлозы.
+VMZ EAD (Vazovski Mashinostroitelni Zavodi),https://www.vmz.bg,,BG,bg,industry_capacity,P1,Крупные оборонные компании; Государственный производитель боеприпасов. СП с Rheinmetall.
+Samel-90,https://www.samel90.com,,BG,bg,industry_capacity,P1,Крупные оборонные компании; Производитель электроники и связи.
+Dunarit,https://www.dunarit.com,,BG,bg,industry_capacity,P1,Крупные оборонные компании; Производство боеприпасов и инженерных боеприпасов.
+EnduroSat,https://www.endurosat.com,,BG,bg,industry_capacity,P1,"Крупные оборонные компании; Космические технологии. Спутники, IoT."
+Dronamics,https://www.dronamics.com,,BG,bg,industry_capacity,P1,Крупные оборонные компании; Грузовые дроны. Dual-use логистика.
+Optix,https://www.optix.bg,,BG,bg,industry_capacity,P1,Второй эшелон; Оптико-электронные системы.
+MTG-Dolphin,https://www.mtg-dolphin.bg,,BG,bg,industry_capacity,P1,"Второй эшелон; Морские технологии, навигация."
+Kontrax,https://www.kontrax.bg,,BG,bg,industry_capacity,P1,"Второй эшелон; IT-решения, беспилотники."
+OMZ-Invest 2000,https://www.omz.bg,,BG,bg,industry_capacity,P1,"Субподрядчики и SME; Субподрядчик. Механика, оптика, пластик."
+BIA (Българска индустриална асоциация),https://www.bia-bg.com,,BG,bg,industry_capacity,P1,Субподрядчики и SME; Делова ассоциация. Информация о SME.
+Defence Advanced Research Institute (DARI),https://rndc.bg,,BG,bg,research_analysis,P1,Академические центры; Институт при Военной академии. Стратегические исследования.
+"НВУ ""Васил Левски""",https://nvu.bg,,BG,bg,research_analysis,P1,"Академические центры; Национальный военный университет. Артиллерия, ПВО, КИС."
+"ВВМУ ""Н. Й. Вапцаров""",https://www.naval-acad.bg,,BG,bg,research_analysis,P1,Академические центры; Военно-морское училище. Морские науки и технологии.
+Institute for Security and International Studies (ISIS Sofia),https://www.isis-bg.org,,BG,bg,research_analysis,P1,"Think tanks; Независимый think tank. Балканы, Черное море, гражданско-военные отношения."
+Sofia Security Forum,https://sofiaforum.bg,,BG,bg,research_analysis,P1,"Think tanks; Форум по безопасности. Европейская оборона, Черное море."
+Centre for Security and Defence Management (CSDM),https://www.it4sec.org,,BG,bg,research_analysis,P1,"Think tanks; Часть IICT-BAS. Кибербезопасность, управление."

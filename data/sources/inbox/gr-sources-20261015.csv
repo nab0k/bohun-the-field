@@ -1,0 +1,50 @@
+name,site_url,feed_url,country,language,signal_hint,tier_hint,notes
+Hellenic Republic Ministry of National Defence,https://www.mod.mil.gr,,GR,el,policy_budgets,P1,"Министерство обороны; Официальный сайт Минобороны. Новости, пресс-релизы, закупки."
+Hellenic National Defence General Staff (HNDGS),https://geetha.mil.gr,,GR,el,policy_budgets,P1,"Министерство обороны; Генеральный штаб национальной обороны. Новости, учения."
+General Directorate for Defence Investments and Armaments (GDDIA),https://www.gdaee.mil.gr,,GR,el,procurement_award,P1,Закупочное агентство; Генеральный директорат по оборонным инвестициям и вооружениям.
+Diavgeia — Transparency Programme,https://diavgeia.gov.gr,,GR,el,procurement_award,P1,Закупочное агентство; Официальный портал прозрачности. Публикация решений о закупках.
+Hellenic Centre for Defence Innovation (ELKAK/HCDI),https://www.elkak.gr,,GR,el,innovation_rd,P1,"Агентство оборонных инноваций; Национальный центр оборонных инноваций. Финансирует R&D, акселерация."
+Special Standing Committee on Defence Procurement Programmes,https://www.hellenicparliament.gr,,GR,el,law_regulation,P1,Парламентский комитет; Специальный постоянный комитет по программам и контрактам в области обороны.
+Ministry of Foreign Affairs — Sanctions & Dual-Use,https://www.mfa.gr,,GR,el,export_rules,P1,Орган экспортного контроля; Контроль экспорта товаров двойного назначения. Регламент ЕС 833/2014.
+Ministry of Development — Export Regimes,https://www.mindev.gov.gr,,GR,el,export_rules,P1,Орган экспортного контроля; Директорат режимов импорта-экспорта. Лицензии на экспорт вооружений.
+Hellenic Manufacturers of Defence Materiel Association (SEKPY),https://sekpy.gr,,GR,el,industry_capacity,P1,Отраслевая ассоциация; Ассоциация производителей оборонных материалов. 320+ компаний.
+Militaire.gr,https://militaire.gr,,GR,el,media,P1,Профильные СМИ; Греческое издание об обороне и безопасности.
+Flight.com.gr (ΠΤΗΣΗ),https://flight.com.gr,,GR,el,media,P1,Профильные СМИ; Профессиональный журнал об авиации и обороне.
+Greek Defence News,https://dbdcgroup.com,,GR,el,media,P1,Профильные СМИ; Двухмесячный журнал об обороне Греции и региона на английском.
+Reporter.gr,https://www.reporter.gr,,GR,el,capital_investments,P1,Деловые медиа; Деловое издание. Рейтинги оборонных компаний.
+Newmoney.gr,https://www.newmoney.gr,,GR,el,capital_investments,P1,Деловые медиа; Финансовые и инвестиционные новости. Оборонные фонды.
+Powergame.gr,https://www.powergame.gr,,GR,el,capital_investments,P1,"Деловые медиа; Деловые новости. Финансирование обороны, стартапы."
+Startupper.gr,https://startupper.gr,,GR,el,capital_investments,P1,Деловые медиа; Издание о стартапах и венчурном капитале.
+Economico.gr,https://economico.gr,,GR,el,capital_investments,P1,Деловые медиа; Экономические новости. Инвестиции в стартапы.
+Growthfund — National Investment Fund,https://growthfund.gr,,GR,el,capital_investments,P1,Государственный инвестфонд; Национальный инвестиционный фонд. Соинвестор ELKAK (33%).
+Marathon Venture Capital,https://marathon.vc,,GR,el,capital_investments,P1,"Государственный инвестфонд; Венчурный фонд. B2B tech, кибербезопасность, оборона. €20 млн от EIF."
+Apeiron Venture Capital,https://apeiron.vc,,GR,el,capital_investments,P1,"Государственный инвестфонд; Pre-seed и seed фонд. Оборона, AI, инфраструктура. €25 млн."
+Hellenic Defence Systems (EAS),https://www.eas.gr,,GR,el,industry_capacity,P1,Крупные оборонные компании; Государственный производитель вооружений и боеприпасов.
+Hellenic Vehicle Industry (ELVO),https://www.elvo.gr,,GR,el,industry_capacity,P1,Крупные оборонные компании; Производство военных транспортных средств. СП с Rheinmetall.
+Intracom Defense (IDE),https://www.intracomdefense.com,,GR,el,industry_capacity,P1,"Крупные оборонные компании; Оборонные системы. Тактическая связь, электроника ракет."
+THEON Sensors,https://www.theon.com,,GR,el,industry_capacity,P1,"Крупные оборонные компании; Оптико-электронные системы, приборы ночного видения."
+Miltech Hellas,https://www.miltech.gr,,GR,el,industry_capacity,P1,"Крупные оборонные компании; Тепловизионные системы, аэрокосмические технологии."
+METLEN Energy & Metals,https://www.metlen.com,,GR,el,industry_capacity,P1,Крупные оборонные компании; Космос и оборона. СП с KNDS (PHILOCTETES).
+Salamis Shipyards,https://www.salamisshipyards.gr,,GR,el,industry_capacity,P1,Крупные оборонные компании; Судостроение. Субподрядчик для фрегатов FDI.
+Hellenic Army,https://army.gr,,GR,el,policy_budgets,P1,"Виды вооружённых сил; Сухопутные войска. Новости, учения."
+Hellenic Navy,https://www.hellenicnavy.gr,,GR,el,policy_budgets,P1,"Виды вооружённых сил; Военно-морские силы. Фрегаты, подводные лодки."
+Hellenic Air Force,https://www.haf.gr,,GR,el,policy_budgets,P1,"Виды вооружённых сил; Военно-воздушные силы. F-16 Viper, F-35, ПВО."
+JOIST Defence Innovation Hub,https://joist.gr,,GR,el,industry_capacity,P1,"Региональные кластеры; Новый центр оборонных инноваций. Сеть 8,000+ организаций в 40 странах."
+Sotiria Technology,https://sotiriatech.com,,GR,el,industry_capacity,P1,"Второй эшелон; Подводные сенсоры и ПО. Партнёрство с Thales, Naval Group."
+Terra Spatium,https://terraspatium.gr,,GR,el,industry_capacity,P1,"Второй эшелон; Автономные системы, робототехника, спутники."
+Mevaco,https://www.mevaco.gr,,GR,el,industry_capacity,P1,Второй эшелон; Консоли для фрегатов FDI. Партнёрство с Akmon.
+Akmon,https://akmon.gr,,GR,el,industry_capacity,P1,Второй эшелон; Консоли для фрегатов FDI. Партнёрство с Mevaco.
+SCYTALYS,https://www.scytalys.com,,GR,el,industry_capacity,P1,"Второй эшелон; C4I системы, тактическая связь."
+ALTUS LSA,https://www.altus.gr,,GR,el,industry_capacity,P1,"Второй эшелон; Беспилотные системы, авиационные технологии."
+ELMON,https://www.elmon.gr,,GR,el,industry_capacity,P1,"Второй эшелон; Электронные системы, связь."
+EODH,https://www.eodh.gr,,GR,el,industry_capacity,P1,"Второй эшелон; Бронированные машины, военная техника."
+AXON S.A.,https://www.axoneng.gr,,GR,el,industry_capacity,P1,"Субподрядчики и SME; Инжиниринг. Сертификат HURDSE ML6, ML10, ML12, ML13."
+COSMOS BUSINESS SYSTEMS,https://www.cbs.gr,,GR,el,industry_capacity,P1,Субподрядчики и SME; IT-системы. Сертификат HURDSE ML21.
+NCSR Demokritos,https://www.demokritos.gr,,GR,el,research_analysis,P1,"Академические центры; Исследовательский центр. AI, материалы, сенсоры. DIANA акселератор."
+Athena Research Center,https://www.athenarc.gr,,GR,el,research_analysis,P1,"Академические центры; Исследовательский центр. Кибербезопасность, data science."
+CERTH,https://www.certh.gr,,GR,el,research_analysis,P1,Академические центры; Исследовательский центр. Участие в NATO DIANA.
+FORTH,https://www.forth.gr,,GR,el,research_analysis,P1,Академические центры; Исследовательский центр. Участие в NATO DIANA.
+ELIAMEP Defence Hub,https://www.eliamep.gr,,GR,el,research_analysis,P1,"Think tanks; Аналитический центр. Оборонно-промышленная экосистема, dual-use."
+Research Institute for European and American Studies (RIEAS),https://www.rieas.gr,,GR,el,research_analysis,P1,Think tanks; Анализ греческой внешней политики и безопасности.
+Institute of International Relations (IDIS),https://www.idis.gr,,GR,el,research_analysis,P1,"Think tanks; При Университете Пантеон. Международная политика, безопасность."
+Center for Security Studies (KEMEA),https://www.kemea.gr,,GR,el,research_analysis,P1,Think tanks; Центр исследований безопасности.

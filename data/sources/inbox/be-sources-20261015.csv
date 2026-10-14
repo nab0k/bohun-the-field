@@ -1,0 +1,27 @@
+name,site_url,feed_url,country,language,signal_hint,tier_hint,notes
+Belgian Defence (mil.be),https://www.mil.be,,BE,fr,policy_budgets,P1,"Министерство обороны; Официальный сайт Минобороны. Новости, пресс-релизы, закупки."
+News.belgium (Defence),https://news.belgium.be,,BE,fr,policy_budgets,P1,Министерство обороны; Официальный портал федеральных пресс-релизов. Фильтр по Defensie/Défense.
+Public Procurement Belgium,https://www.publicprocurement.be,,BE,fr,procurement_award,P1,Закупочное агентство; Официальный портал госзакупок. Раздел e-Procurement.
+Start2DEF,https://start2def.be,,BE,fr,innovation_rd,P1,Агентство оборонных инноваций; Пилотная программа для стартапов. Сотрудничество с imec.istart и Ignity.
+Royal Higher Institute for Defence (RHID/IRSD),https://www.defence-institute.be,,BE,fr,innovation_rd,P1,Агентство оборонных инноваций; «Smart hub» и «honest broker» для R&D. Координирует DIRS.
+Commissie voor Landsverdediging,https://www.lachambre.be,,BE,fr,law_regulation,P1,Парламентский комитет; Комиссия по национальной обороне. Протоколы заседаний.
+FPS Foreign Affairs — Export Control,https://diplomatie.belgium.be,,BE,fr,export_rules,P1,Орган экспортного контроля; Общая политика и координация экспортного контроля.
+FPS Economy — Licence Unit,https://economie.fgov.be,,BE,fr,export_rules,P1,Орган экспортного контроля; Лицензии для Belgian Army / Federal Police.
+Agoria-BSDI,https://www.agoria.be,,BE,fr,industry_capacity,P1,Отраслевая ассоциация; Федерация технологической промышленности. Кластер Belgian Security & Defence Industry.
+De Tijd,https://www.tijd.be,,BE,fr,capital_investments,P1,Деловые медиа; Ведущее фламандское деловое издание.
+L'Echo,https://www.lecho.be,,BE,fr,capital_investments,P1,Деловые медиа; Ведущее франкоязычное деловое издание.
+Focus on Belgium,https://focusonbelgium.be,,BE,fr,capital_investments,P1,Деловые медиа; Официальный сайт о бельгийской экономике и инновациях.
+Computable,https://www.computable.be,,BE,fr,capital_investments,P1,Деловые медиа; IT и технологический бизнес. Cronos Defence.
+FN Browning Group,https://www.fnherstal.com,,BE,fr,industry_capacity,P1,"Крупные оборонные компании; Крупнейший производитель оружия. Новости, отчёты."
+John Cockerill Defense,https://www.johncockerill.com,,BE,fr,industry_capacity,P1,Крупные оборонные компании; Производитель бронетехники и вооружений.
+KNDS Belgium,https://www.knds.com,,BE,fr,industry_capacity,P1,Крупные оборонные компании; Производство артиллерийских снарядов 155 мм.
+Thales Belgium,https://www.thalesgroup.com,,BE,fr,industry_capacity,P1,"Крупные оборонные компании; Электроника, связь, кибербезопасность."
+Skywin,https://www.skywin.be,,BE,fr,industry_capacity,P1,Региональные кластеры; Валлонский аэрокосмический кластер.
+MecaTech Cluster,https://www.mecatech.be,,BE,fr,industry_capacity,P1,Региональные кластеры; Валлонский кластер мехатроники.
+Flemish Aerospace Group (FLAG),https://www.flag.be,,BE,fr,industry_capacity,P1,Региональные кластеры; Фламандский аэрокосмический кластер.
+Made in Vlaanderen,https://www.made-in.be,,BE,fr,media,P1,"Локальные медиа; Фламандское деловое издание. Стартапы, оборона."
+Advionics,https://advionics.be,,BE,fr,industry_capacity,P1,Второй эшелон; Партнёрство с Kongsberg. ПВО.
+CSDS (VUB),https://csds.vub.be,,BE,fr,research_analysis,P1,"Think tanks; Centre for Security, Diplomacy and Strategy."
+Egmont Institute,https://egmontinstitute.be,,BE,fr,research_analysis,P1,Think tanks; Королевский институт международных отношений.
+Beyond the Horizon ISSG,https://behorizon.org,,BE,fr,research_analysis,P1,"Think tanks; Независимый think & do tank. Оборона, гибридные угрозы."
+Smartfin Space and Defense Fund,https://kbcheadstart.tijd.be,,BE,fr,capital_investments,P1,Growth deals / фонды; Фонд €150 млн. Космос и оборона.
