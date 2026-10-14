@@ -1,12 +1,18 @@
 name,site_url,feed_url,country,language,signal_hint,tier_hint,notes
+"Federal Department of Defence, Civil Protection and Sport (DDPS/VBS)",https://www.vbs.admin.ch,,CH,de,policy_budgets,P2,"Министерство обороны; Официальный сайт. Новости, пресс-релизы, закупки."
+armasuisse,https://www.ar.admin.ch,,CH,de,procurement_award,P2,"Закупочное агентство; Федеральное управление оборонных закупок. Новости, тендеры, исследования."
 Swiss Innovation Forces (Inno Forces),https://innoforces.ch,,CH,de,innovation_rd,P2,Агентство оборонных инноваций; Инновационное агентство армии. Дочерняя компания RUAG MRO Holding.
+Innosuisse — Swiss Innovation Agency,https://www.innosuisse.admin.ch,,CH,de,innovation_rd,P2,Агентство оборонных инноваций; Государственное агентство инноваций. Финансирует research-based innovation.
 Sicherheitspolitische Kommission (SiK),https://www.parlament.ch,,CH,de,law_regulation,P2,Парламентский комитет; Комиссия по политике безопасности. Обе палаты. Протоколы заседаний.
+State Secretariat for Economic Affairs (SECO) — Export Controls,https://www.seco.admin.ch,,CH,de,export_rules,P2,Орган экспортного контроля; Контроль экспорта военных товаров и dual-use. Лицензии.
+Federal Department of Foreign Affairs (FDFA) — Export Controls,https://www.fdfa.admin.ch,,CH,de,export_rules,P2,"Орган экспортного контроля; Контроль экспорта nuclear, dual-use, specific military goods."
 Swissmem / SWISS ASD,https://www.swissmem.ch,,CH,de,industry_capacity,P2,"Отраслевая ассоциация; Ведущая ассоциация. Сектор Swiss ASD (Aeronautics, Security and Defence). 100+ компаний."
 Handelszeitung,https://www.handelszeitung.ch,,CH,de,capital_investments,P2,"Деловые медиа; Деловое издание. Оборонная промышленность, инвестиции."
 PME (PME Magazine),https://www.pme.ch,,CH,de,capital_investments,P2,"Деловые медиа; Издание для SME. Оборонные субподрядчики, рост расходов."
 Startupticker.ch,https://www.startupticker.ch,,CH,de,capital_investments,P2,Деловые медиа; Центральный хаб стартап-новостей. Defence startups.
 Venturelab,https://www.venturelab.ch,,CH,de,capital_investments,P2,Деловые медиа; Платформа для стартапов. Defense innovation.
 RUAG MRO Holding SA,https://www.ruag.ch,,CH,de,industry_capacity,P2,"Крупные оборонные компании; Государственный технологический конгломерат. MRO, Space, Aerostructures, Ammotec."
+Heer (Сухопутные войска),https://www.vtg.admin.ch,,CH,de,policy_budgets,P2,"Виды вооружённых сил; Новости, модернизация, структура."
 COREB (Communauté régionale de la Broye),https://www.coreb.ch,,CH,de,industry_capacity,P2,"Региональные кластеры; Региональная организация развития. Оборона, аэрокосмос, инновации."
 SwissP Defence,https://www.swissp-defence.ch,,CH,de,industry_capacity,P2,Второй эшелон; Производитель точных боеприпасов. Ранее RUAG Ammotec.
 Aero Consultants AG,https://www.aeroconsultants.ch,,CH,de,industry_capacity,P2,"Второй эшелон; Инженерные услуги. Аэрокосмос, оборона."
