@@ -1,0 +1,18 @@
+name,site_url,feed_url,country,language,signal_hint,tier_hint,notes
+Österreichisches Bundesheer – News,https://www.bundesheer.at,https://www.bmlv.gv.at/misc/rss.php,AT,de,policy_budgets,P0,Source Hunter v2; official RSS
+Bundesministerium der Verteidigung (Mastodon RSS),https://social.bund.de/@Verteidigungsministerium,https://social.bund.de/@Verteidigungsministerium.rss,DE,de,policy_budgets,P1,Source Hunter v2; official account feed
+CyberDefence24,https://cyberdefence24.pl,https://cyberdefence24.pl/_rss,PL,pl,media,P1,Source Hunter v2
+InfoSecurity24,https://infosecurity24.pl,https://infosecurity24.pl/_rss,PL,pl,media,P2,Source Hunter v2
+Space24,https://space24.pl,https://space24.pl/_rss,PL,pl,media,P1,Source Hunter v2; space/dual-use
+Naval Forces,https://naval-forces.info,https://naval-forces.info/feed,DE,de,media,P2,Source Hunter v2
+Small Arms Defense Journal,https://sadefensejournal.com,https://sadefensejournal.com/feed,US,en,media,P2,Source Hunter v2
+International Defence Analysis,https://internationaldefenceanalysis.com,https://internationaldefenceanalysis.com/feed,Global,en,media,P2,Source Hunter v2
+Global Defense Insight,https://defensetalks.com,https://defensetalks.com/feed,Global,en,media,P2,Source Hunter v2
+NextGen Defense,https://nextgendefense.com,https://nextgendefense.com/feed,US,en,media,P1,Source Hunter v2; defence tech
+Europe Defence Insights,https://europeandefenceinsights.com,https://europeandefenceinsights.com/feed,EU,en,media,P2,Source Hunter v2
+Infodron,https://www.infodron.es,https://www.infodron.es/feed/all,ES,es,media,P1,Source Hunter v2; drones
+Drone City Connect,https://dronecityconnect.es,https://dronecityconnect.es/feed,ES,es,media,P2,Source Hunter v2
+La Razón – Defensa,https://www.larazon.es/espana/defensa,https://www.larazon.es/espana/defensa?outputType=xml,ES,es,media,P1,Source Hunter v2; section feed
+CSIS Aerospace Security,https://aerospace.csis.org,https://aerospace.csis.org/feed,US,en,research_analysis,P2,Source Hunter v2
+Calian,https://www.calian.com,https://www.calian.com/feed,CA,en,industry_capacity,P2,Source Hunter v2
+ECPAD,https://www.ecpad.fr,https://www.ecpad.fr/feed,FR,fr,media,P2,Source Hunter v2; French defence imagery agency
