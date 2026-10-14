@@ -1,0 +1,23 @@
+name,site_url,feed_url,country,language,signal_hint,tier_hint,notes
+Ministry of Defence,https://www.gov.uk/government/organisations/ministry-of-defence,https://www.gov.uk/search/news-and-communications.atom?organisations[]=ministry-of-defence,UK,en,policy_budgets,P0,Type 1; official MOD news and press releases
+Defence Equipment and Support (DE&S),https://des.mod.uk/news/,https://des.mod.uk/feed/,UK,en,procurement_award,P0,Type 2; procurement agency news and contract announcements
+Defence and Security Accelerator (DASA),https://www.gov.uk/government/organisations/defence-and-security-accelerator,https://www.gov.uk/search/news-and-communications.atom?organisations[]=defence-and-security-accelerator,UK,en,innovation_rd,P0,Type 3; now part of UK Defence Innovation (UKDI)
+Defence Committee,https://committees.parliament.uk/committee/24/defence-committee/,https://committees.parliament.uk/committee/24/defence-committee/rss/,UK,en,law_regulation,P0,Type 4; parliamentary defence committee
+Export Control Joint Unit (ECJU),https://www.gov.uk/government/organisations/export-control-joint-unit,https://www.gov.uk/search/news-and-communications.atom?organisations[]=export-control-joint-unit,UK,en,export_rules,P0,Type 5; export control notices and guidance
+ADS Group,https://www.adsgroup.org.uk/knowledge/,https://www.adsgroup.org.uk/feed/,UK,en,industry_capacity,P0,Type 6; UK aerospace, defence, security and space trade association
+UK Defence Journal,https://ukdefencejournal.org.uk/,https://ukdefencejournal.org.uk/feed/,UK,en,media,P1,Type 7; independent UK defence news and analysis
+Defence Industry Europe,https://defence-industry.eu/category/uk/,https://defence-industry.eu/feed/,UK,en,media,P1,Type 7; UK section of European defence industry news
+Janes,https://www.janes.com/,https://www.janes.com/rss,UK,en,research_analysis,P1,Type 7; global defence intelligence and analysis (subscription)
+Financial Times (Defence),https://www.ft.com/defence,https://www.ft.com/rss/home/uk,UK,en,capital_investments,P1,Type 8; business and financial news on defence sector
+City AM (Defence),https://www.cityam.com/category/defence/,https://www.cityam.com/feed/,UK,en,capital_investments,P2,Type 8; London business news with defence coverage
+Sifted,https://sifted.eu/,https://sifted.eu/feed,UK,en,capital_investments,P1,Type 8; European startup and venture capital news (UK focus)
+TechCrunch (Defence),https://techcrunch.com/tag/defence/,https://techcrunch.com/tag/defence/feed/,UK,en,capital_investments,P2,Type 8; global tech startup news with UK defence coverage
+National Wealth Fund,https://www.nationalwealthfund.org.uk/news/,https://www.nationalwealthfund.org.uk/feed/,UK,en,capital_investments,P1,Type 9; UK state investment fund investing in defence and dual-use
+National Security Strategic Investment Fund (NSSIF),https://www.nssif.gov.uk/news/,https://www.nssif.gov.uk/feed/,UK,en,capital_investments,P0,Type 9; UK government deep tech venture fund for national security and defence
+BAE Systems,https://www.baesystems.com/en/newsroom,https://www.baesystems.com/en/rss/newsroom,UK,en,industry_capacity,P1,Type 10; largest UK defence contractor newsroom
+Rolls-Royce (Defence),https://www.rolls-royce.com/media/press-releases.aspx,https://www.rolls-royce.com/rss/press-releases,UK,en,industry_capacity,P1,Type 10; defence and aerospace engine news
+Leonardo UK,https://uk.leonardo.com/en/news-and-stories,https://uk.leonardo.com/en/rss,UK,en,industry_capacity,P1,Type 10; UK subsidiary of Leonardo defence and aerospace
+Cambridge Aerospace,https://www.cambridgeaerospace.com/news/,not_found,UK,en,industry_capacity,P2,Type 10; UK defence startup (missile interceptors); no RSS found
+RUSI,https://www.rusi.org/news,https://www.rusi.org/rss.xml,UK,en,research_analysis,P1,Type 10; leading UK defence and security think tank (research/analysis)
+Not found,not_found,not_found,UK,en,research_analysis,P2,Type 7 (additional local-language media); no separate UK-specific defence media found beyond those listed
+Not found,not_found,not_found,UK,en,grants_challenges,P2,Type 3 (additional); no separate accelerator beyond DASA/UKDI found

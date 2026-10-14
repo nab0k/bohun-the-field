@@ -20,9 +20,14 @@ CSV_INPUTS = [
 URL_KEYS = ("feed_url", "xmlurl", "url", "homepage_url", "site_url", "website", "example_source_url", "domain", "hostname", "link")
 
 
+EMPTY_MARKERS = {"not_found", "not found", "n/a", "na", "none", "-", "null"}
+
+
 def _first(row, keys):
+    # search chats mark empty cells with "not_found"; treat those as empty, never as a URL
     lowered = {str(k).lower(): v for k, v in row.items() if k}
-    return next((str(lowered[key]).strip() for key in keys if lowered.get(key)), "")
+    return next((str(lowered[key]).strip() for key in keys
+                 if lowered.get(key) and str(lowered[key]).strip().lower() not in EMPTY_MARKERS), "")
 
 
 def _row_candidate(row, provenance):
@@ -122,7 +127,7 @@ def collect(root=".", *, use_inoreader=False, quota_confirmed=False, max_candida
     merged, rejected = OrderedDict(), []
     for row in raw:
         target = row["site_url"] or row["feed_url"]
-        reason = rejected_reason(target)
+        reason = rejected_reason(target) if target else "not_found_reported"
         if not reason and _is_comment_feed(row["feed_url"], row.get("name", "")):
             reason = "comment_feed"  # the site's main feed is still found through its other candidates or discovery
         if reason:
@@ -130,7 +135,7 @@ def collect(root=".", *, use_inoreader=False, quota_confirmed=False, max_candida
             continue
         key = candidate_key(row["site_url"], row["feed_url"])
         if not key[0]:
-            rejected.append({**row, "reason": "invalid_url"})
+            rejected.append({**row, "reason": "not_found_reported" if not (row["site_url"] or row["feed_url"]) else "invalid_url"})
             continue
         if key not in merged:
             row["site_id"] = stable_id("site_", key[0])

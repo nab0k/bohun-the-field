@@ -241,6 +241,12 @@ class FollowUpTests(unittest.TestCase):
             feeds, _, _ = discover.run(path, tmp, client=FakeClient({"https://a.example/feed": rss}))
         self.assertEqual(len(feeds), 1)
 
+    def test_not_found_markers_are_empty(self):
+        row = inputs._row_candidate({"name": "Not found", "site_url": "not_found", "feed_url": "not_found"}, "I9:x.csv")
+        self.assertEqual((row["site_url"], row["feed_url"]), ("", ""))
+        row = inputs._row_candidate({"name": "X", "site_url": "https://x.example/news/", "feed_url": "not_found"}, "I9:x.csv")
+        self.assertEqual(row["feed_url"], "")
+
     def test_backlog_sends_no_conditional_headers(self):
         seen = []
         class Client(FakeClient):
