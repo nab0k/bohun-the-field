@@ -1,0 +1,25 @@
+name,site_url,feed_url,country,language,signal_hint,tier_hint,notes
+Ministério da Defesa Nacional,https://www.defesa.gov.pt/pt/pdefesa/noticias,not_found,PT,pt,policy_budgets,P1,1. Ministério da Defesa; только местный язык; sitemap
+Base.gov.pt (Portal BASE),https://www.base.gov.pt/Base4/en/,not_found,PT,pt,procurement_award,P1,2. Закупочное агентство; только местный язык; OCDS API доступен; sitemap
+idD Portugal Defence,https://www.iddportugal.pt/,not_found,PT,pt,procurement_award,P1,2. Закупочное агентство; только местный язык; HTML-парсинг
+Agência Nacional de Inovação (ANI),https://www.ani.pt/,not_found,PT,pt,innovation_rd,P1,3. Агентство оборонных инноваций; только местный язык; sitemap
+Comissão de Defesa Nacional,https://www.parlamento.pt/sites/COM/XVIILeg/3CDN/,not_found,PT,pt,law_regulation,P1,4. Комитет парламента; только местный язык; sitemap
+DGRDN — Direção-Geral de Recursos da Defesa Nacional,https://www.defesa.gov.pt/pt/pdefesa/ii/id/tcpd/,not_found,PT,pt,export_rules,P1,5. Экспортный контроль; только местный язык; sitemap
+Portugal Global — Exportação de bens de dupla utilização,https://portugalglobal.pt/pt/noticias/,not_found,PT,pt,export_rules,P1,5. Экспортный контроль; только местный язык; HTML-парсинг
+AED Cluster Portugal,https://www.aeportugal.pt/,not_found,PT,pt,industry_capacity,P1,6. Отраслевая ассоциация; только местный язык; HTML-парсинг
+DANOTEC (Associação das Empresas de Defesa),not_found,not_found,PT,pt,industry_capacity,P1,6. Отраслевая ассоциация; not_found — сайт не обнаружен; упоминается в SIPRI
+eRadar (ECO),https://eco.sapo.pt/eradar/,not_found,PT,pt,media,P1,7. Профильные СМИ; только местный язык; sitemap
+Jornal de Negócios,https://www.jornaldenegocios.pt/,not_found,PT,pt,capital_investments,P1,8. Деловые / стартап-медиа; только местный язык; платный доступ частично
+ECO,https://eco.sapo.pt/,not_found,PT,pt,capital_investments,P1,8. Деловые / стартап-медиа; только местный язык; sitemap
+Dinheiro Vivo,https://www.dinheirovivo.pt/,not_found,PT,pt,capital_investments,P1,8. Деловые / стартап-медиа; только местный язык; sitemap
+PortugalGlobal — Notícias,https://portugalglobal.pt/pt/noticias/,not_found,PT,pt,capital_investments,P1,8. Деловые / стартап-медиа; только местный язык; HTML-парсинг
+Banco Português de Fomento,https://www.bpfomento.pt/,not_found,PT,pt,capital_investments,P1,9. Госфонд / венчур; только местный язык; sitemap
+Portugal Ventures,https://www.portugalventures.pt/,not_found,PT,pt,capital_investments,P1,9. Госфонд / венчур; только местный язык; HTML-парсинг
+33N Ventures,https://33n.ventures/,not_found,PT,pt,capital_investments,P1,9. Госфонд / венчур; английский; HTML-парсинг
+Faber Ventures,https://faber.vc/,not_found,PT,pt,capital_investments,P1,9. Госфонд / венчур; английский; HTML-парсинг
+Indico Capital Partners,https://indico.capital/,not_found,PT,pt,capital_investments,P1,9. Госфонд / венчур; английский; HTML-парсинг
+Tekever,https://www.tekever.com/news/,not_found,PT,pt,industry_capacity,P1,10. Компания / стартап; английский/португальский; sitemap
+EID,https://www.eid.pt/category/news/,not_found,PT,pt,industry_capacity,P1,10. Компания / стартап; английский/португальский; HTML-парсинг
+Neuraspace,https://www.neuraspace.com/news/,not_found,PT,pt,industry_capacity,P1,10. Компания / стартап; английский; HTML-парсинг
+Connect Robotics,https://www.connect-robotics.com/news/,not_found,PT,pt,industry_capacity,P1,10. Компания / стартап; английский; HTML-парсинг
+Beyond Composite,https://www.beyondcomposite.com/news/,not_found,PT,pt,industry_capacity,P1,10. Компания / стартап; английский/португальский; HTML-парсинг
