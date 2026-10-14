@@ -1,0 +1,22 @@
+name,site_url,feed_url,country,language,signal_hint,tier_hint,notes
+Honnvédelem.hu – Honvédelmi Hírek,https://honvedelem.hu/hirek,not_found,HU,hu,policy_budgets,P1,1. Ministry of Defence; Официальный портал Минобороны и ВС Венгрии. RSS не обнаружен. HTML-парсинг.
+Védelmi Beszerzési Ügynökség (VBÜ),https://vbu.gov.hu,not_found,HU,hu,procurement_award,P1,2. Procurement Agency; Официальный сайт закупочного агентства. Раздел новостей/тендеров. RSS не обнаружен.
+VIKI – Védelmi Innovációs Kutatóintézet,https://defenseinnovation.hu/hirek,not_found,HU,hu,innovation_rd,P1,3. Defence Innovation; Агентство оборонных инноваций. RSS не обнаружен. HTML-парсинг.
+Honvédelmi és Rendészeti Bizottság,https://www.parlament.hu/web/guest/honvedelmi-es-rendeszeti-bizottsag,not_found,HU,hu,law_regulation,P1,4. Parliamentary Committee; Страница комитета (CAPTCHA). Новости комитета также освещают hvg.hu
+Magyar Kereskedelmi Engedélyezési Hivatal (MKH),http://mkeh.gov.hu/sajto,not_found,HU,hu,export_rules,P1,5. Export Control; Орган экспортного контроля. Раздел «Sajtó» (пресс-релизы). RSS не обнаружен.
+VEX – Magyar Védelmi és Űripari Exportügynökség,https://www.vexhungary.com,not_found,HU,hu,industry_capacity,P1,6. Industry Association; Экспортное агентство оборонной и космической промышленности. RSS не обнаружен.
+MVSZ – Magyar Védelmiipari Szövetség,https://vedelmiiparblog.hu,not_found,HU,hu,industry_capacity,P1,6. Industry Association; Блог ассоциации. RSS не обнаружен.
+Biztonságpiac.hu,https://biztonsagpiac.hu,not_found,HU,hu,media,P1,7. Defence Media (HU); Профильное медиа по безопасности и обороне. RSS не обнаружен.
+Haditechnika (журнал),https://kiadvany.magyarhonvedseg.hu/index.php/HT,not_found,HU,hu,media,P1,7. Defence Media (HU); Научно-технический журнал Минобороны. RSS не обнаружен.
+Magyar Honvéd (журнал),https://honvedelem.hu/magyar-honved,not_found,HU,hu,media,P1,7. Defence Media (HU); Журнал ВС Венгрии. RSS не обнаружен.
+Portfolio.hu – Hadiipar,https://www.portfolio.hu/hadiipar,,HU,hu,capital_investments,P1,8. Business Media; Ведёт раздел оборонной промышленности. RSS валиден.
+Világgazdaság (vg.hu),https://www.vg.hu,,HU,hu,capital_investments,P1,8. Business Media; RSS доступен (проверен). Деловые новости
+G7.hu,https://g7.hu,not_found,HU,hu,capital_investments,P1,8. Business Media; Экономический портал. RSS не обнаружен. Есть podcast RSS.
+Forbes.hu,https://forbes.hu,not_found,HU,hu,capital_investments,P1,8. Business Media; Деловое издание. RSS не обнаружен.
+Startup Hungary,https://startuphungary.io,not_found,HU,hu,capital_investments,P1,8. Startup Media; Экосистема стартапов. RSS не обнаружен.
+SZTA – Széchenyi Tőkealap-kezelő,https://szta.hu,not_found,HU,hu,capital_investments,P1,9. State Investment Fund; Государственный венчурный фонд. Инвестирует в dual-use. RSS не обнаружен.
+Védelmi Alap (NTH),https://nth.hu,not_found,HU,hu,capital_investments,P1,9. State Investment Fund; Государственный фонд поддержки оборонной промышленности. RSS не обнаружен.
+4iG Space & Defence Technologies,https://www.4ig.hu,not_found,HU,hu,industry_capacity,P1,10. Defence Company; Крупнейший частный оборонный холдинг. Новости на сайте. RSS не обнаружен.
+Rába Automotive Holding,https://raba.hu,not_found,HU,hu,industry_capacity,P1,10. Defence Company; Производитель военной автотехники. RSS не обнаружен.
+Rotors & Cams Zrt,https://rotorscams.com,not_found,HU,hu,industry_capacity,P1,10. Defence Startup; Стартап по БПЛА. RSS не обнаружен.
+Genevation Aircraft,https://genevation.hu,not_found,HU,hu,industry_capacity,P1,10. Defence Startup; Аэрокосмический стартап. RSS не обнаружен.
