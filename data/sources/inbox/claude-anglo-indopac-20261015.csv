@@ -1,0 +1,74 @@
+name,site_url,feed_url,country,language,signal_hint,tier_hint,notes
+US DoD News Releases,https://www.defense.gov/News/Releases/,,US,en,policy_budgets,P0,type 1
+US Army news,https://www.army.mil/news,,US,en,policy_budgets,P1,type 1
+US Navy news,https://www.navy.mil/Press-Office/,,US,en,policy_budgets,P1,type 1
+US Air Force news,https://www.af.mil/News/,,US,en,policy_budgets,P1,type 1
+Army Contracting Command,https://acc.army.mil/,,US,en,procurement_award,P1,type 2
+Defense Logistics Agency news,https://www.dla.mil/About-DLA/News/,,US,en,procurement_award,P1,type 2
+Replicator / DIU news,https://www.diu.mil/latest,,US,en,innovation_rd,P0,type 4
+DARPA news,https://www.darpa.mil/news,,US,en,innovation_rd,P1,type 4
+AFWERX news,https://afwerx.com/news/,,US,en,grants_challenges,P1,type 4
+SpaceWERX,https://spacewerx.us/,,US,en,grants_challenges,P2,type 4
+NavalX,https://www.secnav.navy.mil/agility/Pages/default.aspx,,US,en,innovation_rd,P2,type 4
+Army xTech,https://www.xtech.army.mil/,,US,en,grants_challenges,P1,type 4; prize competitions
+House Armed Services Committee,https://armedservices.house.gov/news,,US,en,law_regulation,P0,type 5
+Senate Armed Services Committee,https://www.armed-services.senate.gov/press-releases,,US,en,law_regulation,P0,type 5
+BIS Export Administration news,https://www.bis.gov/news-updates,,US,en,export_rules,P0,type 6
+State DDTC (ITAR) news,https://www.pmddtc.state.gov/ddtc_public?id=ddtc_public_portal_news_and_events,,US,en,export_rules,P0,type 6
+National Defense Industrial Association,https://www.ndia.org/,,US,en,industry_capacity,P1,type 7
+Aerospace Industries Association,https://www.aia-aerospace.org/news/,,US,en,industry_capacity,P1,type 7
+Inside Defense,https://insidedefense.com/,,US,en,media,P1,type 8; paywall
+Defense One,https://www.defenseone.com/,,US,en,media,P0,type 8
+Task & Purpose,https://taskandpurpose.com/,,US,en,media,P2,type 8
+Federal News Network – Defense,https://federalnewsnetwork.com/category/defense-main/,,US,en,procurement_award,P1,type 8
+Washington Technology,https://www.washingtontechnology.com/,,US,en,procurement_award,P1,type 8; GovCon deals
+GovConWire,https://www.govconwire.com/,,US,en,procurement_award,P0,type 9; contract awards & M&A
+Defense & Aerospace Report,https://defaeroreport.com/,,US,en,media,P2,type 8
+Axios Defense,https://www.axios.com/,,US,en,capital_investments,P2,type 10
+Defense Tech Report / The Merge,https://www.themerge.co/,,US,en,capital_investments,P1,type 10; defense tech newsletter
+America's Frontier Fund,https://www.americasfrontierfund.com/,,US,en,capital_investments,P2,type 11
+Andreessen Horowitz American Dynamism,https://a16z.com/american-dynamism/,,US,en,capital_investments,P2,type 11
+Canada National Defence news,https://www.canada.ca/en/department-national-defence/news.html,,CA,en,policy_budgets,P0,type 1
+Defence Construction Canada,https://www.dcc-cdc.gc.ca/,,CA,en,procurement_award,P2,type 2
+Public Services and Procurement Canada – Defence,https://www.canada.ca/en/public-services-procurement/news.html,,CA,en,procurement_award,P0,type 2
+CanadaBuys,https://canadabuys.canada.ca/en,,CA,en,procurement_award,P0,type 3
+IDEaS (Innovation for Defence Excellence and Security),https://www.canada.ca/en/department-national-defence/programs/defence-ideas.html,,CA,en,grants_challenges,P0,type 4
+Canadian Innovation Centre for Defence and Security (DIANA Canada),https://www.canada.ca/en/department-national-defence/services/procurement.html,,CA,en,innovation_rd,P2,type 4
+House of Commons Standing Committee on National Defence,https://www.ourcommons.ca/Committees/en/NDDN,,CA,en,law_regulation,P1,type 5
+Global Affairs Canada – Export controls,https://www.international.gc.ca/trade-commerce/controls-controles/index.aspx,,CA,en,export_rules,P1,type 6
+Canadian Association of Defence and Security Industries (CADSI),https://www.defenceandsecurity.ca/,,CA,en,industry_capacity,P0,type 7
+Canadian Defence Review,https://www.canadiandefencereview.com/,,CA,en,media,P1,type 8
+Esprit de Corps,https://espritdecorps.ca/,,CA,en,media,P2,type 8
+Ottawa Citizen – Defence Watch,https://ottawacitizen.com/category/news/national/defence-watch,,CA,en,media,P1,type 8
+BetaKit,https://betakit.com/,,CA,en,capital_investments,P0,type 10; startups & funding
+BDC Capital,https://www.bdc.ca/en/about/mediaroom/news-releases,,CA,en,capital_investments,P1,type 11
+Australia Defence news,https://www.defence.gov.au/news-events/news,,AU,en,policy_budgets,P0,type 1
+Defence Industry Minister releases,https://www.minister.defence.gov.au/media-releases,,AU,en,policy_budgets,P0,type 1
+AusTender,https://www.tenders.gov.au/,,AU,en,procurement_award,P0,type 3
+Advanced Strategic Capabilities Accelerator (ASCA),https://www.asca.gov.au/,,AU,en,innovation_rd,P0,type 4
+Defence Industry Development Grants,https://business.gov.au/grants-and-programs/defence-industry-development-grants-program,,AU,en,grants_challenges,P1,type 4
+Joint Standing Committee on Foreign Affairs Defence and Trade,https://www.aph.gov.au/Parliamentary_Business/Committees/Joint/Foreign_Affairs_Defence_and_Trade,,AU,en,law_regulation,P1,type 5
+Defence Export Controls (AU),https://www.defence.gov.au/business-industry/export/controls,,AU,en,export_rules,P0,type 6
+Australian Industry Group Defence Council,https://www.aigroup.com.au/,,AU,en,industry_capacity,P2,type 7
+Australian Defence Magazine,https://www.australiandefence.com.au/,,AU,en,media,P1,type 8
+Defence Connect,https://www.defenceconnect.com.au/,,AU,en,media,P0,type 8
+ASPI The Strategist,https://www.aspistrategist.org.au/,,AU,en,research_analysis,P1,type 8
+SmartCompany / StartupDaily,https://www.startupdaily.net/,,AU,en,capital_investments,P1,type 10
+National Reconstruction Fund Corporation,https://www.nrf.gov.au/news,,AU,en,capital_investments,P1,type 11; defence capability priority
+India Ministry of Defence (PIB),https://pib.gov.in/Allrel.aspx,,IN,en,policy_budgets,P1,type 1; PIB all releases – filter needed
+iDEX (Innovations for Defence Excellence),https://idex.gov.in/,,IN,en,grants_challenges,P0,type 4
+DRDO news,https://www.drdo.gov.in/drdo/news,,IN,en,innovation_rd,P1,type 4
+Department of Defence Production,https://www.ddpmod.gov.in/,,IN,en,industry_capacity,P1,type 2
+SIDM (Society of Indian Defence Manufacturers),https://www.sidm.in/,,IN,en,industry_capacity,P1,type 7
+IDRW,https://idrw.org/,,IN,en,media,P2,type 8
+Indian Defence Research Wing / Defence.Capital,https://defence.capital/,,IN,en,media,P1,type 8
+Inc42,https://inc42.com/,,IN,en,capital_investments,P1,type 10
+Entrackr,https://entrackr.com/,,IN,en,capital_investments,P1,type 10
+Japan Ministry of Defense,https://www.mod.go.jp/en/,,JP,en,policy_budgets,P1,type 1
+ATLA (Acquisition Technology & Logistics Agency),https://www.mod.go.jp/atla/en/,,JP,en,procurement_award,P0,type 2
+Japan Defense Innovation Science and Technology Institute,https://www.mod.go.jp/atla/en/disti.html,,JP,en,innovation_rd,P2,type 4
+Korea DAPA (Defense Acquisition Program Administration),https://www.dapa.go.kr/dapa_en/main.do,,KR,en,procurement_award,P0,type 2
+Korea Ministry of National Defense,https://www.mnd.go.kr/mbshome/mbs/mndEN/,,KR,en,policy_budgets,P1,type 1
+Korea Defense Industry Association,https://www.kdia.or.kr/,,KR,ko,industry_capacity,P2,type 7
+Korea JoongAng Daily – defense,https://koreajoongangdaily.joins.com/section/nationalDefense,,KR,en,media,P2,type 13
+New Zealand Defence Force news,https://www.nzdf.mil.nz/media-centre/news/,,NZ,en,policy_budgets,P2,type 1

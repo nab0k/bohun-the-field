@@ -78,7 +78,32 @@ def _news_items(content):
     return items
 
 
+def fetch_sitemap(feed, client, *, days_back=45, now=None, limit=300):
+    """Level-1 fallback: items from a sitemap's news-like URLs with <lastmod> in the window; title from slug."""
+    from . import sitemap as sitemap_mod
+    now = now or dt.datetime.now(dt.timezone.utc)
+    response = client.get(feed.get("final_url") or feed["feed_url"])
+    response.raise_for_status()
+    _, rows = sitemap_mod.parse(response.content)
+    recent = sorted(sitemap_mod.recent_news_urls(rows, days_back=days_back, now=now), key=lambda r: r[1], reverse=True)[:limit]
+    items = []
+    for loc, date in recent:
+        title = sitemap_mod.title_from_url(loc)
+        if not title:
+            continue
+        row = normalize_entry({"link": loc, "title": title, "published": date.isoformat()}, feed["feed_id"], now)
+        row["published_at"] = date.isoformat()
+        row["categories"] = "date_source:sitemap_lastmod"
+        items.append(row)
+    dates = [date for _, date in recent]
+    coverage = max(0.0, (now - min(dates)).total_seconds() / 86400) if dates else 0.0
+    return items, {"feed_id": feed["feed_id"], "backlog_coverage_days": round(coverage, 2), "items": len(items),
+                   "undated_items": 0, "history_source": "sitemap"}
+
+
 def fetch_feed(feed, client, *, days_back=45, max_pages=10, now=None):
+    if feed.get("format") == "sitemap":
+        return fetch_sitemap(feed, client, days_back=days_back, now=now)
     now = now or dt.datetime.now(dt.timezone.utc)
     cutoff = now - dt.timedelta(days=days_back)
     items, seen = [], set()

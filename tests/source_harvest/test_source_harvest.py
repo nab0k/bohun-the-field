@@ -264,6 +264,22 @@ class FollowUpTests(unittest.TestCase):
         self.assertEqual(relevance.classify("Drone startup raises $20M funding round", specialist=False)["relevant"], "yes")
         self.assertEqual(relevance.classify("Fintech startup raises $20M funding round", specialist=True)["relevant"], "yes")
 
+    def test_sitemap_fallback(self):
+        from collectors.source_harvest import sitemap
+        now = dt.datetime(2026, 10, 14, tzinfo=dt.timezone.utc)
+        index = '<?xml version="1.0"?><sitemapindex><sitemap><loc>https://a.example/news-sitemap-1.xml</loc><lastmod>2026-10-13</lastmod></sitemap><sitemap><loc>https://a.example/product-sitemap.xml</loc></sitemap></sitemapindex>'
+        urls = '<?xml version="1.0"?><urlset>' + "".join(
+            f'<url><loc>https://a.example/news/2026/10/rheinmetall-signs-ammunition-contract-{i}</loc><lastmod>2026-10-0{i}T10:00:00Z</lastmod></url>' for i in range(1, 5)
+        ) + '<url><loc>https://a.example/about-us</loc><lastmod>2026-10-10</lastmod></url><url><loc>https://a.example/news/old-item-from-last-year</loc><lastmod>2025-01-01</lastmod></url></urlset>'
+        client = FakeClient({"https://a.example/robots.txt": Response("https://a.example/robots.txt", "Sitemap: https://a.example/sitemap_index.xml", "text/plain"),
+                             "https://a.example/sitemap_index.xml": index, "https://a.example/news-sitemap-1.xml": urls})
+        client.get = (lambda orig: (lambda url, **kw: orig(url)))(client.get)
+        found, rows = sitemap.find_sitemap("https://a.example", client, now=now)
+        self.assertEqual(found, "https://a.example/news-sitemap-1.xml")
+        self.assertEqual(len(rows), 4)
+        self.assertEqual(sitemap.title_from_url(rows[0][0]), "rheinmetall signs ammunition contract")
+        self.assertEqual(relevance.classify(sitemap.title_from_url(rows[0][0]))["relevant"], "yes")
+
     def test_backlog_sends_no_conditional_headers(self):
         seen = []
         class Client(FakeClient):

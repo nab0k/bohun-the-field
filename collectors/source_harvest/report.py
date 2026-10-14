@@ -73,6 +73,9 @@ def build(output_dir, *, duration_seconds=0, request_count=0, gemini_spend=0):
         for part in site_prov.get(row.get("site_id"), "").split("|"):
             if part:
                 prov_feeds[part.split(":")[0] if not part.startswith("I9") else part] += 1
+    fail = Counter((row.get("homepage_status") or "?") for row in pending if row.get("method_tried") != "deadline_not_attempted")
+    print("::notice::HARVEST_NO_RSS_REASONS " + " ".join(f"{k}={v}" for k, v in fail.most_common(12)))
+    print("::notice::HARVEST_FORMATS " + " ".join(f"{k}={v}" for k, v in sorted(Counter(row.get("format") for row in feeds).items())))
     print("::notice::HARVEST_FEEDS_BY_INPUT " + " ".join(f"{k}={v}" for k, v in sorted(prov_feeds.items())))
     keep_by = Counter()
     for row in metrics:

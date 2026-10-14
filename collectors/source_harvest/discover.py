@@ -15,6 +15,7 @@ from bs4 import BeautifulSoup, XMLParsedAsHTMLWarning
 from . import read_csv, write_csv
 from .canonical import canonical_url, stable_id
 from .politeness import PoliteSession
+from . import sitemap as sitemap_mod
 
 COMMON_PATHS = (
     "/feed", "/rss", "/rss.xml", "/atom.xml", "/feed.xml", "/index.xml",
@@ -129,14 +130,18 @@ def discover_one(candidate, client):
     if candidate.get("feed_url"):
         attempts.append((candidate["feed_url"], "input-feed"))
     site = candidate.get("site_url") or candidate.get("feed_url")
+    homepage_status = ""
     if site:
         try:
             homepage = client.get(site)
+            homepage_status = str(homepage.status_code)
             if homepage.ok:
                 found, sections = _candidates_from_html(homepage.url, homepage.text[:2000000])
                 attempts.extend(found)
-        except (PermissionError, Exception):
-            pass
+        except PermissionError:
+            homepage_status = "robots_disallowed"
+        except Exception as exc:
+            homepage_status = type(exc).__name__
         attempts.extend((urljoin(site + "/", suffix.lstrip("/")), "common-path") for suffix in COMMON_PATHS)
         for section in sections:
             try:
@@ -163,8 +168,23 @@ def discover_one(candidate, client):
                     return record, None
         except (PermissionError, Exception):
             continue
+    # Level-1 fallback: ordinary sitemap.xml with <lastmod> (titles from URL slugs)
+    if site and homepage_status not in ("robots_disallowed",):
+        try:
+            sitemap_url, rows = sitemap_mod.find_sitemap(site, client)
+        except Exception:
+            sitemap_url, rows = None, []
+        if sitemap_url:
+            tried.append("sitemap-lastmod")
+            dates = [date for _, date in rows]
+            return {"feed_id": stable_id("feed_", canonical_url(sitemap_url)), "site_id": candidate["site_id"],
+                    "feed_url": canonical_url(sitemap_url), "final_url": sitemap_url, "format": "sitemap",
+                    "entries_count": len(rows), "oldest_entry": min(dates).isoformat(), "newest_entry": max(dates).isoformat(),
+                    "median_interval_hours": "", "has_dates": "true", "language": "", "etag": "", "last_modified": "",
+                    "discovery_method": "sitemap-lastmod"}, None
     return None, {"candidate_id": candidate["candidate_id"], "site_id": candidate["site_id"], "site_url": site,
-                  "method_tried": "|".join(sorted(set(tried))), "has_news_section": str(bool(sections)).lower()}
+                  "method_tried": "|".join(sorted(set(tried))), "has_news_section": str(bool(sections)).lower(),
+                  "homepage_status": homepage_status or "no_site"}
 
 
 def run(input_csv, output_dir, *, limit=None, client=None, workers=12, deadline_seconds=None):
@@ -176,7 +196,7 @@ def run(input_csv, output_dir, *, limit=None, client=None, workers=12, deadline_
         if deadline and _time.monotonic() > deadline:
             return None, {"candidate_id": candidate["candidate_id"], "site_id": candidate["site_id"],
                           "site_url": candidate.get("site_url", ""), "method_tried": "deadline_not_attempted",
-                          "has_news_section": ""}
+                          "has_news_section": "", "homepage_status": ""}
         return discover_one(candidate, client)
 
     candidates = read_csv(input_csv)
@@ -201,6 +221,6 @@ def run(input_csv, output_dir, *, limit=None, client=None, workers=12, deadline_
     fields = ["feed_id", "site_id", "feed_url", "final_url", "format", "entries_count", "oldest_entry", "newest_entry", "median_interval_hours", "has_dates", "language", "etag", "last_modified", "discovery_method"]
     output = Path(output_dir)
     write_csv(output / "validated-feeds.csv", feeds, fields)
-    write_csv(output / "pending-no-rss.csv", pending, ["candidate_id", "site_id", "site_url", "method_tried", "has_news_section"])
+    write_csv(output / "pending-no-rss.csv", pending, ["candidate_id", "site_id", "site_url", "method_tried", "has_news_section", "homepage_status"])
     return feeds, pending, client.request_count
 

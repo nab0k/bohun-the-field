@@ -140,7 +140,7 @@ jobs:
   discover:
     needs: [resolve, collect]
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 170
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -148,7 +148,7 @@ jobs:
       - run: pip install -r requirements-source-harvest.txt
       - uses: actions/download-artifact@v4
         with: {name: source-harvest-collect, path: output/source-harvest}
-      - run: python scripts/source-harvest.py discover --work-dir "$HARVEST_DIR" --discover-minutes 80
+      - run: python scripts/source-harvest.py discover --work-dir "$HARVEST_DIR" --discover-minutes 150
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: source-harvest-discover, path: output/source-harvest, retention-days: 30}
