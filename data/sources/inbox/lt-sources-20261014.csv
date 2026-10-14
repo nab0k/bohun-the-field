@@ -1,0 +1,17 @@
+name,site_url,feed_url,country,language,signal_hint,tier_hint,notes
+LR Krašto apsaugos ministerija (KAM),https://kam.lt/en/news/,,LT,lt,policy_budgets,P0,type 1
+Gynybos resursų agentūra (GRA),https://gra.lrv.lt/,,LT,lt,procurement_award,P0,type 2; also runs Defence Investment Fund (GIF)
+Inovacijų agentūra,https://inovacijuagentura.lt/,,LT,lt,innovation_rd,P1,type 3
+Vytis Center (defence innovation),https://gynyba.inovacijuagentura.lt/,,LT,lt,innovation_rd,P0,type 3
+Seimo Nacionalinio saugumo ir gynybos komitetas,https://www.lrs.lt/sip/portal.show?p_r=35783,,LT,lt,law_regulation,P1,type 4
+Muitinės departamentas,https://muitine.lrv.lt/,,LT,lt,export_rules,P2,type 5; customs
+Ekonomikos ir inovacijų ministerija (EIMIN),https://eimin.lrv.lt/,,LT,lt,export_rules,P1,type 5; strategic goods licensing
+Lithuanian Defence and Security Industry Association (LDSIA),https://ldsia.lt/,,LT,en,industry_capacity,P1,type 6
+LGKPA Defence and Space Industry Association,https://www.lgkpa.lt/,,LT,lt,industry_capacity,P1,type 6
+Delfi – Defence,https://www.delfi.lt/en/topics/defence/,,LT,en,media,P1,type 7
+Verslo žinios,https://www.vz.lt/,,LT,lt,capital_investments,P1,type 8; business daily
+Baltic Defense Review (letanews),https://www.letanews.com/,,LT,en,media,P2,type 7; verify
+ILTE (National Development Bank),https://ilte.lt/en/news/,,LT,en,capital_investments,P1,type 9
+Giraitės ginkluotės gamykla (GGG),https://www.ggg.lt/,,LT,lt,industry_capacity,P2,type 10; ammunition plant
+Monopulse,https://www.monopulse.eu/,,LT,en,innovation_rd,P2,type 10
+Unmanned Defense Systems (UDS),https://uds.lt/,,LT,en,innovation_rd,P2,type 10
