@@ -85,7 +85,10 @@ def fetch_feed(feed, client, *, days_back=45, max_pages=10, now=None):
     next_url = feed["feed_url"]
     for page in range(1, max_pages + 1):
         current_url = next_url if page == 1 or next_url != feed["feed_url"] else _paged_url(feed["feed_url"], page)
-        response = client.get(current_url, etag=feed.get("etag", "") if page == 1 else "", last_modified=feed.get("last_modified", "") if page == 1 else "")
+        # One-shot harvest: never send If-None-Match/If-Modified-Since. Discovery fetched the same feed minutes
+        # earlier, so a conditional request returns 304 and the channel would wrongly look empty.
+        # ETag/Last-Modified belong to the future poller state, not to this backlog.
+        response = client.get(current_url)
         if response.status_code == 304:
             break
         response.raise_for_status()

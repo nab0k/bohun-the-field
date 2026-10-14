@@ -9,6 +9,7 @@ from pathlib import Path
 from urllib.parse import urljoin
 
 import feedparser
+from urllib.parse import urlsplit
 from bs4 import BeautifulSoup, XMLParsedAsHTMLWarning
 
 from . import read_csv, write_csv
@@ -41,6 +42,12 @@ def _news_sitemap(content):
     return news
 
 
+def is_comment_feed(url, title=""):
+    path = urlsplit(url or "").path.lower()
+    title = (title or "").strip().lower()
+    return "/comments/" in path + "/" or path.rstrip("/").endswith("/comments") or title.startswith(("comments for", "comments on"))
+
+
 def validate_feed(response, candidate, method):
     content_type = response.headers.get("content-type", "")
     news = _news_sitemap(response.content) if b"publication_date" in response.content[:2000000] else []
@@ -59,6 +66,8 @@ def validate_feed(response, candidate, method):
     valid = [entry for entry in parsed.entries if entry.get("title") and (entry.get("link") or entry.get("links"))]
     if fatal or not valid:
         return None
+    if is_comment_feed(response.url, parsed.feed.get("title", "")):
+        return None  # WordPress comment feeds echo article titles and would inflate yield
     fmt = "atom" if "atom" in (parsed.version or "").lower() or "atom" in content_type else "rss"
     dates = [value for value in (_date(entry) for entry in valid) if value]
     language = parsed.feed.get("language", "")

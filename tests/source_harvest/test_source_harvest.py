@@ -142,8 +142,10 @@ class SafetyTests(unittest.TestCase):
         fake = types.ModuleType("sync")
         fake.access_token = lambda: "hidden"
         fake.api = lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("HTTP request failed: stage=inoreader_api, status=429"))
-        with mock.patch.dict(sys.modules, {"sync": fake}):
+        # capture stdout so this fixture notice never shows up as a real GitHub annotation
+        with mock.patch.dict(sys.modules, {"sync": fake}), mock.patch("sys.stdout", io.StringIO()) as out:
             rows, meta = inputs._inoreader_candidates(20)
+        self.assertIn("INOREADER_QUOTA_BLOCKED", out.getvalue())
         self.assertEqual(rows, []); self.assertTrue(meta["blocked"])
 
     def test_rotated_refresh_token_notice_hides_values(self):
@@ -218,6 +220,21 @@ class FollowUpTests(unittest.TestCase):
             feeds, pending, _ = discover.run(path, tmp, client=FakeClient({}), deadline_seconds=-1)
         self.assertEqual(feeds, [])
         self.assertEqual(pending[0]["method_tried"], "deadline_not_attempted")
+
+    def test_comment_feeds_rejected(self):
+        self.assertTrue(discover.is_comment_feed("https://site.example/comments/feed/"))
+        self.assertTrue(discover.is_comment_feed("https://site.example/feed", "Comments for EDR Magazine"))
+        self.assertFalse(discover.is_comment_feed("https://site.example/feed/", "EDR Magazine"))
+
+    def test_backlog_sends_no_conditional_headers(self):
+        seen = []
+        class Client(FakeClient):
+            def get(self, url, **kwargs):
+                seen.append(kwargs); return super().get(url)
+        rss = (FIXTURES / "rss.xml").read_text()
+        feed = {"feed_id": "f", "feed_url": "https://a.example/feed", "format": "rss", "etag": '"x"', "last_modified": "Mon"}
+        backlog.fetch_feed(feed, Client({"https://a.example/feed": rss}), days_back=3650, max_pages=1)
+        self.assertTrue(seen); self.assertFalse(any(k.get("etag") or k.get("last_modified") for k in seen))
 
 
 if __name__ == "__main__": unittest.main()
