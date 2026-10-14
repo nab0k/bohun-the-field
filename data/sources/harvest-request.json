@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "attempt": 2,
   "_comment": "A commit changing this file on sources/source-harvest-v1-20261014 starts one harvest run with these parameters. Inoreader is read-only; Gemini off; no production writes.",
   "days_back": 30,
   "max_candidates": 2000,
