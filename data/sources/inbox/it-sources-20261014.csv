@@ -1,0 +1,29 @@
+name,site_url,feed_url,country,language,signal_hint,tier_hint,notes
+Министерство обороны,https://www.difesa.it/eng/Pages/default.aspx,,IT,it,policy_budgets,P1,Официальный сайт Министерства обороны Италии. Раздел новостей и пресс-релизов.
+Министерство обороны (новости),https://www.difesa.it/eng/primo-piano/Pages/default.aspx,,IT,it,policy_budgets,P1,Раздел 'Primo Piano' (Главные новости) на официальном сайте Минобороны.
+Министерство обороны (пресс-релизы),https://www.difesa.it/eng/comunicati/Pages/default.aspx,,IT,it,policy_budgets,P1,Раздел 'Comunicati' (Пресс-релизы) на официальном сайте Минобороны.
+Генеральный секретариат обороны / Национальное управление вооружений,https://www.difesa.it/eng/SGD/Pages/default.aspx,,IT,it,procurement_award,P1,Segretariato Generale della Difesa e Direzione Nazionale degli Armamenti. Центральный орган закупок и вооружений.
+Агентство оборонной промышленности,https://www.agenziaindustriedifesa.it/,,IT,it,industry_capacity,P1,"Agenzia Industrie Difesa (AID). Государственное агентство, управляющее оборонными промышленными предприятиями. Есть раздел новостей."
+Агентство оборонной промышленности (новости),https://www.agenziaindustriedifesa.it/news/,,IT,it,industry_capacity,P1,Новостной раздел AID.
+Агентство оборонной промышленности (пресс-релизы),https://www.agenziaindustriedifesa.it/comunicati-stampa/,,IT,it,industry_capacity,P1,Раздел пресс-релизов AID.
+Агентство оборонных инноваций (AID),https://www.agenziaindustriedifesa.it/aideas/,,IT,it,innovation_rd,P1,"AIDEAS - инкубатор/акселератор для стартапов и МСП в оборонной сфере, управляемый AID."
+Профильный комитет парламента (Палата депутатов),https://www.camera.it/leg19/212?shadow_organo_parlamentare=2104,,IT,it,law_regulation,P1,IV Commissione (Difesa) - Комитет по обороне Палаты депутатов. Раздел новостей и документов.
+Профильный комитет парламента (Сенат),https://www.senato.it/leg/19/BGT/Schede/Commissioni/4,,IT,it,law_regulation,P1,4ª Commissione permanente (Difesa) - Комитет по обороне Сената.
+Орган экспортного контроля (MAECI),https://www.esteri.it/en/opportunita/export-e-internazionalizzazione/,,IT,it,export_rules,P1,UAMA (Unità per le autorizzazioni dei materiali di armamento) в составе МИД Италии. Контроль экспорта вооружений.
+Отраслевая ассоциация (AIAD),https://www.aiad.it/,,IT,it,industry_capacity,P1,"AIAD - Federazione Aziende Italiane per l'Aerospazio, la Difesa e la Sicurezza. Федерация оборонных, аэрокосмических и security компаний."
+Профильное СМИ (RID),https://www.rid.it/,,IT,it,media,P1,Rivista Italiana Difesa - ведущий итальянский журнал об обороне.
+Профильное СМИ (Ares Difesa),https://aresdifesa.it/,,IT,it,media,P1,Ares Difesa - онлайн-издание об обороне и безопасности.
+Профильное СМИ (Difesa Online),https://www.difesaonline.it/,,IT,it,media,P1,"Difesa Online - итальянский журнал об обороне, безопасности и геополитике."
+Профильное СМИ (Formiche),https://formiche.net/,,IT,it,media,P1,"Formiche - издание о геополитике, обороне и безопасности."
+Деловое издание (Il Sole 24 Ore),https://www.ilsole24ore.com/,,IT,it,capital_investments,P1,"Ведущее итальянское деловое издание, освещает оборонную промышленность."
+Деловое издание (Milano Finanza),https://www.milanofinanza.it/,,IT,it,capital_investments,P1,"Итальянское финансовое издание, освещает оборонный сектор и инвестиции."
+Стартап/венчурное СМИ (StartupItalia),https://startupitalia.eu/,,IT,it,capital_investments,P1,"Итальянское издание о стартапах, венчурном капитале и инновациях, включая dual-use."
+Государственный инвестфонд (CDP),https://www.cdp.it/,,IT,it,capital_investments,P1,"Cassa Depositi e Prestiti - государственный инвестиционный банк, инвестирует в стратегические секторы, включая оборону."
+Государственный инвестфонд (FSI),https://www.fondostrategicoitaliano.it/,,IT,it,capital_investments,P1,"Fondo Strategico Italiano - государственный фонд прямых инвестиций в стратегические компании, включая оборону."
+Венчурный фонд (NVM Ventures),https://www.nvm.vc/,,IT,it,capital_investments,P1,"NVM Ventures - итальянский венчурный фонд, фокусирующийся на dual-use deeptech стартапах в аэрокосмосе, обороне, кибербезопасности."
+Крупная компания (Leonardo),https://www.leonardo.com/en/news-and-stories,,IT,it,industry_capacity,P1,Leonardo S.p.A. - крупнейший итальянский оборонный холдинг. Раздел новостей и пресс-релизов.
+Крупная компания (Fincantieri),https://www.fincantieri.com/en/newsroom/,,IT,it,industry_capacity,P1,"Fincantieri - крупнейшая судостроительная компания Италии, строит военные корабли. Раздел Newsroom."
+Стартап (Sentiq Defence),https://www.sentiqdefence.com/,,IT,it,innovation_rd,P1,Итальянский интегратор автономных морских систем для обороны.
+Аналитический центр (IAI),https://www.iai.it/en,,IT,it,research_analysis,P1,"Istituto Affari Internazionali - ведущий итальянский аналитический центр по международным отношениям, безопасности и обороне."
+Аналитический центр (CeMiSS),https://www.difesa.it/eng/SMD/CeMiSS/Pages/default.aspx,,IT,it,research_analysis,P1,Centro Militare di Studi Strategici - исследовательский центр при Минобороны Италии.
+Аналитический центр (CESTUDIS),https://www.cestudis.it/,,IT,it,research_analysis,P1,Centro Studi Difesa e Sicurezza - аналитический центр по вопросам обороны и безопасности.

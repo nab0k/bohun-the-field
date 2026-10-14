@@ -1,0 +1,60 @@
+name,site_url,feed_url,country,language,signal_hint,tier_hint,notes
+National Wealth Fund,https://www.nationalwealthfund.org.uk/news-and-publications/news/,not_found,UK,en,capital_investments,P0,Type 9; инвестирует в оборону (Rowden £25m); RSS нет
+British Business Bank,https://www.british-business-bank.co.uk/news/,not_found,UK,en,capital_investments,P0,Type 9; новый мандат включает оборону; RSS нет
+UK Export Finance,https://www.gov.uk/government/organisations/uk-export-finance,https://www.gov.uk/search/news-and-communications.atom?organisations[]=uk-export-finance,UK,en,export_rules,P0,Type 9; £50bn оборонный экспортный фонд; GOV.UK Atom
+NSSIF,https://www.nssif.gov.uk/news/,not_found,UK,en,capital_investments,P0,Type 9; dual-use VC (Seed/Series A); RSS нет
+Babcock International,https://www.babcockinternational.com/news/,not_found,UK,en,industry_capacity,P1,Type 10; newsroom работает; RSS нет
+QinetiQ,https://www.qinetiq.com/en/news,not_found,UK,en,industry_capacity,P1,Type 10; RSS нет
+Thales UK,https://www.thalesgroup.com/en/news-centre,not_found,UK,en,industry_capacity,P1,Type 10; фильтр UK; RSS нет
+MBDA UK,https://www.mbda-systems.com/news/,not_found,UK,en,industry_capacity,P1,Type 10; новости обновляются; RSS нет
+Anduril UK,not_found,not_found,UK,en,industry_capacity,P2,Type 10; отдельного newsroom нет; упоминается в СМИ
+Helsing UK,https://helsing.ai/news,not_found,UK,en,industry_capacity,P2,Type 10; Resilience Factory в Plymouth; RSS нет
+UKTN,https://www.uktech.news/,https://www.uktech.news/feed,UK,en,capital_investments,P1,Type 8; UK tech startup news; RSS работает
+Tech.eu,https://tech.eu/,https://funding.tech.eu/changelog,UK,en,capital_investments,P1,Type 8; European tech news; AI insights RSS
+Beauhurst,https://www.beauhurst.com/,not_found,UK,en,capital_investments,P2,Type 8; subscription-based; API есть; RSS нет
+Dealroom,https://dealroom.co/,not_found,UK,en,capital_investments,P2,Type 8; API + MCP server; RSS нет
+RUSI,https://www.rusi.org/news,https://stage.rusi.institute/rss,UK,en,research_analysis,P1,Type 10; ведущий think tank; RSS через stage.rusi.institute
+IISS,https://www.iiss.org/,not_found,UK,en,research_analysis,P1,Type 10; официального RSS нет; через RSS Parrot
+Army Technology,https://www.army-technology.com/news/,not_found,UK,en,media,P2,Type 7; RSS не найден; рассылки
+Naval Technology,https://www.naval-technology.com/news/,https://www.naval-technology.com/feed/,UK,en,media,P2,Type 7; RSS работает
+Airforce Technology,https://www.airforce-technology.com/news/,not_found,UK,en,media,P2,Type 7; официального RSS нет; RSS Parrot
+Shephard Media,https://www.shephardmedia.com/news/,https://www.shephardmedia.com/news/landwarfareintl/feed/,UK,en,media,P1,Type 7; RSS по разделам
+BFBS Forces News,https://www.forcesnews.com/,not_found,UK,en,media,P2,Type 7; официального RSS нет; RSS Parrot
+Clyde Maritime Alliance,not_found,not_found,UK,en,industry_capacity,P2,Type 6; Scottish defence cluster; RSS нет
+Defence Sourcing Portal,https://www.contracts.mod.uk/,not_found,UK,en,procurement_award,P0,Type 2; MOD procurement portal; RSS нет
+Contracts Finder,https://www.contractsfinder.service.gov.uk/,not_found,UK,en,procurement_award,P0,Type 2; OCDS API есть; RSS нет
+Find a Tender,https://www.find-tender.service.gov.uk/,not_found,UK,en,procurement_award,P0,Type 2; OCDS API есть; RSS нет
+NATO DIANA,https://www.diana.nato.int/,not_found,UK,en,innovation_rd,P1,Type 3; акселератор; NSSIF в Capital Network
+Innovate UK,https://www.ukri.org/councils/innovate-uk/,not_found,UK,en,grants_challenges,P1,Type 3; гранты; RSS нет
+UKRI,https://www.ukri.org/news/,https://www.ukri.org/feed/,UK,en,research_analysis,P1,Type 3; исследования и инновации; RSS работает
+Defence Industrial Joint Council,https://www.gov.uk/government/groups/defence-industrial-joint-council,not_found,UK,en,policy_budgets,P0,Type 6; координирует MOD и промышленность; RSS нет
+ADS Group,https://www.adsgroup.org.uk/knowledge/,not_found,UK,en,industry_capacity,P0,Type 6; 2000+ членов; £46.8bn; RSS нет
+Make UK Defence,https://www.makeuk.org/defence,not_found,UK,en,industry_capacity,P1,Type 6; SME supply chain; Weekly Defence Insights; RSS нет
+techUK,https://www.techuk.org/,not_found,UK,en,industry_capacity,P1,Type 6; 1000+ членов; cyber/dual-use; RSS нет
+SpaceAM,not_found,not_found,UK,en,innovation_rd,P2,Type 10; Foresight investment; MOD/ESA contracts; RSS нет
+Shield Space,not_found,not_found,UK,en,innovation_rd,P2,Type 10; £2M raise; BROADSWORD mission; RSS нет
+Open Cosmos,not_found,not_found,UK,en,innovation_rd,P2,Type 10; £8bn satellite framework; LEO constellation; RSS нет
+Filtronic,not_found,not_found,UK,en,industry_capacity,P2,Type 10; space/defence/critical comms; doubled UK manufacturing; RSS нет
+Acuity RM,not_found,not_found,UK,en,industry_capacity,P2,Type 10; £125K+ cyber defence contracts; STREAM platform; RSS нет
+Chatham House,https://www.chathamhouse.org/,not_found,UK,en,research_analysis,P1,Type 10; ведущий think tank; RSS нет
+King's College London (War Studies),https://www.kcl.ac.uk/war-studies,not_found,UK,en,research_analysis,P2,Type 10; академические исследования; RSS нет
+Dstl,https://www.gov.uk/government/organisations/defence-science-and-technology-laboratory,https://www.gov.uk/search/news-and-communications.atom?organisations[]=defence-science-and-technology-laboratory,UK,en,innovation_rd,P0,Type 3; оборонная наука; GOV.UK Atom
+RAND Europe,https://www.rand.org/randeurope.html,not_found,UK,en,research_analysis,P2,Type 10; оборонная политика; RSS нет
+Twin Track Ventures,https://fundmomentum.vc/,not_found,UK,en,capital_investments,P2,Type 9; £5M NATO Innovation Fund; dual-use; RSS нет
+Gallos,not_found,not_found,UK,en,capital_investments,P2,Type 9; $50M; company builder; security/defence; RSS нет
+UKI2S,https://ukinnovationscienceseedfund.co.uk/,not_found,UK,en,capital_investments,P1,Type 9; £150M; MOD £4M; UKSA £9.25M; RSS нет
+Welsh Security Cluster,https://businesswales.gov.wales/,not_found,UK,en,industry_capacity,P1,Type 6; новый кластер; бизнес+университеты; RSS нет
+Find a Tender API,https://www.find-tender.service.gov.uk/,https://www.find-tender.service.gov.uk/api/1.0/ocdsReleasePackages,UK,en,procurement_award,P0,Type 2; OCDS 1.1.5 API; без ключа; RSS нет
+Contracts Finder OCDS,https://www.contractsfinder.service.gov.uk/,not_found,UK,en,procurement_award,P0,Type 2; OCDS API; JSON/CSV/Excel; RSS нет
+bidstats.uk,https://bidstats.uk/,not_found,UK,en,procurement_award,P2,Type 2; агрегатор тендеров; RSS нет
+Stotles,https://www.stotles.com/,not_found,UK,en,procurement_award,P2,Type 2; агрегатор MOD закупок; RSS нет
+Defence Eye,https://www.defenceeye.co.uk/,not_found,UK,en,media,P2,Type 7; UK defence news; RSS нет
+Naval Post,https://navalpost.com/,not_found,UK,en,media,P2,Type 7; warships/submarines; RSS нет
+IN Defence,https://indefencemag.com/,not_found,UK,en,media,P1,Type 7; UK autonomy/GCAP; RSS нет
+The Engineer,https://www.theengineer.co.uk/,not_found,UK,en,media,P2,Type 7; SpaceAM/Open Cosmos; RSS нет
+Aero-Mag,https://www.aero-mag.com/,not_found,UK,en,media,P2,Type 7; Filtronic; RSS нет
+Satcom.Digital,https://www.satcom.digital/,not_found,UK,en,media,P2,Type 7; Shield Space; RSS нет
+Tech Funding News,https://techfundingnews.com/,https://techfundingnews.com/feed/,UK,en,capital_investments,P1,Type 8; Shield Space; Twin Track; RSS работает
+Innovate UK Business Connect,https://iuk-business-connect.org.uk/,not_found,UK,en,grants_challenges,P1,Type 3; HMGCC challenges; RSS нет
+UKDI Security Open Call,https://www.tbat.co.uk/,not_found,UK,en,grants_challenges,P1,Type 3; Security Open Call 2026; £60K; RSS нет
+UKDI Project PANOPTES,not_found,not_found,UK,en,innovation_rd,P2,Type 3; C-UAS; force protection; RSS нет
