@@ -259,6 +259,11 @@ class FollowUpTests(unittest.TestCase):
                       "FMV tecknar kontrakt", "Ministerstvo obrany podepsalo zakázku"):
             self.assertEqual(relevance.classify(title)["relevant"], "yes", title)
 
+    def test_generalist_feed_needs_domain_term(self):
+        self.assertEqual(relevance.classify("Fintech startup raises $20M funding round", specialist=False)["relevant"], "unsure")
+        self.assertEqual(relevance.classify("Drone startup raises $20M funding round", specialist=False)["relevant"], "yes")
+        self.assertEqual(relevance.classify("Fintech startup raises $20M funding round", specialist=True)["relevant"], "yes")
+
     def test_backlog_sends_no_conditional_headers(self):
         seen = []
         class Client(FakeClient):

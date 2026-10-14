@@ -27,7 +27,17 @@ def read_items(path):
 def analyze(work, days_back, *, use_gemini=False, gemini_cap_usd=0):
     items = read_items(work / "items.csv.gz")
     clusters, membership = cluster.cluster_items(items)
-    clusters = relevance.classify_clusters(clusters)
+    feeds_meta = read_csv(work / "validated-feeds.csv")
+    hint_by_site = {row["site_id"]: (row.get("signal_hint") or "").split(";")[0].split(",")[0].strip().lower()
+                    for row in read_csv(work / "candidates.csv")}
+    specialist_feeds = {row["feed_id"] for row in feeds_meta
+                        if hint_by_site.get(row.get("site_id"), "") not in relevance.GENERALIST_HINTS}
+    feeds_by_cluster = {}
+    for row in membership:
+        feeds_by_cluster.setdefault(row["cluster_id"], set()).add(row["feed_id"])
+    for row in clusters:
+        row["feeds"] = "|".join(sorted(feeds_by_cluster.get(row["cluster_id"], ())))
+    clusters = relevance.classify_clusters(clusters, specialist_feeds=specialist_feeds)
     gemini_spend = 0
     if use_gemini:
         api_key = os.environ.get("GEMINI_API_KEY")

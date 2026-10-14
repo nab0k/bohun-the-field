@@ -74,6 +74,13 @@ def build(output_dir, *, duration_seconds=0, request_count=0, gemini_spend=0):
             if part:
                 prov_feeds[part.split(":")[0] if not part.startswith("I9") else part] += 1
     print("::notice::HARVEST_FEEDS_BY_INPUT " + " ".join(f"{k}={v}" for k, v in sorted(prov_feeds.items())))
+    keep_by = Counter()
+    for row in metrics:
+        if row.get("status") == "keep_candidate":
+            for part in site_prov.get(row.get("site_id"), "").split("|"):
+                if part:
+                    keep_by[part.split(":")[0] if not part.startswith("I9") else part] += 1
+    print("::notice::HARVEST_KEEP_BY_INPUT " + " ".join(f"{k}={v}" for k, v in sorted(keep_by.items())))
     top_notice = ", ".join(f"{row.get('name') or row['feed_id']}={row['unique_relevant_per_week']}/wk" for row in top[:15])
     print("::notice::HARVEST_TOP10 " + (top_notice or "none"))
     print(f"::notice::HARVEST_EMPTY_CELLS count={len(empty)} examples=" + ", ".join(f"{row['signal']}×{row['region']}" for row in empty[:12]))
