@@ -1,0 +1,17 @@
+name,site_url,feed_url,country,language,signal_hint,tier_hint,notes
+Latvijas Republikas Aizsardzības ministrija,https://www.mod.gov.lv/lv/zinas,,LV,lv,policy_budgets,P0,type 1; MoD news
+Aizsardzības ministrija – iepirkumi (RSS),https://www.mod.gov.lv/lv,http://www.mod.gov.lv/layouts/rss_lv.ashx?type=newPurchases,LV,lv,procurement_award,P0,type 2; MoD new purchases RSS
+Latvijas Nacionālie bruņotie spēki,https://www.mil.lv/lv,,LV,lv,policy_budgets,P1,type 1; armed forces
+Iepirkumu uzraudzības birojs,https://www.iub.gov.lv/lv,,LV,lv,procurement_award,P1,type 2; procurement monitoring bureau; OCDS via dati.gov.lv
+UniLab Defence,https://unilab.lv/,https://unilab.lv/feed/,LV,en,innovation_rd,P1,type 3; WordPress RSS
+Saeima Defence Internal Affairs and Corruption Prevention Committee,https://saeima.lv/en/14th-saeima/committees-and-subcommittees-14,,LV,en,law_regulation,P1,type 4
+Ārlietu ministrija – stratēģiskas nozīmes preču kontrole,https://www.mfa.gov.lv/lv/strategiskas-nozimes-precu-kontrole,,LV,lv,export_rules,P1,type 5
+FSDI Latvia (Federation of Security and Defence Industries),https://federacija.lv/,,LV,lv,industry_capacity,P1,type 6
+LSM English – Defence,https://eng.lsm.lv/topic/defence/,,LV,en,media,P1,type 7; general LSM RSS dropped (all news)
+LSM – Aizsardzība,https://www.lsm.lv/temas/aizsardziba/,,LV,lv,media,P1,type 7
+Sargs,https://www.sargs.lv/lv,,LV,lv,media,P1,type 7; MoD defence news portal
+Dienas Bizness,https://db.lv/,,LV,lv,capital_investments,P1,type 8
+LIAA News,https://www.liaa.gov.lv/lv/jaunumi,,LV,lv,capital_investments,P1,type 8/9; investment and development agency
+ALTUM,https://www.altum.lv/lv/,,LV,lv,capital_investments,P1,type 9; state development finance
+Origin Robotics,https://origin-robotics.com/,,LV,en,innovation_rd,P2,type 10; defence startup
+NEWT21,https://newt21.lv/,,LV,lv,industry_capacity,P2,type 10
