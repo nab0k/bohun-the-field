@@ -1,0 +1,46 @@
+name,site_url,feed_url,country,language,signal_hint,tier_hint,notes
+Israel Ministry of Defense – news,https://www.gov.il/en/departments/ministry_of_defense/govil-landing-page,,IL,en,policy_budgets,P0,type 1
+IMOD Directorate of Defense R&D (MAFAT),https://www.mod.gov.il/en/,,IL,en,innovation_rd,P1,type 4
+SIBAT – Israel Defense Export and Cooperation,https://www.sibat.mod.gov.il/,,IL,en,export_rules,P0,type 6; export directorate
+Israel Innovation Authority,https://innovationisrael.org.il/en/news/,,IL,en,grants_challenges,P0,type 4
+Israel Defense,https://www.israeldefense.co.il/en,,IL,en,media,P0,type 8
+Calcalist Tech (CTech),https://www.calcalistech.com/ctechnews,,IL,en,capital_investments,P0,type 10; startups & funding
+Geektime,https://www.geektime.com/,,IL,en,capital_investments,P1,type 10
+Globes English,https://en.globes.co.il/en/,,IL,en,capital_investments,P1,type 9
+Elbit Systems news,https://elbitsystems.com/news/,,IL,en,industry_capacity,P1,type 12
+Israel Aerospace Industries news,https://www.iai.co.il/news-media,,IL,en,industry_capacity,P1,type 12
+Rafael news,https://www.rafael.co.il/news/,,IL,en,industry_capacity,P1,type 12
+Türkiye Savunma Sanayii Başkanlığı (SSB),https://www.ssb.gov.tr/,,TR,tr,procurement_award,P0,type 2; Defence Industry Agency
+Türkiye Milli Savunma Bakanlığı,https://www.msb.gov.tr/,,TR,tr,policy_budgets,P1,type 1
+SASAD (Defence and Aerospace Industry Manufacturers Association),https://www.sasad.org.tr/,,TR,tr,industry_capacity,P1,type 7
+SSI (Defence and Aerospace Industry Exporters' Association),https://www.ssi.org.tr/,,TR,tr,export_rules,P1,type 7; exporters association
+Defence Turkey,https://www.defenceturkey.com/,,TR,en,media,P1,type 8
+SavunmaSanayiST,https://www.savunmasanayist.com/,,TR,tr,media,P0,type 8
+Defence Here (Savunma Haber),https://www.savunmahaber.com/,,TR,tr,media,P1,type 8
+Webrazzi,https://webrazzi.com/,,TR,tr,capital_investments,P1,type 10; startups
+Baykar news,https://baykartech.com/en/news/,,TR,en,industry_capacity,P1,type 12
+ASELSAN news,https://www.aselsan.com/en/news,,TR,en,industry_capacity,P1,type 12
+Roketsan news,https://www.roketsan.com.tr/en/news,,TR,en,industry_capacity,P2,type 12
+UAE Ministry of Defence,https://www.mod.gov.ae/,,AE,en,policy_budgets,P1,type 1
+Tawazun Council,https://www.tawazun.gov.ae/,,AE,en,procurement_award,P0,type 2; defence & security acquisitions
+EDGE Group news,https://edgegroup.ae/news,,AE,en,industry_capacity,P0,type 12
+Tawazun Economic Council – offsets/industry,https://www.tec.gov.ae/,,AE,en,industry_capacity,P2,type 7
+Defaiya (Gulf defence media),https://www.defaiya.com/,,AE,en,media,P2,type 8
+WAM – Emirates News Agency (defence),https://www.wam.ae/en,,AE,en,policy_budgets,P2,type 13; filter needed
+Wamda,https://www.wamda.com/,,AE,en,capital_investments,P1,type 10; MENA startups
+MAGNiTT,https://magnitt.com/news,,AE,en,capital_investments,P1,type 10; MENA VC data
+Saudi GAMI (General Authority for Military Industries),https://www.gami.gov.sa/en,,SA,en,industry_capacity,P0,type 2/7; licensing & localisation
+Saudi Ministry of Defense,https://www.mod.gov.sa/en,,SA,en,policy_budgets,P1,type 1
+SAMI (Saudi Arabian Military Industries),https://www.sami.com.sa/en/media-center/news,,SA,en,industry_capacity,P1,type 12
+GAMI – World Defense Show,https://worlddefenseshow.com/,,SA,en,industry_capacity,P2,type 11; events
+Saudi Press Agency,https://www.spa.gov.sa/en,,SA,en,policy_budgets,P2,type 13; filter needed
+Arab News – Business,https://www.arabnews.com/economy,,SA,en,capital_investments,P2,type 9
+Singapore MINDEF news,https://www.mindef.gov.sg/news-and-events/latest-releases,,SG,en,policy_budgets,P0,type 1
+DSTA (Defence Science and Technology Agency),https://www.dsta.gov.sg/latest-news,,SG,en,procurement_award,P0,type 2
+GeBIZ (Government procurement),https://www.gebiz.gov.sg/,,SG,en,procurement_award,P2,type 3
+DSO National Laboratories,https://www.dso.org.sg/media/news,,SG,en,innovation_rd,P1,type 4
+Singapore Strategic Goods Control (Customs),https://www.customs.gov.sg/businesses/strategic-goods-control/,,SG,en,export_rules,P1,type 6
+ST Engineering news,https://www.stengg.com/en/newsroom/news-releases/,,SG,en,industry_capacity,P1,type 12
+Tech in Asia,https://www.techinasia.com/,,SG,en,capital_investments,P1,type 10
+e27,https://e27.co/,,SG,en,capital_investments,P1,type 10
+RSIS Commentaries,https://www.rsis.edu.sg/rsis-publication/,,SG,en,research_analysis,P2,type 8
