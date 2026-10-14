@@ -1,0 +1,25 @@
+{
+  "version": "0.1",
+  "signals": {
+    "procurement_award": ["contract award", "awarded contract", "defence contract", "defense contract", "procurement", "tender", "framework agreement", "закуп", "тендер", "контракт"],
+    "funding": ["funding round", "raises", "investment", "grant", "funding", "финанс", "грант", "інвест"],
+    "partnership": ["partnership", "joint venture", "license agreement", "technology transfer", "партнер", "спільне підприємство"],
+    "testing_certification": ["test campaign", "flight test", "certification", "qualification", "испытан", "випробув"],
+    "programme_budget_law": ["defence budget", "defense budget", "programme", "program", "legislation", "law", "бюджет", "програм"],
+    "export_rules": ["export control", "export restriction", "sanctions", "license approved", "експорт"],
+    "market_entry": ["launches", "new entrant", "opens factory", "production line", "capacity expansion", "новий учасник", "виробниц"]
+  },
+  "regions": {
+    "UA": ["ukraine", "ukrainian", "україн", "украин"],
+    "DE": ["germany", "german", "deutsch", "bundeswehr"],
+    "PL": ["poland", "polish", "polska"],
+    "FR": ["france", "french", "dga"],
+    "UK": ["united kingdom", "british", "uk mod"],
+    "Nordics": ["sweden", "finland", "norway", "denmark", "nordic"],
+    "Baltics": ["estonia", "latvia", "lithuania", "baltic"],
+    "EU": ["european union", "european commission", "european defence fund", "eda"],
+    "US": ["united states", "pentagon", "u.s.", "dod"],
+    "NATO": ["nato", "otan"]
+  },
+  "exclude": ["match report", "football", "celebrity", "movie review", "killed in battle", "frontline update", "sports"]
+}

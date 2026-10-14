@@ -1,0 +1,161 @@
+name: BOHUN Source Harvest v1
+
+on:
+  workflow_dispatch:
+    inputs:
+      days_back:
+        description: Metadata history window
+        type: choice
+        options: ['30', '45', '60']
+        default: '45'
+      max_candidates:
+        description: Maximum candidates
+        type: number
+        default: 2000
+      use_inoreader:
+        description: Read Inoreader subscriptions
+        type: boolean
+        default: true
+      quota_confirmed:
+        description: Owner confirms Inoreader quota
+        type: boolean
+        default: false
+      use_inoreader_history:
+        description: Use bounded Inoreader history fallback
+        type: boolean
+        default: false
+      inoreader_call_budget:
+        description: Total Inoreader call ceiling
+        type: number
+        default: 50
+      use_gemini:
+        description: Adjudicate unsure titles with Gemini
+        type: boolean
+        default: false
+      gemini_cap_usd:
+        description: Gemini hard cap, max 1.00
+        type: number
+        default: 0
+      rerun_source_hunter:
+        description: Re-run bounded Source Hunter
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: '1'
+  HARVEST_DIR: output/source-harvest
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12', cache: pip}
+      - run: pip install -r requirements-source-harvest.txt
+      - name: Offline safety tests
+        run: python -m unittest discover -s tests/source_harvest -v
+      - name: Optional bounded Source Hunter refresh
+        if: ${{ inputs.rerun_source_hunter == true }}
+        run: python tools/source_hunter_1000.py --minutes 12 --workers 10
+      - name: Collect I1-I9
+        env:
+          INOREADER_CLIENT_ID: ${{ secrets.INOREADER_CLIENT_ID }}
+          INOREADER_CLIENT_SECRET: ${{ secrets.INOREADER_CLIENT_SECRET }}
+          INOREADER_REFRESH_TOKEN: ${{ secrets.INOREADER_REFRESH_TOKEN }}
+        run: >-
+          python scripts/source-harvest.py collect
+          --work-dir "$HARVEST_DIR"
+          --max-candidates "${{ inputs.max_candidates }}"
+          --inoreader-call-budget "${{ inputs.inoreader_call_budget }}"
+          ${{ inputs.use_inoreader && '--use-inoreader' || '' }}
+          ${{ inputs.quota_confirmed && '--quota-confirmed' || '' }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: source-harvest-collect, path: output/source-harvest, retention-days: 30}
+
+  discover:
+    needs: collect
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12', cache: pip}
+      - run: pip install -r requirements-source-harvest.txt
+      - uses: actions/download-artifact@v4
+        with: {name: source-harvest-collect, path: output/source-harvest}
+      - run: python scripts/source-harvest.py discover --work-dir "$HARVEST_DIR"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: source-harvest-discover, path: output/source-harvest, retention-days: 30}
+
+  backlog:
+    needs: discover
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12', cache: pip}
+      - run: pip install -r requirements-source-harvest.txt
+      - uses: actions/download-artifact@v4
+        with: {name: source-harvest-discover, path: output/source-harvest}
+      - run: >-
+          python scripts/source-harvest.py backlog
+          --work-dir "$HARVEST_DIR"
+          --days-back "${{ inputs.days_back }}"
+          --inoreader-call-budget "${{ inputs.inoreader_call_budget }}"
+          ${{ inputs.use_inoreader_history && '--use-inoreader-history' || '' }}
+          ${{ inputs.quota_confirmed && '--quota-confirmed' || '' }}
+        env:
+          INOREADER_CLIENT_ID: ${{ secrets.INOREADER_CLIENT_ID }}
+          INOREADER_CLIENT_SECRET: ${{ secrets.INOREADER_CLIENT_SECRET }}
+          INOREADER_REFRESH_TOKEN: ${{ secrets.INOREADER_REFRESH_TOKEN }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: source-harvest-backlog, path: output/source-harvest, retention-days: 30}
+
+  analyze:
+    needs: backlog
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12', cache: pip}
+      - run: pip install -r requirements-source-harvest.txt
+      - uses: actions/download-artifact@v4
+        with: {name: source-harvest-backlog, path: output/source-harvest}
+      - name: Analyze metadata
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: >-
+          python scripts/source-harvest.py analyze
+          --work-dir "$HARVEST_DIR"
+          --days-back "${{ inputs.days_back }}"
+          ${{ inputs.use_gemini && '--use-gemini' || '' }}
+          --gemini-cap-usd "${{ inputs.gemini_cap_usd }}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: source-harvest-analyze, path: output/source-harvest, retention-days: 30}
+
+  report:
+    needs: analyze
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install -r requirements-source-harvest.txt
+      - uses: actions/download-artifact@v4
+        with: {name: source-harvest-analyze, path: output/source-harvest}
+      - run: python scripts/source-harvest.py report --work-dir "$HARVEST_DIR"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: bohun-source-harvest-results, path: output/source-harvest, retention-days: 30}

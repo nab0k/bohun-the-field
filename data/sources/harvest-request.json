@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "days_back": 45,
+  "max_candidates": 2000,
+  "use_inoreader": true,
+  "use_inoreader_history": false,
+  "inoreader_call_budget": 50,
+  "use_gemini": false,
+  "gemini_cap_usd": 0,
+  "rerun_source_hunter": false
+}

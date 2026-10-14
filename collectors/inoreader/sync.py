@@ -54,7 +54,7 @@ def access_token():
         raise RuntimeError("Inoreader token refresh did not return access_token")
     # Some OAuth providers rotate refresh tokens. Never print returned credentials.
     if response.get("refresh_token") and response["refresh_token"] != values["INOREADER_REFRESH_TOKEN"]:
-        print("WARNING: refresh token rotated; update INOREADER_REFRESH_TOKEN secret", file=sys.stderr)
+        print("::notice::INOREADER_REFRESH_TOKEN_ROTATED — owner must update secret", file=sys.stderr)
     return response["access_token"]
 
 
