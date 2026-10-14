@@ -42,6 +42,7 @@ def _row_candidate(row, provenance):
         "signal_hint": _first(row, ("signal_hint", "signal_types", "category", "notion_category")),
         "notes": _first(row, ("notes", "detail", "status", "verification_status")),
         "registry_source_id": _first(row, ("source_id",)),
+        "inoreader_stream_id": _first(row, ("inoreader_stream_id",)),
     }
 
 
@@ -78,6 +79,7 @@ def _inoreader_candidates(max_calls=20):
         folders = [c.get("label", "") for c in item.get("categories", []) if isinstance(c, dict)]
         out.append(_row_candidate({"name": item.get("title"), "url": item.get("htmlUrl"), "feed_url": feed,
                                    "inoreader_folder": "|".join(filter(None, folders)),
+                                   "inoreader_stream_id": item.get("id", ""),
                                    "notes": f"firstitemmsec={item.get('firstitemmsec', '')}"}, "I1|I2"))
     return out, {"blocked": False, "calls": 3, "subscriptions": len(subscriptions), "subscriptions_before": len(subscriptions), "subscriptions_after": len(subscriptions_after), "subscription_delta": len(subscriptions_after) - len(subscriptions), "tags": len(tags)}
 
@@ -132,7 +134,7 @@ def collect(root=".", *, use_inoreader=False, quota_confirmed=False, max_candida
         else:
             current = merged[key]
             current["provenance"] = "|".join(sorted(set(current["provenance"].split("|") + row["provenance"].split("|"))))
-            for field in ("name", "country", "language", "inoreader_folder", "tier_hint", "signal_hint", "notes"):
+            for field in ("name", "country", "language", "inoreader_folder", "inoreader_stream_id", "tier_hint", "signal_hint", "notes"):
                 if not current.get(field) and row.get(field):
                     current[field] = row[field]
     candidates = list(merged.values())[:max_candidates]
@@ -141,7 +143,7 @@ def collect(root=".", *, use_inoreader=False, quota_confirmed=False, max_candida
 
 def run(output_dir, **kwargs):
     candidates, rejected, meta = collect(**kwargs)
-    fields = ["candidate_id", "site_id", "site_url", "feed_url", "name", "country", "language", "provenance", "inoreader_folder", "already_in_registry", "registry_source_id", "tier_hint", "signal_hint", "notes"]
+    fields = ["candidate_id", "site_id", "site_url", "feed_url", "name", "country", "language", "provenance", "inoreader_folder", "already_in_registry", "registry_source_id", "inoreader_stream_id", "tier_hint", "signal_hint", "notes"]
     output = Path(output_dir)
     write_csv(output / "candidates.csv", candidates, fields)
     write_csv(output / "rejected.csv", rejected, fields + ["reason"])

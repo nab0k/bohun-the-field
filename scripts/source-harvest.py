@@ -44,8 +44,8 @@ def analyze(work, days_back, *, use_gemini=False, gemini_cap_usd=0):
         gemini_spend = ledger.spent_usd
         (work / "gemini-budget.json").write_text(json.dumps({"cap_usd": gemini_cap_usd, "reserved_usd": gemini_spend, "entries": ledger.entries}, indent=2), encoding="utf-8")
     coverage = read_csv(work / "backlog-coverage.csv")
-    metrics = yield_metrics.calculate(items, clusters, membership, coverage, days_back)
     feeds = read_csv(work / "validated-feeds.csv")
+    metrics = yield_metrics.calculate(items, clusters, membership, coverage, days_back, feeds=feeds)
     site_metrics = yield_metrics.aggregate_sites(items, clusters, membership, coverage, feeds, days_back)
     matrix = yield_metrics.coverage_matrix(clusters, metrics)
     candidates = read_csv(work / "candidates.csv")
@@ -91,6 +91,7 @@ def main():
     parser.add_argument("--quota-confirmed", action="store_true")
     parser.add_argument("--inoreader-call-budget", type=int, default=20)
     parser.add_argument("--use-inoreader-history", action="store_true")
+    parser.add_argument("--discover-minutes", type=int, default=80, help="stop starting new candidates after this; the rest are recorded, not dropped")
     parser.add_argument("--use-gemini", action="store_true")
     parser.add_argument("--gemini-cap-usd", type=float, default=0)
     args = parser.parse_args()
@@ -103,7 +104,7 @@ def main():
         if command == "collect":
             inputs.run(work, root=ROOT, use_inoreader=args.use_inoreader, quota_confirmed=args.quota_confirmed, max_candidates=args.max_candidates, inoreader_call_budget=args.inoreader_call_budget)
         elif command == "discover":
-            _, _, count = discover.run(work / "candidates.csv", work); requests += count
+            _, _, count = discover.run(work / "candidates.csv", work, deadline_seconds=args.discover_minutes * 60); requests += count
         elif command == "backlog":
             items, coverage_rows, count = backlog.run(work / "validated-feeds.csv", work, days_back=args.days_back); requests += count
             if args.use_inoreader_history:
@@ -112,11 +113,14 @@ def main():
                     continue
                 meta = json.loads((work / "collect-meta.json").read_text(encoding="utf-8"))
                 feeds = read_csv(work / "validated-feeds.csv"); candidates = read_csv(work / "candidates.csv")
-                extra, calls, blocked = backlog.inoreader_history(feeds, coverage_rows, candidates, items, call_budget=args.inoreader_call_budget, calls_used=meta.get("inoreader", {}).get("calls", 0))
+                extra, calls, blocked = backlog.inoreader_history(feeds, coverage_rows, candidates, items, call_budget=args.inoreader_call_budget, calls_used=meta.get("inoreader", {}).get("calls", 0), days_back=args.days_back)
                 if extra:
                     items.extend(extra)
                     with gzip.open(work / "items.csv.gz", "wt", newline="", encoding="utf-8") as handle:
                         writer = csv.DictWriter(handle, fieldnames=backlog.ITEM_FIELDS); writer.writeheader(); writer.writerows(items)
+                    coverage_rows = backlog.recompute_coverage(coverage_rows, items, {row["feed_id"] for row in extra})
+                    write_csv(work / "backlog-coverage.csv", coverage_rows, backlog.COVERAGE_FIELDS)
+                print(f"::notice::INOREADER_HISTORY calls={calls} feeds_extended={len({row['feed_id'] for row in extra})} items_added={len(extra)} blocked={blocked}")
                 meta["inoreader"]["calls"] = meta["inoreader"].get("calls", 0) + calls
                 meta["inoreader"]["blocked"] = meta["inoreader"].get("blocked", False) or blocked
                 (work / "collect-meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")

@@ -142,7 +142,18 @@ def discover_one(candidate, client):
                   "method_tried": "|".join(sorted(set(tried))), "has_news_section": str(bool(sections)).lower()}
 
 
-def run(input_csv, output_dir, *, limit=None, client=None, workers=12):
+def run(input_csv, output_dir, *, limit=None, client=None, workers=12, deadline_seconds=None):
+    """Discover feeds. Candidates not started before the deadline are recorded as not attempted, not dropped."""
+    import time as _time
+    deadline = _time.monotonic() + deadline_seconds if deadline_seconds else None
+
+    def guarded(candidate):
+        if deadline and _time.monotonic() > deadline:
+            return None, {"candidate_id": candidate["candidate_id"], "site_id": candidate["site_id"],
+                          "site_url": candidate.get("site_url", ""), "method_tried": "deadline_not_attempted",
+                          "has_news_section": ""}
+        return discover_one(candidate, client)
+
     candidates = read_csv(input_csv)
     if limit:
         candidates = candidates[:limit]
@@ -150,7 +161,7 @@ def run(input_csv, output_dir, *, limit=None, client=None, workers=12):
     workers = max(1, min(int(workers), 12))
     results = {}
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        futures = {pool.submit(discover_one, candidate, client): index for index, candidate in enumerate(candidates)}
+        futures = {pool.submit(guarded, candidate): index for index, candidate in enumerate(candidates)}
         for future in as_completed(futures):
             results[futures[future]] = future.result()
     feeds, pending = [], []

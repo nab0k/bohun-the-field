@@ -165,4 +165,59 @@ class SafetyTests(unittest.TestCase):
         self.assertNotIn("content_text", backlog.ITEM_FIELDS); self.assertNotIn("article_body", backlog.ITEM_FIELDS)
 
 
+class FollowUpTests(unittest.TestCase):
+    """Fixes after the 2026-10-14 small run."""
+
+    def test_zero_item_feed_keeps_a_row(self):
+        feeds = [{"feed_id": "a", "site_id": "s1", "feed_url": "https://a.example/feed"},
+                 {"feed_id": "z", "site_id": "s2", "feed_url": "https://z.example/feed"}]
+        rows = yield_metrics.calculate([{"feed_id": "a"}] * 3, [], [], [{"feed_id": "a", "backlog_coverage_days": 3}], 30, feeds=feeds)
+        by_id = {row["feed_id"]: row for row in rows}
+        self.assertIn("z", by_id)
+        self.assertEqual(by_id["z"]["status"], "no_items")
+        self.assertEqual(by_id["z"]["history_bucket"], "none")
+        self.assertEqual(by_id["a"]["feed_url"], "https://a.example/feed")
+
+    def test_history_buckets(self):
+        self.assertEqual([yield_metrics.history_bucket(d) for d in (0, 3, 7, 13.9, 14, 29, 30, 60)],
+                         ["none", "<7d", "7-13d", "7-13d", "14-29d", "14-29d", ">=30d", ">=30d"])
+
+    def test_recompute_coverage_after_inoreader_history(self):
+        now = dt.datetime(2026, 10, 14, tzinfo=dt.timezone.utc)
+        items = [{"feed_id": "a", "published_at": (now - dt.timedelta(days=d)).isoformat()} for d in (1, 2, 25)]
+        out = backlog.recompute_coverage([{"feed_id": "a", "backlog_coverage_days": 2, "items": 2}, {"feed_id": "b", "backlog_coverage_days": 5}], items, {"a"}, now=now)
+        self.assertEqual(out[0]["backlog_coverage_days"], 25.0)
+        self.assertEqual(out[0]["history_source"], "feed+inoreader")
+        self.assertEqual(out[1]["backlog_coverage_days"], 5)
+
+    def test_inoreader_history_uses_subscription_stream_id_and_survives_404(self):
+        calls = []
+        def api(path, token, params=None):
+            calls.append(path)
+            if "bad" in path:
+                raise RuntimeError("HTTP request failed: stage=inoreader_api, status=404")
+            return {"items": [{"id": "i1", "title": "Contract awarded", "canonical": [{"href": "https://a.example/x"}], "published": 1791900000}]}
+        fake = types.ModuleType("sync"); fake.access_token = lambda: "t"; fake.api = api
+        feeds = [{"feed_id": "f1", "site_id": "s1", "feed_url": "https://a.example/feed"},
+                 {"feed_id": "f2", "site_id": "s2", "feed_url": "https://bad.example/feed"}]
+        candidates = [{"site_id": "s1", "provenance": "I1|I2", "inoreader_stream_id": "feed/http://www.a.example/feed/"},
+                      {"site_id": "s2", "provenance": "I1|I2", "inoreader_stream_id": "feed/https://bad.example/feed"}]
+        coverage = [{"feed_id": "f1", "backlog_coverage_days": 2}, {"feed_id": "f2", "backlog_coverage_days": 1}]
+        with mock.patch.dict(sys.modules, {"sync": fake}):
+            added, used, blocked = backlog.inoreader_history(feeds, coverage, candidates, [], call_budget=10, days_back=30,
+                                                             now=dt.datetime(2026, 10, 14, tzinfo=dt.timezone.utc))
+        self.assertFalse(blocked); self.assertEqual(used, 2); self.assertEqual(len(added), 1)
+        self.assertTrue(any("http%3A//www.a.example/feed/" in c or "http://www.a.example/feed/" in c for c in calls))
+
+    def test_discover_deadline_records_not_attempted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "candidates.csv"
+            with path.open("w", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=["candidate_id", "site_id", "site_url", "feed_url"])
+                writer.writeheader(); writer.writerow({"candidate_id": "c1", "site_id": "s1", "site_url": "https://a.example", "feed_url": ""})
+            feeds, pending, _ = discover.run(path, tmp, client=FakeClient({}), deadline_seconds=-1)
+        self.assertEqual(feeds, [])
+        self.assertEqual(pending[0]["method_tried"], "deadline_not_attempted")
+
+
 if __name__ == "__main__": unittest.main()

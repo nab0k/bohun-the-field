@@ -1,11 +1,14 @@
 {
-  "version": 1,
-  "days_back": 45,
+  "version": 2,
+  "_comment": "A commit changing this file on sources/source-harvest-v1-20261014 starts one harvest run with these parameters. Inoreader is read-only; Gemini off; no production writes.",
+  "days_back": 30,
   "max_candidates": 2000,
   "use_inoreader": true,
-  "use_inoreader_history": false,
+  "quota_confirmed": true,
+  "use_inoreader_history": true,
   "inoreader_call_budget": 50,
   "use_gemini": false,
   "gemini_cap_usd": 0,
-  "rerun_source_hunter": false
+  "rerun_source_hunter": false,
+  "source_hunter_run_id": "38573173331"
 }

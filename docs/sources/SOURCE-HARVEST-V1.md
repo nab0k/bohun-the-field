@@ -33,6 +33,18 @@ A bounded public-network run used `max_candidates=50`, `days_back=30`, `use_inor
 
 The result lives in a temporary local directory and is not committed. It is evidence that the bounded path runs end to end, not a final registry or a substitute for the full GitHub run.
 
+## Follow-up after the small run — 2026-10-14
+
+The small run showed that most public feeds expose short history (6 of 28 channels had at least 14 days). Changes:
+
+- every validated feed now keeps a row in `channel-yield.csv`, including feeds with zero items (`status=no_items`);
+- each channel gets `history_bucket` (`none`, `<7d`, `7-13d`, `14-29d`, `>=30d`); the report and the `HARVEST_HISTORY` notice show the distribution;
+- the Inoreader history fallback is on in the first full run: subscribed feeds with less than 14 days of visible history, shortest first, at most `inoreader_call_budget` calls in total, read-only `stream/contents` with titles/links/dates only, bounded to `days_back`. It uses the subscription's own stream id, records `history_source=feed+inoreader`, and recomputes coverage. A failing stream is skipped; HTTP 429 stops the fallback and the harvest continues;
+- discovery stops starting new candidates after 80 minutes; the rest are listed as `deadline_not_attempted`, not dropped;
+- the Source Hunter artifact (run 38573173331, expires 2026-11-13) is downloaded as input I3;
+- until the workflow is on the default branch, a commit to `data/sources/harvest-request.json` on this branch starts one run (a `resolve` job validates the parameters: `days_back` in 30/45/60, Gemini cap ≤ USD 1, Inoreader budget ≤ 100);
+- top channels are shown with names and feed URLs.
+
 ## Small public-network run
 
 Only after dependencies and network access are approved:

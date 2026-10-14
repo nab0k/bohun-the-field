@@ -18,6 +18,7 @@ from . import read_csv, write_csv
 from .canonical import canonical_url, stable_id
 from .politeness import PoliteSession
 
+COVERAGE_FIELDS = ["feed_id", "backlog_coverage_days", "items", "undated_items", "error", "history_source"]
 ITEM_FIELDS = ["item_id", "feed_id", "url", "canonical_url", "title", "published_at", "fetched_at", "author", "summary_len", "summary_sha256", "categories", "summary_links"]
 
 
@@ -140,18 +141,46 @@ def run(input_csv, output_dir, *, days_back=45, max_pages=10, client=None, now=N
         import csv
         writer = csv.DictWriter(handle, fieldnames=ITEM_FIELDS)
         writer.writeheader(); writer.writerows(items)
-    write_csv(output / "backlog-coverage.csv", coverage, ["feed_id", "backlog_coverage_days", "items", "undated_items", "error"])
+    for row in coverage:
+        row.setdefault("history_source", "feed")
+    write_csv(output / "backlog-coverage.csv", coverage, COVERAGE_FIELDS)
     return items, coverage, client.request_count
 
 
-def inoreader_history(feeds, coverage_rows, candidates, existing_items, *, call_budget, calls_used=0, now=None):
+def recompute_coverage(coverage_rows, items, feed_ids, now=None):
+    """Recompute visible history for feeds whose backlog was extended from Inoreader."""
+    now = now or dt.datetime.now(dt.timezone.utc)
+    by_feed = {}
+    for row in items:
+        if row["feed_id"] in feed_ids:
+            by_feed.setdefault(row["feed_id"], []).append(row)
+    out = []
+    for row in coverage_rows:
+        row = dict(row)
+        if row["feed_id"] in by_feed:
+            rows = by_feed[row["feed_id"]]
+            dates = [dt.datetime.fromisoformat(r["published_at"]) for r in rows if r["published_at"]]
+            row["backlog_coverage_days"] = round(max(0.0, (now - min(dates)).total_seconds() / 86400), 2) if dates else 0.0
+            row["items"] = len(rows)
+            row["undated_items"] = sum(not r["published_at"] for r in rows)
+            row["history_source"] = "feed+inoreader"
+        out.append(row)
+    return out
+
+
+def inoreader_history(feeds, coverage_rows, candidates, existing_items, *, call_budget, calls_used=0, now=None, days_back=45):
     """Fill short subscribed-feed histories through read-only stream/contents."""
     remaining = max(0, int(call_budget) - int(calls_used))
     if remaining <= 0:
         return [], 0, False
-    subscribed_sites = {row.get("site_id") for row in candidates if "I1" in row.get("provenance", "").split("|")}
+    stream_by_site = {}
+    for row in candidates:
+        if "I1" in row.get("provenance", "").split("|"):
+            stream_by_site.setdefault(row.get("site_id"), row.get("inoreader_stream_id", ""))
     coverage = {row["feed_id"]: float(row.get("backlog_coverage_days") or 0) for row in coverage_rows}
-    targets = [row for row in feeds if row.get("site_id") in subscribed_sites and coverage.get(row["feed_id"], 0) < 14]
+    # shortest visible history first: those gain most from Inoreader's stored history
+    targets = sorted((row for row in feeds if row.get("site_id") in stream_by_site and coverage.get(row["feed_id"], 0) < 14),
+                     key=lambda row: (coverage.get(row["feed_id"], 0), row["feed_id"]))
     if not targets:
         return [], 0, False
     sys.path.insert(0, str(Path("collectors/inoreader").resolve()))
@@ -162,15 +191,17 @@ def inoreader_history(feeds, coverage_rows, candidates, existing_items, *, call_
     added, calls, blocked = [], 0, False
     for feed in targets[:remaining]:
         try:
-            stream = "feed/" + feed["feed_url"]
-            payload = api("stream/contents/" + quote(stream, safe="/"), token, {"n": 100, "ot": int((now - dt.timedelta(days=60)).timestamp())})
+            # Inoreader keys history by the subscription's own feed id, which may differ from our canonical URL
+            stream = stream_by_site.get(feed.get("site_id")) or "feed/" + feed["feed_url"]
+            payload = api("stream/contents/" + quote(stream, safe="/"), token, {"n": 100, "ot": int((now - dt.timedelta(days=days_back)).timestamp())})
             calls += 1
         except RuntimeError as exc:
             if "status=429" in str(exc):
                 print("::notice::INOREADER_QUOTA_BLOCKED — history stopped; public-feed harvest continues")
                 blocked = True
                 break
-            raise
+            calls += 1  # one feed failing (e.g. 404 for an unknown stream) must not stop the harvest
+            continue
         for item in payload.get("items", []):
             links = item.get("canonical") or item.get("alternate") or []
             url = next((link.get("href") for link in links if isinstance(link, dict) and link.get("href")), "")

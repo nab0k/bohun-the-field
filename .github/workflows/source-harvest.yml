@@ -40,16 +40,66 @@ on:
         description: Re-run bounded Source Hunter
         type: boolean
         default: false
+  # workflow_dispatch only works once this file is on the default branch; until then a commit to the
+  # request file on the harvest branch starts one run with the parameters stored in that file.
+  push:
+    branches: [sources/source-harvest-v1-20261014]
+    paths: [data/sources/harvest-request.json]
 
 permissions:
   contents: read
+  actions: read   # only to download the existing Source Hunter artifact (I3)
 
 env:
   PYTHONUNBUFFERED: '1'
   HARVEST_DIR: output/source-harvest
 
 jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      days_back: ${{ steps.p.outputs.days_back }}
+      max_candidates: ${{ steps.p.outputs.max_candidates }}
+      use_inoreader: ${{ steps.p.outputs.use_inoreader }}
+      quota_confirmed: ${{ steps.p.outputs.quota_confirmed }}
+      use_inoreader_history: ${{ steps.p.outputs.use_inoreader_history }}
+      inoreader_call_budget: ${{ steps.p.outputs.inoreader_call_budget }}
+      use_gemini: ${{ steps.p.outputs.use_gemini }}
+      gemini_cap_usd: ${{ steps.p.outputs.gemini_cap_usd }}
+      rerun_source_hunter: ${{ steps.p.outputs.rerun_source_hunter }}
+      source_hunter_run_id: ${{ steps.p.outputs.source_hunter_run_id }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        env:
+          EVENT: ${{ github.event_name }}
+          INPUTS: ${{ toJSON(inputs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          req = json.load(open("data/sources/harvest-request.json"))
+          if os.environ["EVENT"] == "workflow_dispatch":
+              req.update({k: v for k, v in json.loads(os.environ["INPUTS"] or "{}").items() if v not in (None, "")})
+          def b(v): return "true" if str(v).lower() == "true" else "false"
+          days = int(req.get("days_back", 45)); assert days in (30, 45, 60), "days_back must be 30, 45 or 60"
+          cap = float(req.get("gemini_cap_usd", 0)); assert 0 <= cap <= 1.0, "gemini_cap_usd must be within 0..1"
+          budget = int(req.get("inoreader_call_budget", 50)); assert 0 <= budget <= 100, "inoreader_call_budget must be <= 100"
+          out = {"days_back": days, "max_candidates": int(req.get("max_candidates", 2000)),
+                 "use_inoreader": b(req.get("use_inoreader", True)), "quota_confirmed": b(req.get("quota_confirmed", False)),
+                 "use_inoreader_history": b(req.get("use_inoreader_history", False)), "inoreader_call_budget": budget,
+                 "use_gemini": b(req.get("use_gemini", False)), "gemini_cap_usd": cap,
+                 "rerun_source_hunter": b(req.get("rerun_source_hunter", False)),
+                 "source_hunter_run_id": str(req.get("source_hunter_run_id", ""))}
+          if out["use_gemini"] == "true" and cap == 0:
+              raise SystemExit("use_gemini=true needs gemini_cap_usd > 0")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              for k, v in out.items(): fh.write(f"{k}={v}\n")
+          print("::notice title=harvest-params::" + json.dumps(out))
+          PY
+
   collect:
+    needs: resolve
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -59,8 +109,17 @@ jobs:
       - run: pip install -r requirements-source-harvest.txt
       - name: Offline safety tests
         run: python -m unittest discover -s tests/source_harvest -v
+      - name: Existing Source Hunter results (I3)
+        if: ${{ needs.resolve.outputs.source_hunter_run_id != '' && needs.resolve.outputs.rerun_source_hunter != 'true' }}
+        continue-on-error: true   # artifact may have expired; harvest continues with the other inputs
+        uses: actions/download-artifact@v4
+        with:
+          name: bohun-source-hunter-results
+          path: output/source-hunter
+          run-id: ${{ needs.resolve.outputs.source_hunter_run_id }}
+          github-token: ${{ github.token }}
       - name: Optional bounded Source Hunter refresh
-        if: ${{ inputs.rerun_source_hunter == true }}
+        if: ${{ needs.resolve.outputs.rerun_source_hunter == 'true' }}
         run: python tools/source_hunter_1000.py --minutes 12 --workers 10
       - name: Collect I1-I9
         env:
@@ -70,16 +129,16 @@ jobs:
         run: >-
           python scripts/source-harvest.py collect
           --work-dir "$HARVEST_DIR"
-          --max-candidates "${{ inputs.max_candidates }}"
-          --inoreader-call-budget "${{ inputs.inoreader_call_budget }}"
-          ${{ inputs.use_inoreader && '--use-inoreader' || '' }}
-          ${{ inputs.quota_confirmed && '--quota-confirmed' || '' }}
+          --max-candidates "${{ needs.resolve.outputs.max_candidates }}"
+          --inoreader-call-budget "${{ needs.resolve.outputs.inoreader_call_budget }}"
+          ${{ needs.resolve.outputs.use_inoreader == 'true' && '--use-inoreader' || '' }}
+          ${{ needs.resolve.outputs.quota_confirmed == 'true' && '--quota-confirmed' || '' }}
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: source-harvest-collect, path: output/source-harvest, retention-days: 30}
 
   discover:
-    needs: collect
+    needs: [resolve, collect]
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -89,13 +148,13 @@ jobs:
       - run: pip install -r requirements-source-harvest.txt
       - uses: actions/download-artifact@v4
         with: {name: source-harvest-collect, path: output/source-harvest}
-      - run: python scripts/source-harvest.py discover --work-dir "$HARVEST_DIR"
+      - run: python scripts/source-harvest.py discover --work-dir "$HARVEST_DIR" --discover-minutes 80
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: source-harvest-discover, path: output/source-harvest, retention-days: 30}
 
   backlog:
-    needs: discover
+    needs: [resolve, discover]
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -108,10 +167,10 @@ jobs:
       - run: >-
           python scripts/source-harvest.py backlog
           --work-dir "$HARVEST_DIR"
-          --days-back "${{ inputs.days_back }}"
-          --inoreader-call-budget "${{ inputs.inoreader_call_budget }}"
-          ${{ inputs.use_inoreader_history && '--use-inoreader-history' || '' }}
-          ${{ inputs.quota_confirmed && '--quota-confirmed' || '' }}
+          --days-back "${{ needs.resolve.outputs.days_back }}"
+          --inoreader-call-budget "${{ needs.resolve.outputs.inoreader_call_budget }}"
+          ${{ needs.resolve.outputs.use_inoreader_history == 'true' && '--use-inoreader-history' || '' }}
+          ${{ needs.resolve.outputs.quota_confirmed == 'true' && '--quota-confirmed' || '' }}
         env:
           INOREADER_CLIENT_ID: ${{ secrets.INOREADER_CLIENT_ID }}
           INOREADER_CLIENT_SECRET: ${{ secrets.INOREADER_CLIENT_SECRET }}
@@ -121,7 +180,7 @@ jobs:
         with: {name: source-harvest-backlog, path: output/source-harvest, retention-days: 30}
 
   analyze:
-    needs: backlog
+    needs: [resolve, backlog]
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -137,15 +196,15 @@ jobs:
         run: >-
           python scripts/source-harvest.py analyze
           --work-dir "$HARVEST_DIR"
-          --days-back "${{ inputs.days_back }}"
-          ${{ inputs.use_gemini && '--use-gemini' || '' }}
-          --gemini-cap-usd "${{ inputs.gemini_cap_usd }}"
+          --days-back "${{ needs.resolve.outputs.days_back }}"
+          ${{ needs.resolve.outputs.use_gemini == 'true' && '--use-gemini' || '' }}
+          --gemini-cap-usd "${{ needs.resolve.outputs.gemini_cap_usd }}"
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: source-harvest-analyze, path: output/source-harvest, retention-days: 30}
 
   report:
-    needs: analyze
+    needs: [resolve, analyze]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

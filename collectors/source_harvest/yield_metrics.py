@@ -4,7 +4,19 @@ import datetime as dt
 from collections import defaultdict
 
 
-def calculate(items, clusters, membership, coverage_rows, days_back=45):
+HISTORY_BUCKETS = ((7, "<7d"), (14, "7-13d"), (30, "14-29d"))
+
+
+def history_bucket(days):
+    days = float(days or 0)
+    if days <= 0:
+        return "none"
+    return next((label for limit, label in HISTORY_BUCKETS if days < limit), ">=30d")
+
+
+def calculate(items, clusters, membership, coverage_rows, days_back=45, feeds=None):
+    """Per-feed metrics. Every validated feed gets a row, including feeds with zero items."""
+    feed_meta = {row["feed_id"]: row for row in (feeds or [])}
     cluster_by_id = {row["cluster_id"]: row for row in clusters}
     members_by_feed = defaultdict(list)
     for row in membership:
@@ -15,7 +27,7 @@ def calculate(items, clusters, membership, coverage_rows, days_back=45):
     coverage = {row["feed_id"]: float(row.get("backlog_coverage_days") or 0) for row in coverage_rows}
     weeks = max(days_back / 7, 1 / 7)
     results = []
-    for feed_id in sorted(set(item_count) | set(members_by_feed) | set(coverage)):
+    for feed_id in sorted(set(item_count) | set(members_by_feed) | set(coverage) | set(feed_meta)):
         memberships = members_by_feed[feed_id]
         relevant = {row["cluster_id"] for row in memberships if cluster_by_id.get(row["cluster_id"], {}).get("relevant") == "yes"}
         first = {cluster_id for cluster_id in relevant if cluster_by_id[cluster_id].get("first_seen_feed") == feed_id}
@@ -31,8 +43,13 @@ def calculate(items, clusters, membership, coverage_rows, days_back=45):
             status = "probation"
         else:
             status = "archive_candidate"
+        if count == 0:
+            status = "no_items"
+        meta = feed_meta.get(feed_id, {})
         results.append({
-            "feed_id": feed_id, "items_per_week": round(count / weeks, 3),
+            "feed_id": feed_id, "site_id": meta.get("site_id", ""), "feed_url": meta.get("feed_url", ""),
+            "history_bucket": history_bucket(coverage.get(feed_id, 0)),
+            "items_per_week": round(count / weeks, 3),
             "relevant_clusters_per_week": round(len(relevant) / weeks, 3),
             "unique_relevant_per_week": round(unique_per_week, 3),
             "first_seen_share": round(len(first) / max(len(relevant), 1), 3),
