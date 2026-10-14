@@ -247,6 +247,18 @@ class FollowUpTests(unittest.TestCase):
         row = inputs._row_candidate({"name": "X", "site_url": "https://x.example/news/", "feed_url": "not_found"}, "I9:x.csv")
         self.assertEqual(row["feed_url"], "")
 
+    def test_sections_stay_on_site_and_platform_feeds_rejected(self):
+        html = '<a href="https://wordpress.org/news/">News</a><a href="/news/">News</a>'
+        _, sections = discover._candidates_from_html("https://site.example/", html)
+        self.assertEqual(sections, ["https://site.example/news/"])
+        self.assertIn("wordpress.org", discover.PLATFORM_HOSTS)
+
+    def test_multilingual_relevance(self):
+        for title in ("Bundeswehr vergibt Auftrag für Drohnen", "Agencja Uzbrojenia podpisała umowę na dostawę",
+                      "La DGA notifie un contrat pour des drones", "Startup de defensa cierra ronda de financiación",
+                      "FMV tecknar kontrakt", "Ministerstvo obrany podepsalo zakázku"):
+            self.assertEqual(relevance.classify(title)["relevant"], "yes", title)
+
     def test_backlog_sends_no_conditional_headers(self):
         seen = []
         class Client(FakeClient):

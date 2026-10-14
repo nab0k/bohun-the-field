@@ -42,6 +42,19 @@ def _news_sitemap(content):
     return news
 
 
+PLATFORM_HOSTS = {"wordpress.org", "wordpress.com", "wordpress.tv", "learn.wordpress.org", "make.wordpress.org",
+                  "developer.wordpress.org", "jobs.wordpress.net", "events.wordpress.org", "blogger.com", "medium.com"}
+
+
+def _host(url):
+    return (urlsplit(url or "").hostname or "").lower().removeprefix("www.")
+
+
+def _same_site(a, b):
+    """Same registrable site, roughly: equal hosts or one is a subdomain of the other."""
+    return bool(a and b) and (a == b or a.endswith("." + b) or b.endswith("." + a))
+
+
 def is_comment_feed(url, title=""):
     path = urlsplit(url or "").path.lower()
     title = (title or "").strip().lower()
@@ -66,7 +79,7 @@ def validate_feed(response, candidate, method):
     valid = [entry for entry in parsed.entries if entry.get("title") and (entry.get("link") or entry.get("links"))]
     if fatal or not valid:
         return None
-    if is_comment_feed(response.url, parsed.feed.get("title", "")):
+    if _host(response.url) in PLATFORM_HOSTS or is_comment_feed(response.url, parsed.feed.get("title", "")):
         return None  # WordPress comment feeds echo article titles and would inflate yield
     fmt = "atom" if "atom" in (parsed.version or "").lower() or "atom" in content_type else "rss"
     dates = [value for value in (_date(entry) for entry in valid) if value]
@@ -100,10 +113,13 @@ def _candidates_from_html(base, html):
         if "rss" in media_type or "atom" in media_type:
             found.append((urljoin(base, node["href"]), "html-alternate"))
     sections = []
+    base_host = _host(base)
     for node in soup.select("a[href]"):
         text = (node.get_text(" ", strip=True) + " " + node.get("href", "")).lower()
-        if any(hint in text for hint in NEWS_HINTS):
-            sections.append(urljoin(base, node["href"]))
+        url = urljoin(base, node["href"])
+        # only the site's own news sections: a "News" link to wordpress.org made WordPress feeds look like channels
+        if any(hint in text for hint in NEWS_HINTS) and _same_site(_host(url), base_host):
+            sections.append(url)
     return found, sections[:5]
 
 
