@@ -1,0 +1,7 @@
+name,site_url,feed_url,country,language,type_no,signal_hint,tier_hint,last_news_date,notes
+Hardthöhenkurier,https://hardthoehenkurier.de/,,DE,de,8,media,P1,2026-04-04,Fachmagazin für Soldaten und Wehrtechnik; Print- und Onlineausgabe
+bundeswehr-journal.de,https://www.bundeswehr-journal.de/,,DE,de,8,media,P1,2026-01-01,Unabhängiges Militärmagazin; Online-Publikation
+Wehrtechnik (Mönch),https://wehrtechnik.info/,,DE,de,8,media,P1,2026-02-20,Fachzeitschrift für Militärtechnik; seit 1969
+Defence Industry Europe,https://defence-industry.eu/,https://defence-industry.eu/feed,DE,en,8,media,P1,2026-10-01,Englischsprachiges Portal; RSS valid
+Deutsche Gesellschaft für Wehrtechnik (DWT),https://www.dwt-sgw.de/,,DE,de,7,industry_capacity,P1,2026-08-20,Dialog- und Informationsplattform Bundeswehr/Wirtschaft/Forschung
+Bundeswehr – Alle Meldungen,https://www.bundeswehr.de/de/meldungen,https://www.bundeswehr.de/de/rss,DE,de,1,policy_budgets,P0,2026-10-12,Zentrale Nachrichtenseite der Bundeswehr; RSS-Feed verfügbar
