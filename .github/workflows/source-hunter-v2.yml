@@ -1,0 +1,33 @@
+name: Source Hunter v2 (bounded, resumable)
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Target technical feed candidates (not confirmed relevance)"
+        required: false
+        default: "1000"
+      resume_artifact_url:
+        description: "Optional direct URL to previously downloaded artifact ZIP (public only)"
+        required: false
+        default: ""
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install requests feedparser beautifulsoup4 lxml
+      - name: Run bounded source discovery
+        run: python tools/source_hunter_v2.py --minutes 17 --workers 12 --target "${{ inputs.target }}"
+      - name: Upload outputs and checkpoint
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bohun-source-hunter-v2
+          path: output/source-hunter-v2/
+          retention-days: 30
