@@ -1,0 +1,16 @@
+name,site_url,feed_url,country,language,signal_hint,tier_hint,notes
+West Midlands RDSC,https://www.wmca.org.uk/news/,not_found,UK,en,policy_budgets,P1,"Type 6; Regional Defence & Security Cluster,  launched May 2026; 23, 500 employed,  £1.7bn MOD spend; no RSS"
+Yorkshire RDSC,https://dsei-gateway.com/en/news/,not_found,UK,en,policy_budgets,P1,"Type 6; YRDSC launched June 2026,  cluster 13 of 16; £1bn annual defence spend; no RSS"
+Wales RDSC,https://tradeandinvest.wales/inside-story/,not_found,UK,en,policy_budgets,P1,"Type 6; launched March 2026; 16, 000 employed,  £3.7bn turnover; industry-led by Airbus & Thales; no RSS"
+Cambridge Aerospace,https://www.cambridgeaerospace.com/,not_found,UK,en,capital_investments,P1,"Type 10; $300M Series C at $3.4bn valuation,  Aug 2026; total funding $636M; no dedicated newsroom"
+Pyra (Nick Blair),not_found,not_found,UK,en,capital_investments,P2,"Type 10; seeking $200M,  founded Nov 2025; no public newsroom; covered by Sifted/FT"
+Kraken Technology,not_found,not_found,UK,en,capital_investments,P1,"Type 10; £27M from British Business Bank,  £130M Series B; autonomous maritime platforms; no newsroom"
+Tekever,not_found,not_found,UK,en,capital_investments,P1,"Type 10; raised $580M,  autonomous systems; no newsroom"
+GALLOS Technologies,not_found,not_found,UK,en,capital_investments,P2,"Type 9; raised $50M,  company builder for security/defence/resilience startups; no RSS"
+UK Defence Tech,https://ukdefencetech.com/,not_found,UK,en,media,P1,"Type 7; new platform for UK defence & aerospace tech; newsletter,  podcast coming; no RSS"
+Defence Online,https://www.defenceonline.co.uk/news/features/,not_found,UK,en,media,P2,"Type 7; analysis for SMEs,  cyber security,  procurement; no RSS"
+Resilience Media,https://resiliencemedia.co/category/ukdefence/,not_found,UK,en,media,P1,"Type 7; UK defence tech news,  startup funding,  procurement; no RSS"
+Fox and Lion,https://vulpesetleo.substack.com/,https://vulpesetleo.substack.com/feed,UK,en,media,P2,"Type 7; independent defence tech analysis,  newsletter RSS works"
+BANAIR (Powys),not_found,not_found,UK,en,industry_capacity,P2,Type 10; military bridging systems; purchased Welsh Government land for testing; no newsroom
+Cicor Group (Newport),not_found,not_found,UK,en,industry_capacity,P2,Type 10; Swiss company expanding in Newport; aerospace/defence supply agreement; no newsroom
+Leonardo Edinburgh,not_found,not_found,UK,en,industry_capacity,P2,Type 10; Leonardo Manufacturing facility in Edinburgh; UK-Japan-Italy trilateral defence agreement; no dedicated newsroom

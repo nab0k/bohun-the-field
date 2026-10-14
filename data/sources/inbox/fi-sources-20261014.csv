@@ -1,0 +1,20 @@
+name,site_url,feed_url,country,language,signal_hint,tier_hint,notes
+Ministry of Defence (Puolustusministeriö),https://defmin.fi/en/current-issues,https://www.defmin.fi/rss/puolustusministerio_uutiset_ja_tiedotteet,FI,fi,policy_budgets,P1,1. Ministry of Defence; RSS активен; финский/шведский/английский
+Defence Forces Logistics Command (Puolustusvoimien logistiikkalaitos),https://logistiikkalaitos.fi/en/news,https://logistiikkalaitos.fi/en/news?format=rss,FI,fi,procurement_award,P1,2. Procurement Agency; RSS доступен; закупки >60 000 €
+Hilma (hankintailmoitukset.fi),https://www.hankintailmoitukset.fi/en/,not_found,FI,fi,procurement_award,P1,2. Procurement Registry; API: https://api.hankintailmoitukset.fi/avp/eformnotices/docs/search
+MATINE (Scientific Advisory Board for Defence),https://defmin.fi/en/administrative-branch/scientific-advisory-board-for-defence,not_found,FI,fi,innovation_rd,P1,3. R&D Agency; гранты и конкурсы; только местный язык
+Defence Committee (Puolustusvaliokunta),https://www.eduskunta.fi/en/members-and-parliamentary-bodies/committees/defence-committee,not_found,FI,fi,law_regulation,P1,4. Parliamentary Committee; sitemap; повестки и протоколы
+Ministry of Defence – Export Control,https://defmin.fi/en/administrative-branch/defence-materiel-and-defence-industry,not_found,FI,fi,export_rules,P1,5. Export Control; экспорт военной продукции; только местный язык
+Ministry for Foreign Affairs – Export Control,https://um.fi/export-control,not_found,FI,fi,export_rules,P1,5. Export Control (dual-use); dual-use; только местный язык
+PIA (Finnish Defence and Aerospace Industries),https://teknologiateollisuus.fi/pia/en/front-page/,not_found,FI,fi,industry_capacity,P1,6. Industry Association; член ASD; ~300 компаний
+Ruotuväki (Finnish Defence Forces news magazine),https://ruotuvaki.fi/,,FI,fi,media,P1,7. Defence Media; английская версия доступна с 2026; RSS не найден
+Nordic Defence Sector,https://nordicdefencesector.com/,not_found,FI,fi,media,P1,"7. Defence Media; независимая платформа; Швеция,  Норвегия,  Дания,  Финляндия"
+Maanpuolustus-lehti,https://www.maanpuolustus-lehti.fi/,not_found,FI,fi,media,P1,7. Defence Media; только местный язык; тематика национальной обороны
+ArcticStartup,https://arcticstartup.com/,https://arcticstartup.com/feed/,FI,fi,capital_investments,P1,8. Business Media; RSS активен; стартапы и венчур
+Kauppalehti,https://www.kauppalehti.fi/,not_found,FI,fi,capital_investments,P1,8. Business Media; платный доступ; деловая аналитика
+Tesi (Finnish Industry Investment),https://tesi.fi/en/,not_found,FI,fi,capital_investments,P1,"9. State Investment Fund; инвестиции в deep tech,  defence; RSS не найден"
+Business Finland,https://www.businessfinland.fi/en/,not_found,FI,fi,capital_investments,P1,9. State Funding Agency; гранты и финансирование инноваций; RSS через подкасты
+Patria,https://www.patriagroup.com/fi/media,not_found,FI,fi,industry_capacity,P1,10. Defence Company; newsroom; RSS не найден
+Bittium,https://www.bittium.com/news,not_found,FI,fi,industry_capacity,P1,10. Defence Company; Defence & Security; RSS не найден
+ICEYE,https://www.iceye.com/newsroom/press-releases/all,not_found,FI,fi,industry_capacity,P1,10. Defence Company; space tech; RSS не найден
+Summa Defence Plc,https://www.summa.fi/,not_found,FI,fi,industry_capacity,P1,10. Defence Startup; dual-use technology group; корпоративная реструктуризация 2026

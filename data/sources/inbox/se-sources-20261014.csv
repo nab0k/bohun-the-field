@@ -1,0 +1,20 @@
+name,site_url,feed_url,country,language,signal_hint,tier_hint,notes
+Försvarsmakten,https://www.forsvarsmakten.se/sv/aktuellt/nyheter/,not_found,SE,sv,policy_budgets,P1,1. Ministry of Defence; sv; sitemap; RSS Parrot
+Försvarets materielverk (FMV),https://www.fmv.se/aktuellt--press/aktuella-handelser/,not_found,SE,sv,procurement_award,P1,2. Procurement Agency; sv; sitemap
+Vinnova,https://www.vinnova.se/sv/utlysningar/,https://www.vinnova.se/rss,SE,sv,innovation_rd,P1,3. Innovation Agency; sv; en; RSS valid
+LEAD (NATO DIANA accelerator),https://lead.mynewsdesk.com/,https://lead.mynewsdesk.com/rss,SE,sv,innovation_rd,P1,3. Innovation Agency; sv; en; RSS valid
+Försvarsutskottet (Riksdagen),https://www.riksdagen.se/sv/sa-fungerar-riksdagen/utskotten-och-eu-namnden/forsvarsutskottet/,https://www.riksdagen.se/sv/rss/utskott/forsvarsutskottet,SE,sv,law_regulation,P1,4. Parliamentary Committee; sv; RSS valid
+Inspektionen för strategiska produkter (ISP),https://isp.se/aktuellt/,https://isp.se/feed/,SE,sv,export_rules,P1,5. Export Control; sv; RSS valid
+SOFF (Säkerhets- och försvarsföretagen),https://soff.se/,,SE,sv,industry_capacity,P1,6. Industry Association; sv; en; event feed only was given
+SME-D (Små och medelstora företag i försvarssektorn),https://sme-d.se/,not_found,SE,sv,industry_capacity,P1,6. Industry Association; sv; sitemap
+Altinget (försvar),https://www.altinget.se/forsvar,not_found,SE,sv,media,P1,7. Defence Media; sv; sitemap
+Dagens Industri,https://www.di.se/,not_found,SE,sv,capital_investments,P1,8. Business Media; sv; paywall
+Affärsvärlden,https://www.affarsvarlden.se/,not_found,SE,sv,capital_investments,P1,8. Business Media; sv; paywall
+Breakit,https://www.breakit.se/,not_found,SE,sv,capital_investments,P1,8. Startup Media; sv
+Totalförsvarsstiftelsen,https://totalforsvar.org/,not_found,SE,sv,capital_investments,P1,9. State Fund; sv
+Sjätte AP-fonden,https://www.sjatteapfonden.se/,not_found,SE,sv,capital_investments,P1,9. State Fund; sv; defence fund
+Saab,https://www.saab.com/sv/newsroom,https://www.saab.com/sv/rss,SE,sv,industry_capacity,P1,10. Defence Company; sv; en; RSS valid
+BAE Systems Hägglunds,https://www.baesystems.com/en-se/hagglunds,not_found,SE,sv,industry_capacity,P1,10. Defence Company; en; sv
+Nammo,https://www.nammo.com/news/,https://www.nammo.com/feed/,SE,sv,industry_capacity,P1,10. Defence Company; en; RSS valid
+Swedish Space Corporation (SSC Space),https://sscspace.com/news/,https://sscspace.com/feed/,SE,sv,industry_capacity,P1,10. Defence Company; en; sv; RSS valid
+FOI,https://www.foi.se/en/foi/news-and-pressroom.html,https://www.foi.se/rss,SE,sv,industry_capacity,P1,10. Think Tank; sv; en; RSS valid
