@@ -1,0 +1,22 @@
+name,site_url,feed_url,country,language,signal_hint,tier_hint,notes
+Forsvarsministeriet – nyheder,https://www.fmn.dk/da/nyheder/,,DK,da,policy_budgets,P0,type 1
+Forsvaret – nyheder,https://www.forsvaret.dk/da/nyheder/,https://www.forsvaret.dk/da/nyheder/rss/,DK,da,policy_budgets,P1,type 1; RSS
+FMI (Forsvarsministeriets Materiel- og Indkøbsstyrelse),https://www.fmi.dk/da/nyheder/,,DK,da,procurement_award,P0,type 2
+Danish Defence Innovation Unit / DALO Industry Days,https://www.daloindustrydays.dk/,,DK,da,innovation_rd,P1,type 3
+Innovationsfonden – Defence Tech Denmark,https://innovationsfonden.dk/da/defence-tech-denmark,,DK,da,grants_challenges,P0,type 3
+"CenSec – Danish Defence, Space & Security Cluster",https://censec.dk/nyheder/,,DK,da,industry_capacity,P1,type 3/6; challenges
+Folketingets Forsvarsudvalg,https://www.ft.dk/udvalg/udvalgene/udvalg/forsvarsudvalget,,DK,da,law_regulation,P1,type 4
+Erhvervsstyrelsen – Eksportkontrol,https://eksportkontrol.erhvervsstyrelsen.dk/nyheder,https://eksportkontrol.erhvervsstyrelsen.dk/rss,DK,da,export_rules,P0,type 5; dual-use; RSS
+DI Forsvar og Sikkerhed,https://www.danskindustri.dk/di-forsvar-og-sikkerhed/,,DK,da,industry_capacity,P1,type 6
+Naval Team Denmark,https://www.navalteam.dk/news,,DK,en,industry_capacity,P2,type 6
+OLFI,https://olfi.dk/,,DK,da,media,P1,type 7; partly paywalled
+Altinget Forsvar og Beredskab,https://www.altinget.dk/forsvar,,DK,da,media,P1,type 7; site-wide RSS dropped
+Defence Nordic,https://www.defencenordic.com/,,DK,en,media,P1,type 7; Nordic defence industry
+TechSavvy Media,https://techsavvy.media/,,DK,en,capital_investments,P1,type 8
+EIFO – Danmarks Eksport- og Investeringsfond,https://eifo.dk/nyheder,,DK,da,capital_investments,P0,type 9
+Innovationsfonden – nyheder,https://innovationsfonden.dk/da/nyheder,,DK,da,grants_challenges,P1,type 9
+Terma,https://www.terma.com/news/,,DK,en,industry_capacity,P1,type 10
+Systematic,https://systematic.com/newsroom/,,DK,en,industry_capacity,P1,type 10
+MyDefence,https://mydefence.com/news/,,DK,en,innovation_rd,P2,type 10
+Upteko,https://upteko.com/news/,,DK,en,innovation_rd,P2,type 10
+Sky-Watch,https://sky-watch.com/news/,,DK,en,innovation_rd,P2,type 10
