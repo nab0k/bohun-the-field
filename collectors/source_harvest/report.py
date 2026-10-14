@@ -55,6 +55,25 @@ def build(output_dir, *, duration_seconds=0, request_count=0, gemini_spend=0):
     print(f"::notice::HARVEST_FUNNEL candidates={len(candidates)} valid_feeds={len(feeds)} coverage_14d={report['funnel']['coverage_14d']} no_rss={report['funnel']['no_rss']} not_attempted={report['funnel']['not_attempted_deadline']}")
     print("::notice::HARVEST_STATUS " + " ".join(f"{key}={value}" for key, value in sorted(statuses.items())))
     print("::notice::HARVEST_HISTORY " + " ".join(f"{key}={value}" for key, value in history_dist.items()) + " sources=" + ",".join(f"{k}:{v}" for k, v in sorted(history_sources.items())))
+    # Full channel table as compact notices (artifacts are not always downloadable): name|bucket|unique/wk|items|status
+    rows = sorted(metrics, key=lambda row: (-float(row.get("unique_relevant_per_week") or 0), row.get("name", "")))
+    lines_ = [f"{(row.get('name') or row.get('feed_url', ''))[:40]}|{row.get('history_bucket', '')}|{row.get('unique_relevant_per_week')}|{row.get('items')}|{row.get('status')}" for row in rows]
+    chunk, chunks = [], []
+    for line in lines_:
+        if sum(len(x) + 3 for x in chunk) + len(line) > 3500:
+            chunks.append(chunk); chunk = []
+        chunk.append(line)
+    if chunk:
+        chunks.append(chunk)
+    for index, part in enumerate(chunks[:9], 1):
+        print(f"::notice title=HARVEST_CHANNELS_{index}::" + " ;; ".join(part))
+    prov_feeds = Counter()
+    site_prov = {row.get("site_id"): row.get("provenance", "") for row in candidates}
+    for row in feeds:
+        for part in site_prov.get(row.get("site_id"), "").split("|"):
+            if part:
+                prov_feeds[part.split(":")[0] if not part.startswith("I9") else part] += 1
+    print("::notice::HARVEST_FEEDS_BY_INPUT " + " ".join(f"{k}={v}" for k, v in sorted(prov_feeds.items())))
     top_notice = ", ".join(f"{row.get('name') or row['feed_id']}={row['unique_relevant_per_week']}/wk" for row in top[:15])
     print("::notice::HARVEST_TOP10 " + (top_notice or "none"))
     print(f"::notice::HARVEST_EMPTY_CELLS count={len(empty)} examples=" + ", ".join(f"{row['signal']}×{row['region']}" for row in empty[:12]))

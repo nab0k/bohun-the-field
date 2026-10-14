@@ -1,0 +1,176 @@
+name,site_url,country,language,signal_hint,tier_hint,notes
+Ukraine Ministry of Defence,https://www.mil.gov.ua,UA,uk,policy_budgets,P0,MoD news
+Ukraine Ministry of Strategic Industries,https://mspu.gov.ua,UA,uk,industry_capacity,P0,defence industry ministry
+Brave1,https://brave1.gov.ua,UA,uk,grants_challenges,P0,defence tech cluster
+Defence Procurement Agency Ukraine,https://dot.gov.ua,UA,uk,procurement_award,P0,DOT agency
+Prozorro,https://prozorro.gov.ua,UA,uk,procurement_award,P1,public procurement
+Ukroboronprom / Ukrainian Defense Industry,https://ukrdefense.com.ua,UA,uk,industry_capacity,P1,
+National Association of Ukrainian Defense Industries,https://nauoi.org.ua,UA,uk,industry_capacity,P1,NAUDI
+Defence Express,https://defence-ua.com,UA,uk,media,P0,
+Militarnyi,https://mil.in.ua,UA,uk,media,P0,
+ArmyInform,https://armyinform.com.ua,UA,uk,media,P1,
+Mezha,https://mezha.media,UA,uk,media,P1,tech
+DOU,https://dou.ua,UA,uk,startup,P1,tech community
+AIN.UA,https://ain.ua,UA,uk,startup,P0,startups & funding
+Forbes Ukraine,https://forbes.ua,UA,uk,capital_investments,P1,
+Ekonomichna Pravda,https://www.epravda.com.ua,UA,uk,capital_investments,P1,business press
+Kyiv Independent,https://kyivindependent.com,UA,en,media,P1,
+Ukrainska Pravda,https://www.pravda.com.ua,UA,uk,media,P2,
+Verkhovna Rada news,https://www.rada.gov.ua,UA,uk,law_regulation,P1,parliament
+Ukrainian Startup Fund,https://usf.com.ua,UA,uk,grants_challenges,P1,
+Germany BMVg,https://www.bmvg.de,DE,de,policy_budgets,P0,
+BAAINBw,https://www.baainbw.de,DE,de,procurement_award,P0,procurement office
+Cyber Innovation Hub Bundeswehr,https://cyberinnovationhub.de,DE,de,innovation_rd,P0,
+Cyberagentur,https://www.cyberagentur.de,DE,de,innovation_rd,P1,
+SPRIND,https://www.sprind.org,DE,de,innovation_rd,P1,
+BAFA export control,https://www.bafa.de,DE,de,export_rules,P0,
+Bundestag Verteidigungsausschuss,https://www.bundestag.de,DE,de,law_regulation,P1,
+BDSV,https://www.bdsv.eu,DE,de,industry_capacity,P1,
+BDLI,https://www.bdli.de,DE,de,industry_capacity,P1,
+Hartpunkt,https://www.hartpunkt.de,DE,de,media,P0,
+Europaeische Sicherheit & Technik,https://esut.de,DE,de,media,P0,
+Behoerden Spiegel,https://www.behoerden-spiegel.de,DE,de,procurement_award,P1,
+Augen geradeaus,https://augengeradeaus.net,DE,de,media,P1,
+Griephan,https://griephan.de,DE,de,media,P2,
+Handelsblatt,https://www.handelsblatt.com,DE,de,capital_investments,P1,business press
+Deutsche Startups,https://www.deutsche-startups.de,DE,de,capital_investments,P0,startup funding
+Gruenderszene,https://www.businessinsider.de/gruenderszene,DE,de,capital_investments,P1,
+Poland MoD,https://www.gov.pl/web/obrona-narodowa,PL,pl,policy_budgets,P0,
+Agencja Uzbrojenia,https://www.gov.pl/web/agencja-uzbrojenia,PL,pl,procurement_award,P0,armament agency
+PGZ Polish Armaments Group,https://www.pgzsa.pl,PL,pl,industry_capacity,P1,
+Polski Fundusz Rozwoju,https://pfr.pl,PL,pl,capital_investments,P1,
+PFR Ventures,https://pfrventures.pl,PL,pl,capital_investments,P1,
+NCBR,https://www.gov.pl/web/ncbr,PL,pl,grants_challenges,P1,R&D agency
+Zbrojni.pl / Defence24.pl,https://defence24.pl,PL,pl,media,P0,
+Portal Obronny,https://portalobronny.se.pl,PL,pl,media,P1,
+Milmag,https://milmag.pl,PL,pl,media,P1,
+ZBiAM / Zbiam,https://zbiam.pl,PL,pl,media,P1,
+Rzeczpospolita,https://www.rp.pl,PL,pl,capital_investments,P1,business press
+Puls Biznesu,https://www.pb.pl,PL,pl,capital_investments,P1,
+MamStartup,https://mamstartup.pl,PL,pl,capital_investments,P1,
+France Ministere des Armees,https://www.defense.gouv.fr,FR,fr,policy_budgets,P0,
+Agence de l'innovation de defense,https://www.defense.gouv.fr/aid,FR,fr,innovation_rd,P0,AID
+GICAT,https://www.gicat.com,FR,fr,industry_capacity,P1,
+GIFAS,https://www.gifas.fr,FR,fr,industry_capacity,P1,
+Bpifrance,https://www.bpifrance.fr,FR,fr,capital_investments,P1,
+Opex360,https://www.opex360.com,FR,fr,media,P0,
+Forces Operations Blog,https://www.forcesoperations.com,FR,fr,media,P0,
+Meta-defense,https://meta-defense.fr,FR,fr,media,P1,
+La Tribune defense,https://www.latribune.fr,FR,fr,capital_investments,P1,
+Les Echos,https://www.lesechos.fr,FR,fr,capital_investments,P1,
+Maddyness,https://www.maddyness.com,FR,fr,capital_investments,P1,startup funding
+UK MoD news,https://www.gov.uk/government/organisations/ministry-of-defence,UK,en,policy_budgets,P0,
+UK DE&S,https://www.gov.uk/government/organisations/defence-equipment-and-support,UK,en,procurement_award,P0,
+UK DASA,https://www.gov.uk/government/organisations/defence-and-security-accelerator,UK,en,grants_challenges,P0,
+UK Defence Innovation (UKDI),https://www.gov.uk/government/organisations/uk-defence-innovation,UK,en,innovation_rd,P1,
+UK Export Control Joint Unit,https://www.gov.uk/government/organisations/export-control-joint-unit,UK,en,export_rules,P0,
+UK National Security Strategic Investment Fund,https://www.nssif.gov.uk,UK,en,capital_investments,P1,
+ADS Group,https://www.adsgroup.org.uk,UK,en,industry_capacity,P1,
+UK Defence Journal,https://ukdefencejournal.org.uk,UK,en,media,P0,
+Forces News,https://www.forcesnews.com,UK,en,media,P2,
+UKTN,https://www.uktech.news,UK,en,capital_investments,P1,
+House of Commons Defence Committee,https://committees.parliament.uk/committee/24/defence-committee,UK,en,law_regulation,P1,
+Netherlands Defensie,https://www.defensie.nl,NL,nl,policy_budgets,P0,
+NIDV,https://www.nidv.eu,NL,nl,industry_capacity,P1,
+DMO / COMMIT Netherlands,https://www.defensie.nl/organisatie/commit,NL,nl,procurement_award,P1,
+TNO defence,https://www.tno.nl,NL,nl,innovation_rd,P2,
+Militaire Spectator,https://militairespectator.nl,NL,nl,media,P1,
+Defensie Krant,https://www.defensie.nl/actueel,NL,nl,media,P1,
+Silicon Canals,https://siliconcanals.com,NL,en,capital_investments,P0,startup funding
+Denmark Forsvarsministeriet,https://www.fmn.dk,DK,da,policy_budgets,P0,
+Danish Defence Acquisition and Logistics Organisation,https://www.fmi.dk,DK,da,procurement_award,P0,FMI
+Danish Defence & Security Industries Association,https://di.dk/ddsi,DK,da,industry_capacity,P1,
+Danish Export Control,https://erhvervsstyrelsen.dk,DK,da,export_rules,P1,
+Olfi,https://www.olfi.dk,DK,da,media,P1,
+Borsen,https://borsen.dk,DK,da,capital_investments,P1,
+Sweden Forsvarsdepartementet,https://www.regeringen.se/regeringens-organisation/forsvarsdepartementet,SE,sv,policy_budgets,P0,
+FMV Sweden,https://www.fmv.se,SE,sv,procurement_award,P0,
+ISP Inspektionen for strategiska produkter,https://isp.se,SE,sv,export_rules,P0,
+FOI Swedish Defence Research Agency,https://www.foi.se,SE,sv,innovation_rd,P1,
+SOFF,https://www.soff.se,SE,sv,industry_capacity,P1,
+Forsvarets Forum / Forsvarsmakten,https://www.forsvarsmakten.se,SE,sv,media,P1,
+Breakit,https://www.breakit.se,SE,sv,capital_investments,P1,startup funding
+Dagens Industri,https://www.di.se,SE,sv,capital_investments,P1,
+Finland Ministry of Defence,https://www.defmin.fi,FI,fi,policy_budgets,P0,
+Finnish Defence Forces Logistics Command,https://puolustusvoimat.fi,FI,fi,procurement_award,P0,
+PIA Finnish Defence and Aerospace Industries,https://www.pia.fi,FI,fi,industry_capacity,P1,
+Maanpuolustus,https://maanpuolustus.net,FI,fi,media,P2,
+Arctic Startup,https://arcticstartup.com,FI,en,capital_investments,P1,
+Kauppalehti,https://www.kauppalehti.fi,FI,fi,capital_investments,P2,
+Norway Ministry of Defence,https://www.regjeringen.no/no/dep/fd,NO,no,policy_budgets,P0,
+Norwegian Defence Materiel Agency,https://www.fma.no,NO,no,procurement_award,P0,
+Forsvarets forskningsinstitutt,https://www.ffi.no,NO,no,innovation_rd,P1,
+FSi Norwegian Defence and Security Industries,https://fsi.no,NO,no,industry_capacity,P1,
+Forsvarets Forum,https://forsvaretsforum.no,NO,no,media,P1,
+Shifter,https://www.shifter.no,NO,no,capital_investments,P1,startup funding
+Estonia Ministry of Defence,https://kaitseministeerium.ee,EE,et,policy_budgets,P0,
+Estonian Centre for Defence Investments,https://www.kaitseinvesteeringud.ee,EE,et,procurement_award,P0,ECDI
+Estonian Defence and Aerospace Industry Association,https://www.defence.ee,EE,et,industry_capacity,P1,
+Defence Estonia Cluster,https://defenceestonia.ee,EE,en,industry_capacity,P1,
+ERR News,https://news.err.ee,EE,en,media,P1,
+Latvia Ministry of Defence,https://www.mod.gov.lv,LV,lv,policy_budgets,P0,
+Latvia State Defence Logistics and Procurement Centre,https://www.vamoic.gov.lv,LV,lv,procurement_award,P1,
+Latvian Federation of Security and Defence Industries,https://www.dai.lv,LV,lv,industry_capacity,P1,
+LSM English,https://eng.lsm.lv,LV,en,media,P1,
+Lithuania Ministry of National Defence,https://kam.lt,LT,lt,policy_budgets,P0,
+Lithuania Defence Materiel Agency,https://www.dma.lt,LT,lt,procurement_award,P0,
+Lithuanian Defence and Security Industry Association,https://www.lsgpa.lt,LT,lt,industry_capacity,P1,
+LRT English,https://www.lrt.lt/en,LT,en,media,P1,
+Czech Ministry of Defence,https://mocr.army.cz,CZ,cs,policy_budgets,P0,
+Czech Defence and Security Industry Association,https://www.aobp.cz,CZ,cs,industry_capacity,P1,
+Czech Licensing Administration (export),https://www.mpo.gov.cz,CZ,cs,export_rules,P1,
+CZDEFENCE,https://www.czdefence.com,CZ,en,media,P1,
+Armadni noviny,https://www.armadninoviny.cz,CZ,cs,media,P1,
+CzechCrunch,https://cc.cz,CZ,cs,capital_investments,P1,startup funding
+Romania Ministry of National Defence,https://www.mapn.ro,RO,ro,policy_budgets,P0,
+Romania Department for Armaments,https://dpa.mapn.ro,RO,ro,procurement_award,P1,
+Romarm,https://www.romarm.ro,RO,ro,industry_capacity,P1,
+Defense Romania,https://www.defenseromania.ro,RO,ro,media,P1,
+Start-Up.ro,https://start-up.ro,RO,ro,capital_investments,P2,
+Belgium Defence,https://www.mil.be,BE,en,policy_budgets,P1,
+Belgian Security and Defence Industry,https://www.bsdi.be,BE,en,industry_capacity,P1,
+Italy Ministero della Difesa,https://www.difesa.it,IT,it,policy_budgets,P1,
+AIAD,https://www.aiad.it,IT,it,industry_capacity,P1,
+Analisi Difesa,https://www.analisidifesa.it,IT,it,media,P1,
+Rivista Italiana Difesa,https://www.rid.it,IT,it,media,P1,
+Spain Ministerio de Defensa,https://www.defensa.gob.es,ES,es,policy_budgets,P1,
+TEDAE,https://www.tedae.org,ES,es,industry_capacity,P1,
+Infodefensa,https://www.infodefensa.com,ES,es,media,P0,
+Portugal Ministerio da Defesa,https://www.defesa.gov.pt,PT,pt,policy_budgets,P2,
+idD Portugal Defence,https://www.iddportugal.pt,PT,pt,industry_capacity,P2,
+Operacional,https://www.operacional.pt,PT,pt,media,P2,
+European Defence Fund (EDF) news,https://defence-industry-space.ec.europa.eu/eu-defence-industry/european-defence-fund-edf-official-webpage-european-commission_en,EU,en,grants_challenges,P0,
+EU Defence Innovation Scheme,https://eudis.europa.eu,EU,en,grants_challenges,P0,
+ASD Europe,https://www.asd-europe.org,EU,en,industry_capacity,P1,
+OCCAR,https://www.occar.int,EU,en,procurement_award,P1,
+European Parliament SEDE,https://www.europarl.europa.eu/committees/en/sede/home/highlights,EU,en,law_regulation,P1,
+Bruegel,https://www.bruegel.org,EU,en,research_analysis,P2,
+EU-Startups,https://www.eu-startups.com,EU,en,capital_investments,P0,startup funding
+Dealroom blog,https://dealroom.co,EU,en,capital_investments,P1,
+The Recursive,https://therecursive.com,EU,en,capital_investments,P0,CEE startups
+Startup.ch / Silicon Republic,https://www.siliconrepublic.com,EU,en,capital_investments,P2,
+NATO DIANA news,https://www.diana.nato.int,NATO,en,grants_challenges,P0,
+NATO ACT,https://www.act.nato.int,NATO,en,innovation_rd,P1,
+NCIA,https://www.ncia.nato.int,NATO,en,procurement_award,P1,
+Defense Innovation Unit,https://www.diu.mil,US,en,innovation_rd,P1,
+Office of Strategic Capital,https://www.cto.mil/osc,US,en,capital_investments,P1,
+US DoD contracts,https://www.defense.gov/News/Contracts,US,en,procurement_award,P0,daily contract awards
+DefenseScoop,https://defensescoop.com,US,en,media,P0,
+Defense Daily,https://www.defensedaily.com,US,en,media,P1,
+National Defense Magazine,https://www.nationaldefensemagazine.org,US,en,media,P1,
+TechCrunch defense,https://techcrunch.com,US,en,capital_investments,P1,
+Axios Pro Defense / Axios,https://www.axios.com,US,en,capital_investments,P2,
+PitchBook news,https://pitchbook.com/news,US,en,capital_investments,P1,
+Defense & Aerospace Report,https://defaeroreport.com,US,en,media,P2,
+Defense Post,https://www.thedefensepost.com,Global,en,media,P1,
+Calibre Defence,https://www.calibredefence.co.uk,UK,en,media,P2,
+Overt Defense,https://www.overtdefense.com,Global,en,media,P2,
+Unmanned Systems Technology,https://www.unmannedsystemstechnology.com,Global,en,media,P0,dual-use
+DroneLife,https://dronelife.com,Global,en,media,P1,dual-use
+SpaceNews,https://spacenews.com,Global,en,media,P0,dual-use space
+European Spaceflight,https://europeanspaceflight.com,EU,en,media,P1,dual-use space
+Payload,https://payloadspace.com,US,en,capital_investments,P1,space funding
+The Robot Report,https://www.therobotreport.com,Global,en,media,P2,dual-use
+Defence Connect (AU),https://www.defenceconnect.com.au,AU,en,media,P2,
+Asian Military Review,https://www.asianmilitaryreview.com,APAC,en,media,P2,
+Turkey Defence Turkey,https://www.defenceturkey.com,TR,en,media,P2,
