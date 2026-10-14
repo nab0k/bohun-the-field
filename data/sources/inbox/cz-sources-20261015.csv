@@ -1,0 +1,45 @@
+name,site_url,feed_url,country,language,signal_hint,tier_hint,notes
+Ministerstvo obrany ČR,https://www.mo.gov.cz,,CZ,cs,policy_budgets,P1,"Министерство обороны; Официальный сайт. Новости, пресс-релизы, закупки."
+Armáda ČR,https://acr.mo.gov.cz,,CZ,cs,policy_budgets,P1,"Министерство обороны; Официальный сайт Вооружённых сил. Новости, учения."
+Vojenský opravárenský podnik (VOP),https://vepozs.mo.gov.cz,,CZ,cs,policy_budgets,P1,Министерство обороны; Государственный ремонтный и оборонный подрядчик. Новости.
+NEN (Národní elektronický nástroj),https://nen.nipez.cz,,CZ,cs,procurement_award,P1,"Закупочное агентство; Официальный портал госзакупок. Тендеры, контракты."
+Registr smluv,https://smlouvy.gov.cz,,CZ,cs,procurement_award,P1,Закупочное агентство; Реестр государственных контрактов.
+Technologická agentura ČR — PRODEF,https://tacr.gov.cz,,CZ,cs,innovation_rd,P1,Агентство оборонных инноваций; Программа поддержки прикладных исследований и инноваций в оборонной промышленности.
+CzechInvest — Defence Hub,https://www.businessinfo.cz,,CZ,cs,innovation_rd,P1,Агентство оборонных инноваций; Акселерационная площадка DIANA. Поддержка dual-use стартапов.
+Výbor pro obranu (Poslanecká sněmovna),https://www.psp.cz,,CZ,cs,law_regulation,P1,Парламентский комитет; Комитет по обороне Палаты депутатов. Протоколы заседаний.
+Celní správa ČR,https://celnisprava.gov.cz,,CZ,cs,export_rules,P1,Орган экспортного контроля; Таможенная служба. Контроль экспорта военного материала и dual-use.
+Ministerstvo průmyslu a obchodu (MPO),https://mpo.gov.cz,,CZ,cs,export_rules,P1,"Орган экспортного контроля; Министерство промышленности и торговли. Лицензии, ежегодные отчёты."
+Asociace obranného a bezpečnostního průmyslu (AOBP),https://aobp.cz,,CZ,cs,industry_capacity,P1,Отраслевая ассоциация; Официальный представительный орган оборонной промышленности. 290+ членов.
+CZ Defence,https://www.czdefence.cz,,CZ,cs,media,P1,Профильные СМИ; Ведущий журнал об обороне и безопасности. YouTube-канал.
+ArmádníZpravodaj.cz,https://armadnizpravodaj.cz,,CZ,cs,media,P1,"Профильные СМИ; Новости об армии, технике и вооружении."
+SecurityMagazin.cz,https://www.securitymagazin.cz,,CZ,cs,media,P1,Профильные СМИ; Крупнейший онлайн-журнал об обороне и безопасности в ЧР и СР.
+Armádní noviny,https://www.armadninoviny.cz,,CZ,cs,media,P1,Профильные СМИ; Специализированное военное издание. Партнёрство с Militarnyi.
+Lupa.cz,https://www.lupa.cz,,CZ,cs,capital_investments,P1,"Деловые медиа; Издание о технологиях и стартапах. Оборонные инновации, фонды."
+E15.cz,https://www.e15.cz,,CZ,cs,capital_investments,P1,"Деловые медиа; Деловое издание. Оборонная промышленность, инвестиции."
+CzechCrunch,https://cc.cz,,CZ,cs,capital_investments,P1,"Деловые медиа; Ведущее стартап-медиа. Оборонные стартапы, венчур."
+Národní rozvojová banka (NRB),https://www.nrb.cz,,CZ,cs,capital_investments,P1,Государственный инвестфонд; Национальный банк развития. Поддержка оборонной промышленности.
+EGAP,https://www.egap.cz,,CZ,cs,capital_investments,P1,Государственный инвестфонд; Экспортная страховая компания. Программа поддержки оборонной промышленности.
+Luminova Ventures,https://www.luminovaventures.com/,,CZ,cs,capital_investments,P1,Государственный инвестфонд; Новый фонд dual-use и deep-tech для обороны.
+Czechoslovak Group (CSG),https://czechoslovakgroup.com,,CZ,cs,industry_capacity,P1,Крупные оборонные компании; Ведущий оборонный холдинг. IPO на Euronext Amsterdam.
+Colt CZ Group,https://www.coltczgroup.com,,CZ,cs,industry_capacity,P1,Крупные оборонные компании; Производство стрелкового оружия. Заводы в 5 странах.
+Omnipol,https://www.omnipol.cz,,CZ,cs,industry_capacity,P1,"Крупные оборонные компании; Оборонный конгломерат. Электронная борьба, тренажёры."
+PBS Group,https://www.pbs.cz,,CZ,cs,industry_capacity,P1,Крупные оборонные компании; Производство реактивных двигателей для БПЛА и ракет.
+VOP CZ,https://www.vop.cz,,CZ,cs,industry_capacity,P1,"Крупные оборонные компании; Государственный оборонный подрядчик. Сборка CV90, ремонт Leopard."
+ELDIS Pardubice,https://www.eldis.cz,,CZ,cs,industry_capacity,P1,Крупные оборонные компании; Радары. 3D радар RL-3000. Часть CSG Aerospace.
+ERA a.s.,https://www.era.cz,,CZ,cs,industry_capacity,P1,"Крупные оборонные компании; Пассивные системы наблюдения, VERA-NG."
+Retia a.s.,https://www.retia.cz,,CZ,cs,industry_capacity,P1,"Крупные оборонные компании; Радиолокационные системы, C4I."
+Aero Vodochody,https://www.aero.cz,,CZ,cs,industry_capacity,P1,Крупные оборонные компании; Авиастроение. L-39NG.
+Tatra Defence Vehicle,https://www.tatradv.cz,,CZ,cs,industry_capacity,P1,"Крупные оборонные компании; Производство бронированных машин (Pandur II, Titus)."
+EVPÚ Defence,https://www.evpu.cz,,CZ,cs,industry_capacity,P1,"Второй эшелон; Инженерное, химическое и медицинское оборудование."
+MESIT defence,https://www.mesit.cz,,CZ,cs,industry_capacity,P1,Второй эшелон; Авиационное и оборонное производство.
+SVOS,https://www.svos.cz,,CZ,cs,industry_capacity,P1,Второй эшелон; Бронированные машины и баллистические стёкла.
+Letecké přístroje Praha,https://www.lpp.cz,,CZ,cs,industry_capacity,P1,Второй эшелон; Навигационные системы для авиации.
+Meopta,https://www.meopta.com,,CZ,cs,industry_capacity,P1,Второй эшелон; Оптика и оптоэлектроника.
+Hlídač státu,https://www.hlidacstatu.cz,,CZ,cs,industry_capacity,P1,Субподрядчики и SME; Мониторинг государственных контрактов и субподрядчиков.
+Univerzita obrany,https://www.unob.cz,,CZ,cs,research_analysis,P1,"Академические центры; Университет обороны. Исследования, CSMSS, факультет военных технологий."
+Vojenský výzkumný ústav (VVÚ),https://www.vvubrno.cz,,CZ,cs,research_analysis,P1,"Академические центры; Военный исследовательский институт. CBRN, материалы, электроника."
+JCBRN Defence CoE,https://www.jcbrncoe.cz,,CZ,cs,research_analysis,P1,Академические центры; Центр передового опыта НАТО по CBRN-защите. Вишков.
+Centrum bezpečnostních a vojensko-strategických studií (CBVSS),https://cbvss.unob.cz,,CZ,cs,research_analysis,P1,Академические центры; Центр исследований безопасности и военной стратегии.
+Centre for Security and Military Strategic Studies (CSMSS),https://csmss.unob.cz,,CZ,cs,research_analysis,P1,Think tanks; Прикладные исследования для Минобороны.
+Prague Center for Transatlantic Relations (PCTR),https://www.pctr.cz,,CZ,cs,research_analysis,P1,Think tanks; Аналитика по чешской внешней и оборонной политике.
+Prague Security Studies Institute (PSSI),https://www.pssi.cz,,CZ,cs,research_analysis,P1,"Think tanks; Исследования в области безопасности, финансовый интеллект."

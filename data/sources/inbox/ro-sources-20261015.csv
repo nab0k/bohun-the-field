@@ -1,0 +1,37 @@
+name,site_url,feed_url,country,language,signal_hint,tier_hint,notes
+Ministry of National Defence (MApN),https://www.mapn.ro,,RO,ro,policy_budgets,P1,"Министерство обороны; Официальный сайт Минобороны. Новости, пресс-релизы, закупки."
+MApN English,https://english.mapn.ro,,RO,ro,policy_budgets,P1,"Министерство обороны; Англоязычная версия. Контракты, BSDA, заявления."
+Statul Major General,https://www.defense.ro,,RO,ro,policy_budgets,P1,"Министерство обороны; Генеральный штаб. Новости, учения, структура."
+Direcția Generală pentru Armamente (DGArm),https://www.dpa.ro,,RO,ro,procurement_award,P1,"Закупочное агентство; Генеральный директорат по вооружениям. Управление качеством, закупки."
+CN Romtehnica SA,https://www.romtehnica.ro,,RO,ro,procurement_award,P1,Закупочное агентство; Государственная компания-закупщик вооружений.
+SEAP (e-licitatie.ro),https://www.e-licitatie.ro,,RO,ro,procurement_award,P1,Закупочное агентство; Официальный портал госзакупок. Публикация тендеров.
+"Comisia pentru apărare, ordine publică și siguranță națională",https://www.senat.ro,,RO,ro,law_regulation,P1,"Парламентский комитет; Комиссия по обороне, общественному порядку и национальной безопасности."
+Comisia de apărare (Camera Deputaților),https://www.cdep.ro,,RO,ro,law_regulation,P1,Парламентский комитет; Комиссия по обороне Палаты депутатов.
+ANCEX (Agenția Națională de Control al Exporturilor),https://www.ancex.ro,,RO,ro,export_rules,P1,Орган экспортного контроля; Национальное агентство экспортного контроля. Лицензии на военные и dual-use товары.
+ROMDEF (Patronatul Industriei Române de Apărare),https://www.romdef.ro,,RO,ro,industry_capacity,P1,Отраслевая ассоциация; Ассоциация работодателей оборонной промышленности. Частный сектор и dual-use.
+OPIA (Organizația Patronală a Industriei de Apărare),https://www.opia.ro,,RO,ro,industry_capacity,P1,"Отраслевая ассоциация; Организация работодателей оборонной промышленности. 129 членов, 50 000+ специалистов."
+Atlas News Romania,https://www.atlasnews.ro,,RO,ro,media,P1,Профильные СМИ; Независимое издание по геополитике и стратегическому анализу.
+Business Review,https://business-review.eu,,RO,ro,capital_investments,P1,"Деловые медиа; Деловое издание. Оборонные инвестиции, фонды, SAFE."
+start-up.ro,https://start-up.ro,,RO,ro,capital_investments,P1,"Деловые медиа; Ведущая стартап-платформа. Оборонные стартапы, венчур."
+Ziarul Financiar (ZF),https://www.zf.ro,,RO,ro,capital_investments,P1,"Деловые медиа; Ведущее финансовое издание. Оборонная промышленность, инвестиции."
+Economedia,https://economedia.ro,,RO,ro,capital_investments,P1,"Деловые медиа; Деловые новости. Платформа SAFE, субподрядчики, закупки."
+Banca de Investiții și Dezvoltare (BID),https://www.bid.ro,,RO,ro,capital_investments,P1,Государственный инвестфонд; Государственный инвестиционный банк. €20 млн в 3SI Innovation Fund.
+Romarm,https://www.romarm.ro,,RO,ro,industry_capacity,P1,"Крупные оборонные компании; Государственный оборонный конгломерат. Armament, muniție, tehnică militară."
+Aerostar Bacău,https://www.aerostar.ro,,RO,ro,industry_capacity,P1,Крупные оборонные компании; Аэрокосмическая и оборонная промышленность.
+IAR Ghimbav,https://www.iar.ro,,RO,ro,industry_capacity,P1,Крупные оборонные компании; Производство вертолётов и авиационных компонентов.
+OVES Enterprise,https://www.oves.ro,,RO,ro,industry_capacity,P1,"Крупные оборонные компании; Кластер IT&C и оборонных технологий. Дроны, ПО."
+Orbotix Industries,https://www.orbotix.ro,,RO,ro,industry_capacity,P1,Крупные оборонные компании; Производство беспилотных систем.
+Autonomous Flight Technologies (AFT),https://www.aft.ro,,RO,ro,industry_capacity,P1,Крупные оборонные компании; Автономные летательные системы.
+Optoelectronica-2001,https://www.optoelectronica.ro,,RO,ro,industry_capacity,P1,"Крупные оборонные компании; Оптико-электронные системы, приборы ночного видения."
+Forțele Terestre,https://www.forter.ro,,RO,ro,policy_budgets,P1,Виды вооружённых сил; Сухопутные войска.
+Forțele Aeriene,https://www.roaf.ro,,RO,ro,policy_budgets,P1,"Виды вооружённых сил; Военно-воздушные силы. F-16, ПВО."
+Forțele Navale,https://www.navy.ro,,RO,ro,policy_budgets,P1,Виды вооружённых сил; Военно-морские силы. Черноморский флот.
+HQ Multinational Division South-East (HQ MNC-SE),https://en-gmr.mapn.ro,,RO,ro,industry_capacity,P1,Региональные кластеры; Штаб многонациональной дивизии «Юго-Восток».
+Black Sea Defense & Aerospace (BSDA),https://www.bsda.ro,,RO,ro,industry_capacity,P1,Региональные кластеры; Ведущая оборонная выставка региона. 550+ компаний из 36 стран.
+Qognifly,https://www.qognifly.ro,,RO,ro,industry_capacity,P1,"Второй эшелон; Deep-tech. БПЛА класса NATO I и II, C-UAS. €2 млн финансирования."
+ISPAIM (Institutul pentru Studii Politice de Apărare și Istorie Militară),https://dpap.mapn.ro,,RO,ro,research_analysis,P1,Академические центры; Институт политических исследований в области обороны и военной истории.
+ACTTM (Agenția de Cercetare pentru Tehnică și Tehnologii Militare),https://www.acttm.ro,,RO,ro,research_analysis,P1,Академические центры; Агентство по исследованиям в области военной техники и технологий.
+INCAS (National Institute for Aerospace Research),https://aerospatial-2008.incas.ro,,RO,ro,research_analysis,P1,Академические центры; Национальный институт аэрокосмических исследований «Elie Carafoli».
+New Strategy Center (NSC),https://newstrategycenter.ro,,RO,ro,research_analysis,P1,"Think tanks; Ведущий think tank по обороне и безопасности. Балканы, Черное море."
+CNAp Foundation,https://fcnap.ro,,RO,ro,research_analysis,P1,Think tanks; Фонд Национального колледжа обороны. Стратегическое мышление.
+Asternova Centru,https://www.adrcentru.ro,,RO,ro,capital_investments,P1,Growth deals / фонды; €8 млн для стартапов в регионе Центру. 40+ компаний.
