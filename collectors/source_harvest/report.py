@@ -55,18 +55,6 @@ def build(output_dir, *, duration_seconds=0, request_count=0, gemini_spend=0):
     print(f"::notice::HARVEST_FUNNEL candidates={len(candidates)} valid_feeds={len(feeds)} coverage_14d={report['funnel']['coverage_14d']} no_rss={report['funnel']['no_rss']} not_attempted={report['funnel']['not_attempted_deadline']}")
     print("::notice::HARVEST_STATUS " + " ".join(f"{key}={value}" for key, value in sorted(statuses.items())))
     print("::notice::HARVEST_HISTORY " + " ".join(f"{key}={value}" for key, value in history_dist.items()) + " sources=" + ",".join(f"{k}:{v}" for k, v in sorted(history_sources.items())))
-    # Full channel table as compact notices (artifacts are not always downloadable): name|bucket|unique/wk|items|status
-    rows = sorted(metrics, key=lambda row: (-float(row.get("unique_relevant_per_week") or 0), row.get("name", "")))
-    lines_ = [f"{(row.get('name') or row.get('feed_url', ''))[:40]}|{row.get('history_bucket', '')}|{row.get('unique_relevant_per_week')}|{row.get('items')}|{row.get('status')}" for row in rows]
-    chunk, chunks = [], []
-    for line in lines_:
-        if sum(len(x) + 3 for x in chunk) + len(line) > 3500:
-            chunks.append(chunk); chunk = []
-        chunk.append(line)
-    if chunk:
-        chunks.append(chunk)
-    for index, part in enumerate(chunks[:9], 1):
-        print(f"::notice title=HARVEST_CHANNELS_{index}::" + " ;; ".join(part))
     prov_feeds = Counter()
     site_prov = {row.get("site_id"): row.get("provenance", "") for row in candidates}
     for row in feeds:
@@ -88,4 +76,16 @@ def build(output_dir, *, duration_seconds=0, request_count=0, gemini_spend=0):
     print("::notice::HARVEST_TOP10 " + (top_notice or "none"))
     print(f"::notice::HARVEST_EMPTY_CELLS count={len(empty)} examples=" + ", ".join(f"{row['signal']}×{row['region']}" for row in empty[:12]))
     print("::notice::INOREADER subscriptions_before={subscriptions_before} subscriptions_after={subscriptions_after} delta={subscription_delta} calls={calls} blocked={blocked}".format(**({"subscriptions_before": 0, "subscriptions_after": 0, "subscription_delta": 0, "calls": 0, "blocked": False} | meta.get("inoreader", {}))))
+    # Full channel table as compact notices (artifacts are not always downloadable): name|bucket|unique/wk|items|status
+    rows = sorted(metrics, key=lambda row: (-float(row.get("unique_relevant_per_week") or 0), row.get("name", "")))
+    lines_ = [f"{(row.get('name') or row.get('feed_url', ''))[:40]}|{row.get('history_bucket', '')}|{row.get('unique_relevant_per_week')}|{row.get('items')}|{row.get('status')}" for row in rows]
+    chunk, chunks = [], []
+    for line in lines_:
+        if sum(len(x) + 3 for x in chunk) + len(line) > 3500:
+            chunks.append(chunk); chunk = []
+        chunk.append(line)
+    if chunk:
+        chunks.append(chunk)
+    for index, part in enumerate(chunks[:3], 1):  # GitHub keeps ~10 notices per step: summary first, then top of table
+        print(f"::notice title=HARVEST_CHANNELS_{index}::" + " ;; ".join(part))
     return report
