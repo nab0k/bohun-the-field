@@ -1,0 +1,55 @@
+name: BOHUN Discovery Chain (persistent artifact registry)
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 5 * * 1'
+concurrency:
+  group: bohun-discovery-chain
+  cancel-in-progress: false
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    permissions:
+      contents: read
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install requests beautifulsoup4 feedparser
+      - name: Restore last successful registry artifact if present
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p output/discovery-pipeline
+          RUN_ID="$(gh run list --workflow discovery-chain.yml --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
+          if [ -n "$RUN_ID" ]; then
+            gh run download "$RUN_ID" --name bohun-discovery-registry --dir output/discovery-pipeline || echo "No previous registry artifact; starting fresh"
+          fi
+      - name: Crawl directories
+        run: python tools/candidate_discovery_v2.py --max-pages-per-seed 30 --max-depth 3
+      - name: Deduplicate into registry and create new-sites handoff
+        run: python tools/discovery_pipeline.py --inputs output/candidate-discovery-v2/candidates.csv --state output/discovery-pipeline/registry.csv --output output/discovery-pipeline
+      - name: Validate new candidate feeds
+        run: python tools/validate_candidate_feeds.py --sites output/discovery-pipeline/new-sites.txt --max-sites 300
+      - name: Upload persistent registry
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bohun-discovery-registry
+          path: output/discovery-pipeline/registry.csv
+          retention-days: 90
+          if-no-files-found: warn
+      - name: Upload candidate and feed reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bohun-discovery-chain-results
+          path: |
+            output/candidate-discovery-v2/
+            output/discovery-pipeline/
+          retention-days: 30
