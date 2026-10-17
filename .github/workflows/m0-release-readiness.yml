@@ -3,10 +3,17 @@ on:
   push:
     branches: [m0-public-release-review]
   workflow_dispatch:
+    inputs:
+      supabase_schema_audit:
+        description: Run only the content-free Supabase schema audit
+        required: false
+        default: false
+        type: boolean
 permissions:
   contents: read
 jobs:
   release-tests:
+    if: ${{ inputs.supabase_schema_audit != true }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -74,3 +81,29 @@ jobs:
           path: output/m0/m0-real-source-tests.json
           retention-days: 7
           if-no-files-found: warn
+
+  supabase-schema-audit:
+    if: ${{ inputs.supabase_schema_audit == true }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test audit safety
+        run: python -m unittest tests/test_supabase_readonly_audit.py
+      - name: Install PostgreSQL driver
+        run: python -m pip install --disable-pip-version-check "psycopg[binary]"
+      - name: Audit live intelligence schema without record content
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: python scripts/supabase-readonly-audit.py
+      - name: Upload redacted audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-intelligence-schema-audit
+          path: output/supabase-readonly-audit/report.json
+          retention-days: 7
+          if-no-files-found: error
