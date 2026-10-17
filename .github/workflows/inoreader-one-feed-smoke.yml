@@ -1,0 +1,53 @@
+name: Inoreader one-feed subscription smoke test
+on:
+  push:
+    paths:
+      - '.github/workflows/inoreader-one-feed-smoke.yml'
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate, deduplicate, add at most one, and read back
+        env:
+          INOREADER_CLIENT_ID: ${{ secrets.INOREADER_CLIENT_ID }}
+          INOREADER_CLIENT_SECRET: ${{ secrets.INOREADER_CLIENT_SECRET }}
+          INOREADER_REFRESH_TOKEN: ${{ secrets.INOREADER_REFRESH_TOKEN }}
+        run: |
+          python - <<'PY'
+          import json,sys,urllib.error
+          sys.path.insert(0,"collectors/inoreader")
+          from sync import access_token,api
+          from inoreader_source_manager import fetch,is_feed,post_api
+          feed="https://www.hartpunkt.de/feed/"
+          try:
+              data,final,_=fetch(feed)
+              if not is_feed(data):
+                  print("BLOCKED: candidate URL is not a valid RSS/Atom feed")
+                  sys.exit(0)
+              token=access_token()
+              ids={s.get("id") for s in api("subscription/list",token).get("subscriptions",[])}
+              if "feed/"+final in ids or "feed/"+feed in ids:
+                  print("ALREADY_SUBSCRIBED: no write")
+                  sys.exit(0)
+              response=post_api("subscription/quickadd",token,{"quickadd":final})
+              payload=json.loads(response)
+              created=payload.get("streamId") or payload.get("id")
+              if not created or not str(created).startswith("feed/"):
+                  print("UNCONFIRMED: quickadd did not return feed ID")
+                  sys.exit(1)
+              verified={s.get("id") for s in api("subscription/list",token).get("subscriptions",[])}
+              if created not in verified:
+                  print("UNCONFIRMED: subscription not visible on readback")
+                  sys.exit(1)
+              print("VERIFIED_ADDED: one RSS feed added; id="+created)
+          except (RuntimeError,ValueError,urllib.error.URLError) as exc:
+              print("BLOCKED: "+type(exc).__name__+": "+str(exc))
+              sys.exit(1)
+          PY
