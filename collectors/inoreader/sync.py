@@ -29,14 +29,25 @@ def request_json(url, *, headers=None, form=None):
     if body is not None:
         h["Content-Type"] = "application/x-www-form-urlencoded"
     req = urllib.request.Request(url, data=body, headers=h, method="POST" if body else "GET")
-    try:
-        with urllib.request.urlopen(req, timeout=45) as response:
-            return json.load(response)
-    except urllib.error.HTTPError as exc:
-        stage = "oauth_token" if url.startswith(TOKEN) else "inoreader_api"
-        raise RuntimeError(
-            f"HTTP request failed: stage={stage}, status={exc.code}"
-        ) from None
+    for attempt in range(4):
+        try:
+            with urllib.request.urlopen(req, timeout=45) as response:
+                return json.load(response)
+        except urllib.error.HTTPError as exc:
+            stage = "oauth_token" if url.startswith(TOKEN) else "inoreader_api"
+            if exc.code == 429 and attempt < 3:
+                # Honour server Retry-After when available; otherwise exponential backoff.
+                raw_wait = exc.headers.get("Retry-After", "") if exc.headers else ""
+                try:
+                    wait = max(1, min(120, int(raw_wait)))
+                except (ValueError, TypeError):
+                    wait = min(60, 5 * (2 ** attempt))
+                print(f"RATE_LIMIT stage={stage} retry={attempt + 1} wait_seconds={wait}", file=sys.stderr)
+                time.sleep(wait)
+                continue
+            raise RuntimeError(
+                f"HTTP request failed: stage={stage}, status={exc.code}"
+            ) from None
 
 
 def access_token():
