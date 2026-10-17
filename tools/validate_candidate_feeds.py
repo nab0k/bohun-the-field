@@ -23,7 +23,7 @@ def check(session, url):
                 if len(data) > 750000:
                     return None
             parsed = feedparser.parse(bytes(data))
-            if parsed.version and parsed.entries:
+            if parsed.get("version") and parsed.get("entries") and not parsed.get("bozo", False):
                 return {"feed_url": response.url, "entries": len(parsed.entries), "title": parsed.feed.get("title", "")[:200]}
     except requests.RequestException:
         return None
