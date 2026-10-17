@@ -1,5 +1,8 @@
 name: Source Hunter 1000 (bounded)
 on:
+  push:
+    paths:
+      - '.github/workflows/source-hunter-1000.yml'
   workflow_dispatch:
     inputs:
       target:
