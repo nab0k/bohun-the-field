@@ -1,25 +1,36 @@
-name: Source Hunter 1000 (20 minutes)
+name: Source Hunter 1000 (bounded)
 on:
   workflow_dispatch:
     inputs:
       target:
-        description: "Target unique validated feeds"
+        description: "Target validated feeds (not guaranteed)"
         required: false
         default: "1000"
+  schedule:
+    - cron: '47 4 * * 3'
+permissions:
+  contents: read
+concurrency:
+  group: bohun-source-hunter-1000
+  cancel-in-progress: false
 jobs:
   discover:
     runs-on: ubuntu-latest
-    timeout-minutes: 22
-    permissions:
-      contents: read
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: python -m pip install requests feedparser beautifulsoup4 lxml
-      - name: Discover public feeds (no production writes)
-        run: python tools/source_hunter_1000.py --minutes 18 --target "${{ inputs.target }}" --workers 12
+      - name: Discover public feeds (review-only, no production writes)
+        env:
+          TARGET: ${{ inputs.target }}
+        run: |
+          set -euo pipefail
+          TARGET="${TARGET:-1000}"
+          [[ "$TARGET" =~ ^[0-9]+$ ]] && (( TARGET >= 1 && TARGET <= 1000 )) || exit 2
+          python tools/source_hunter_1000.py --minutes 35 --target "$TARGET" --workers 10
       - uses: actions/upload-artifact@v4
         if: always()
         with:
