@@ -5,11 +5,13 @@ Checked 2026-10-18: `organisation-name-tenderer` / `organisation-country-tendere
 identifiers are sometimes TED UUIDs and sometimes national register numbers; some notices name no winner.
 A CPV family query also returns civil items (35110000 fire-fighting etc.), so records are kept only if
 at least one CPV is in a defence sub-family or the buyer is a known defence procurement agency.
+Layer (T08 finding 1): A only for a defence buyer; police, ports and other public buyers of CPV 35
+items give C with the flag NON_DEFENCE_BUYER (security / dual-use market, not confirmed defence).
 """
 import re
 
 from ..model import Mention, Record, SignalIn
-from ..normalize import clean_name, country_iso2
+from ..normalize import DEFENCE_BUYER, clean_name, country_iso2, is_defence_buyer, national_id
 from ..taxonomy import is_defence_cpv
 
 API = "https://api.ted.europa.eu/v3/notices/search"
@@ -19,10 +21,7 @@ FIELDS = ["publication-number", "notice-type", "publication-date", "buyer-name",
           "classification-cpv"]
 DEFAULT_QUERY = ("classification-cpv IN (35300000 35400000 35500000 35600000 35700000 73420000 73430000) "
                  "AND notice-type IN (can-standard can-social can-desg) AND publication-date >= {since}")
-DEFENCE_BUYER_HINTS = re.compile(
-    r"armasuisse|agencja uzbrojenia|ministry of defen|ministerstwo obrony|bundesamt für ausrüstung|baainbw|"
-    r"direction générale de l'armement|\bdga\b|forsvar|puolustus|defence equipment|\bmod\b|ministerie van defensie|"
-    r"ministero della difesa|ministerio de defensa|ocrsg|nspa|\bocar\b|european defence agency", re.I)
+DEFENCE_BUYER_HINTS = DEFENCE_BUYER  # kept name for callers; the list lives in normalize.py
 _UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I)
 
 
@@ -70,7 +69,8 @@ class Awards:
     def parse(notice):
         cpvs = sorted(set(notice.get("classification-cpv") or []))
         buyer = "; ".join(_texts(notice.get("buyer-name")))
-        defence = any(is_defence_cpv(c) for c in cpvs) or bool(DEFENCE_BUYER_HINTS.search(buyer))
+        defence_buyer = is_defence_buyer(buyer)
+        defence = any(is_defence_cpv(c) for c in cpvs) or defence_buyer
         names = [clean_name(n) for n in _texts(notice.get("organisation-name-tenderer"))]
         if not defence or not names:
             return None  # civil item, or no winner published
@@ -87,9 +87,13 @@ class Awards:
                 country_iso2(countries) if len(set(countries)) == 1 else None)
             identifiers = []
             if ident:
-                scheme = "TED_ORG" if _UUID.match(ident) else f"NATIONAL:{country or 'XX'}"
-                identifiers.append((scheme, ident.strip()))
+                if _UUID.match(ident.strip()):
+                    identifiers.append(("TED_ORG", ident.strip().lower()))
+                elif national_id(ident):
+                    identifiers.append((f"NATIONAL:{country or 'XX'}", national_id(ident)))
             mentions.append(Mention(
                 name=name, country=country, identifiers=identifiers, codes=defence_codes,
-                signals=[SignalIn(type="tender_award", counterpart=buyer or None, date=date, url=url)]))
+                flags=[] if defence_buyer else ["NON_DEFENCE_BUYER"],
+                signals=[SignalIn(type="tender_award", counterpart=buyer or None, date=date, url=url,
+                                  layer="A" if defence_buyer else "C")]))
         return Record(SOURCE, pub, notice, mentions)

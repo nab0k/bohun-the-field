@@ -1,10 +1,18 @@
 """USAspending.gov (no key): DoD prime recipients and their subcontractors.
 
 Known source artefacts (checked 2026-10-18): sub-award "amount" can equal the record id, so
-amounts are never used; one company can have several UEIs (grouping is left to identity/parents).
+amounts are never used; one company can have several UEIs (grouping via the recipient profile parent).
+
+T08 findings 2–3: the recipient list gives neither country nor 4-digit PSC. For each recipient the
+adapter reads (a) the recipient profile -> legal country and parent, (b) the PSC breakdown of that
+recipient inside the queried group -> up to 3 four-digit PSC codes. Both reads are optional: on
+failure the record keeps only the group code (scheme PSC_GROUP, not classified) and no country.
+NOTE: the filter key `recipient_id` and the profile fields follow the public API docs and were not
+re-checked live after the T08 trial (no runs allowed); the fixture tests cover the parsing only.
 """
 from ..model import Mention, Record, SignalIn
 from ..normalize import clean_name, country_iso2
+from .http import SourceError
 
 API = "https://api.usaspending.gov/api/v2"
 SOURCE_RECIPIENTS = "usaspending_recipients"
@@ -43,7 +51,7 @@ class Recipients:
                     "limit": min(self.page_size, limit - len(records)), "page": page}
             data = http.post_json(f"{API}/search/spending_by_category/recipient/", body) or {}
             for item in data.get("results") or []:
-                records.append(self.parse(item, psc))
+                records.append(self.parse(item, psc, self.profile(http, item), self.psc_codes(http, item, psc)))
             if (data.get("page_metadata") or {}).get("hasNext"):
                 page += 1
             else:
@@ -51,16 +59,52 @@ class Recipients:
         return records, f"{gi}:{page}" if gi < len(self.psc_groups) else None
 
     @staticmethod
-    def parse(item, psc):
+    def profile(http, item):
+        rid = item.get("recipient_id")
+        if not rid:
+            return None
+        try:
+            return http.get_json(f"{API}/recipient/{rid}/")
+        except SourceError:
+            return None
+
+    def psc_codes(self, http, item, psc):
+        rid = item.get("recipient_id")
+        if not rid:
+            return []
+        body = {"filters": dict(_filters(self.fy_start, self.fy_end, psc), recipient_id=rid),
+                "category": "psc", "limit": 3, "page": 1}
+        try:
+            data = http.post_json(f"{API}/search/spending_by_category/psc/", body) or {}
+        except SourceError:
+            return []
+        return [r["code"] for r in data.get("results") or [] if len(str(r.get("code") or "")) == 4][:3]
+
+    @staticmethod
+    def parse(item, psc, profile=None, psc_codes=()):
         uei = item.get("uei")
         key = f"{uei or item.get('recipient_id')}:{psc}"
-        mention = Mention(
-            name=clean_name(item.get("name")),
+        profile = profile or {}
+        loc = profile.get("location") or {}
+        country = country_iso2(loc.get("country_code"))
+        mentions = []
+        parent_rid = profile.get("parent_id")
+        parents = []
+        if parent_rid and parent_rid != item.get("recipient_id") and profile.get("parent_name"):
+            parents = [("USASPENDING_RECIPIENT", parent_rid)]
+            mentions.append(Mention(
+                name=clean_name(profile["parent_name"]),
+                identifiers=([("UEI", profile["parent_uei"])] if profile.get("parent_uei") else []) + parents))
+        codes = [("PSC", c) for c in psc_codes] or [("PSC_GROUP", psc)]
+        mentions.append(Mention(
+            name=clean_name(item.get("name")), country=country,
             identifiers=([("UEI", uei)] if uei else [])
             + ([("USASPENDING_RECIPIENT", item["recipient_id"])] if item.get("recipient_id") else []),
-            codes=[("PSC", psc)],
-            signals=[SignalIn(type="contract", counterpart="US Department of Defense")])
-        return Record(SOURCE_RECIPIENTS, key, item, [mention])
+            codes=codes, parents=parents,
+            signals=[SignalIn(type="contract", counterpart="US Department of Defense")]))
+        payload = dict(item, profile={"country_code": loc.get("country_code"), "parent_id": parent_rid,
+                                      "parent_name": profile.get("parent_name")}, psc_codes=list(psc_codes))
+        return Record(SOURCE_RECIPIENTS, key, payload, mentions)
 
 
 class Subawards:

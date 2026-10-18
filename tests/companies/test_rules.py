@@ -1,7 +1,7 @@
 """Offline tests: normalization, taxonomy and signal layers (EXP-012)."""
 import unittest
 
-from collectors.companies.normalize import clean_name, country_iso2, name_norm
+from collectors.companies.normalize import clean_name, country_iso2, is_defence_buyer, name_norm, national_id
 from collectors.companies.taxonomy import best_layer, classify, is_defence_cpv, is_rnd
 
 
@@ -27,6 +27,26 @@ class TestNormalize(unittest.TestCase):
         self.assertEqual(country_iso2("CHN"), "CN")
 
 
+class TestT08Rules(unittest.TestCase):
+    def test_national_id(self):
+        self.assertEqual(national_id("t:687370703"), "687370703")
+        self.assertEqual(national_id("HRB 79012 (Voxtronic Deutschland GmbH)"), "HRB79012")
+        self.assertEqual(national_id("ORG-27661440"), "27661440")
+        self.assertEqual(national_id("DE 133556136"), "DE133556136")
+        self.assertIsNone(national_id("  "))
+
+    def test_defence_buyer(self):
+        for name in ("Federal Office for Defence Procurement, armasuisse", "Unitatea Militara 0251 Bucuresti",
+                     "Ministère de la Défense", "Danish Ministry of Defence Acquisition and Logistics Organisation",
+                     "Bundesamt für Ausrüstung, Informationstechnik und Nutzung der Bundeswehr",
+                     "Міністерство оборони України", "Військова частина А0000"):
+            self.assertTrue(is_defence_buyer(name), name)
+        for name in ("Landespolizeipräsidium Saarland", "División Económica y Técnica (Cuerpo Nacional de Policía)",
+                     "North Sea Port Netherlands N.V.", "Utenriksdepartementet",
+                     "Landesamt für Zentrale Polizeiliche Dienste NRW", None):
+            self.assertFalse(is_defence_buyer(name), name)
+
+
 class TestTaxonomy(unittest.TestCase):
     def test_cpv_longest_prefix_and_basis(self):
         self.assertEqual(classify("CPV", "35613000"), [("capability", "UNCR", "CPV:35613000"),
@@ -50,6 +70,8 @@ class TestTaxonomy(unittest.TestCase):
         self.assertEqual(classify("PSC", "1420")[0][1], "MSL")
         self.assertEqual(classify("PSC", "AC13"), [])
         self.assertTrue(is_rnd("PSC", "AC13"))
+        self.assertTrue(is_rnd("PSC_GROUP", "AC"))  # R&D group keeps the RND role without a 4-digit code
+        self.assertEqual(classify("PSC_GROUP", "10"), [])  # a filter group is not a capability
         self.assertEqual(classify("NAICS", "999999"), [])
 
     def test_best_layer(self):

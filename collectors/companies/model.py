@@ -22,6 +22,7 @@ class Mention:
     codes: list = field(default_factory=list)         # [(scheme, code)] -> classification
     signals: list = field(default_factory=list)       # [SignalIn]
     supplies_to: list = field(default_factory=list)   # [(scheme, value)] of the buyer company (subcontracts)
+    parents: list = field(default_factory=list)       # [(scheme, value)] of the parent company (corporate group)
     notion_page_id: str = None
     flags: list = field(default_factory=list)
     legacy_categories: list = field(default_factory=list)  # [(axis, value, basis)]

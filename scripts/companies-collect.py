@@ -42,6 +42,10 @@ def main(argv=None):
     ap.add_argument("--legacy-snapshot", help="pages dir of the private Notion snapshot (local only)")
     ap.add_argument("--gleif", type=int, default=0, help="max companies to enrich via GLEIF")
     ap.add_argument("--report", action="store_true")
+    ap.add_argument("--reset-staging", action="store_true",
+                    help="supabase: DROP SCHEMA companies and re-create it (staging only; requires --migrate)")
+    ap.add_argument("--replay", action="store_true",
+                    help="start the given sources from their first page again (idempotency check, AC1)")
     args = ap.parse_args(argv)
 
     results = {}
@@ -50,6 +54,10 @@ def main(argv=None):
             ap.error("--legacy-snapshot is private data: local SQLite only")
         from collectors.companies.pg_store import PgStore
         store = PgStore()
+        if args.reset_staging:
+            if not args.migrate:
+                ap.error("--reset-staging requires --migrate")
+            results["reset"] = store.reset_staging()
         if args.migrate:
             results["migration"] = store.migrate()
         elif not store.schema_exists():
@@ -57,6 +65,8 @@ def main(argv=None):
     else:
         if not args.db:
             ap.error("--db is required with --store sqlite")
+        if args.reset_staging:
+            ap.error("--reset-staging is for the Supabase staging schema only")
         store = SqliteStore(args.db)
     http = JsonHttp(pause=0.3)
     if args.legacy_snapshot:
@@ -65,6 +75,9 @@ def main(argv=None):
     for name in filter(None, args.sources.split(",")):
         if name not in ADAPTERS:
             ap.error(f"unknown source {name}")
+        if args.replay:
+            store.save_source_state(ADAPTERS[name]().source, None, 0, False)
+            store.commit()
         results[name] = pipeline.run_source(store, ADAPTERS[name](), http, args.limit)
     if args.gleif:
         results["gleif"] = pipeline.enrich_identities(store, gleif.Gleif(http), args.gleif)

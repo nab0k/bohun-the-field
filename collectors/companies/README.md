@@ -3,9 +3,9 @@
 Autonomous, bounded collection of defence and dual-use companies (world without RU/CN, down to
 components and services). Design: BOHUN-local `docs/experiments/EXP-012-companies-coverage-audit/DESIGN_v0.md`.
 
-Status at G3 (18.10.2026): offline implementation. Only the local SQLite store works. The
-PostgreSQL migration `db/companies/001_companies_schema.sql` is **not applied**. Nothing is written to
-Supabase or Notion. The workflow runs tests only and has no schedule.
+Status (18.10.2026): SQLite store for local runs and PgStore for the Supabase schema `companies`
+(one trial run on PR #72, T08). Nothing is written to Notion. The workflow has no schedule; the collection
+job runs only on the PR label `exp012-collect-trial`.
 
 ## Flow
 
@@ -61,10 +61,13 @@ python3 scripts/companies-collect.py --db /tmp/companies.sqlite3 --sources ted,p
 The `--legacy-snapshot <pages_dir>` option reads the private Notion snapshot. It runs locally only:
 never in CI, and the snapshot must never be committed.
 
-## Known limits (G3)
+## Known limits (T08)
 
-- No PostgreSQL/Supabase store yet (TODO v1 T08, needs separate consent).
-- Several UEIs of one group are not yet linked by `parent_of`; that needs USAspending parent data or GLEIF.
+- Supabase holds only the staging schema `companies`; wider limits and a schedule are T09 (separate consent).
+- Several UEIs of one group are linked by `parent_of` through the USAspending recipient profile; the profile
+  and PSC-breakdown request formats follow the API docs and still need one live check.
+- Layer A from procurement awards requires a defence buyer (`normalize.DEFENCE_BUYER`); other buyers give C with
+  the flag `NON_DEFENCE_BUYER`. The buyer list is a starting list (TAXONOMY POST-MVP REVIEW).
 - USAspending sub-award amounts are unreliable and are ignored.
 - TED often gives no registry number.
 - Wartime Ukrainian defence procurement is mostly absent from Prozorro.

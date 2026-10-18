@@ -77,6 +77,10 @@ def apply(store, company_id, mention, observation_id, source):
         store.add_category(company_id, axis, value, basis)
     if rnd:
         store.fill_missing(company_id, supply_role="RND")
+    for scheme, value in mention.parents:
+        parent = store.company_by_identifier(scheme, value)
+        if parent:
+            store.add_relation(parent, company_id, "parent_of", source)
     for scheme, value in mention.supplies_to:
         buyer = store.company_by_identifier(scheme, value)
         if buyer:

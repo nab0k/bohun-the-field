@@ -1,4 +1,5 @@
 """Offline tests: adapters on saved fixtures, resolve, RU/CN rule, layers, failures, report (EXP-012)."""
+import contextlib
 import io
 import json
 import pathlib
@@ -16,10 +17,28 @@ from tests.companies.helpers import FakeGleif, FakeHttp, fixture
 US_API = usaspending.API
 
 
-def recipients_http():
+LM_C1, LM_C2 = "6cf5fb1b-4988-d087-5dc1-70939d8fc6c4-C", "779b3e3e-364f-7cbc-28a4-a2b4484b86f4-C"
+LM_PARENT = "SYNTHETIC-lockheed-parent-P"
+# SYNTHETIC profile / PSC answers (shape per USAspending docs; values invented for the test only).
+PROFILES = {
+    LM_C1: {"location": {"country_code": "USA"}, "parent_id": LM_PARENT, "parent_name": "LOCKHEED MARTIN CORP",
+            "parent_uei": "SYNTHPARENT1"},
+    LM_C2: {"location": {"country_code": "USA"}, "parent_id": LM_PARENT, "parent_name": "LOCKHEED MARTIN CORP",
+            "parent_uei": "SYNTHPARENT1"},
+}
+
+
+def recipients_http(profiles=True, psc=True):
     data = fixture("usaspending_recipients.json")
     last = dict(data, page_metadata={"hasNext": False})
-    return FakeHttp(post={f"{US_API}/search/spending_by_category/recipient/": lambda url, body: last})
+    get = {}
+    if profiles:
+        for rid, prof in PROFILES.items():
+            get[f"{US_API}/recipient/{rid}/"] = prof
+    post = {f"{US_API}/search/spending_by_category/recipient/": lambda url, body: last}
+    if psc:
+        post[f"{US_API}/search/spending_by_category/psc/"] = {"results": [{"code": "1410"}, {"code": "14"}]}
+    return FakeHttp(post=post, get=get)
 
 
 def subawards_http():
@@ -65,13 +84,34 @@ class TestAdapters(unittest.TestCase):
         adapter = usaspending.Recipients(psc_groups=["14"])
         res = pipeline.run_source(store, adapter, recipients_http(), 10)
         self.assertEqual(res["status"], "ok")
-        self.assertEqual(res["new_companies"], 4)  # LM x2 (different UEI) is never auto-merged
-        lm = store.query("SELECT id FROM company WHERE name='LOCKHEED MARTIN CORPORATION'")
+        self.assertEqual(res["new_companies"], 5)  # LM x2 (different UEI) never auto-merged + 1 parent
+        lm = store.query("SELECT id, country FROM company WHERE name='LOCKHEED MARTIN CORPORATION'")
         self.assertEqual(len(lm), 2)
         self.assertEqual(store.query("SELECT COUNT(*) n FROM match_candidate WHERE reason='same_name_needs_review'")[0]["n"], 1)
-        cats = {(r["axis"], r["value"]) for r in store.query("SELECT axis, value FROM company_category")}
-        self.assertIn(("capability", "MSL"), cats)
+        cats = {(r["axis"], r["value"], r["basis"]) for r in store.query("SELECT axis, value, basis FROM company_category")}
+        self.assertIn(("capability", "MSL", "PSC:1410"), cats)  # 4-digit code from the recipient's own contracts
+        parent = one(store, "LOCKHEED MARTIN CORP")
+        children = store.query("SELECT to_id FROM company_relation WHERE from_id=? AND relation='parent_of'", (parent["id"],))
+        self.assertEqual({r["to_id"] for r in children}, {r["id"] for r in lm})  # two UEIs grouped, not merged
+        self.assertIsNone(parent["layer"])  # a parent has no defence signal of its own
+        self.assertEqual({r["country"] for r in lm}, {"US"})
+        self.assertIsNone(one(store, "RAYTHEON COMPANY")["country"])  # profile unavailable -> unknown, not guessed
+
+    def test_recipients_without_enrichment_keep_group_only(self):
+        store = SqliteStore()
+        pipeline.run_source(store, usaspending.Recipients(psc_groups=["10"]), recipients_http(False, False), 10)
+        self.assertEqual(store.query("SELECT COUNT(*) n FROM company_category")[0]["n"], 0)  # no guess from group
         self.assertEqual({r["layer"] for r in companies(store)}, {"A"})
+
+    def test_recipient_enrichment_failure_does_not_fail_source(self):
+        from collectors.companies.sources.http import SourceError
+
+        def boom(url, body=None):
+            raise SourceError("HTTP 500")
+        http = recipients_http(False, False)
+        http.post[f"{US_API}/search/spending_by_category/psc/"] = boom
+        res = pipeline.run_source(SqliteStore(), usaspending.Recipients(psc_groups=["14"]), http, 10)
+        self.assertEqual(res["status"], "ok")
 
     def test_recipients_psc_filter_and_cursor(self):
         http = recipients_http()
@@ -106,6 +146,21 @@ class TestAdapters(unittest.TestCase):
         self.assertEqual(m.identifiers, [("TED_ORG", "2a41f7c5-8084-4171-bc7f-ae8378af6a38")])
         self.assertEqual(m.codes, [("CPV", "35700000")])
         self.assertEqual(m.signals[0].counterpart, "Federal Office for Defence Procurement, armasuisse")
+
+    def test_ted_police_buyer_is_layer_c(self):
+        notice = dict(fixture("ted_awards.json")["notices"][0])
+        notice["buyer-name"] = {"deu": ["Landespolizeipräsidium Saarland"]}
+        notice["organisation-identifier-tenderer"] = ["HRB 79012 (Voxtronic Deutschland GmbH)"]
+        m = ted.Awards.parse(notice).mentions[0]
+        self.assertEqual((m.signals[0].layer, m.flags), ("C", ["NON_DEFENCE_BUYER"]))
+        self.assertEqual(m.identifiers, [("NATIONAL:DK", "HRB79012")])
+        store = SqliteStore()
+        pipeline.run_source(store, StaticAdapter("t", [ted.Awards.parse(notice)]), None, 1)
+        self.assertEqual(companies(store)[0]["layer"], "C")
+
+    def test_ted_defence_buyer_is_layer_a(self):
+        m = ted.Awards.parse(fixture("ted_awards.json")["notices"][0]).mentions[0]
+        self.assertEqual((m.signals[0].layer, m.flags), ("A", []))
 
     def test_ted_timeout_is_an_error(self):
         http = FakeHttp(post={ted.API: {"timedOut": True}})
@@ -267,6 +322,22 @@ class TestOwnership(unittest.TestCase):
         row = store.get(cid)
         self.assertEqual((row["status"], row["ownership_check"]), ("candidate", "OPEN:GLEIF_NO_LEI"))
 
+    def test_gleif_natural_persons_is_closed(self):
+        store = SqliteStore()
+        cid = self._company(store, "Blue Aerospace AS", "NO")
+        gleif = FakeGleif(extra_exact={("Blue Aerospace AS", "NO"): "LEI-BA"})
+        gleif.exceptions["LEI-BA"] = {"reason": "NATURAL_PERSONS"}
+        self.assertEqual(pipeline.enrich_identities(store, gleif, 10), {"no_parent": 1})
+        self.assertEqual(store.get(cid)["ownership_check"], "GLEIF_NO_PARENT_ENTITY:NATURAL_PERSONS")
+
+    def test_gleif_non_consolidating_stays_open(self):
+        store = SqliteStore()
+        cid = self._company(store, "Scandinavian Avionics A/S", "DK")
+        gleif = FakeGleif(extra_exact={("Scandinavian Avionics A/S", "DK"): "LEI-SA"})
+        gleif.exceptions["LEI-SA"] = {"reason": "NON_CONSOLIDATING"}
+        self.assertEqual(pipeline.enrich_identities(store, gleif, 10), {"parent_unknown": 1})
+        self.assertEqual(store.get(cid)["ownership_check"], "OPEN:GLEIF_NON_CONSOLIDATING")
+
     def test_gleif_cn_ultimate_parent_excludes(self):
         store = SqliteStore()
         cid = self._company(store, "Euro Sub GmbH", "DE")
@@ -357,13 +428,43 @@ class TestReport(unittest.TestCase):  # AC6
         self.assertEqual(s["last_runs"][0]["status"], "ok")
 
 
+def load_cli():
+    import importlib.util
+    path = pathlib.Path(__file__).resolve().parents[2] / "scripts" / "companies-collect.py"
+    spec = importlib.util.spec_from_file_location("companies_collect", path)
+    cli = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(cli)
+    return cli
+
+
 class TestCli(unittest.TestCase):
+    def test_reset_refused_for_sqlite(self):
+        cli = load_cli()
+        with tempfile.TemporaryDirectory() as tmp, self.assertRaises(SystemExit), \
+                redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            cli.main(["--db", f"{tmp}/c.sqlite3", "--reset-staging"])
+
+    def test_replay_refetches_without_duplicates(self):  # AC1 via the CLI path
+        cli = load_cli()
+        cli.ADAPTERS["ted"] = lambda: ted.Awards()
+        original = cli.JsonHttp
+        cli.JsonHttp = lambda pause=0: ted_http()
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                outs = []
+                for extra in ([], ["--replay"]):
+                    buf = io.StringIO()
+                    with redirect_stdout(buf):
+                        cli.main(["--db", f"{tmp}/c.sqlite3", "--sources", "ted", "--report"] + extra)
+                    outs.append(json.loads(buf.getvalue()))
+        finally:
+            cli.JsonHttp = original
+        self.assertEqual(outs[1]["ted"]["fetched"], 1)
+        self.assertEqual(outs[1]["ted"]["new_observations"], 0)
+        self.assertEqual(outs[0]["summary"]["companies"], outs[1]["summary"]["companies"])
+
     def test_report_only_offline(self):
-        import importlib.util
-        path = pathlib.Path(__file__).resolve().parents[2] / "scripts" / "companies-collect.py"
-        spec = importlib.util.spec_from_file_location("companies_collect", path)
-        cli = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(cli)
+        cli = load_cli()
         with tempfile.TemporaryDirectory() as tmp:
             buf = io.StringIO()
             with redirect_stdout(buf):

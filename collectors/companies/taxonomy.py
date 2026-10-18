@@ -48,7 +48,7 @@ PSC_RULES = {
     "28": (["PROP"], []), "58": (["C4I"], []), "59": (["COMP"], []),
     "J0": (["SERV"], []), "K0": (["SERV"], []),
 }
-RND_HINTS = {"NAICS": ("541715",), "PSC": ("AC",), "CPV": ("7342", "7343")}
+RND_HINTS = {"NAICS": ("541715",), "PSC": ("AC",), "PSC_GROUP": ("AC",), "CPV": ("7342", "7343")}
 
 # Legacy Notion `Product` / `Signal` values -> new axes (TAXONOMY v0, migration table).
 LEGACY_PRODUCT = {

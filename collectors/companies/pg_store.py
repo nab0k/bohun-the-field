@@ -59,6 +59,12 @@ class PgStore(SqliteStore):
         row = self.db.execute("SELECT to_regnamespace('companies') IS NOT NULL AS ok").fetchone()
         return bool(row["ok"])
 
+    def reset_staging(self):
+        """Drop ONLY the schema `companies` (staging data of EXP-012). Caller must then migrate()."""
+        self.db.execute("DROP SCHEMA IF EXISTS companies CASCADE")
+        self.db.commit()
+        return "dropped"
+
     def migrate(self, path=MIGRATION):
         """Apply the schema once, in one transaction. Returns 'applied' or 'exists'."""
         if self.schema_exists():

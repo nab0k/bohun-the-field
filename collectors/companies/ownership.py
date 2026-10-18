@@ -3,10 +3,16 @@
 - Legal country RU or CN, or GLEIF ultimate parent in RU/CN -> status 'excluded' (record kept).
 - Partial ownership by RU/CN (from a disclosed source) -> not excluded: company_ownership_link + flag
   OWNERSHIP_LINK_RU / OWNERSHIP_LINK_CN, shown to users (USER 18.10).
-- GLEIF reporting exception (parent exists but unknown, e.g. NO_LEI) -> ownership_check 'OPEN:GLEIF_<reason>'.
+- GLEIF reporting exception (parent exists but unknown, e.g. NO_LEI) -> ownership_check 'OPEN:GLEIF_<reason>';
+  NATURAL_PERSONS / NO_KNOWN_PERSON -> 'GLEIF_NO_PARENT_ENTITY:<reason>' (closed).
 - Hong Kong / Macau are flagged CN_SAR for review (not excluded automatically).
 """
 from .normalize import EXCLUDED_COUNTRIES
+
+# GLEIF reporting exceptions that answer the question "is there a parent company?" with "no"
+# (owned by natural persons / no controlling person). Others (NO_LEI, NON_CONSOLIDATING, ...) leave the
+# owner unknown and stay OPEN (T08 finding 4).
+CLOSED_EXCEPTIONS = {"NATURAL_PERSONS", "NO_KNOWN_PERSON"}
 
 
 def apply_country_rule(store, company_id):
@@ -47,6 +53,9 @@ def enrich_with_gleif(store, gleif, company_id):
         store.add_alias(company_id, hit["legal_name"], "gleif")
         lei = hit["lei"]
     kind, value = gleif.ultimate_parent(lei)
+    if kind == "exception" and value in CLOSED_EXCEPTIONS:
+        store.update(company_id, ownership_check=f"GLEIF_NO_PARENT_ENTITY:{value}")
+        return "no_parent"
     if kind == "exception":
         store.update(company_id, ownership_check=f"OPEN:GLEIF_{value}")
         return "parent_unknown"

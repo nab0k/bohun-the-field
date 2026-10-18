@@ -3,10 +3,12 @@
 Feed gives tender ids; details give awards with suppliers (UA-EDR = ЄДРПОУ). Only active awards are
 used. Defence relevance: CPV (ДК021) in a defence sub-family or procuring entity kind "defense".
 Ukraine rule: supplier addresses are never stored (only the country).
+Layer (T08 finding 1): A only if the buyer is a defence entity (kind "defense" or a known defence
+name); other buyers of defence CPV items give C with the flag NON_DEFENCE_BUYER.
 Note: much of wartime defence procurement is not published in Prozorro at all.
 """
 from ..model import Mention, Record, SignalIn
-from ..normalize import clean_name, country_iso2
+from ..normalize import clean_name, country_iso2, is_defence_buyer
 from ..taxonomy import is_defence_cpv
 
 API = "https://public-api.prozorro.gov.ua/api/2.5"
@@ -49,7 +51,8 @@ class Awards:
         cpvs = sorted({(i.get("classification") or {}).get("id", "").split("-")[0]
                        for i in tender.get("items") or [] if i.get("classification")})
         buyer = tender.get("procuringEntity") or {}
-        defence = any(is_defence_cpv(c) for c in cpvs) or buyer.get("kind") == "defense"
+        defence_buyer = buyer.get("kind") == "defense" or is_defence_buyer(buyer.get("name"))
+        defence = any(is_defence_cpv(c) for c in cpvs) or defence_buyer
         if not defence:
             return None
         url = f"https://prozorro.gov.ua/tender/{tender.get('tenderID')}" if tender.get("tenderID") else None
@@ -65,8 +68,10 @@ class Awards:
                 mentions.append(Mention(
                     name=clean_name(ident.get("legalName") or s.get("name")), country=country,
                     identifiers=identifiers, codes=codes,
+                    flags=[] if defence_buyer else ["NON_DEFENCE_BUYER"],
                     signals=[SignalIn(type="tender_award", counterpart=clean_name(buyer.get("name")),
-                                      date=(award.get("date") or "")[:10] or None, url=url)]))
+                                      date=(award.get("date") or "")[:10] or None, url=url,
+                                      layer="A" if defence_buyer else "C")]))
         if not mentions:
             return None
         # Payload kept without supplier street addresses (Ukraine rule).

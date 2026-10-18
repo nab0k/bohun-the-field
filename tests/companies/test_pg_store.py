@@ -74,6 +74,16 @@ class TestPgStoreOverFake(unittest.TestCase):
         self.assertEqual(json.loads(store.get(cid)["flags"]), ["A", "B"])
 
 
+class TestResetStaging(unittest.TestCase):
+    def test_drops_only_companies_schema(self):
+        conn = SqliteAsPg()
+        conn.execute = lambda sql, params=(): conn.statements.append(sql)
+        store = PgStore.__new__(PgStore)
+        store.db = conn
+        store.reset_staging()
+        self.assertEqual(conn.statements, ["DROP SCHEMA IF EXISTS companies CASCADE"])
+
+
 class TestSampleHidesUkraine(unittest.TestCase):
     def test_ua_counted_not_listed(self):
         store = SqliteStore()

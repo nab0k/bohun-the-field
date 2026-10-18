@@ -72,3 +72,40 @@ def country_iso2(value):
 
 
 EXCLUDED_COUNTRIES = {"RU", "CN"}
+
+
+_ID_NOTE = re.compile(r"\([^)]*\)")
+_ID_PREFIX = re.compile(r"^(?:[a-z]{1,3}:|ORG-)", re.I)
+
+
+def national_id(value):
+    """Registry number as published by procurement portals -> comparable form (EXP-012 T08 finding 5).
+
+    't:687370703' -> '687370703'; 'HRB 79012 (Voxtronic Deutschland GmbH)' -> 'HRB79012';
+    'ORG-27661440' -> '27661440'; 'DE 133556136' -> 'DE133556136'. Returns None if nothing is left.
+    """
+    text = _ID_NOTE.sub(" ", str(value or ""))
+    text = _ID_PREFIX.sub("", text.strip())
+    text = re.sub(r"[\s.]+", "", text).upper()
+    return text or None
+
+
+# Buyers that make an award a defence signal (layer A). Police, ports, foreign ministries and other
+# public buyers of CPV 35 items are security / dual-use (layer C), see T08 finding 1.
+DEFENCE_BUYER = re.compile(
+    r"armasuisse|agencja uzbrojenia|ministry of defen|ministerstwo obrony|bundesamt für ausrüstung|baainbw|"
+    r"bundeswehr|verteidigung|direction générale de l.armement|\bdga\b|ministère de la défense|"
+    r"ministère des armées|forsvar|försvar|puolustus|defence equipment|\bmod\b|ministerie van defensie|"
+    r"ministero della difesa|ministerio de defensa|ocrsg|\bnspa\b|\bocar\b|european defence agency|"
+    r"unitatea militar|military unit|jednostka wojskowa|armed forces|\barmée\b|esercito|ejército|"
+    r"ministerstvo obrany|aizsardzības|krašto apsaugos|kaitsevä|kaitseinvesteeringute|"
+    r"міністерство оборони|"
+    r"військова частина|"
+    r"агенція оборонних закупівель|"
+    r"національна гвардія|"
+    r"збройних сил",
+    re.I)
+
+
+def is_defence_buyer(name):
+    return bool(DEFENCE_BUYER.search(name or ""))
