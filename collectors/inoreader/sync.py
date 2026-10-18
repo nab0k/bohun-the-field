@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Inoreader BOHUN_* folders -> Supabase intelligence.items.
 
-Read-only Inoreader access. Stores metadata (headline, URL, timestamps), not article bodies.
+Read-only Inoreader access. Captures metadata and bounded provider body content;
+body presence does not establish completeness, source verification or publication QA.
 Requires: INOREADER_CLIENT_ID, INOREADER_CLIENT_SECRET, INOREADER_REFRESH_TOKEN,
 SUPABASE_DB_PASSWORD. Run --dry-run to inspect without database writes.
 """
@@ -14,6 +15,14 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+
+if __package__:
+    from .content_contract import CaptureBudget, extract_inoreader_content
+elif __name__ == "__main__":
+    from content_contract import CaptureBudget, extract_inoreader_content
+else:
+    # Support existing file-spec test loaders without changing sys.path.
+    from collectors.inoreader.content_contract import CaptureBudget, extract_inoreader_content
 
 API = "https://www.inoreader.com/reader/api/0/"
 TOKEN = "https://www.inoreader.com/oauth2/token"
@@ -112,7 +121,7 @@ def stream_items(folder, token, max_pages):
         time.sleep(0.25)
 
 
-def normalize(item, folder):
+def normalize(item, folder, *, captured_at=None, content_budget=None):
     links = item.get("canonical") or item.get("alternate") or []
     url = next((link.get("href") for link in links if link.get("href")), None)
     title = item.get("title") or "(untitled)"
@@ -132,6 +141,8 @@ def normalize(item, folder):
             "published": published,
             "url": url,
             "title": title,
+            "content_capture": extract_inoreader_content(
+                item, captured_at=captured_at, budget=content_budget),
         },
     }
 
@@ -193,16 +204,22 @@ def main():
     if not folders:
         raise RuntimeError("No BOHUN_ folders found; refusing empty successful run")
     unique = {}
+    content_budget = CaptureBudget()
     for folder in folders:
         count = 0
         for raw in stream_items(folder, token, args.max_pages):
-            item = normalize(raw, folder)
-            if item["external_id"] not in unique:
-                unique[item["external_id"]] = item
+            external_id = str(raw["id"])
+            if external_id not in unique:
+                unique[external_id] = normalize(raw, folder, content_budget=content_budget)
             count += 1
         print(f"FOLDER {folder}: fetched={count}")
     items = list(unique.values())
     print(f"VALIDATED unique_items={len(items)}")
+    capture_statuses = {}
+    for item in items:
+        status = item["raw_data"]["content_capture"]["status"]
+        capture_statuses[status] = capture_statuses.get(status, 0) + 1
+    print(f"CONTENT_CAPTURE bytes={content_budget.bytes_used} statuses={json.dumps(capture_statuses, sort_keys=True)}")
     if args.dry_run:
         print("DRY RUN: no database writes")
         return
