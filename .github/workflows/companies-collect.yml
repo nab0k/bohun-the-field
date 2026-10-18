@@ -1,11 +1,14 @@
-name: Companies collector (EXP-012) — offline tests
+name: Companies collector (EXP-012)
 
-# G3 (18.10.2026): offline implementation only. No schedule, no collection run, no Supabase/Notion writes.
-# The collection job (cloud run with limits, Supabase store, secrets) is a separate step (TODO v1 T08/T09)
-# and must be added only after explicit owner consent.
+# Tests run on every PR change. The collection job (T08 trial, owner consent 18.10.2026) runs ONLY when
+# the PR gets the label `exp012-collect-trial`: Supabase schema `companies`, 10 records per source,
+# GLEIF for 20 companies. No schedule (T09 needs separate consent). Nothing is written to Notion.
+# The repository is public: the log shows aggregate counts and a 20-company review sample from public
+# sources (Ukrainian companies are not listed); no data files are uploaded.
 on:
   workflow_dispatch:
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
     paths:
       - 'collectors/companies/**'
       - 'tests/companies/**'
@@ -22,6 +25,7 @@ concurrency:
 
 jobs:
   test:
+    if: github.event.action != 'labeled'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -31,3 +35,24 @@ jobs:
           python-version: '3.12'
       - name: Offline tests (stdlib only)
         run: python -m unittest discover -s tests/companies -t . -v
+
+  collect-trial:
+    if: github.event.action == 'labeled' && github.event.label.name == 'exp012-collect-trial'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Offline tests first
+        run: python -m unittest discover -s tests/companies -t .
+      - name: Install PostgreSQL driver
+        run: python -m pip install "psycopg[binary]"
+      - name: Trial collection into Supabase schema companies
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          python scripts/companies-collect.py --store supabase --migrate \
+            --sources usaspending_recipients,usaspending_subawards,ted,prozorro \
+            --limit 10 --gleif 20 --report --sample 20

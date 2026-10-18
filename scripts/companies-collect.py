@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """EXP-012 companies collector CLI.
 
-At G3 (18.10.2026) only the local SQLite store is implemented: no Supabase or Notion writes.
+Stores: local SQLite (--db) or Supabase schema `companies` (--store supabase, T08; password only from
+SUPABASE_DB_PASSWORD). Nothing is written to Notion.
 
 Examples:
   python3 scripts/companies-collect.py --db /tmp/companies.sqlite3 --sources ted,usaspending_subawards --limit 10
   python3 scripts/companies-collect.py --db /tmp/companies.sqlite3 --legacy-snapshot <pages_dir>   # local only, private
   python3 scripts/companies-collect.py --db /tmp/companies.sqlite3 --gleif 20 --report
+  SUPABASE_DB_PASSWORD=... python3 scripts/companies-collect.py --store supabase --migrate --sources ted --limit 10
 """
 import argparse
 import json
@@ -30,7 +32,11 @@ ADAPTERS = {
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--db", required=True, help="local SQLite file (Supabase store is not enabled at G3)")
+    ap.add_argument("--store", choices=("sqlite", "supabase"), default="sqlite")
+    ap.add_argument("--db", help="local SQLite file (with --store sqlite)")
+    ap.add_argument("--migrate", action="store_true", help="supabase: apply db/companies schema once if absent")
+    ap.add_argument("--sample", type=int, default=0,
+                    help="print N sample companies for manual review (public-source fields only, no Ukraine rows)")
     ap.add_argument("--sources", default="", help="comma list: " + ",".join(ADAPTERS))
     ap.add_argument("--limit", type=int, default=10, help="records per source per run")
     ap.add_argument("--legacy-snapshot", help="pages dir of the private Notion snapshot (local only)")
@@ -38,9 +44,21 @@ def main(argv=None):
     ap.add_argument("--report", action="store_true")
     args = ap.parse_args(argv)
 
-    store = SqliteStore(args.db)
-    http = JsonHttp(pause=0.3)
     results = {}
+    if args.store == "supabase":
+        if args.legacy_snapshot:
+            ap.error("--legacy-snapshot is private data: local SQLite only")
+        from collectors.companies.pg_store import PgStore
+        store = PgStore()
+        if args.migrate:
+            results["migration"] = store.migrate()
+        elif not store.schema_exists():
+            ap.error("schema companies is absent: run with --migrate")
+    else:
+        if not args.db:
+            ap.error("--db is required with --store sqlite")
+        store = SqliteStore(args.db)
+    http = JsonHttp(pause=0.3)
     if args.legacy_snapshot:
         rows = legacy_notion.load_snapshot(args.legacy_snapshot)
         results["legacy_notion"] = pipeline.run_source(store, legacy_notion.Legacy(rows), None, len(rows))
@@ -52,6 +70,8 @@ def main(argv=None):
         results["gleif"] = pipeline.enrich_identities(store, gleif.Gleif(http), args.gleif)
     if args.report:
         results["summary"] = report.summary(store)
+    if args.sample:
+        results["sample"] = report.sample(store, args.sample)
     print(json.dumps(results, ensure_ascii=False, indent=1, default=str))
     return 1 if any(isinstance(r, dict) and r.get("status") == "error" for r in results.values()) else 0
 

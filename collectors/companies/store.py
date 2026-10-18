@@ -3,6 +3,7 @@
 SqliteStore mirrors db/companies/001_companies_schema.sql (PostgreSQL) so that the whole pipeline
 runs and is tested offline. A PostgreSQL store for Supabase is a separate, not yet authorized step
 (TODO v1 T08): writes to Supabase are not allowed at G3.
+PgStore (pg_store.py) reuses the same methods through the `_q` hook (T08, 18.10.2026).
 """
 import datetime as dt
 import hashlib
@@ -71,6 +72,15 @@ def content_hash(payload):
     return hashlib.sha256(canon.encode("utf-8")).hexdigest()
 
 
+def _iso_date(value):
+    """'YYYY-MM-DD' or None: a malformed source date must not break the run (column is DATE in Postgres)."""
+    value = str(value or "")[:10]
+    try:
+        return dt.date.fromisoformat(value).isoformat()
+    except ValueError:
+        return None
+
+
 def new_company_id():
     stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%d%H%M%S")
     return f"co_{stamp}{secrets.token_hex(5)}"
@@ -80,25 +90,32 @@ class SqliteStore:
     def __init__(self, path=":memory:"):
         self.db = sqlite3.connect(path)
         self.db.row_factory = sqlite3.Row
-        self.db.execute("PRAGMA foreign_keys = ON")
+        self._q("PRAGMA foreign_keys = ON")
         self.db.executescript(SCHEMA)
+
+    def _q(self, sql, params=()):
+        return self.db.execute(sql, params)
+
+    def close(self):
+        self.db.close()
 
     # ---------- observations ----------
     def add_observation(self, source, source_key, payload):
         """Return (observation_id, is_new). Same content twice is a no-op (AC1)."""
         h = content_hash(payload)
-        row = self.db.execute("SELECT id FROM observation WHERE source=? AND source_key=? AND content_hash=?",
+        row = self._q("SELECT id FROM observation WHERE source=? AND source_key=? AND content_hash=?",
                               (source, source_key, h)).fetchone()
         if row:
             return row["id"], False
-        cur = self.db.execute(
-            "INSERT INTO observation(source, source_key, content_hash, fetched_at, payload) VALUES (?,?,?,?,?)",
-            (source, source_key, h, now(), json.dumps(payload, ensure_ascii=False, sort_keys=True)))
-        return cur.lastrowid, True
+        row = self._q(
+            """INSERT INTO observation(source, source_key, content_hash, fetched_at, payload) VALUES (?,?,?,?,?)
+               RETURNING id""",
+            (source, source_key, h, now(), json.dumps(payload, ensure_ascii=False, sort_keys=True))).fetchone()
+        return row["id"], True
 
     # ---------- lookup ----------
     def company_by_identifier(self, scheme, value):
-        row = self.db.execute("SELECT company_id FROM company_identifier WHERE scheme=? AND value=?",
+        row = self._q("SELECT company_id FROM company_identifier WHERE scheme=? AND value=?",
                               (scheme, str(value))).fetchone()
         return row["company_id"] if row else None
 
@@ -106,14 +123,14 @@ class SqliteStore:
         """Exact normalized name (canonical or alias) within the same country (NULL matches NULL only)."""
         q = """SELECT DISTINCT c.id FROM company c LEFT JOIN company_alias a ON a.company_id = c.id
                WHERE (c.name_norm = ? OR a.alias_norm = ?) AND c.country IS ?"""
-        return [r["id"] for r in self.db.execute(q, (norm, norm, country))]
+        return [r["id"] for r in self._q(q, (norm, norm, country))]
 
     def identifiers_of(self, company_id):
-        return [(r["scheme"], r["value"]) for r in self.db.execute(
+        return [(r["scheme"], r["value"]) for r in self._q(
             "SELECT scheme, value FROM company_identifier WHERE company_id=?", (company_id,))]
 
     def get(self, company_id):
-        return self.db.execute("SELECT * FROM company WHERE id=?", (company_id,)).fetchone()
+        return self._q("SELECT * FROM company WHERE id=?", (company_id,)).fetchone()
 
     # ---------- writes ----------
     def create_company(self, name, country=None, city=None, website=None, notion_page_id=None,
@@ -122,7 +139,7 @@ class SqliteStore:
         ts = now()
         if country == "UA":
             city = None  # no addresses for Ukrainian enterprises
-        self.db.execute(
+        self._q(
             """INSERT INTO company(id, name, name_norm, country, city, website, notion_page_id, flags,
                supply_role, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
             (cid, name, name_norm(name), country, city, website, notion_page_id,
@@ -135,33 +152,33 @@ class SqliteStore:
         if owner and owner != company_id:
             return False
         if not owner:
-            self.db.execute("INSERT INTO company_identifier VALUES (?,?,?,?,?)",
+            self._q("INSERT INTO company_identifier VALUES (?,?,?,?,?)",
                             (scheme, str(value), company_id, source, now()))
         return True
 
     def add_alias(self, company_id, alias, source):
         norm = name_norm(alias)
         if norm:
-            self.db.execute("INSERT OR IGNORE INTO company_alias VALUES (?,?,?,?)", (company_id, alias, norm, source))
+            self._q("INSERT OR IGNORE INTO company_alias VALUES (?,?,?,?)", (company_id, alias, norm, source))
 
     def add_signal(self, company_id, type_, layer, observation_id, counterpart=None, date=None, url=None):
-        self.db.execute(
+        self._q(
             """INSERT OR IGNORE INTO signal(company_id, type, layer, counterpart, signal_date, url, observation_id)
-               VALUES (?,?,?,?,?,?,?)""", (company_id, type_, layer, counterpart, date, url, observation_id))
+               VALUES (?,?,?,?,?,?,?)""", (company_id, type_, layer, counterpart, _iso_date(date), url, observation_id))
 
     def add_category(self, company_id, axis, value, basis):
-        self.db.execute("INSERT OR IGNORE INTO company_category VALUES (?,?,?,?)", (company_id, axis, value, basis))
+        self._q("INSERT OR IGNORE INTO company_category VALUES (?,?,?,?)", (company_id, axis, value, basis))
 
     def add_relation(self, from_id, to_id, relation, source):
         if from_id != to_id:
-            self.db.execute("INSERT OR IGNORE INTO company_relation VALUES (?,?,?,?)", (from_id, to_id, relation, source))
+            self._q("INSERT OR IGNORE INTO company_relation VALUES (?,?,?,?)", (from_id, to_id, relation, source))
 
     def add_ownership_link(self, company_id, owner_country, link_type, source, owner_name=None, share_text=None):
-        self.db.execute("INSERT OR IGNORE INTO company_ownership_link VALUES (?,?,?,?,?,?,?)",
+        self._q("INSERT OR IGNORE INTO company_ownership_link VALUES (?,?,?,?,?,?,?)",
                         (company_id, owner_country, owner_name, share_text, link_type, source, now()))
 
     def add_match_candidate(self, observation_id, company_id, reason, mention_name):
-        self.db.execute("INSERT OR IGNORE INTO match_candidate VALUES (?,?,?,?)",
+        self._q("INSERT OR IGNORE INTO match_candidate VALUES (?,?,?,?)",
                         (observation_id, company_id, reason, mention_name))
 
     def update(self, company_id, **fields):
@@ -169,7 +186,7 @@ class SqliteStore:
             return
         fields["updated_at"] = now()
         cols = ", ".join(f"{k}=?" for k in fields)
-        self.db.execute(f"UPDATE company SET {cols} WHERE id=?", (*fields.values(), company_id))
+        self._q(f"UPDATE company SET {cols} WHERE id=?", (*fields.values(), company_id))
 
     def fill_missing(self, company_id, **fields):
         """Set fields only where the company has none yet (never overwrite)."""
@@ -181,23 +198,25 @@ class SqliteStore:
 
     def add_flags(self, company_id, flags):
         row = self.get(company_id)
-        merged = sorted(set(json.loads(row["flags"])) | set(flags))
+        current = row["flags"]
+        current = json.loads(current) if isinstance(current, str) else (current or [])
+        merged = sorted(set(current) | set(flags))
         self.update(company_id, flags=json.dumps(merged))
 
     # ---------- source state / runs ----------
     def source_state(self, source):
-        row = self.db.execute("SELECT * FROM source_state WHERE source=?", (source,)).fetchone()
+        row = self._q("SELECT * FROM source_state WHERE source=?", (source,)).fetchone()
         return dict(row) if row else {"source": source, "cursor": None, "consecutive_failures": 0, "disabled": 0}
 
     def save_source_state(self, source, cursor, failures, disabled):
-        self.db.execute("""INSERT INTO source_state VALUES (?,?,?,?,?) ON CONFLICT(source) DO UPDATE SET
+        self._q("""INSERT INTO source_state VALUES (?,?,?,?,?) ON CONFLICT(source) DO UPDATE SET
                            cursor=excluded.cursor, consecutive_failures=excluded.consecutive_failures,
                            disabled=excluded.disabled, updated_at=excluded.updated_at""",
-                        (source, cursor, failures, int(disabled), now()))
+                        (source, cursor, failures, bool(disabled), now()))
 
     def save_run(self, **row):
         cols = ", ".join(row)
-        self.db.execute(f"INSERT INTO run({cols}) VALUES ({', '.join('?' * len(row))})", tuple(row.values()))
+        self._q(f"INSERT INTO run({cols}) VALUES ({', '.join('?' * len(row))})", tuple(row.values()))
 
     def commit(self):
         self.db.commit()
@@ -206,4 +225,4 @@ class SqliteStore:
         self.db.rollback()
 
     def query(self, sql, params=()):
-        return [dict(r) for r in self.db.execute(sql, params)]
+        return [dict(r) for r in self._q(sql, params)]

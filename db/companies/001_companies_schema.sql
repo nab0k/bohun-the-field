@@ -1,6 +1,7 @@
 -- EXP-012 — схема `companies` для автономного сбора компаний (Supabase / PostgreSQL).
 -- Дизайн: BOHUN-local/docs/experiments/EXP-012-companies-coverage-audit/DESIGN_v0.md (G2 18.10.2026).
--- НЕ ПРИМЕНЕНА. Применение на staging и production — только по отдельному согласию владельца (T08).
+-- Применяется один раз командой `companies-collect.py --store supabase --migrate` (T08, согласие 18.10.2026);
+-- до запуска workflow в Supabase не применена. Production-перенос — отдельное согласие.
 --
 -- Принципы:
 --  1. observation неизменяема: сырой ответ источника хранится один раз на (source, source_key, content_hash).
@@ -140,6 +141,19 @@ CREATE TABLE companies.run (
   status           text NOT NULL CHECK (status IN ('ok','error','skipped_disabled')),
   error            text
 );
+
+-- RLS включён без политик: через API (anon/authenticated) строки недоступны; сервисное подключение postgres его обходит.
+ALTER TABLE companies.company ENABLE ROW LEVEL SECURITY;
+ALTER TABLE companies.company_identifier ENABLE ROW LEVEL SECURITY;
+ALTER TABLE companies.company_alias ENABLE ROW LEVEL SECURITY;
+ALTER TABLE companies.observation ENABLE ROW LEVEL SECURITY;
+ALTER TABLE companies.signal ENABLE ROW LEVEL SECURITY;
+ALTER TABLE companies.company_category ENABLE ROW LEVEL SECURITY;
+ALTER TABLE companies.company_relation ENABLE ROW LEVEL SECURITY;
+ALTER TABLE companies.company_ownership_link ENABLE ROW LEVEL SECURITY;
+ALTER TABLE companies.match_candidate ENABLE ROW LEVEL SECURITY;
+ALTER TABLE companies.source_state ENABLE ROW LEVEL SECURITY;
+ALTER TABLE companies.run ENABLE ROW LEVEL SECURITY;
 
 -- Доступ: только сервисная роль (используется GitHub Actions после отдельного согласия).
 REVOKE ALL ON SCHEMA companies FROM PUBLIC;
