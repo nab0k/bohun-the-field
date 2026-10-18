@@ -20,7 +20,8 @@ class JsonHttp:
     def __init__(self, timeout=45, retries=2, backoff=2.0, pause=0.0, opener=urllib.request.urlopen):
         self.timeout, self.retries, self.backoff, self.pause, self._open = timeout, retries, backoff, pause, opener
 
-    def _request(self, req):
+    def _request(self, req, raw=False):
+        want_raw = raw
         last = None
         for attempt in range(self.retries + 1):
             try:
@@ -30,7 +31,7 @@ class JsonHttp:
                     raise SourceError(f"response over {MAX_BYTES} bytes: {req.full_url}")
                 if self.pause:
                     time.sleep(self.pause)
-                return json.loads(raw.decode("utf-8"))
+                return raw if want_raw else json.loads(raw.decode("utf-8"))
             except urllib.error.HTTPError as err:
                 last = err
                 if err.code == 404:
@@ -46,6 +47,11 @@ class JsonHttp:
 
     def get_json(self, url, accept="application/json"):
         return self._request(urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": accept}))
+
+    def get_bytes(self, url, accept="*/*"):
+        """Raw body (files such as xlsx), same size cap and retries; 404 -> None."""
+        return self._request(urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": accept}),
+                             raw=True)
 
     def post_json(self, url, body):
         data = json.dumps(body).encode("utf-8")

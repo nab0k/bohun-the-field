@@ -31,6 +31,9 @@ LEGAL_FORMS = [
     r"the",
 ]
 _FORM_RE = re.compile(r"(?<![\w])(" + "|".join(sorted(LEGAL_FORMS, key=len, reverse=True)) + r")(?![\w])")
+# Japanese legal forms are written without spaces before or after the name ("三菱重工業株式会社", "株式会社ＩＨＩ").
+_JP_FORM_RE = re.compile(r"^(?:株式会社|有限会社|合同会社|一般財団法人|一般社団法人|公益財団法人|公益社団法人)|"
+                         r"(?:株式会社|有限会社|合同会社)$")
 _PREFIX_RE = re.compile(r"^(?:[A-Z]{2})_(?=\S)")  # TED artefact: "EN_Weibel Scientific A/S"
 
 
@@ -46,7 +49,8 @@ def clean_name(name):
 
 def name_norm(name):
     """Key for exact comparison: lowercase, no accents, no legal forms, no punctuation."""
-    text = clean_name(name).lower()
+    text = unicodedata.normalize("NFKC", clean_name(name)).strip()
+    text = _JP_FORM_RE.sub("", text).strip().lower()
     text = unicodedata.normalize("NFKD", text)
     text = "".join(ch for ch in text if not unicodedata.combining(ch))
     text = text.replace("&", " and ")

@@ -21,6 +21,7 @@ source adapter --fetch(cursor, limit)--> Record(payload, mentions)
   - `usaspending_recipients` and `usaspending_subawards` — DoD primes and their subcontractors;
   - `ted` — EU defence award winners;
   - `prozorro` — Ukrainian defence award winners;
+  - `atla` — Japan ATLA central procurement contracts (monthly xlsx, PDL1.0), identifier `JP_CORP`;
   - GLEIF — LEI and ultimate parent;
   - `legacy_notion` — one-time import of the 3429 Notion cards as leads.
 - **Never merged automatically.** Same-name companies in the same country with conflicting identifiers
@@ -71,4 +72,7 @@ never in CI, and the snapshot must never be committed.
 - USAspending sub-award amounts are unreliable and are ignored.
 - TED often gives no registry number.
 - Wartime Ukrainian defence procurement is mostly absent from Prozorro.
+- ATLA: item names are Japanese free text without a code, so no capability is assigned. Fuel, food and similar
+  civil supplies are skipped, and so are governments (FMS). Trading houses are marked `TRADING_INTERMEDIARY`.
+  Officer names and addresses are never stored. Not yet run live (needs consent).
 - The capability mapping is TAXONOMY v0 (POST-MVP REVIEW).

@@ -12,13 +12,14 @@ Examples:
 """
 import argparse
 import json
+import os
 import pathlib
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 from collectors.companies import pipeline, report  # noqa: E402
-from collectors.companies.sources import gleif, legacy_notion, prozorro, ted, usaspending  # noqa: E402
+from collectors.companies.sources import atla, gleif, legacy_notion, prozorro, ted, usaspending  # noqa: E402
 from collectors.companies.sources.http import JsonHttp  # noqa: E402
 from collectors.companies.store import SqliteStore  # noqa: E402
 
@@ -27,6 +28,7 @@ ADAPTERS = {
     "usaspending_subawards": lambda: usaspending.Subawards(),
     "ted": lambda: ted.Awards(),
     "prozorro": lambda: prozorro.Awards(),
+    "atla": lambda: atla.Awards(),
 }
 
 
@@ -48,10 +50,11 @@ def main(argv=None):
                     help="start the given sources from their first page again (idempotency check, AC1)")
     args = ap.parse_args(argv)
 
+    if args.legacy_snapshot and any(name in os.environ for name in ("CI", "GITHUB_ACTIONS")):
+        ap.error("--legacy-snapshot is private data: forbidden in CI")
+
     results = {}
     if args.store == "supabase":
-        if args.legacy_snapshot:
-            ap.error("--legacy-snapshot is private data: local SQLite only")
         from collectors.companies.pg_store import PgStore
         store = PgStore()
         if args.reset_staging:

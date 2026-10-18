@@ -438,6 +438,45 @@ def load_cli():
 
 
 class TestCli(unittest.TestCase):
+    def test_legacy_snapshot_forbidden_in_ci_before_any_io(self):
+        import os
+        from unittest.mock import patch
+        cli = load_cli()
+        for variable in ("CI", "GITHUB_ACTIONS"):
+            for value in ("true", "false", ""):
+                for backend in ("sqlite", "supabase"):
+                    with self.subTest(variable=variable, value=value, backend=backend), \
+                         patch.dict(os.environ, {variable:value}, clear=True), \
+                         patch.object(cli, "SqliteStore", side_effect=AssertionError("Unexpected SQLite")), \
+                         patch("collectors.companies.pg_store.PgStore", side_effect=AssertionError("Unexpected Supabase")), \
+                         patch.object(cli.legacy_notion, "load_snapshot", side_effect=AssertionError("Unexpected private read")), \
+                         contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as stopped:
+                        cli.main(["--store", backend, "--db", "unused.sqlite3", "--legacy-snapshot", "unused-private-path"])
+                    self.assertEqual(stopped.exception.code, 2)
+
+    def test_legacy_snapshot_allowed_with_supabase_locally(self):
+        import os
+        from unittest.mock import MagicMock, patch
+        cli = load_cli()
+        store = MagicMock()
+        store.schema_exists.return_value = True
+        rows = [{"fixture":"private"}]
+        with patch.dict(os.environ, {}, clear=True), \
+             patch("collectors.companies.pg_store.PgStore", return_value=store), \
+             patch.object(cli.legacy_notion, "load_snapshot", return_value=rows) as load, \
+             patch.object(cli.pipeline, "run_source", return_value={"status":"ok"}) as run, \
+             patch.object(cli, "JsonHttp", side_effect=lambda **kwargs: None), \
+             redirect_stdout(io.StringIO()):
+            code = cli.main(["--store", "supabase", "--legacy-snapshot", "private-path"])
+        self.assertEqual(code, 0)
+        load.assert_called_once_with("private-path")
+        self.assertIs(run.call_args.args[0], store)
+        self.assertEqual(run.call_args.args[1].rows, rows)
+        self.assertIsNone(run.call_args.args[2])
+        self.assertEqual(run.call_args.args[3], 1)
+        store.migrate.assert_not_called()
+        store.reset_staging.assert_not_called()
+
     def test_reset_refused_for_sqlite(self):
         cli = load_cli()
         with tempfile.TemporaryDirectory() as tmp, self.assertRaises(SystemExit), \
