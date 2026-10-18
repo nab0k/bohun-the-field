@@ -1,9 +1,28 @@
-name: Bohundefence Inoreader Cloud
+name: Bohundefence Inoreader Cloud — bounded INPUT-02 probe
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '7,37 * * * *'
+    inputs:
+      expected_sha:
+        description: 'Reviewed full commit SHA on codex/exp009-cloud-pipeline'
+        required: true
+        type: string
+      mode:
+        description: 'Apply requires separate approval and reviewed fingerprints'
+        required: true
+        default: preview
+        type: choice
+        options:
+          - preview
+          - apply
+      db_fingerprint:
+        description: 'Apply only: separately reviewed catalog fingerprint'
+        required: false
+        type: string
+      batch_fingerprint:
+        description: 'Apply only: separately reviewed candidate batch fingerprint'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -13,19 +32,60 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  collect:
+  probe:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/exp009-cloud-pipeline'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Check reviewed ref and mode before dependencies or credentials
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          MODE: ${{ inputs.mode }}
+          DB_FINGERPRINT: ${{ inputs.db_fingerprint }}
+          BATCH_FINGERPRINT: ${{ inputs.batch_fingerprint }}
+        run: |
+          test "$EXPECTED_SHA" = "$GITHUB_SHA"
+          test "$GITHUB_REF" = 'refs/heads/codex/exp009-cloud-pipeline'
+          case "$MODE" in
+            preview) ;;
+            apply)
+              test "${#DB_FINGERPRINT}" -eq 64
+              test "${#BATCH_FINGERPRINT}" -eq 64
+              ;;
+            *) exit 1 ;;
+          esac
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Offline probe and capture regression checks
+        run: |
+          python -B -m unittest discover -s tests -p 'test_inoreader_probe.py'
+          python -B -m unittest discover -s tests -p 'test_inoreader_content.py'
+          python -B -m unittest discover -s tests -p 'test_inoreader_rate_limit.py'
+          python -B -m unittest discover -s tests -p 'test_inoreader_source_manager.py'
       - run: python -m pip install "psycopg[binary]"
-      - name: Sync BOHUN folders and headlines
+      - name: Probe existing capture — preview by default, at most five new rows
         env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          MODE: ${{ inputs.mode }}
+          DB_FINGERPRINT: ${{ inputs.db_fingerprint }}
+          BATCH_FINGERPRINT: ${{ inputs.batch_fingerprint }}
           INOREADER_CLIENT_ID: ${{ secrets.INOREADER_CLIENT_ID }}
           INOREADER_CLIENT_SECRET: ${{ secrets.INOREADER_CLIENT_SECRET }}
           INOREADER_REFRESH_TOKEN: ${{ secrets.INOREADER_REFRESH_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-        run: python collectors/inoreader/sync.py --max-pages 2
+        run: |
+          case "$MODE" in
+            preview)
+              python -B collectors/inoreader/probe.py --expected-sha "$EXPECTED_SHA"
+              ;;
+            apply)
+              python -B collectors/inoreader/probe.py --expected-sha "$EXPECTED_SHA" \
+                --apply --expected-db-fingerprint "$DB_FINGERPRINT" \
+                --expected-batch-fingerprint "$BATCH_FINGERPRINT"
+              ;;
+            *) exit 1 ;;
+          esac

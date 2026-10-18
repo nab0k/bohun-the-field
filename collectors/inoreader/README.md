@@ -1,6 +1,6 @@
 # Inoreader BOHUN folder sync and bounded content capture
 
-**INPUT-02 status: local implementation, not committed or deployed.** The existing
+**INPUT-02 status: committed locally as `aba17ec`, not deployed.** The existing
 metadata collector has written items to Supabase; the content extension described
 below has only been checked offline. Its release and a bounded cloud run require
 separate approval. Live API text coverage and completeness are not established.
@@ -73,15 +73,62 @@ The content tests mock OAuth/API/database boundaries, including dry-run. **Runni
 the collector itself with `--dry-run` is not an offline check:** it still refreshes
 OAuth and reads Inoreader. Do not combine it with the commands above.
 
-## Later approved cloud verification
-1. Review PR and ensure the secrets above exist in GitHub repository Actions secrets. Never paste their values into chat.
-2. Merge PR, run workflow manually, inspect `DISCOVERED`, `VALIDATED`, `COMMITTED` lines.
-3. Check a genuinely new item with provider body: content/hash/origin/UTC receipt
-   time are stored, completeness remains unknown, and the public wire is unchanged.
-4. Run a second time to verify no duplicates or overwrites when no new items arrive;
-   confirm folder naming and quotas. A run with no new body-bearing rows is not proof
-   that content storage works.
-5. Only then mark this component as operational in Notion.
+## Bounded acceptance probe for the existing INPUT-02 patch
+
+`probe.py` reuses `sync.normalize` and the existing `CaptureBudget` unchanged.
+It is a test runner around the committed capture patch, not a second text extractor.
+The probe/workflow changes are local and uncommitted until separately reviewed.
+No live probe has run. Running preview also needs approval: it refreshes OAuth,
+reads Inoreader and performs database SELECTs; it is not an offline check.
+
+- One subscription list, at most three alphabetically sorted BOHUN folders, one
+  page of 20 items each, no continuation: at most 60 input positions.
+- Select at most five genuinely new external IDs, preferring provider body strings;
+  normalize only this batch. Existing items are not enriched or overwritten.
+- Require exactly one existing `Inoreader BOHUN` source. Never create a source.
+- Preview is read-only and prints only counts, statuses, bytes and fingerprints.
+- Apply requires a reviewed full commit SHA, catalog fingerprint and batch
+  fingerprint from preview. Batch identity excludes receipt time, but binds
+  provider text/hashes/metadata; changed candidates abort instead of widening scope.
+- Catalog guards require RLS, no public-role schema/table/raw-column SELECT access,
+  one source-wire function and no enabled custom item triggers. Catalog/defaults/
+  function text must also be reviewed separately before approving its fingerprint;
+  a matching hash is not an automated proof of safe SQL or publication defaults.
+- One transaction inserts at most five new rows with `ON CONFLICT DO NOTHING`,
+  compares the stored batch, repeats the same inserted keys and verifies no change.
+  Mismatch before commit rolls back. A separate read-only connection checks after
+  commit. Post-commit failure is UNCONFIRMED and must not trigger automatic retry.
+- No new body-bearing rows means INCONCLUSIVE (exit 2), even if the job stored
+  metadata. It does not authorize backfill, more folders or more rows.
+- Original HTTP download is still unbounded; these are capture/row limits. Existing
+  bounded 429 retries remain. The workflow has a ten-minute timeout.
+
+Offline probe tests, in addition to the three regression commands above:
+
+```sh
+/opt/homebrew/bin/python3.13 -B -m unittest discover -s tests -p 'test_inoreader_probe.py'
+```
+
+The feature copy of `inoreader-cloud.yml` is manual-only, has no schedule/push
+trigger, and refuses refs other than `codex/exp009-cloud-pipeline`. It shares the
+normal collector's concurrency group, defaults to preview and checks the reviewed
+SHA before credentials. The workflow already exists on main; a future separately
+approved feature-ref dispatch can test this copy without merging it into main.
+The main collector/schedule has not been changed by local edits. Do not merge this
+temporary probe workflow into main as a production replacement.
+
+Before any cloud run: review the exact diff, commit and separately approve push,
+the exact feature ref/SHA and dispatch. Before apply: inspect current catalog/
+defaults/triggers/grants and the proposed batch; approve the exact fingerprints and
+up to five inserts separately. Do not print raw payloads/credentials into Actions
+logs or artifacts. Public source-wire headlines/URLs/dates may include the new rows
+under its existing contract; its content need not remain identical. Its body access
+and QA/public-release rules must not expand. No source-wire function is executed by
+the probe: catalog definitions/permissions are compared before and after writing.
+
+Only after a verified new body, conflict/replay and post-commit readback can this
+input component be considered tested in cloud. That still does not connect the
+analytical queue, models, Notion editor or automatic three-stream publication.
 
 ## Next work
 - Incremental watermark and catch-up pagination.
