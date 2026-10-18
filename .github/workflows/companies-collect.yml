@@ -1,0 +1,33 @@
+name: Companies collector (EXP-012) — offline tests
+
+# G3 (18.10.2026): offline implementation only. No schedule, no collection run, no Supabase/Notion writes.
+# The collection job (cloud run with limits, Supabase store, secrets) is a separate step (TODO v1 T08/T09)
+# and must be added only after explicit owner consent.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'collectors/companies/**'
+      - 'tests/companies/**'
+      - 'db/companies/**'
+      - 'scripts/companies-collect.py'
+      - '.github/workflows/companies-collect.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: companies-collect
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Offline tests (stdlib only)
+        run: python -m unittest discover -s tests/companies -t . -v
