@@ -130,6 +130,86 @@ Only after a verified new body, conflict/replay and post-commit readback can thi
 input component be considered tested in cloud. That still does not connect the
 analytical queue, models, Notion editor or automatic three-stream publication.
 
+## Private immutable intake — local INPUT-16 candidate
+
+The bounded-probe section above records its original pre-run implementation.
+Subsequently INPUT-12 preview read succeeded and INPUT-14 apply stopped before
+INSERT on changed input. Those runs do not test this new private intake layer.
+
+`intake_contract.py`, `intake_store.py`, `intake.py` and
+`db/migrations/20261018_exp009_intake.sql` implement the first local slice of the
+accepted batch design. **No migration, runtime credentials, cloud run or schedule
+has been applied.** The existing collector, capture, probe and workflow are not
+changed. This is not yet the full A18 PostgreSQL worker Store or analytical system.
+
+One receipt binds a preallocated batch UUID, canonical manifest and up to five
+exact UTF-8 payloads. The payload reuses `sync.normalize` and its capture, with
+only `content_capture.captured_at` moved into the batch membership. Hashes bind
+the exact stored text, never `jsonb::text`. A second receipt with the same evidence
+reuses the artifact/job, while changed input creates a new artifact. Completeness
+stays UNKNOWN; no QA/public-release/company verification is inferred.
+
+The private schema candidate has batches, artifacts, batch membership and initial
+queued `intake_validate` jobs. It provides only persist/read-batch/read-artifact
+entrypoints. There are no worker leases, models, Notion writes or publication
+functions. Runtime cannot directly change tables; `anon`/`authenticated`/PUBLIC
+receive no access. Both new roles start NOLOGIN, with credential provisioning
+deferred. The SQL deliberately aborts on existing schema/role names and unexpected
+inherited access; do not turn it into a blind `IF NOT EXISTS` migration.
+
+Initial intake is bound to the separately checked `Inoreader BOHUN` source ID 2.
+It does not require metadata to be absent from `intelligence.items`, and never
+inserts/updates those old rows. The optional metadata reference is initially NULL.
+Supplying one requires a matching visible id/source/external_id under existing
+RLS; no intelligence policy is broadened to make this work. Historical acceptance
+of body storage in `intelligence.items.raw_data` remains NOT_PROVEN: private
+artifact storage is a separate path, not a retroactive success for that probe.
+
+Limits remain 3 folders × 20 items fetched, five selected, 2 MiB HTML/128 KiB text
+per item and 5 MiB total capture JSON. The new entire payload cap is 6 MiB UTF-8,
+manifest 32 KiB and external ID 2 KiB. Rejection is explicit, not truncation.
+The old HTTP response-download limitation remains. Empty/bodyless capture is
+stored with its status and reported INCONCLUSIVE, not analysis-ready content.
+
+`PostgresIntakeStore` requires a fresh non-autocommit connection authenticated
+directly as `bohun_intake`, checks the in-transaction response, commits once and
+verifies via a fresh read-only connection. If COMMIT acknowledgement is lost,
+it returns UNKNOWN without reconnect/retry. The caller must read the same batch
+ID, not fetch another RSS batch. If the runner loses its unsaved request and no
+committed batch can be confirmed, that input cannot be recovered by refetching.
+After an uncertain result, **only `read` mode is a recovery operation**. Do not
+rerun `capture` on a not-found/possibly still pending batch. A new capture is an
+explicit new request after resolving the previous attempt, not an automatic retry.
+
+The CLI imports no driver and performs no I/O for help:
+
+```sh
+/opt/homebrew/bin/python3.13 -B -m collectors.inoreader.intake --help
+/opt/homebrew/bin/python3.13 -B -m unittest discover -s tests -p 'test_inoreader_intake.py'
+```
+
+`capture`/`read` both require a reviewed full SHA, preallocated `--batch-id` and
+`--allow-live`. They remain **unapproved for execution in this local stage**.
+They require a separately provisioned `BOHUN_INTAKE_DSN` with reviewed TLS/role
+settings; the old full-access password is never a fallback. The candidate roles
+cannot log in until separately provisioned. An already stored batch is read
+without OAuth/provider access. Only IDs/hashes/counts/status are printed, never
+payloads, source URLs or credentials. SQL/driver/network errors are withheld.
+
+Offline fault-injection tests prove client behavior only. Real SQL parsing,
+transactions/concurrency, JSON byte accounting, role/ACL tests, exposure settings
+and live body/readback acceptance are **NOT_RUN**. No new dependency is required
+for the offline checks. Review the migration/ACL/rollback and exact runtime before
+separately approving application and one bounded cloud acceptance run.
+
+Relevant official references checked for this local implementation:
+[PostgreSQL secure functions](https://www.postgresql.org/docs/current/sql-createfunction.html#SQL-CREATEFUNCTION-SECURITY),
+[SHA-256 and UTF-8 bytes](https://www.postgresql.org/docs/current/functions-binarystring.html),
+[RLS and foreign keys](https://www.postgresql.org/docs/current/ddl-rowsecurity.html),
+[Supabase function privileges](https://supabase.com/docs/guides/database/functions),
+[psycopg transactions](https://www.psycopg.org/psycopg3/docs/basic/transactions.html).
+No documentation example was executed against the real database.
+
 ## Next work
 - Incremental watermark and catch-up pagination.
 - Per-feed registry and source health checks.
