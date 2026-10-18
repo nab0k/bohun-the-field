@@ -3,7 +3,9 @@ import contextlib
 import copy
 import io
 import json
+import os
 import subprocess
+import sys
 import types
 import unittest
 from unittest.mock import patch
@@ -337,6 +339,19 @@ class OfflineProbeTests(unittest.TestCase):
 
 
 class WorkflowGuardTests(unittest.TestCase):
+    def test_workflow_entrypoint_runs_as_package_before_credentials(self):
+        workflow = (probe.REPO / ".github/workflows/inoreader-cloud.yml").read_text()
+        self.assertEqual(workflow.count("python -B -m collectors.inoreader.probe --expected-sha"), 2)
+        self.assertNotIn("python -B collectors/inoreader/probe.py", workflow)
+        # Real package import/argparse in a separate process. No credentials are
+        # inherited; --help exits before OAuth, database initialization or HTTP.
+        result = subprocess.run([sys.executable, "-B", "-m", "collectors.inoreader.probe", "--help"],
+                                cwd=probe.REPO, env={"PATH": os.defpath, "PYTHONDONTWRITEBYTECODE": "1"},
+                                capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("--expected-sha", result.stdout)
+        self.assertIn("--apply", result.stdout)
+
     def test_feature_workflow_has_no_automatic_trigger_or_full_sync(self):
         workflow = (probe.REPO / ".github/workflows/inoreader-cloud.yml").read_text()
         self.assertNotIn("schedule:", workflow)

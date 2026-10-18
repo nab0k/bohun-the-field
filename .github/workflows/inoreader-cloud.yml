@@ -80,10 +80,10 @@ jobs:
         run: |
           case "$MODE" in
             preview)
-              python -B collectors/inoreader/probe.py --expected-sha "$EXPECTED_SHA"
+              python -B -m collectors.inoreader.probe --expected-sha "$EXPECTED_SHA"
               ;;
             apply)
-              python -B collectors/inoreader/probe.py --expected-sha "$EXPECTED_SHA" \
+              python -B -m collectors.inoreader.probe --expected-sha "$EXPECTED_SHA" \
                 --apply --expected-db-fingerprint "$DB_FINGERPRINT" \
                 --expected-batch-fingerprint "$BATCH_FINGERPRINT"
               ;;
