@@ -1,0 +1,520 @@
+{
+ "_source": "SIPRI Fact Sheet Dec 2025, Annex 1 (Top 100, 2024): names and countries only, https://www.sipri.org/sites/default/files/2025-11/fs_2512_top_100_2024.pdf",
+ "_retrieved": "2026-10-18",
+ "entries": [
+  {
+   "rank": 1,
+   "name": "Lockheed Martin Corp.",
+   "country": "US"
+  },
+  {
+   "rank": 2,
+   "name": "RTX",
+   "country": "US"
+  },
+  {
+   "rank": 3,
+   "name": "Northrop Grumman Corp.",
+   "country": "US"
+  },
+  {
+   "rank": 4,
+   "name": "BAE Systems",
+   "country": "GB"
+  },
+  {
+   "rank": 5,
+   "name": "General Dynamics Corp.",
+   "country": "US"
+  },
+  {
+   "rank": 6,
+   "name": "Boeing",
+   "country": "US"
+  },
+  {
+   "rank": 7,
+   "name": "Rostec",
+   "country": "RU",
+   "expected": "excluded_ru_cn",
+   "note": "holding; SIPRI proxy"
+  },
+  {
+   "rank": 8,
+   "name": "AVIC",
+   "country": "CN",
+   "expected": "excluded_ru_cn"
+  },
+  {
+   "rank": 9,
+   "name": "CETC",
+   "country": "CN",
+   "expected": "excluded_ru_cn"
+  },
+  {
+   "rank": 10,
+   "name": "L3Harris Technologies",
+   "country": "US"
+  },
+  {
+   "rank": 11,
+   "name": "NORINCO",
+   "country": "CN",
+   "expected": "excluded_ru_cn"
+  },
+  {
+   "rank": 12,
+   "name": "Leonardo",
+   "country": "IT"
+  },
+  {
+   "rank": 13,
+   "name": "Airbus",
+   "country": null,
+   "note": "trans-European (SIPRI); legal seat to be confirmed"
+  },
+  {
+   "rank": 14,
+   "name": "CSSC",
+   "country": "CN",
+   "expected": "excluded_ru_cn"
+  },
+  {
+   "rank": 15,
+   "name": "Thales",
+   "country": "FR"
+  },
+  {
+   "rank": 16,
+   "name": "HII",
+   "country": "US"
+  },
+  {
+   "rank": 17,
+   "name": "CASC",
+   "country": "CN",
+   "expected": "excluded_ru_cn"
+  },
+  {
+   "rank": 18,
+   "name": "Leidos",
+   "country": "US"
+  },
+  {
+   "rank": 19,
+   "name": "Amentum",
+   "country": "US"
+  },
+  {
+   "rank": 20,
+   "name": "Rheinmetall",
+   "country": "DE"
+  },
+  {
+   "rank": 21,
+   "name": "Hanwha Group",
+   "country": "KR"
+  },
+  {
+   "rank": 22,
+   "name": "Booz Allen Hamilton",
+   "country": "US"
+  },
+  {
+   "rank": 23,
+   "name": "Rolls-Royce",
+   "country": "GB"
+  },
+  {
+   "rank": 24,
+   "name": "CACI International",
+   "country": "US"
+  },
+  {
+   "rank": 25,
+   "name": "Elbit Systems",
+   "country": "IL"
+  },
+  {
+   "rank": 26,
+   "name": "AECC",
+   "country": "CN",
+   "expected": "excluded_ru_cn"
+  },
+  {
+   "rank": 27,
+   "name": "Honeywell International",
+   "country": "US"
+  },
+  {
+   "rank": 28,
+   "name": "Saab",
+   "country": "SE"
+  },
+  {
+   "rank": 29,
+   "name": "Safran",
+   "country": "FR"
+  },
+  {
+   "rank": 30,
+   "name": "MBDA",
+   "country": null,
+   "note": "trans-European (SIPRI); legal seat to be confirmed"
+  },
+  {
+   "rank": 31,
+   "name": "Israel Aerospace Industries",
+   "country": "IL"
+  },
+  {
+   "rank": 32,
+   "name": "Mitsubishi Heavy Industries",
+   "country": "JP"
+  },
+  {
+   "rank": 33,
+   "name": "GE Aerospace",
+   "country": "US"
+  },
+  {
+   "rank": 34,
+   "name": "Rafael",
+   "country": "IL"
+  },
+  {
+   "rank": 35,
+   "name": "KBR",
+   "country": "US"
+  },
+  {
+   "rank": 36,
+   "name": "Naval Group",
+   "country": "FR"
+  },
+  {
+   "rank": 37,
+   "name": "EDGE Group",
+   "country": "AE"
+  },
+  {
+   "rank": 38,
+   "name": "CSGC",
+   "country": "CN",
+   "expected": "excluded_ru_cn"
+  },
+  {
+   "rank": 39,
+   "name": "Babcock International Group",
+   "country": "GB"
+  },
+  {
+   "rank": 40,
+   "name": "Dassault Aviation Group",
+   "country": "FR"
+  },
+  {
+   "rank": 41,
+   "name": "United Shipbuilding Corp.",
+   "country": "RU",
+   "expected": "excluded_ru_cn"
+  },
+  {
+   "rank": 42,
+   "name": "KNDS",
+   "country": null,
+   "note": "trans-European (SIPRI); legal seat to be confirmed"
+  },
+  {
+   "rank": 43,
+   "name": "Science Applications International Corp.",
+   "country": "US"
+  },
+  {
+   "rank": 44,
+   "name": "Hindustan Aeronautics",
+   "country": "IN"
+  },
+  {
+   "rank": 45,
+   "name": "V2X",
+   "country": "US"
+  },
+  {
+   "rank": 46,
+   "name": "Czechoslovak Group",
+   "country": "CZ"
+  },
+  {
+   "rank": 47,
+   "name": "ASELSAN",
+   "country": "TR"
+  },
+  {
+   "rank": 48,
+   "name": "Textron",
+   "country": "US"
+  },
+  {
+   "rank": 49,
+   "name": "TransDigm Group",
+   "country": "US"
+  },
+  {
+   "rank": 50,
+   "name": "NCSIST",
+   "country": "TW"
+  },
+  {
+   "rank": 51,
+   "name": "PGZ",
+   "country": "PL"
+  },
+  {
+   "rank": 52,
+   "name": "JSC Ukrainian Defense Industry",
+   "country": "UA"
+  },
+  {
+   "rank": 53,
+   "name": "Fincantieri",
+   "country": "IT"
+  },
+  {
+   "rank": 54,
+   "name": "Parker-Hannifin Corp.",
+   "country": "US"
+  },
+  {
+   "rank": 55,
+   "name": "Kawasaki Heavy Industries",
+   "country": "JP"
+  },
+  {
+   "rank": 56,
+   "name": "Bechtel Corp.",
+   "country": "US"
+  },
+  {
+   "rank": 57,
+   "name": "ST Engineering",
+   "country": "SG"
+  },
+  {
+   "rank": 58,
+   "name": "Bharat Electronics",
+   "country": "IN"
+  },
+  {
+   "rank": 59,
+   "name": "Serco Group",
+   "country": "GB"
+  },
+  {
+   "rank": 60,
+   "name": "LIG Nex1",
+   "country": "KR"
+  },
+  {
+   "rank": 61,
+   "name": "ThyssenKrupp",
+   "country": "DE"
+  },
+  {
+   "rank": 62,
+   "name": "Hensoldt",
+   "country": "DE"
+  },
+  {
+   "rank": 63,
+   "name": "Parsons Corp.",
+   "country": "US"
+  },
+  {
+   "rank": 64,
+   "name": "Fujitsu",
+   "country": "JP"
+  },
+  {
+   "rank": 65,
+   "name": "Turkish Aerospace Industries",
+   "country": "TR"
+  },
+  {
+   "rank": 66,
+   "name": "Oshkosh Corp.",
+   "country": "US"
+  },
+  {
+   "rank": 67,
+   "name": "Diehl",
+   "country": "DE"
+  },
+  {
+   "rank": 68,
+   "name": "BWX Technologies",
+   "country": "US"
+  },
+  {
+   "rank": 69,
+   "name": "Teledyne Technologies",
+   "country": "US"
+  },
+  {
+   "rank": 70,
+   "name": "Korea Aerospace Industries",
+   "country": "KR"
+  },
+  {
+   "rank": 71,
+   "name": "QinetiQ",
+   "country": "GB"
+  },
+  {
+   "rank": 72,
+   "name": "Sierra Nevada Corp.",
+   "country": "US"
+  },
+  {
+   "rank": 73,
+   "name": "Baykar",
+   "country": "TR"
+  },
+  {
+   "rank": 74,
+   "name": "General Atomics",
+   "country": "US"
+  },
+  {
+   "rank": 75,
+   "name": "Eaton",
+   "country": "US"
+  },
+  {
+   "rank": 76,
+   "name": "Mitsubishi Electric Corp.",
+   "country": "JP"
+  },
+  {
+   "rank": 77,
+   "name": "SpaceX",
+   "country": "US"
+  },
+  {
+   "rank": 78,
+   "name": "Curtiss-Wright Corp.",
+   "country": "US"
+  },
+  {
+   "rank": 79,
+   "name": "Kongsberg Gruppen",
+   "country": "NO"
+  },
+  {
+   "rank": 80,
+   "name": "Hyundai Rotem",
+   "country": "KR"
+  },
+  {
+   "rank": 81,
+   "name": "Amphenol Corp.",
+   "country": "US"
+  },
+  {
+   "rank": 82,
+   "name": "CNNC",
+   "country": "CN",
+   "expected": "excluded_ru_cn"
+  },
+  {
+   "rank": 83,
+   "name": "NEC Corp.",
+   "country": "JP"
+  },
+  {
+   "rank": 84,
+   "name": "United Launch Alliance",
+   "country": "US"
+  },
+  {
+   "rank": 85,
+   "name": "CAE",
+   "country": "CA"
+  },
+  {
+   "rank": 86,
+   "name": "Moog",
+   "country": "US"
+  },
+  {
+   "rank": 87,
+   "name": "Roketsan",
+   "country": "TR"
+  },
+  {
+   "rank": 88,
+   "name": "Navantia",
+   "country": "ES"
+  },
+  {
+   "rank": 89,
+   "name": "HEICO Corp.",
+   "country": "US"
+  },
+  {
+   "rank": 90,
+   "name": "Melrose Industries",
+   "country": "GB"
+  },
+  {
+   "rank": 91,
+   "name": "Mazagon Dock Shipbuilders",
+   "country": "IN"
+  },
+  {
+   "rank": 92,
+   "name": "ViaSat",
+   "country": "US"
+  },
+  {
+   "rank": 93,
+   "name": "MKE",
+   "country": "TR"
+  },
+  {
+   "rank": 94,
+   "name": "Howmet Aerospace",
+   "country": "US"
+  },
+  {
+   "rank": 95,
+   "name": "Keysight Technologies",
+   "country": "US"
+  },
+  {
+   "rank": 96,
+   "name": "DEFEND ID",
+   "country": "ID"
+  },
+  {
+   "rank": 97,
+   "name": "TTM Technologies",
+   "country": "US"
+  },
+  {
+   "rank": 98,
+   "name": "Mitre Corp.",
+   "country": "US"
+  },
+  {
+   "rank": 99,
+   "name": "The Aerospace Corp.",
+   "country": "US"
+  },
+  {
+   "rank": 100,
+   "name": "Ultra Electronics Group",
+   "country": "GB"
+  }
+ ]
+}

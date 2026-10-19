@@ -29,19 +29,42 @@ def summary(store):
     }
 
 
+def _find(store, entry):
+    for scheme, value in entry.get("ids") or []:
+        hit = store.company_by_identifier(scheme, value)
+        if hit:
+            return hit
+    ids = store.companies_by_name(name_norm(entry["name"]), entry.get("country"))
+    if not ids and not entry.get("country"):
+        # trans-national entries (SIPRI "Trans-European"): accept a unique exact name in any country
+        rows = store.query("""SELECT DISTINCT c.id FROM company c LEFT JOIN company_alias a ON a.company_id = c.id
+                              WHERE c.name_norm = ? OR a.alias_norm = ?""", (name_norm(entry["name"]),) * 2)
+        ids = [r["id"] for r in rows]
+    return ids[0] if len(ids) == 1 else None
+
+
 def completeness(store, benchmark):
-    covered, missing = [], []
+    """Share of benchmark entries the store knows.
+
+    Covered = found by identifier or by unique exact name (+ country). A group counts as covered when the
+    found company is a parent with known subsidiaries too. Entries marked `expected: excluded_ru_cn` are a
+    separate check: they must be absent or excluded, never `card`.
+    """
+    covered, missing, ru_cn = [], [], {"absent": 0, "excluded": 0, "not_excluded": []}
     for entry in benchmark:
-        hit = None
-        for scheme, value in entry.get("ids") or []:
-            hit = hit or store.company_by_identifier(scheme, value)
-        if not hit:
-            ids = store.companies_by_name(name_norm(entry["name"]), entry.get("country"))
-            hit = ids[0] if len(ids) == 1 else None
+        hit = _find(store, entry)
+        if entry.get("expected") == "excluded_ru_cn":
+            if not hit:
+                ru_cn["absent"] += 1
+            elif store.get(hit)["status"] == "excluded":
+                ru_cn["excluded"] += 1
+            else:
+                ru_cn["not_excluded"].append(entry["name"])
+            continue
         (covered if hit else missing).append(entry["name"])
-    total = len(benchmark)
+    total = len(covered) + len(missing)
     return {"total": total, "covered": len(covered), "share": round(len(covered) / total, 3) if total else None,
-            "missing": missing}
+            "missing": missing, "ru_cn_check": ru_cn}
 
 
 def sample(store, n):

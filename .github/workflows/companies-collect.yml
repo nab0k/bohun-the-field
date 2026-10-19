@@ -1,7 +1,7 @@
 name: Companies collector (EXP-012)
 
-# Tests run on every PR change. The collection job (T08 trials, owner consents 18.10.2026) runs ONLY when
-# the PR gets one of the labels below: Supabase schema `companies`, 10 records per source,
+# Tests run on every PR change. The collection job (owner consents in DECISIONS) runs ONLY when
+# the PR gets the label below: Supabase schema `companies`, 10 records per source,
 # GLEIF for 20 companies. No schedule (T09 needs separate consent). Nothing is written to Notion.
 # The repository is public: the log shows aggregate counts and a 20-company review sample from public
 # sources (Ukrainian companies are not listed); no data files are uploaded.
@@ -37,14 +37,12 @@ jobs:
         run: python -m unittest discover -s tests/companies -t . -v
 
   collect-trial:
-    # Owner consent D-20261018-EXP012-T08b: two runs.
-    #   label exp012-collect-reset  -> DROP SCHEMA companies, re-create, collect;
-    #   label exp012-collect-replay -> collect again from the first pages (no duplicates expected, AC1).
-    if: >-
-      github.event.action == 'labeled' &&
-      (github.event.label.name == 'exp012-collect-reset' || github.event.label.name == 'exp012-collect-replay')
+    # Owner consent D-20261019-EXP012-MVP-1: up to three runs, schema is NOT re-created.
+    # The earlier labels exp012-collect-reset / exp012-collect-replay are retired: their two consented runs are used,
+    # and a reset would now drop the 3470 staged companies (incl. the legacy import).
+    if: github.event.action == 'labeled' && github.event.label.name == 'exp012-run-step'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -54,11 +52,12 @@ jobs:
         run: python -m unittest discover -s tests/companies -t .
       - name: Install PostgreSQL driver
         run: python -m pip install "psycopg[binary]"
-      - name: Trial collection into Supabase schema companies
+      - name: EDF trial, card rule and completeness (Supabase schema companies)
         env:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          MODE: ${{ github.event.label.name == 'exp012-collect-reset' && '--reset-staging' || '--replay' }}
         run: |
-          python scripts/companies-collect.py --store supabase --migrate $MODE \
-            --sources usaspending_recipients,usaspending_subawards,ted,prozorro \
-            --limit 10 --gleif 20 --report --sample 20
+          python scripts/companies-collect.py --store supabase \
+            --sources edf --limit 10 --gleif 20 --promote \
+            --benchmark collectors/companies/benchmarks/sipri_top100_2024.json \
+            --benchmark collectors/companies/benchmarks/dod_top_recipients_fy2025.json \
+            --report --sample 20

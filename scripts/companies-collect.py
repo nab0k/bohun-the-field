@@ -18,7 +18,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
-from collectors.companies import pipeline, report  # noqa: E402
+from collectors.companies import cards, pipeline, report  # noqa: E402
 from collectors.companies.sources import atla, edf, gleif, legacy_notion, prozorro, ted, usaspending  # noqa: E402
 from collectors.companies.sources.http import JsonHttp  # noqa: E402
 from collectors.companies.store import SqliteStore  # noqa: E402
@@ -45,6 +45,9 @@ def main(argv=None):
     ap.add_argument("--legacy-snapshot", help="pages dir of the private Notion snapshot (local only)")
     ap.add_argument("--gleif", type=int, default=0, help="max companies to enrich via GLEIF")
     ap.add_argument("--report", action="store_true")
+    ap.add_argument("--promote", action="store_true", help="apply the lead -> card rule (D02) to all companies")
+    ap.add_argument("--benchmark", action="append", default=[],
+                    help="benchmark JSON ({'entries': [...]}) for the completeness report; repeatable")
     ap.add_argument("--reset-staging", action="store_true",
                     help="supabase: DROP SCHEMA companies and re-create it (staging only; requires --migrate)")
     ap.add_argument("--replay", action="store_true",
@@ -85,6 +88,13 @@ def main(argv=None):
         results[name] = pipeline.run_source(store, ADAPTERS[name](), http, args.limit)
     if args.gleif:
         results["gleif"] = pipeline.enrich_identities(store, gleif.Gleif(http), args.gleif)
+    if args.promote:
+        results["cards"] = cards.promote(store)
+    for path in args.benchmark:
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
+        entries = data["entries"] if isinstance(data, dict) else data
+        results["completeness:" + pathlib.Path(path).stem] = report.completeness(store, entries)
     if args.report:
         results["summary"] = report.summary(store)
     if args.sample:
