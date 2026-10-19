@@ -7,7 +7,7 @@ Companies are never merged automatically.
 from .normalize import name_norm
 from .taxonomy import SIGNAL_LAYER, classify, is_rnd
 
-STRONG_SCHEMES = ("UEI", "LEI", "EDRPOU", "CAGE", "USASPENDING_RECIPIENT", "JP_CORP")
+STRONG_SCHEMES = ("UEI", "LEI", "EDRPOU", "CAGE", "USASPENDING_RECIPIENT", "JP_CORP", "EU_PIC")
 
 
 def _scheme_conflict(store, company_id, identifiers):

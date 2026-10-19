@@ -19,7 +19,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 from collectors.companies import pipeline, report  # noqa: E402
-from collectors.companies.sources import atla, gleif, legacy_notion, prozorro, ted, usaspending  # noqa: E402
+from collectors.companies.sources import atla, edf, gleif, legacy_notion, prozorro, ted, usaspending  # noqa: E402
 from collectors.companies.sources.http import JsonHttp  # noqa: E402
 from collectors.companies.store import SqliteStore  # noqa: E402
 
@@ -29,6 +29,7 @@ ADAPTERS = {
     "ted": lambda: ted.Awards(),
     "prozorro": lambda: prozorro.Awards(),
     "atla": lambda: atla.Awards(),
+    "edf": lambda: edf.Grants(),
 }
 
 

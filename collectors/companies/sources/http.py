@@ -6,6 +6,7 @@ import json
 import time
 import urllib.error
 import urllib.request
+import uuid
 
 USER_AGENT = "BohundefenceCompanies/0.1 (+https://bohundefence.com; research collector)"
 MAX_BYTES = 5 * 1024 * 1024
@@ -52,6 +53,20 @@ class JsonHttp:
         """Raw body (files such as xlsx), same size cap and retries; 404 -> None."""
         return self._request(urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": accept}),
                              raw=True)
+
+    def post_form(self, url, fields):
+        """multipart/form-data POST where every field is a JSON value (EU Funding & Tenders Search API)."""
+        boundary = "----bohun" + uuid.uuid4().hex
+        chunks = []
+        for name, value in fields.items():
+            chunks += [f"--{boundary}\r\n".encode(),
+                       f'Content-Disposition: form-data; name="{name}"; filename="blob"\r\n'.encode(),
+                       b"Content-Type: application/json\r\n\r\n",
+                       json.dumps(value, separators=(",", ":")).encode(), b"\r\n"]
+        chunks.append(f"--{boundary}--\r\n".encode())
+        return self._request(urllib.request.Request(url, data=b"".join(chunks), method="POST", headers={
+            "User-Agent": USER_AGENT, "Accept": "application/json",
+            "Content-Type": f"multipart/form-data; boundary={boundary}"}))
 
     def post_json(self, url, body):
         data = json.dumps(body).encode("utf-8")

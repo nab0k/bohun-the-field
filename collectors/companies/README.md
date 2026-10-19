@@ -22,6 +22,9 @@ source adapter --fetch(cursor, limit)--> Record(payload, mentions)
   - `ted` — EU defence award winners;
   - `prozorro` — Ukrainian defence award winners;
   - `atla` — Japan ATLA central procurement contracts (monthly xlsx, PDL1.0), identifier `JP_CORP`;
+    paused: mod.go.jp answers 403 to the collector's User-Agent;
+  - `edf` — European Defence Fund project participants (EU Funding & Tenders Search API, CC BY 4.0),
+    identifier `EU_PIC`, flags `EDF_COORDINATOR`, `SME`, `ORG_TYPE:*`;
   - GLEIF — LEI and ultimate parent;
   - `legacy_notion` — one-time import of the 3429 Notion cards as leads.
 - **Never merged automatically.** Same-name companies in the same country with conflicting identifiers
