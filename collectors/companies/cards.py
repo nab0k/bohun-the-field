@@ -5,7 +5,9 @@ A company becomes `card` only if it has
    (REGISTRY_SCHEMES), and
 2. at least one defence or dual-use activity source: a signal of layer A or B (legacy assessments
    do not count, see pipeline.INFO_ONLY_SIGNALS), and
-3. it is not excluded and not a public body (ORG_TYPE:PUB is an authority, not a company).
+3. it is a company: a record with an organisation-type flag other than ORG_TYPE:PRC (universities HES,
+   research centres REC, public bodies PUB, other OTH) stays in the base unpublished (USER 19.10, PRC only).
+   Records without such a flag (USAspending, TED, Prozorro, ATLA) are companies.
 A card that no longer meets the rule goes back to `candidate`. `dossier` and `excluded` are never touched.
 """
 import json
@@ -35,7 +37,8 @@ def eligible_ids(store):
     keep = set()
     for r in rows:
         flags = json.loads(r["flags"]) if isinstance(r["flags"], str) else (r["flags"] or [])
-        if "ORG_TYPE:PUB" not in flags:
+        org_types = [f for f in flags if f.startswith("ORG_TYPE:")]
+        if all(f == "ORG_TYPE:PRC" for f in org_types):
             keep.add(r["id"])
     return keep
 

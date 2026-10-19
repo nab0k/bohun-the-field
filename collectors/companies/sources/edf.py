@@ -39,15 +39,25 @@ def _website(link):
 class Grants:
     source = SOURCE
 
-    def __init__(self, page_size=50):
+    def __init__(self, page_size=10):
         self.page_size = page_size
 
     def fetch(self, http, cursor, limit):
-        """Cursor = next page number. `limit` counts projects (each record holds all its participants)."""
-        page = int(cursor or 1)
+        """Cursor 'o:<offset>' = number of index entries already read. `limit` counts projects.
+
+        The page size never exceeds `limit`, so a run reads at most `limit` projects (T08 MVP run 1 read a whole
+        page of 50 for limit 10). A legacy cursor '<page>' (page size 50, run 1 on 2026-10-19) is converted.
+        """
+        if cursor and not str(cursor).startswith("o:"):
+            offset = (int(cursor) - 1) * 50
+        else:
+            offset = int(str(cursor or "o:0")[2:])
+        size = max(1, min(self.page_size, limit))
+        while offset % size:
+            size -= 1  # page boundaries must line up with the offset
         records, seen = [], set()
         while len(records) < limit:
-            url = f"{API}?apiKey={API_KEY}&text=***&pageSize={self.page_size}&pageNumber={page}"
+            url = f"{API}?apiKey={API_KEY}&text=***&pageSize={size}&pageNumber={offset // size + 1}"
             data = http.post_form(url, {"query": QUERY, "languages": ["en"]}) or {}
             results = data.get("results") or []
             for item in results:
@@ -55,11 +65,11 @@ class Grants:
                 if rec and rec.source_key not in seen:
                     seen.add(rec.source_key)
                     records.append(rec)
-            page += 1
+            offset += len(results)
             total = data.get("totalResults") or 0
-            if not results or (page - 1) * self.page_size >= total:
+            if not results or offset >= total:
                 return records, None
-        return records, str(page)
+        return records, f"o:{offset}"
 
     @staticmethod
     def parse(md):

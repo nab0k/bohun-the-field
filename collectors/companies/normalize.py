@@ -28,6 +28,9 @@ LEGAL_FORMS = [
     r"nv", r"n\.v\.", r"plc", r"ltd", r"limited", r"llc", r"inc", r"incorporated", r"corp", r"corporation",
     r"co", r"company", r"sp\. z o\.o\.", r"sp z oo", r"s\.r\.o\.", r"spol\. s r\.o\.", r"a\.s\.",
     r"тов", r"товариство з обмеженою відповідальністю", r"пат", r"прат", r"ат", r"дп",
+    r"societa per azioni", r"societa a responsabilita limitata", r"s\.p\.a", r"societe anonyme",
+    r"societe par actions simplifiee", r"aktiengesellschaft", r"gesellschaft mit beschrankter haftung",
+    r"sociedad anonima", r"sociedad limitada", r"s\.l\.", r"sl", r"spolka akcyjna", r"oyj abp",
     r"the",
 ]
 _FORM_RE = re.compile(r"(?<![\w])(" + "|".join(sorted(LEGAL_FORMS, key=len, reverse=True)) + r")(?![\w])")

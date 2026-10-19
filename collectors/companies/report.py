@@ -29,6 +29,36 @@ def summary(store):
     }
 
 
+GROUP_WORDS = {"group", "gruppen", "groupe", "gruppe", "holding", "holdings"}
+
+
+def _group_core(name):
+    """'Dassault Aviation Group' -> 'dassault aviation'; benchmark names are groups, sources name entities."""
+    words = name_norm(name).split()
+    while words and words[-1] in GROUP_WORDS:
+        words.pop()
+    return " ".join(words)
+
+
+def _find_group(store, entry):
+    """Any company whose normalized name starts with the group core as whole words (same country if known).
+
+    Cores shorter than 4 characters (HII, KBR, CAE, NEC) are too ambiguous and only match exactly.
+    """
+    core = _group_core(entry["name"])
+    if len(core) < 4:
+        return None
+    n = len(core)
+    country_sql, params = "", [core, n, n + 1, core, n, n + 1]
+    if entry.get("country"):
+        country_sql, params = " AND c.country = ?", params + [entry["country"]]
+    rows = store.query(f"""SELECT DISTINCT c.id FROM company c LEFT JOIN company_alias a ON a.company_id = c.id
+        WHERE ((substr(c.name_norm, 1, {n}) = ? AND (length(c.name_norm) = ? OR substr(c.name_norm, ?, 1) = ' '))
+            OR (substr(a.alias_norm, 1, {n}) = ? AND (length(a.alias_norm) = ? OR substr(a.alias_norm, ?, 1) = ' ')))
+        {country_sql}""", tuple(params))
+    return rows[0]["id"] if rows else None
+
+
 def _find(store, entry):
     for scheme, value in entry.get("ids") or []:
         hit = store.company_by_identifier(scheme, value)
@@ -51,8 +81,13 @@ def completeness(store, benchmark):
     separate check: they must be absent or excluded, never `card`.
     """
     covered, missing, ru_cn = [], [], {"absent": 0, "excluded": 0, "not_excluded": []}
+    by_group = []
     for entry in benchmark:
         hit = _find(store, entry)
+        if not hit and entry.get("expected") != "excluded_ru_cn":
+            hit = _find_group(store, entry)
+            if hit:
+                by_group.append(entry["name"])
         if entry.get("expected") == "excluded_ru_cn":
             if not hit:
                 ru_cn["absent"] += 1
@@ -64,7 +99,7 @@ def completeness(store, benchmark):
         (covered if hit else missing).append(entry["name"])
     total = len(covered) + len(missing)
     return {"total": total, "covered": len(covered), "share": round(len(covered) / total, 3) if total else None,
-            "missing": missing, "ru_cn_check": ru_cn}
+            "missing": missing, "covered_by_group_name": by_group, "ru_cn_check": ru_cn}
 
 
 def sample(store, n):

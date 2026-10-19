@@ -71,7 +71,7 @@ class TestEdfFetch(unittest.TestCase):
 
     def test_pagination_cursor(self):
         recs, cur = edf.Grants(page_size=2).fetch(two_pages(), None, 1)
-        self.assertEqual(([r.source_key for r in recs], cur), (["101168111"], "2"))
+        self.assertEqual(([r.source_key for r in recs], cur), (["101168111"], "o:2"))
         recs2, cur2 = edf.Grants(page_size=2).fetch(two_pages(), cur, 10)
         self.assertEqual(([r.source_key for r in recs2], cur2), (["999000001"], None))
 
