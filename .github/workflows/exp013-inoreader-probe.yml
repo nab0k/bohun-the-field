@@ -1,0 +1,33 @@
+name: EXP-013 Inoreader full-text probe
+
+# Owner consent D-20261019-EXP013-PROBE: ONE read-only run, n=100, aggregate numbers only in the public log
+# (no titles, no texts, no credentials). Runs only when the PR gets the label below. No schedule, no DB writes.
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: exp013-inoreader-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    if: github.event.label.name == 'exp013-inoreader-probe'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Offline tests of the probe
+        run: python -m unittest discover -s tests/analyst -t .
+      - name: Probe (aggregates only)
+        env:
+          INOREADER_CLIENT_ID: ${{ secrets.INOREADER_CLIENT_ID }}
+          INOREADER_CLIENT_SECRET: ${{ secrets.INOREADER_CLIENT_SECRET }}
+          INOREADER_REFRESH_TOKEN: ${{ secrets.INOREADER_REFRESH_TOKEN }}
+        run: python scripts/inoreader-fulltext-probe.py
