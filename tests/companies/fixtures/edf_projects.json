@@ -1,0 +1,126 @@
+{
+ "_fixture": "Real EDF project record (MPortISTAR, 101168111) from EU Funding & Tenders Search API, retrieved 2026-10-19, CC BY 4.0; street, postal code and coordinates removed. One translation duplicate (pl) kept on purpose. Project 999000001 is SYNTHETIC (UA SME coordinator, university, repeat of Origin Robotics by PIC).",
+ "totalResults": 3,
+ "results": [
+  {
+   "metadata": {
+    "acronym": [
+     "MPortISTAR"
+    ],
+    "projectId": [
+     "101168111"
+    ],
+    "programAbbreviation": [
+     "EDF"
+    ],
+    "callIdentifier": [
+     "EDF-2023-LS-DA-SME"
+    ],
+    "topicId": [
+     "46029443"
+    ],
+    "startDate": [
+     "2024-12-01T00:00:00.000+0100"
+    ],
+    "ecSignatureDate": [
+     "2024-11-23T00:00:00.000+0100"
+    ],
+    "status": [
+     "Ongoing"
+    ],
+    "euContributionAmount": [
+     "4521399.93"
+    ],
+    "url": [
+     "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/projects-details/44181033/101168111/EDF"
+    ],
+    "language": [
+     "en"
+    ],
+    "participants": [
+     "[{\"role\": \"coordinator\", \"pic\": 881995878, \"legalName\": \"SIA 'ORIGIN ROBOTICS'\", \"postalAddress\": {\"city\": \"MARUPE\", \"countryCode\": {\"abbreviation\": \"LV\"}}, \"activityType\": \"Private for profit organisation\", \"eucontribution\": \"2286722.78\", \"status\": \"Active\", \"order\": 1, \"organizationType\": null, \"type\": \"PRC\", \"webLink\": \"www.originuav.com\", \"sme\": false}, {\"role\": \"participant\", \"pic\": 888688781, \"legalName\": \"AKTYVUS PHOTONICS UAB\", \"postalAddress\": {\"city\": \"VILNIUS\", \"countryCode\": {\"abbreviation\": \"LT\"}}, \"activityType\": \"Private for profit organisation\", \"eucontribution\": \"1057864.35\", \"status\": \"Active\", \"order\": 2, \"organizationType\": null, \"type\": \"PRC\", \"webLink\": \"www.aktyvusphotonics.com\", \"sme\": false}, {\"role\": \"participant\", \"pic\": 940514426, \"legalName\": \"LEOSYS LASER AND ELECTRO-OPTIC SYSTEMS GMBH\", \"postalAddress\": {\"city\": \"Weinheim\", \"countryCode\": {\"abbreviation\": \"DE\"}}, \"activityType\": \"Private for profit organisation\", \"eucontribution\": \"1176812.8\", \"status\": \"Active\", \"order\": 3, \"organizationType\": null, \"type\": \"PRC\", \"webLink\": \"www.leosys.de\", \"sme\": false}]"
+    ]
+   }
+  },
+  {
+   "metadata": {
+    "acronym": [
+     "MPortISTAR"
+    ],
+    "projectId": [
+     "101168111"
+    ],
+    "programAbbreviation": [
+     "EDF"
+    ],
+    "callIdentifier": [
+     "EDF-2023-LS-DA-SME"
+    ],
+    "topicId": [
+     "46029443"
+    ],
+    "startDate": [
+     "2024-12-01T00:00:00.000+0100"
+    ],
+    "ecSignatureDate": [
+     "2024-11-23T00:00:00.000+0100"
+    ],
+    "status": [
+     "Ongoing"
+    ],
+    "euContributionAmount": [
+     "4521399.93"
+    ],
+    "url": [
+     "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/projects-details/44181033/101168111/EDF"
+    ],
+    "language": [
+     "pl"
+    ],
+    "participants": [
+     "[{\"role\": \"coordinator\", \"pic\": 881995878, \"legalName\": \"SIA 'ORIGIN ROBOTICS'\", \"postalAddress\": {\"city\": \"MARUPE\", \"countryCode\": {\"abbreviation\": \"LV\"}}, \"activityType\": \"Private for profit organisation\", \"eucontribution\": \"2286722.78\", \"status\": \"Active\", \"order\": 1, \"organizationType\": null, \"type\": \"PRC\", \"webLink\": \"www.originuav.com\", \"sme\": false}, {\"role\": \"participant\", \"pic\": 888688781, \"legalName\": \"AKTYVUS PHOTONICS UAB\", \"postalAddress\": {\"city\": \"VILNIUS\", \"countryCode\": {\"abbreviation\": \"LT\"}}, \"activityType\": \"Private for profit organisation\", \"eucontribution\": \"1057864.35\", \"status\": \"Active\", \"order\": 2, \"organizationType\": null, \"type\": \"PRC\", \"webLink\": \"www.aktyvusphotonics.com\", \"sme\": false}, {\"role\": \"participant\", \"pic\": 940514426, \"legalName\": \"LEOSYS LASER AND ELECTRO-OPTIC SYSTEMS GMBH\", \"postalAddress\": {\"city\": \"Weinheim\", \"countryCode\": {\"abbreviation\": \"DE\"}}, \"activityType\": \"Private for profit organisation\", \"eucontribution\": \"1176812.8\", \"status\": \"Active\", \"order\": 3, \"organizationType\": null, \"type\": \"PRC\", \"webLink\": \"www.leosys.de\", \"sme\": false}]"
+    ]
+   }
+  },
+  {
+   "metadata": {
+    "acronym": [
+     "SYNTHETIC-UA"
+    ],
+    "projectId": [
+     "999000001"
+    ],
+    "programAbbreviation": [
+     "EDF"
+    ],
+    "callIdentifier": [
+     "EDF-2025-RA-SYNTH"
+    ],
+    "topicId": [
+     "46029443"
+    ],
+    "startDate": [
+     "2024-12-01T00:00:00.000+0100"
+    ],
+    "ecSignatureDate": [
+     "2024-11-23T00:00:00.000+0100"
+    ],
+    "status": [
+     "Ongoing"
+    ],
+    "euContributionAmount": [
+     "4521399.93"
+    ],
+    "url": [
+     "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/projects-details/44181033/101168111/EDF"
+    ],
+    "language": [
+     "en"
+    ],
+    "participants": [
+     "[{\"role\": \"coordinator\", \"pic\": 999000101, \"legalName\": \"SYNTHETIC UKRAINIAN DRONES LLC\", \"postalAddress\": {\"city\": \"KYIV\", \"countryCode\": {\"abbreviation\": \"UA\"}}, \"type\": \"PRC\", \"sme\": true, \"webLink\": \"synthetic.example\", \"eucontribution\": \"100.00\"}, {\"role\": \"participant\", \"pic\": 999000102, \"legalName\": \"SYNTHETIC TECHNICAL UNIVERSITY\", \"postalAddress\": {\"city\": \"DELFT\", \"countryCode\": {\"abbreviation\": \"NL\"}}, \"type\": \"HES\", \"sme\": false, \"webLink\": \"\", \"eucontribution\": \"50.00\"}, {\"role\": \"participant\", \"pic\": 881995878, \"legalName\": \"SIA 'ORIGIN ROBOTICS'\", \"postalAddress\": {\"city\": \"MARUPE\", \"countryCode\": {\"abbreviation\": \"LV\"}}, \"type\": \"PRC\", \"sme\": false, \"webLink\": \"www.originuav.com\", \"eucontribution\": \"10.00\"}]"
+    ]
+   }
+  }
+ ]
+}
