@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {createAtlasState,selectApproved} from '../src/atlas/m1-state.js';
+const moduleCode=fs.readFileSync('src/atlas/steelfin-internal-review.js','utf8');
+const main=fs.readFileSync('src/atlas/main.js','utf8');
+const state=createAtlasState().get();
+const candidate={qa:{decision:'HOLD',public_release:false},content_hash:null,source_url:'https://www.anduril.com/news/steelfin',country_iso2:'US'};
+assert.equal(selectApproved([candidate],state).length,0,'HOLD cannot publish');
+assert.match(moduleCode,/qa:Object\.freeze\(\{decision:'HOLD',public_release:false/);
+assert.match(moduleCode,/geo:null/);
+assert.match(moduleCode,/NO[T]? VERIFIED|NOT VERIFIED/);
+assert.match(moduleCode,/import\.meta\.env\.DEV/);
+assert.match(main,/if\(import\.meta\.env\.DEV && new URLSearchParams\(location\.search\)\.get\('steelfin-review'\)==='1'\)/);
+console.log('PASS Steelfin dev-only source-linked HOLD preview; public selectApproved excludes candidate; no invented event pin');

@@ -1,0 +1,53 @@
+{
+  "schema": "bohun.source-update.review-fixture.v1",
+  "status": "HOLD",
+  "publish": false,
+  "source_item": {
+    "origin": "Inoreader BOHUN / Supabase existing row",
+    "article_url": "https://www.twz.com/land/anduril-unveils-steelfin-family-of-modular-surface-to-air-missiles",
+    "original_article_body_stored": false,
+    "original_publisher_url": "https://www.anduril.com/news/steelfin",
+    "publisher": "Anduril Industries",
+    "publisher_date": "2026-10-12",
+    "publisher_provenance": "primary company announcement; claims about own program are self-reported"
+  },
+  "event": {
+    "kind": "product_announcement",
+    "name": "Steelfin family announcement",
+    "date": "2026-10-12",
+    "organization": "Anduril Industries",
+    "contract_award": false,
+    "deliveries_confirmed": false,
+    "flight_tests_completed": false
+  },
+  "claims": [
+    {
+      "claim": "Anduril announced Steelfin as a family of configurable surface-to-air interceptor missiles.",
+      "evidence_url": "https://www.anduril.com/news/steelfin",
+      "status": "SUPPORTED_BY_PUBLISHER_STATEMENT"
+    },
+    {
+      "claim": "Steelfin uses a two-stage architecture with configurable boosters and a shared terminal interceptor.",
+      "evidence_url": "https://www.anduril.com/news/steelfin",
+      "status": "SUPPORTED_BY_PUBLISHER_STATEMENT"
+    },
+    {
+      "claim": "Anduril reports ballistic tests using representative vehicles have been completed and plans flight tests next year (2027).",
+      "evidence_url": "https://www.anduril.com/news/steelfin",
+      "status": "SUPPORTED_AS_COMPANY_CLAIM"
+    }
+  ],
+  "title_ru": "Anduril представила семейство зенитных ракет Steelfin",
+  "draft_ru": "Anduril 12 октября 2026 года объявила о разработке семейства модульных зенитных ракет-перехватчиков Steelfin. По сообщению компании, комплексная архитектура включает сменные ускорители и унифицированную конечную ступень. Компания заявляет о проведённых баллистических испытаниях демонстрационных аппаратов и планирует лётные испытания в 2027 году. Подтверждённых данных о заключённом контракте или поставках в проверенном первоисточнике нет.",
+  "qa": {
+    "independent_review": "PENDING",
+    "rights": "UNREVIEWED",
+    "reason": [
+      "PRIMARY_SOURCE_IS_SELF_REPORTED",
+      "NOT_INDEPENDENTLY_QA_APPROVED",
+      "FULL_ORIGINAL_NEWS_ARTICLE_NOT_STORED"
+    ],
+    "public_release": false
+  },
+  "disclaimer": "Review fixture assembled from published primary source, NOT an output from Gemini, NOT AI pipeline success. Source text not copied; short paraphrase only."
+}
