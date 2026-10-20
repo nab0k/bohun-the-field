@@ -1,5 +1,5 @@
 // Public feed adapter: no token, no direct database connection, fail closed.
-// API must return a JSON object with records from a server-side approved-only view.
+// GitHub Pages is static: consume only an independently signed, prevalidated build snapshot.\n// Never fetch directly from Supabase or treat client-side checks as independent QA.
 // Client-side checks are defense in depth, NOT a replacement for server-side QA.
 export function validatePublicRecord(r) {
   if (!r || typeof r !== 'object' || Array.isArray(r)) return false;
@@ -15,7 +15,7 @@ export function validatePublicRecord(r) {
 }
 export async function loadApprovedIntelligence({fetchImpl = fetch, signal} = {}) {
   try {
-    const response = await fetchImpl('/api/intelligence/approved', {
+    const response = await fetchImpl('/intelligence/approved.json', {
       method: 'GET', credentials: 'omit', cache: 'no-store',
       headers: { Accept: 'application/json' }, signal
     });
