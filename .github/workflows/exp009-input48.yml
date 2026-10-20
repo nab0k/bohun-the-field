@@ -1,0 +1,119 @@
+# LOCAL CANDIDATE. No workflow installed, secrets written or dispatch authorized.
+# Future reviewed paths: this -> .github/workflows/exp009-input48.yml
+# trial/input48/{code-only.zip,owner-cert.pem}. Private key NEVER here.
+# Approval JSON: exact public block in PR body AFTER the head commit exists.
+name: EXP009 INPUT48 isolated core trial
+run-name: EXP009 INPUT48 ${{ github.event.label.name }} exp009-input48-first-trial-20261020
+on:
+  pull_request:
+    types: [labeled]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: exp009-input48-first-trial-20261020
+  cancel-in-progress: false
+jobs:
+  isolated:
+    if: >-
+      github.repository == 'nab0k/bohun-the-field' &&
+      github.actor == 'nab0k' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.label.name == 'exp009-input48-live-20261020' &&
+      github.run_attempt == 1
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Validate pinned head, approval and bootstrap without secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 -B - <<'PY'
+          import hashlib, json, os, pathlib, re, zipfile
+          def need(ok):
+              if not ok: raise SystemExit('INPUT48_BOOTSTRAP_STOP')
+          def unique(pairs):
+              result = {}
+              for k,v in pairs:
+                  need(k not in result); result[k] = v
+              return result
+          event = json.loads(pathlib.Path(os.environ['GITHUB_EVENT_PATH']).read_bytes())
+          body = event['pull_request']['body']
+          start, end = 'BOHUN_INPUT48_APPROVAL_BEGIN\n', '\nBOHUN_INPUT48_APPROVAL_END'
+          need(isinstance(body,str) and len(body.encode()) <= 65536)
+          need(body.count(start) == 1 and body.count(end) == 1)
+          plan_raw = body.split(start,1)[1].split(end,1)[0].encode()
+          need(len(plan_raw) <= 16384)
+          plan = json.loads(plan_raw, object_pairs_hook=unique)
+          need(plan['enabled'] is True and plan['repo'] == 'nab0k/bohun-the-field')
+          need(plan['pr'] == event['number'] and plan['actor'] == os.environ['GITHUB_ACTOR'] == 'nab0k')
+          need(plan['head_sha'] == event['pull_request']['head']['sha'])
+          need(plan['head_branch'] == event['pull_request']['head']['ref'])
+          need(event['pull_request']['head']['repo']['full_name'] == plan['repo'])
+          need(event['action'] == 'labeled' and event['label']['name'] == plan['label'] == 'exp009-input48-live-20261020')
+          need(os.environ['GITHUB_EVENT_NAME'] == 'pull_request' and os.environ['GITHUB_RUN_ATTEMPT'] == '1')
+          need(plan['trial_id'] == 'exp009-input48-first-trial-20261020')
+          need(plan['workflow'] == '.github/workflows/exp009-input48.yml')
+          root = pathlib.Path(os.environ['RUNNER_TEMP']) / 'input48'
+          root.mkdir(mode=0o700)
+          bundle = pathlib.Path('trial/input48/code-only.zip')
+          need(bundle.stat().st_size <= 2097152)
+          raw = bundle.read_bytes()
+          need(hashlib.sha256(raw).hexdigest() == plan['bundle_sha256'])
+          certificate = pathlib.Path('trial/input48/owner-cert.pem').read_bytes()
+          need(len(certificate) <= 8192 and b'PRIVATE KEY' not in certificate)
+          need(hashlib.sha256(certificate).hexdigest() == plan['certificate_sha256'])
+          with zipfile.ZipFile(bundle) as archive:
+              infos = archive.infolist()
+              names = [x.filename for x in infos]
+              need(len(names) == len(set(names)) and sum(x.file_size for x in infos) <= 2097152)
+              info = archive.getinfo('CLOUD_TRIAL_INPUT48.py')
+              need(info.file_size <= 524288)
+              (root / 'bootstrap.py').write_bytes(archive.read(info))
+          (root / 'approval.json').write_bytes(plan_raw)
+          (root / 'owner-cert.pem').write_bytes(certificate)
+          PY
+      - name: Unpack full allowlist and manifest without secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          HASH=$(python3 -B -c 'import json,os,pathlib;print(json.loads((pathlib.Path(os.environ["RUNNER_TEMP"])/"input48"/"approval.json").read_bytes())["bundle_sha256"])')
+          python3 -B "$RUNNER_TEMP/input48/bootstrap.py" unpack \
+            --bundle trial/input48/code-only.zip --root "$RUNNER_TEMP/input48/runtime" --sha256 "$HASH"
+      - name: Execute separately approved trial, encrypted output only
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CF_AI_TOKEN: ${{ secrets.CF_AI_TOKEN }}
+          EXP009_INPUT48_PACKET_B64: ${{ secrets.EXP009_INPUT48_PACKET_B64 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 -B "$RUNNER_TEMP/input48/runtime/CLOUD_TRIAL_INPUT48.py" cloud --allow-live \
+            --root "$RUNNER_TEMP/input48/runtime" --bundle trial/input48/code-only.zip --plan "$RUNNER_TEMP/input48/approval.json" \
+            --certificate "$RUNNER_TEMP/input48/owner-cert.pem" --output "$RUNNER_TEMP/input48/receipt.cms"
+      - name: Return ciphertext, including stopped trials
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: input48-encrypted-${{ github.run_id }}
+          path: ${{ runner.temp }}/input48/receipt.cms
+          if-no-files-found: warn
+          retention-days: 1
+      - name: Remove ephemeral data
+        if: always()
+        shell: bash
+        run: |
+          python3 -B - <<'PY'
+          import os, pathlib, shutil
+          root = pathlib.Path(os.environ['RUNNER_TEMP']) / 'input48'
+          if root.is_dir(): shutil.rmtree(root)
+          PY
