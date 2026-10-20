@@ -1,0 +1,35 @@
+name: EXP-009 UK Canada EU sources review (manual only)
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: Source for optional bounded public-data read
+        required: true
+        type: choice
+        options: [offline, uk, ca_new, ca_open, eu]
+        default: offline
+      live_read_only:
+        description: Explicitly enable bounded public HTTP read (no DB writes)
+        required: true
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Offline tests
+        working-directory: collectors/official_source_review
+        run: python -m unittest -v
+      - name: Optional single-source public-data schema diagnostic
+        if: ${{ inputs.live_read_only && inputs.source != 'offline' }}
+        working-directory: collectors/official_source_review
+        env:
+          SOURCE: ${{ inputs.source }}
+        run: python official_sources.py --live-read-only --source "$SOURCE"
