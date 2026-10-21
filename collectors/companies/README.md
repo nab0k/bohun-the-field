@@ -79,3 +79,22 @@ never in CI, and the snapshot must never be committed.
   civil supplies are skipped, and so are governments (FMS). Trading houses are marked `TRADING_INTERMEDIARY`.
   Officer names and addresses are never stored. Not yet run live (needs consent).
 - The capability mapping is TAXONOMY v0 (POST-MVP REVIEW).
+
+
+## DISCOVERY-SCALE01 (review only)
+
+`--sources eurosatory2024` uses the existing EXP-012 source pipeline with
+`Record.discoveries`, which writes immutable observations and staging
+`discovery_candidate` only. It deliberately bypasses Mention entity resolution
+and cannot create new companies. The EXHIBITOR / COUNTRY table's country is an
+event/source label, **not** `company.country` or headquarters.
+Single same-name matches are unverified candidate_existing; multiple matches hold.
+No sanctions/publishable/QA changes, merges, deletions, or promotion.
+
+```sh
+python scripts/companies-collect.py --dry-run --sources eurosatory2024 --limit 2500 --raw-dir /tmp/eurosatory-raw --report
+```
+
+See `docs/DISCOVERY-SCALE01-RUNBOOK.md`. Existing schema requires independently
+approved migration 002 before staging. Weekly staging schedule requires owner
+approval before merge.

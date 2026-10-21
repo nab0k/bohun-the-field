@@ -19,7 +19,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 from collectors.companies import cards, pipeline, report  # noqa: E402
-from collectors.companies.sources import atla, edf, gleif, legacy_notion, prozorro, ted, usaspending  # noqa: E402
+from collectors.companies.sources import atla, edf, eurosatory, gleif, legacy_notion, prozorro, ted, usaspending  # noqa: E402
 from collectors.companies.sources.http import JsonHttp  # noqa: E402
 from collectors.companies.store import SqliteStore  # noqa: E402
 
@@ -30,12 +30,15 @@ ADAPTERS = {
     "prozorro": lambda: prozorro.Awards(),
     "atla": lambda: atla.Awards(),
     "edf": lambda: edf.Grants(),
+    "eurosatory2024": lambda: eurosatory.Exhibitors2024(),
 }
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--store", choices=("sqlite", "supabase"), default="sqlite")
+    ap.add_argument("--dry-run", action="store_true", help="use SQLite in-memory, no Supabase writes")
+    ap.add_argument("--raw-dir", help="optional immutable raw HTML snapshot directory")
     ap.add_argument("--db", help="local SQLite file (with --store sqlite)")
     ap.add_argument("--migrate", action="store_true", help="supabase: apply db/companies schema once if absent")
     ap.add_argument("--sample", type=int, default=0,
@@ -54,6 +57,11 @@ def main(argv=None):
                     help="start the given sources from their first page again (idempotency check, AC1)")
     args = ap.parse_args(argv)
 
+    if args.dry_run and (args.store != "sqlite" or args.db or args.migrate or args.reset_staging
+                         or args.promote or args.gleif or args.legacy_snapshot):
+        ap.error("--dry-run permits SQLite in-memory only, without migrations/enrichment/promotion")
+    if "eurosatory2024" in args.sources.split(",") and (args.promote or args.gleif or args.reset_staging):
+        ap.error("discovery cannot combine with promotion, GLEIF or reset")
     if args.legacy_snapshot and any(name in os.environ for name in ("CI", "GITHUB_ACTIONS")):
         ap.error("--legacy-snapshot is private data: forbidden in CI")
 
@@ -70,11 +78,11 @@ def main(argv=None):
         elif not store.schema_exists():
             ap.error("schema companies is absent: run with --migrate")
     else:
-        if not args.db:
-            ap.error("--db is required with --store sqlite")
+        if not args.db and not args.dry_run:
+            ap.error("--db required unless --dry-run")
         if args.reset_staging:
             ap.error("--reset-staging is for the Supabase staging schema only")
-        store = SqliteStore(args.db)
+        store = SqliteStore(':memory:' if args.dry_run else args.db)
     http = JsonHttp(pause=0.3)
     if args.legacy_snapshot:
         rows = legacy_notion.load_snapshot(args.legacy_snapshot)
@@ -85,7 +93,8 @@ def main(argv=None):
         if args.replay:
             store.save_source_state(ADAPTERS[name]().source, None, 0, False)
             store.commit()
-        results[name] = pipeline.run_source(store, ADAPTERS[name](), http, args.limit)
+        adapter = eurosatory.Exhibitors2024(raw_dir=args.raw_dir) if name == "eurosatory2024" else ADAPTERS[name]()
+        results[name] = pipeline.run_source(store, adapter, http, args.limit)
     if args.gleif:
         results["gleif"] = pipeline.enrich_identities(store, gleif.Gleif(http), args.gleif)
     if args.promote:

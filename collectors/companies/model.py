@@ -30,9 +30,19 @@ class Mention:
 
 
 @dataclass
+class Discovery:
+    """Source/event lead; NOT a verified legal entity."""
+    name: str
+    reported_country: str = None
+    website: str = None
+    role: str = "lead"
+
+
+@dataclass
 class Record:
     """One raw record from a source (stored as observation)."""
     source: str
     source_key: str
     payload: dict
     mentions: list = field(default_factory=list)
+    discoveries: list = field(default_factory=list)
