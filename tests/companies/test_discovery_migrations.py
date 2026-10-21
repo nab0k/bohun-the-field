@@ -17,8 +17,9 @@ class FakeResult:
 
 
 class FakeConnection:
-    def __init__(self, has_schema=True, versions=(), fail_002=False):
+    def __init__(self, has_schema=True, versions=(), fail_002=False, missing_tables=()):
         self.has_schema = has_schema
+        self.missing_tables = set(missing_tables)
         self.versions = set(versions)
         self.fail_002 = fail_002
         self.statements = []
@@ -29,6 +30,8 @@ class FakeConnection:
         self.statements.append((sql, params))
         if "SELECT to_regnamespace('companies')" in sql:
             return FakeResult([{"ok": self.has_schema}])
+        if "SELECT to_regclass(%s)" in sql:
+            return FakeResult([{"ok": params[0] not in self.missing_tables}])
         if sql.startswith("SELECT version FROM companies.schema_migration"):
             return FakeResult([{"version": v} for v in sorted(self.versions)])
         if sql.startswith("INSERT INTO companies.schema_migration"):
@@ -65,6 +68,14 @@ class TestNumberedMigrations(unittest.TestCase):
         sqls = [sql for sql, _ in conn.statements]
         self.assertEqual(sum("ADD COLUMN IF NOT EXISTS discoveries" in sql for sql in sqls), 1)
         self.assertEqual(conn.rollbacks, 0)
+
+    def test_incomplete_legacy_schema_fails_closed(self):
+        conn = FakeConnection(has_schema=True, missing_tables=("companies.observation",))
+        with self.assertRaisesRegex(RuntimeError, "missing observation"):
+            new_store(conn).migrate()
+        self.assertEqual(conn.rollbacks, 1)
+        self.assertEqual(conn.commits, 0)
+        self.assertFalse(any("ADD COLUMN IF NOT EXISTS" in sql for sql, _ in conn.statements))
 
     def test_new_install_applies_001_and_002(self):
         conn = FakeConnection(has_schema=False)

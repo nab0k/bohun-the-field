@@ -5,7 +5,7 @@ import tempfile
 import unittest
 
 from collectors.companies import pipeline, report
-from collectors.companies.model import Record, Discovery
+from collectors.companies.model import Record, Discovery, Mention
 from collectors.companies.sources import eurosatory
 from collectors.companies.sources.http import SourceError
 from collectors.companies.store import SqliteStore
@@ -34,6 +34,24 @@ class Tests(unittest.TestCase):
     def test_nested_headers_and_dedup(self):
         self.assertEqual(eurosatory.parse_html(HTML),
             [("Alpha Systems","France"),("Beta Defence","Germany"),("Nova","Ukraine")])
+    def test_structural_nested_cells(self):
+        html = (b"<table><tr><th>EXHIBITOR</th><th>COUNTRY</th></tr>"
+                b"<tr><td>North<br>Star <span>Systems</span></td><td><div>United</div>"
+                b"<div>Kingdom</div></td></tr></table>")
+        self.assertEqual(eurosatory.parse_html(html),
+                         [("North Star Systems", "United Kingdom")])
+    def test_discovery_only_adapter_rejects_mention_and_rolls_back(self):
+        store = SqliteStore()
+        adapter = eurosatory.Exhibitors2024()
+        valid, _ = adapter.fetch(FakeHttp(), None, 1)
+        corrupt = Record(eurosatory.SOURCE, valid[0].source_key, valid[0].payload,
+                         mentions=[Mention("Must Not Be Created", country="FR")],
+                         discoveries=valid[0].discoveries)
+        adapter.fetch = lambda http, cursor, limit: ([corrupt], "done:fixture")
+        result = pipeline.run_source(store, adapter, None, 1)
+        self.assertEqual(result["status"], "error")
+        self.assertEqual(store.query("SELECT COUNT(*) n FROM company")[0]["n"], 0)
+        self.assertEqual(store.query("SELECT COUNT(*) n FROM observation")[0]["n"], 0)
     def test_fail_closed(self):
         for raw in (b"<table><tr><td>Foo</td></tr></table>",
                     b"<table><tr><th>EXHIBITOR</th><th>COUNTRY</th></tr></table>"):

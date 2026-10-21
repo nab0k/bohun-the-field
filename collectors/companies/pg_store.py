@@ -65,6 +65,13 @@ class PgStore(SqliteStore):
         try:
             was_present = self.schema_exists()
             completed = []
+            if was_present:
+                # A namespace is not sufficient evidence that migration 001 completed.
+                for table in ("company", "observation", "run", "source_state", "company_alias"):
+                    r = self.db.execute("SELECT to_regclass(%s) IS NOT NULL AS ok",
+                                        (f"companies.{table}",)).fetchone()
+                    if not r["ok"]:
+                        raise RuntimeError(f"incomplete existing companies schema: missing {table}")
             if not was_present:
                 self.db.execute(scripts[0].read_text(encoding="utf-8"))
                 completed.append(1)

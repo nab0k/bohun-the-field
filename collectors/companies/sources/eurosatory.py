@@ -23,6 +23,8 @@ class Tables(HTMLParser):
                 self.rows = []
             self.depth += 1
         elif self.depth == 1:
+            if self.cell is not None and tag in ("br", "p", "div", "li"):
+                self.cell.append(" ")
             if tag == "tr":
                 self.row = []
             elif tag in ("td", "th") and self.row is not None and self.cell is None:
@@ -39,6 +41,8 @@ class Tables(HTMLParser):
                 self.tables.append(self.rows or [])
                 self.rows = self.row = self.cell = None
         elif self.depth == 1:
+            if tag in ("p", "div", "li") and self.cell is not None:
+                self.cell.append(" ")
             if tag in ("td", "th") and self.cell is not None and self.row is not None:
                 self.row.append(" ".join("".join(self.cell).split()))
                 self.cell = None
@@ -90,6 +94,7 @@ def offset_from_cursor(cursor, digest):
 
 class Exhibitors2024:
     source = SOURCE
+    discovery_only = True  # enforce staging semantics even for malformed future adapter output
     def __init__(self, raw_dir=None):
         self.raw_dir = pathlib.Path(raw_dir) if raw_dir else None
 

@@ -37,6 +37,9 @@ def run_source(store, adapter, http, limit):
         records, cursor_out = adapter.fetch(http, state["cursor"], limit)
         touched = set()
         for rec in records:
+            if getattr(adapter, "discovery_only", False):
+                if rec.source != adapter.source or rec.mentions or not rec.discoveries:
+                    raise ValueError("discovery-only source must yield discoveries without mentions")
             stats["fetched"] += 1
             obs_id, is_new = store.add_observation(rec.source, rec.source_key, rec.payload)
             if not is_new:

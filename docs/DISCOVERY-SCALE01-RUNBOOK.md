@@ -31,3 +31,12 @@ validated here against original 2024 snapshot. New site content may differ.
 
 No automatic merge/delete, sanction, publishable or QA changes. No `cards.promote`;
 no Notion writes. Only aggregate metrics appear in workflow logs.
+
+## Review hardening
+- Eurosatory is a `discovery_only` adapter. A malformed future adapter output
+  containing `Mention` is rejected and rolled back before entity resolution.
+- HTMLParser preserves structural separators in nested `<br>`, `<p>`,
+  `<div>` and list elements inside source cells.
+- On an existing `companies` namespace, numbered migrations verify
+  core tables from 001 exist before assuming the legacy schema was installed.
+  Otherwise they fail closed and do not modify the database.
