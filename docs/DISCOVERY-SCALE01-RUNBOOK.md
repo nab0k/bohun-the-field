@@ -67,3 +67,25 @@ Counters: `discoveries` means **all** newly created discovery candidates;
 `candidate_existing` and `holds` are subsets. `discovery_by_status`
 contains the full status distribution, so this remains accurate even when
 the Companies schema already has thousands of company rows.
+
+## Raw HTML volatility and event-pair idempotence
+
+Read-only probes on 2026-10-21 returned different full-page HTML SHA-256
+values in two requests despite the same **2,015 unique exhibitor-country
+pairs**. This is a source-level volatility risk, not verified evidence
+of additions or removals. The specified cursor remains hash-based:
+a new full-page SHA starts a **new scan from offset 0**, with
+`done:<raw_sha256>` once complete.
+
+For `discovery_only` sources, however, an already observed stable
+`source_key = SHA-256(name + country)` is **not reinserted** just because
+the WordPress page changed its unrelated HTML. An added exact pair
+becomes one new immutable observation and discovery candidate. Old
+observations and their original `snapshot_sha256` provenance are preserved;
+the raw HTML of the changed snapshot is kept in the optional hash-named
+artifact, while `source_state.cursor` records the latest full-page SHA.
+No deletions or automatic revocation of earlier leads.
+
+This intentionally separates **fetched (scanned) rows** from **new
+observations** and prevents weekly re-ingestion of all 2,015 records
+when the page markup changes.

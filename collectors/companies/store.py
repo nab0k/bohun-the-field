@@ -138,6 +138,12 @@ class SqliteStore:
                WHERE (c.name_norm = ? OR a.alias_norm = ?) AND c.country IS ?"""
         return [r["id"] for r in self._q(q, (norm, norm, country))]
 
+    def seen_discovery_source_key(self, source, source_key):
+        """A source/event pair is observed once; HTML decoration cannot duplicate it."""
+        return bool(self._q(
+            "SELECT 1 FROM observation WHERE source=? AND source_key=? LIMIT 1",
+            (source, source_key)).fetchone())
+
     def companies_by_discovery_name(self, norm):
         """Exact normalized company/alias match, never filtered by event country."""
         return [r["id"] for r in self._q(

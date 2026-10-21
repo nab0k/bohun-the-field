@@ -106,3 +106,10 @@ ingestion, uses no HTTP/network and writes only to an in-memory SQLite
 database. See the runbook for the official expected SHA-256.
 `discoveries` is the total number of new discovery candidates, including
 `candidate_existing` and `hold` subcategories.
+
+**Dynamic HTML warning:** Two read-only requests of the official page
+can differ in raw HTML SHA despite having the same 2,015 exhibitor-country
+pairs. A changed SHA triggers a new scan as required, but the existing
+`source_key` is checked for discovery-only records so unchanged pairs
+do not create another observation or candidate. Added pairs do.
+Raw snapshots are retained separately when `--raw-dir` is provided.

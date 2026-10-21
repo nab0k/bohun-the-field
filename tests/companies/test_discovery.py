@@ -133,6 +133,33 @@ class Tests(unittest.TestCase):
         self.assertEqual(out["holds"], 1)
         self.assertEqual(report.summary(store)["discovery_candidates"], 3)
 
+    def test_cosmetic_live_html_change_does_not_duplicate_observations(self):
+        # Official WordPress emits different raw HTML hashes while exhibitors stay identical.
+        store = SqliteStore()
+        source = eurosatory.Exhibitors2024()
+        one = pipeline.run_source(store, source, FakeHttp(HTML), 10)
+        cosmetic = HTML + b"\n<!-- harmless footer change -->"
+        two = pipeline.run_source(store, source, FakeHttp(cosmetic), 10)
+        self.assertEqual(one["new_observations"], 3)
+        self.assertEqual(two["fetched"], 3)  # new snapshot triggers complete scan
+        self.assertEqual(two["new_observations"], 0)
+        self.assertEqual(two["discoveries"], 0)
+        self.assertEqual(two["cursor_out"], "done:" + hashlib.sha256(cosmetic).hexdigest())
+        self.assertEqual(report.summary(store)["discovery_candidates"], 3)
+        self.assertEqual(store.query("SELECT COUNT(*) n FROM company")[0]["n"], 0)
+
+    def test_added_exhibitor_discovered_when_raw_html_changes(self):
+        store = SqliteStore()
+        source = eurosatory.Exhibitors2024()
+        pipeline.run_source(store, source, FakeHttp(HTML), 10)
+        changed = HTML.replace(b"</table></body>", b"<tr><td>New Entrant</td><td>Portugal</td></tr></table></body>")
+        two = pipeline.run_source(store, source, FakeHttp(changed), 10)
+        self.assertEqual(two["fetched"], 4)
+        self.assertEqual(two["new_observations"], 1)
+        self.assertEqual(two["discoveries"], 1)
+        self.assertEqual(two["new_companies"], 0)
+        self.assertEqual(report.summary(store)["discovery_candidates"], 4)
+
     def test_cli_verified_offline_snapshot(self):
         script = pathlib.Path(__file__).resolve().parents[2] / "scripts" / "companies-collect.py"
         fixture = pathlib.Path(__file__).parent / "fixtures" / "eurosatory_sample.html"

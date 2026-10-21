@@ -41,6 +41,12 @@ def run_source(store, adapter, http, limit):
                 if rec.source != adapter.source or rec.mentions or not rec.discoveries:
                     raise ValueError("discovery-only source must yield discoveries without mentions")
             stats["fetched"] += 1
+            if getattr(adapter, "discovery_only", False) and store.seen_discovery_source_key(
+                    rec.source, rec.source_key):
+                # A changed WordPress HTML snapshot still causes a full source pass,
+                # but an unchanged exhibitor-country pair is NOT a new observation.
+                # Preserve immutable earlier observation and its source provenance.
+                continue
             obs_id, is_new = store.add_observation(rec.source, rec.source_key, rec.payload)
             if not is_new:
                 continue  # same content already processed (AC1)
