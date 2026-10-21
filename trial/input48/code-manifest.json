@@ -1,5 +1,5 @@
 {
-  "bundle_sha256": "b8c9cdc1dcf41165930232b1266fcc655b02b004474f385005944b065d20ba2b",
+  "bundle_sha256": "a69420617623455c5f37454083b062aca3551123dc870a85e7475e669c108b3f",
   "files": {
     "analytic-pass-input45/contracts.py": "0df86e409f7ff3c64d91430fafebdf976c8ea27df9f108ea525b846868135736",
     "analytic-pass-input45/ports.py": "0647bb7d86bde0c878854ae214805701e0f570345b5feda60b26a0bb74f2a787",
@@ -13,7 +13,7 @@
     "integration-input47/company_links.py": "3982b2c099e612d883890982babfdeb4a68ae4a414e469d2c2d77b326701e100",
     "integration-input47/geo_projection.py": "c579218521832dade0b93fa1a6eca1770f30d346db72b429e7406bc5828a9e00",
     "integration-input47/preview.py": "e0dfe2a30db160580c254d5127f0e486d88210e464ba242ba6f7d7e54f364306",
-    "CLOUD_TRIAL_INPUT48.py": "6977242e1a22c1bc02a04027a353cce3d201b7e475898aa18709405ebd701679"
+    "CLOUD_TRIAL_INPUT48.py": "b4130bbb24fbcf9320681d41888a30a94e7da9c01e293a9b264bdb13c7d66681"
   },
   "code_files": 13
 }

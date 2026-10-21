@@ -3,7 +3,7 @@
 # trial/input48/{code-only.zip,owner-cert.pem}. Private key NEVER here.
 # Approval JSON: exact public block in PR body AFTER the head commit exists.
 name: EXP009 INPUT48 isolated core trial
-run-name: EXP009 INPUT48 ${{ github.event.label.name }} exp009-input48-second-trial-20261021
+run-name: EXP009 INPUT48 ${{ github.event.label.name }} exp009-input48-third-trial-20261021
 on:
   pull_request:
     types: [labeled]
@@ -11,7 +11,7 @@ permissions:
   contents: read
   actions: read
 concurrency:
-  group: exp009-input48-second-trial-20261021
+  group: exp009-input48-third-trial-20261021
   cancel-in-progress: false
 jobs:
   isolated:
@@ -19,7 +19,7 @@ jobs:
       github.repository == 'nab0k/bohun-the-field' &&
       github.actor == 'nab0k' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.label.name == 'exp009-input48-r02-live-20261021' &&
+      github.event.label.name == 'exp009-input48-r03-live-20261021' &&
       github.run_attempt == 1
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -57,9 +57,9 @@ jobs:
           need(plan['head_sha'] == event['pull_request']['head']['sha'])
           need(plan['head_branch'] == event['pull_request']['head']['ref'])
           need(event['pull_request']['head']['repo']['full_name'] == plan['repo'])
-          need(event['action'] == 'labeled' and event['label']['name'] == plan['label'] == 'exp009-input48-r02-live-20261021')
+          need(event['action'] == 'labeled' and event['label']['name'] == plan['label'] == 'exp009-input48-r03-live-20261021')
           need(os.environ['GITHUB_EVENT_NAME'] == 'pull_request' and os.environ['GITHUB_RUN_ATTEMPT'] == '1')
-          need(plan['trial_id'] == 'exp009-input48-second-trial-20261021')
+          need(plan['trial_id'] == 'exp009-input48-third-trial-20261021')
           need(plan['workflow'] == '.github/workflows/exp009-input48.yml')
           root = pathlib.Path(os.environ['RUNNER_TEMP']) / 'input48'
           root.mkdir(mode=0o700)
