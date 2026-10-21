@@ -10,6 +10,13 @@ Ambiguous matches create HOLD and independent match_candidate rows.
 
 Source: https://www.eurosatory.com/en/trends/exhibitors-2024
 
+Read-only source review on 2026-10-21: the official public rendered
+EXHIBITOR/COUNTRY table contains 2,015 visible exhibitor rows. This validates
+the published-list row-count target only. The exact HTML bytes, deduplicated
+adapter output, and supplied historical hash have NOT been independently checked.
+A separate **synthetic 2,015-row offline fixture** proves pagination and
+idempotent staging at that scale, not the original source acceptance.
+
 Known snapshot SHA-256: `57741139274266eff5c0f1900790f88f42f8b806d7747192603a8ef70ef1bc96`.
 For EXACT matching bytes expected 2,015 parsed observations and 2,015 discovery
 candidates, zero new company rows, final cursor `done:<hash>`; rerun unchanged

@@ -116,6 +116,28 @@ class Tests(unittest.TestCase):
         second=pipeline.run_source(store,a,None,5)
         self.assertEqual(second["new_observations"],0)
         self.assertEqual(store.query("SELECT COUNT(*) n FROM discovery_candidate")[0]["n"],3)
+    def test_bulk_2015_synthetic_rows_and_unchanged_done(self):
+        # Scale smoke only: NOT the real historical Eurosatory HTML or its SHA-256.
+        names = "".join(f"<tr><td>Fixture Exhibitor {i:04d}</td><td>Fixtureland</td></tr>"
+                        for i in range(2015))
+        html = (("<table><tr><th>EXHIBITOR</th><th>COUNTRY</th></tr>"
+                 + names + "</table>").encode("utf-8"))
+        digest = hashlib.sha256(html).hexdigest()
+        store = SqliteStore()
+        source = eurosatory.Exhibitors2024()
+        first = pipeline.run_source(store, source, FakeHttp(html), 2500)
+        self.assertEqual(first["status"], "ok")
+        self.assertEqual(first["fetched"], 2015)
+        self.assertEqual(first["new_observations"], 2015)
+        self.assertEqual(first["discoveries"], 2015)
+        self.assertEqual(first["new_companies"], 0)
+        self.assertEqual(first["cursor_out"], "done:" + digest)
+        self.assertEqual(report.summary(store)["discovery_candidates"], 2015)
+        self.assertEqual(store.query("SELECT COUNT(*) n FROM company")[0]["n"], 0)
+        replay = pipeline.run_source(store, source, FakeHttp(html), 2500)
+        self.assertEqual((replay["fetched"], replay["new_observations"]), (0, 0))
+        self.assertEqual(report.summary(store)["discovery_candidates"], 2015)
+
     def test_alias_only_candidate(self):
         store=SqliteStore()
         cid=store.create_company("Primary",country="FI")
