@@ -1,6 +1,9 @@
 """DISCOVERY-SCALE01 offline regression tests. No network, no production DB."""
 import hashlib
+import json
 import pathlib
+import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -116,6 +119,37 @@ class Tests(unittest.TestCase):
         second=pipeline.run_source(store,a,None,5)
         self.assertEqual(second["new_observations"],0)
         self.assertEqual(store.query("SELECT COUNT(*) n FROM discovery_candidate")[0]["n"],3)
+    def test_counters_include_matched_and_held_discoveries(self):
+        store = SqliteStore()
+        store.create_company("Alpha Systems", country="SE")
+        store.create_company("Nova", country="FR")
+        store.create_company("Nova", country="US")
+        rows, _ = eurosatory.Exhibitors2024().fetch(FakeHttp(), None, 10)
+        out = pipeline.run_source(store, eurosatory.Exhibitors2024(), FakeHttp(), 10)
+        self.assertEqual(out["new_companies"], 0)
+        self.assertEqual(out["new_observations"], 3)
+        self.assertEqual(out["discoveries"], 3)  # all accepted candidates
+        self.assertEqual(out["candidate_existing"], 1)
+        self.assertEqual(out["holds"], 1)
+        self.assertEqual(report.summary(store)["discovery_candidates"], 3)
+
+    def test_cli_verified_offline_snapshot(self):
+        script = pathlib.Path(__file__).resolve().parents[2] / "scripts" / "companies-collect.py"
+        fixture = pathlib.Path(__file__).parent / "fixtures" / "eurosatory_sample.html"
+        cmd = [sys.executable, str(script), "--dry-run", "--sources", "eurosatory2024",
+               "--snapshot-file", str(fixture), "--expected-sha256", DIGEST,
+               "--limit", "2500", "--report"]
+        good = subprocess.run(cmd, text=True, capture_output=True, check=False)
+        self.assertEqual(good.returncode, 0, good.stderr)
+        result = json.loads(good.stdout)
+        self.assertEqual(result["eurosatory2024"]["discoveries"], 3)
+        self.assertEqual(result["eurosatory2024"]["new_companies"], 0)
+        self.assertEqual(result["summary"]["discovery_candidates"], 3)
+        bad = subprocess.run(cmd[:-5] + ["--expected-sha256", "0"*64,
+                             "--limit", "2500", "--report"],
+                             text=True, capture_output=True, check=False)
+        self.assertNotEqual(bad.returncode, 0)
+
     def test_bulk_2015_synthetic_rows_and_unchanged_done(self):
         # Scale smoke only: NOT the real historical Eurosatory HTML or its SHA-256.
         names = "".join(f"<tr><td>Fixture Exhibitor {i:04d}</td><td>Fixtureland</td></tr>"

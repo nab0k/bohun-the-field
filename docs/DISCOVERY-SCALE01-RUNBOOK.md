@@ -47,3 +47,23 @@ no Notion writes. Only aggregate metrics appear in workflow logs.
 - On an existing `companies` namespace, numbered migrations verify
   core tables from 001 exist before assuming the legacy schema was installed.
   Otherwise they fail closed and do not modify the database.
+
+## Deterministic offline acceptance (no HTTP; no PostgreSQL)
+If the exact historical HTML snapshot bytes become available as a local file,
+verify the hash **before** parsing or writing any candidate:
+
+```bash
+python scripts/companies-collect.py --dry-run --sources eurosatory2024 \
+  --snapshot-file /path/to/original-eurosatory-2024.html \
+  --expected-sha256 57741139274266eff5c0f1900790f88f42f8b806d7747192603a8ef70ef1bc96 \
+  --limit 2500 --report
+```
+
+Invalid hash immediately fails closed. This reuses the existing Eurosatory
+adapter and pipeline, with an in-memory SQLite store and a fixed byte response
+in place of its HTTP port. No second collector or cloud service is created.
+
+Counters: `discoveries` means **all** newly created discovery candidates;
+`candidate_existing` and `holds` are subsets. `discovery_by_status`
+contains the full status distribution, so this remains accurate even when
+the Companies schema already has thousands of company rows.

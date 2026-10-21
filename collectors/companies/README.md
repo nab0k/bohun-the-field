@@ -98,3 +98,11 @@ python scripts/companies-collect.py --dry-run --sources eurosatory2024 --limit 2
 See `docs/DISCOVERY-SCALE01-RUNBOOK.md`. Existing schema requires independently
 approved migration 002 before staging. Weekly staging schedule requires owner
 approval before merge.
+
+For deterministic acceptance against a known historical HTML snapshot,
+`--snapshot-file PATH --expected-sha256 HEX` works **only with --dry-run**
+and exactly `--sources eurosatory2024`. It refuses a wrong hash before
+ingestion, uses no HTTP/network and writes only to an in-memory SQLite
+database. See the runbook for the official expected SHA-256.
+`discoveries` is the total number of new discovery candidates, including
+`candidate_existing` and `hold` subcategories.

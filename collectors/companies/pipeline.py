@@ -59,8 +59,12 @@ def run_source(store, adapter, http, limit):
                     for cid in matches:
                         store.add_match_candidate(obs_id, cid, reason, discovery.name)
                 store.add_discovery_candidate(obs_id, discovery, status, matched_id, reason)
-                stats[{"discovered": "discoveries", "candidate_existing": "candidate_existing",
-                       "hold": "holds"}[status]] += 1
+                # Total accepted new discovery candidates, INCLUDING exact matches and holds.
+                stats["discoveries"] += 1
+                if status == "candidate_existing":
+                    stats["candidate_existing"] += 1
+                elif status == "hold":
+                    stats["holds"] += 1
             for mention in rec.mentions:
                 cid, outcome = resolve.resolve(store, mention, obs_id)
                 key = {"matched": "matched", "new": "new_companies", "candidate": "candidates"}.get(outcome, "skipped")

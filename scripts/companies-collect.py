@@ -11,6 +11,7 @@ Examples:
   SUPABASE_DB_PASSWORD=... python3 scripts/companies-collect.py --store supabase --migrate --sources ted --limit 10
 """
 import argparse
+import hashlib
 import json
 import os
 import pathlib
@@ -39,6 +40,8 @@ def main(argv=None):
     ap.add_argument("--store", choices=("sqlite", "supabase"), default="sqlite")
     ap.add_argument("--dry-run", action="store_true", help="use SQLite in-memory, no Supabase writes")
     ap.add_argument("--raw-dir", help="optional immutable raw HTML snapshot directory")
+    ap.add_argument("--snapshot-file", help="offline Eurosatory HTML input, with --dry-run only")
+    ap.add_argument("--expected-sha256", help="required SHA-256 verification for --snapshot-file")
     ap.add_argument("--db", help="local SQLite file (with --store sqlite)")
     ap.add_argument("--migrate", action="store_true", help="supabase: apply db/companies schema once if absent")
     ap.add_argument("--sample", type=int, default=0,
@@ -57,6 +60,20 @@ def main(argv=None):
                     help="start the given sources from their first page again (idempotency check, AC1)")
     args = ap.parse_args(argv)
 
+    if args.snapshot_file:
+        if not args.dry_run or args.sources != "eurosatory2024" or not args.expected_sha256:
+            ap.error("--snapshot-file needs --dry-run --sources eurosatory2024 --expected-sha256")
+        expected = args.expected_sha256.lower()
+        if len(expected) != 64 or any(c not in "0123456789abcdef" for c in expected):
+            ap.error("invalid --expected-sha256")
+        raw = pathlib.Path(args.snapshot_file).read_bytes()
+        from collectors.companies.sources.http import MAX_BYTES
+        if len(raw) > MAX_BYTES:
+            ap.error("snapshot exceeds existing HTTP client size limit")
+        if hashlib.sha256(raw).hexdigest() != expected:
+            ap.error("snapshot SHA-256 mismatch; refusing import")
+    elif args.expected_sha256:
+        ap.error("--expected-sha256 requires --snapshot-file")
     if args.dry_run and (args.store != "sqlite" or args.db or args.migrate or args.reset_staging
                          or args.promote or args.gleif or args.legacy_snapshot):
         ap.error("--dry-run permits SQLite in-memory only, without migrations/enrichment/promotion")
@@ -83,7 +100,16 @@ def main(argv=None):
         if args.reset_staging:
             ap.error("--reset-staging is for the Supabase staging schema only")
         store = SqliteStore(':memory:' if args.dry_run else args.db)
-    http = JsonHttp(pause=0.3)
+    if args.snapshot_file:
+        class VerifiedSnapshotHttp:
+            """Offline stand-in for the existing HTTP port; does not make network requests."""
+            def get_bytes(self, url, accept="*/*"):
+                if url != eurosatory.URL:
+                    raise ValueError("snapshot bound to Eurosatory official URL only")
+                return raw
+        http = VerifiedSnapshotHttp()
+    else:
+        http = JsonHttp(pause=0.3)
     if args.legacy_snapshot:
         rows = legacy_notion.load_snapshot(args.legacy_snapshot)
         results["legacy_notion"] = pipeline.run_source(store, legacy_notion.Legacy(rows), None, len(rows))
