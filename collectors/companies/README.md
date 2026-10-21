@@ -79,3 +79,47 @@ never in CI, and the snapshot must never be committed.
   civil supplies are skipped, and so are governments (FMS). Trading houses are marked `TRADING_INTERMEDIARY`.
   Officer names and addresses are never stored. Not yet run live (needs consent).
 - The capability mapping is TAXONOMY v0 (POST-MVP REVIEW).
+
+
+## DISCOVERY-SCALE01 (review only)
+
+`--sources eurosatory2024` uses the existing EXP-012 source pipeline with
+`Record.discoveries`, which writes immutable observations and staging
+`discovery_candidate` only. It deliberately bypasses Mention entity resolution
+and cannot create new companies. The EXHIBITOR / COUNTRY table's country is an
+event/source label, **not** `company.country` or headquarters.
+Single same-name matches are unverified candidate_existing; multiple matches hold.
+No sanctions/publishable/QA changes, merges, deletions, or promotion.
+
+```sh
+python scripts/companies-collect.py --dry-run --sources eurosatory2024 --limit 2500 --raw-dir /tmp/eurosatory-raw --report
+```
+
+See `docs/DISCOVERY-SCALE01-RUNBOOK.md`. Existing schema requires independently
+approved migration 002 before staging. Weekly staging schedule requires owner
+approval before merge.
+
+For deterministic acceptance against a known historical HTML snapshot,
+`--snapshot-file PATH --expected-sha256 HEX` works **only with --dry-run**
+and exactly `--sources eurosatory2024`. It refuses a wrong hash before
+ingestion, uses no HTTP/network and writes only to an in-memory SQLite
+database. See the runbook for the official expected SHA-256.
+`discoveries` is the total number of new discovery candidates, including
+`candidate_existing` and `hold` subcategories.
+
+**Dynamic HTML warning:** Two read-only requests of the official page
+can differ in raw HTML SHA despite having the same 2,015 exhibitor-country
+pairs. A changed SHA triggers a new scan as required, but the existing
+`source_key` is checked for discovery-only records so unchanged pairs
+do not create another observation or candidate. Added pairs do.
+Raw snapshots are retained separately when `--raw-dir` is provided.
+
+**Real Supabase acceptance (2026-10-21):** migration 002 and a one-time
+owner-approved Eurosatory staging/readback succeeded. 2,015 immutable
+discovery observations and 2,015 discovery candidates; status split
+1,807 discovered / 197 possible existing / 11 hold; **0 new company
+rows**; all 3,751 existing company records have identical fingerprints.
+Repeated original snapshot returned 0 fetched, 0 new observations.
+The one-time staging job and label were subsequently removed. PR stays
+draft/HOLD: merge and enabling weekly schedule require independent
+authorization. See runbook and GitHub Actions run 39690314548.
