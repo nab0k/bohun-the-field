@@ -42,6 +42,31 @@ jobs:
           git ls-files 'collectors/companies/*.py' 'collectors/companies/sources/*.py' 'tests/companies/*.py' 'scripts/companies-collect.py' | xargs -r python -m py_compile
       - name: Diff whitespace check (against main)
         run: git diff --check origin/main...HEAD
+      - name: Official Eurosatory source read-only probe (no database access)
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          from collectors.companies.sources.http import JsonHttp
+          from collectors.companies.sources.eurosatory import URL, parse_html
+          expected = "57741139274266eff5c0f1900790f88f42f8b806d7747192603a8ef70ef1bc96"
+          try:
+              raw = JsonHttp(timeout=18, retries=1, backoff=1.0).get_bytes(URL, accept="text/html")
+              if not raw:
+                  raise ValueError("empty_source")
+              digest = hashlib.sha256(raw).hexdigest()
+              result = {"status": "hash_verified" if digest == expected else "hash_mismatch",
+                        "sha256": digest, "bytes": len(raw), "expected_sha256": expected}
+              try:
+                  rows = parse_html(raw)
+                  result["parsed_unique_pairs"] = len(rows)
+              except Exception as exc:
+                  result["parse_error_type"] = type(exc).__name__
+              print("EUROSATORY_PROBE " + json.dumps(result, sort_keys=True))
+          except Exception as exc:
+              print("EUROSATORY_PROBE " + json.dumps({"status": "source_unavailable",
+                     "error_type": type(exc).__name__}, sort_keys=True))
+          PY
 
   collect-trial:
     # Owner consent D-20261019-EXP012-MVP-1: up to three runs, schema is NOT re-created.
