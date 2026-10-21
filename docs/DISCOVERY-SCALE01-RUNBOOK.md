@@ -89,3 +89,28 @@ No deletions or automatic revocation of earlier leads.
 This intentionally separates **fetched (scanned) rows** from **new
 observations** and prevents weekly re-ingestion of all 2,015 records
 when the page markup changes.
+
+
+## Verified live-source acceptance (2026-10-21; GitHub Actions, no Supabase)
+
+Read-only Actions [run 39687248851](https://github.com/nab0k/bohun-the-field/actions/runs/39687248851) downloaded the official listing bytes directly and ran the **actual** Eurosatory adapter and existing discovery pipeline over SQLite in-memory:
+
+- Raw downloaded HTML SHA-256: `74088e16c28fdf200b38a29b474ea8f20fef3d9e76adb21666c9e6e3164a8359` (807,489 bytes).
+- Exactly **2,015 unique EXHIBITOR / COUNTRY pairs** parsed and staged locally.
+- First pass: **2,015 fetched, 2,015 new observations, 2,015 discovery candidates, 0 company rows**.
+- Cursor: `done:74088e16c28fdf200b38a29b474ea8f20fef3d9e76adb21666c9e6e3164a8359`.
+- Same captured-bytes replay: fetched **0**, new observations **0**.
+- Public raw HTML and JSON report archived for 30 days in GitHub Actions artifact `eurosatory-source-readonly-probe`, run 39687248851.
+
+A separate read-only run [39687003270](https://github.com/nab0k/bohun-the-field/actions/runs/39687003270) received SHA-256 `e1e1c143d6b0c889f28ca0ea39dc49c17ccb3f51e53c74512e2f36cbc218c920` (807,462 bytes) but also 2,015 unique pairs.
+**Both snapshots differ from the specified historical SHA-256 `57741139274266eff5c0f1900790f88f42f8b806d7747192603a8ef70ef1bc96`.**
+Do not rewrite that acceptance target, and do not claim these are byte-identical to the historical snapshot.
+
+On a changed raw-page hash, the adapter rescans from offset zero. The new discovery-only
+`source_key` guard prevents duplicate observation/candidate rows for identical
+EXHIBITOR/COUNTRY pairs; only materially new exact pairs are inserted.
+Offline regression coverage confirms this guard. On the public live page, this
+cross-snapshot re-scan was not applied to an existing Supabase source state.
+
+**Operational HOLD remains:** source historical hash discrepancy and no owner-reviewed migration
+or Supabase staging readback. A real-source SQLite run is verified; real PostgreSQL is not.
