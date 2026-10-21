@@ -47,26 +47,65 @@ jobs:
           python - <<'PY'
           import hashlib
           import json
+          import pathlib
           from collectors.companies.sources.http import JsonHttp
-          from collectors.companies.sources.eurosatory import URL, parse_html
+          from collectors.companies.sources.eurosatory import URL, Exhibitors2024, parse_html
+          from collectors.companies.pipeline import run_source
+          from collectors.companies.report import summary
+          from collectors.companies.store import SqliteStore
           expected = "57741139274266eff5c0f1900790f88f42f8b806d7747192603a8ef70ef1bc96"
+          report = {"source_url": URL, "expected_sha256": expected}
           try:
               raw = JsonHttp(timeout=18, retries=1, backoff=1.0).get_bytes(URL, accept="text/html")
               if not raw:
                   raise ValueError("empty_source")
               digest = hashlib.sha256(raw).hexdigest()
-              result = {"status": "hash_verified" if digest == expected else "hash_mismatch",
-                        "sha256": digest, "bytes": len(raw), "expected_sha256": expected}
-              try:
-                  rows = parse_html(raw)
-                  result["parsed_unique_pairs"] = len(rows)
-              except Exception as exc:
-                  result["parse_error_type"] = type(exc).__name__
-              print("EUROSATORY_PROBE " + json.dumps(result, sort_keys=True))
+              report.update(status="historical_hash_verified" if digest == expected else "live_revision_not_historical",
+                            sha256=digest, snapshot_bytes=len(raw))
+              # Immutable artifact is evidence for investigation, NOT an approved staging source.
+              folder = pathlib.Path("output/source-probe")
+              folder.mkdir(parents=True, exist_ok=True)
+              (folder / ("eurosatory_2024_exhibitors-" + digest + ".html")).write_bytes(raw)
+              rows = parse_html(raw)
+              report["parsed_unique_pairs"] = len(rows)
+              class SnapshotHTTP:
+                  def get_bytes(self, url, accept="*/*"):
+                      if url != URL:
+                          raise ValueError("unexpected source")
+                      return raw
+              store = SqliteStore(":memory:")
+              adapter = Exhibitors2024()
+              first = run_source(store, adapter, SnapshotHTTP(), 2500)
+              again = run_source(store, adapter, SnapshotHTTP(), 2500)
+              report["first_run"] = {k: first.get(k) for k in (
+                  "status","fetched","new_observations","discoveries",
+                  "candidate_existing","holds","new_companies","cursor_out")}
+              report["replay"] = {k: again.get(k) for k in (
+                  "status","fetched","new_observations","discoveries","new_companies","cursor_out")}
+              report["sqlite_company_rows"] = summary(store)["companies"]
+              report["sqlite_discovery_candidates"] = summary(store)["discovery_candidates"]
+              if (first["status"] != "ok" or first["fetched"] != 2015 or
+                  first["discoveries"] != 2015 or first["new_companies"] != 0 or
+                  report["sqlite_discovery_candidates"] != 2015 or
+                  first["cursor_out"] != "done:" + digest or
+                  again["fetched"] != 0 or again["new_observations"] != 0 or
+                  report["sqlite_company_rows"] != 0):
+                  report["status"] = "real_source_offline_acceptance_failed"
           except Exception as exc:
-              print("EUROSATORY_PROBE " + json.dumps({"status": "source_unavailable",
-                     "error_type": type(exc).__name__}, sort_keys=True))
+              report["status"] = "real_source_probe_failed"
+              report["error_type"] = type(exc).__name__
+          pathlib.Path("output/source-probe").mkdir(parents=True, exist_ok=True)
+          pathlib.Path("output/source-probe/report.json").write_text(
+              json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
+          print("EUROSATORY_PROBE " + json.dumps(report, sort_keys=True))
           PY
+      - name: Keep read-only source-probe evidence (30 days)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eurosatory-source-readonly-probe
+          path: output/source-probe/
+          retention-days: 30
 
   collect-trial:
     # Owner consent D-20261019-EXP012-MVP-1: up to three runs, schema is NOT re-created.
