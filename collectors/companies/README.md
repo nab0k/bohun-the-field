@@ -113,3 +113,13 @@ pairs. A changed SHA triggers a new scan as required, but the existing
 `source_key` is checked for discovery-only records so unchanged pairs
 do not create another observation or candidate. Added pairs do.
 Raw snapshots are retained separately when `--raw-dir` is provided.
+
+**Real Supabase acceptance (2026-10-21):** migration 002 and a one-time
+owner-approved Eurosatory staging/readback succeeded. 2,015 immutable
+discovery observations and 2,015 discovery candidates; status split
+1,807 discovered / 197 possible existing / 11 hold; **0 new company
+rows**; all 3,751 existing company records have identical fingerprints.
+Repeated original snapshot returned 0 fetched, 0 new observations.
+The one-time staging job and label were subsequently removed. PR stays
+draft/HOLD: merge and enabling weekly schedule require independent
+authorization. See runbook and GitHub Actions run 39690314548.

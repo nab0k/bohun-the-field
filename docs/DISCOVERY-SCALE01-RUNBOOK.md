@@ -1,6 +1,6 @@
 # DISCOVERY-SCALE01: source-first autonomous company discovery
 
-Status: REVIEW ONLY. Migration not run, workflow not launched, staging not authorized.
+Status: staging acceptance **completed** on 2026-10-21; PR remains DRAFT / HOLD for merge and weekly automation.
 Target: EXISTING Supabase schema `companies`; no new Companies DB.
 
 Discovery is NOT a legal entity. Exhibitor/member COUNTRY is source/event country,
@@ -114,3 +114,36 @@ cross-snapshot re-scan was not applied to an existing Supabase source state.
 
 **Operational HOLD remains:** source historical hash discrepancy and no owner-reviewed migration
 or Supabase staging readback. A real-source SQLite run is verified; real PostgreSQL is not.
+
+
+## Verified actual PostgreSQL migration and staging (2026-10-21)
+
+Owner approved the verified live Eurosatory variant and one controlled migration/staging run
+in this conversation; original raw HTML SHA acceptance target remains an **independent
+historical-byte check**, not silently overwritten.
+
+- Supabase `companies` additive 002 applied successfully; `schema_migration` = [1,2],
+  RLS enabled for `discovery_candidate` and migration ledger, no anon/authenticated SELECT.
+- Company rows **3,751 before / 3,751 after**. Canonical company-content fingerprint
+  `6b3b6ab3af3fc20b0bc10eb6a6068c74` **unchanged**.
+- Existing observations **3,518 before**; new Eurosatory observations **2,015**.
+  Discovery candidates `2,015`, comprising:
+  `discovered=1,807`, `candidate_existing=197`, `hold=11`.
+  These are staging classifications, **not** verified identities.
+- New company rows created by discovery: **0**; no merge, no promotion, no sanctions,
+  publication, QA or Notion changes.
+- Exact accepted live HTML SHA-256:
+  `74088e16c28fdf200b38a29b474ea8f20fef3d9e76adb21666c9e6e3164a8359`;
+  snapshot size **807,489 bytes**. Cursor `done:<this-live-hash>`.
+  The original historical SHA-256
+  `57741139274266eff5c0f1900790f88f42f8b806d7747192603a8ef70ef1bc96`
+  is still **not byte-verified**.
+- Immediate unchanged-snapshot replay: **0 fetched**, **0 new observations**,
+  **0 company rows created**. Independent Supabase SQL readback confirmed all counts,
+  cursor and unchanged company fingerprint.
+- [One-time staging GitHub Actions run 39690314548](https://github.com/nab0k/bohun-the-field/actions/runs/39690314548)
+  finished SUCCESS. Exact source HTML and aggregate report archived there for 30 days.
+- One-time PR label removed and one-time staging job removed from
+  `.github/workflows/companies-collect.yml` after success; no continuing
+  staging permission. **Scheduled company discovery remains disabled until merge,
+  which still requires owner approval.**
