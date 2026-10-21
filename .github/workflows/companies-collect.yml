@@ -30,11 +30,18 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Offline tests (stdlib only)
         run: python -m unittest discover -s tests/companies -t . -v
+      - name: Python compilation (all EXP-012 modules and tests)
+        run: |
+          git ls-files 'collectors/companies/*.py' 'collectors/companies/sources/*.py' 'tests/companies/*.py' 'scripts/companies-collect.py' | xargs -r python -m py_compile
+      - name: Diff whitespace check (against main)
+        run: git diff --check origin/main...HEAD
 
   collect-trial:
     # Owner consent D-20261019-EXP012-MVP-1: up to three runs, schema is NOT re-created.
