@@ -132,3 +132,133 @@ jobs:
             --benchmark collectors/companies/benchmarks/sipri_top100_2024.json \
             --benchmark collectors/companies/benchmarks/dod_top_recipients_fy2025.json \
             --report --sample 20
+
+  discovery-staging-once:
+    # Explicitly owner-approved staging intake, scoped to PR #78 and a maintainer label.
+    # No migration, reset, promotion, GLEIF, publication, Notion or schedule.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.action == 'labeled' &&
+      github.event.label.name == 'discovery-scale-v1-staging-once' &&
+      github.event.pull_request.number == 78 &&
+      github.event.pull_request.head.repo.full_name == 'nab0k/bohun-the-field' &&
+      github.event.pull_request.head.ref == 'feature/discovery-scale-v1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Offline company tests before staging
+        run: python -m unittest discover -s tests/companies -t .
+      - name: Install existing PostgreSQL driver
+        run: python -m pip install "psycopg[binary]"
+      - name: One-time Eurosatory discovery staging and immediate readback
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          from collectors.companies import pipeline
+          from collectors.companies.pg_store import PgStore
+          from collectors.companies.sources.eurosatory import Exhibitors2024, URL, parse_html
+          from collectors.companies.sources.http import JsonHttp
+
+          EXPECT_COUNT = 3751
+          EXPECT_FP = "6b3b6ab3af3fc20b0bc10eb6a6068c74"
+          SOURCE = "eurosatory_2024_exhibitors"
+          out = pathlib.Path("output/discovery-staging-once")
+          out.mkdir(parents=True, exist_ok=True)
+          store = PgStore()
+
+          def company_state():
+              return store.query("""
+                SELECT count(*) AS n,
+                  md5(string_agg(md5(to_jsonb(c)::text),'|' ORDER BY c.id)) AS fingerprint
+                FROM company c""")[0]
+
+          def counts():
+              row = store.query("""
+                SELECT (SELECT count(*) FROM observation WHERE source=?) AS source_observations,
+                       (SELECT count(*) FROM discovery_candidate) AS all_discovery_candidates,
+                       (SELECT count(*) FROM discovery_candidate d JOIN observation o
+                          ON o.id=d.observation_id WHERE o.source=?) AS source_candidates
+              """, (SOURCE, SOURCE))[0]
+              return {k: int(v) for k, v in row.items()}
+
+          before_company = company_state()
+          before = counts()
+          assert int(before_company["n"]) == EXPECT_COUNT, "company count preflight changed"
+          assert before_company["fingerprint"] == EXPECT_FP, "company fingerprint preflight changed"
+          assert before["source_observations"] == 0, "Eurosatory source already staged; stop"
+          assert before["source_candidates"] == 0, "Eurosatory candidates already staged; stop"
+          migrations = store.query("SELECT version FROM schema_migration ORDER BY version")
+          assert [r["version"] for r in migrations] == [1, 2], "migration ledger incomplete"
+
+          raw = JsonHttp(timeout=30, retries=2, backoff=2).get_bytes(URL, accept="text/html")
+          assert raw, "official source unavailable"
+          digest = hashlib.sha256(raw).hexdigest()
+          rows = parse_html(raw)
+          assert len(rows) == 2015, "source changed its unique exhibitor count"
+          file = out / ("eurosatory_2024_exhibitors-" + digest + ".html")
+          with file.open("xb") as fh:
+              fh.write(raw)
+
+          class FrozenHttp:
+              def get_bytes(self, url, accept="*/*"):
+                  if url != URL:
+                      raise ValueError("unexpected URL")
+                  return raw
+
+          adapter = Exhibitors2024()
+          first = pipeline.run_source(store, adapter, FrozenHttp(), 2500)
+          if first["status"] != "ok":
+              raise RuntimeError("staging intake failed; inspect aggregate run status")
+          after = counts()
+          after_company = company_state()
+          assert int(after_company["n"]) == EXPECT_COUNT, "company count changed after staging"
+          assert after_company["fingerprint"] == EXPECT_FP, "company contents changed after staging"
+          assert first["new_companies"] == 0, "discovery unexpectedly created company rows"
+          assert first["fetched"] == 2015 and first["new_observations"] == 2015, "unexpected intake count"
+          assert first["discoveries"] == 2015, "unexpected candidate count"
+          assert after["source_observations"] == 2015 and after["source_candidates"] == 2015, "readback mismatch"
+          assert first["cursor_out"] == "done:" + digest, "unexpected cursor"
+
+          replay = pipeline.run_source(store, adapter, FrozenHttp(), 2500)
+          assert replay["status"] == "ok", "replay status failed"
+          assert replay["fetched"] == 0 and replay["new_observations"] == 0, "replay duplicated observations"
+          assert company_state()["fingerprint"] == EXPECT_FP, "company fingerprint changed during replay"
+          assert counts()["source_observations"] == 2015, "replay changed observation count"
+
+          status = store.query("""
+            SELECT d.status, count(*) AS n
+            FROM discovery_candidate d
+            JOIN observation o ON o.id = d.observation_id
+            WHERE o.source=?
+            GROUP BY d.status ORDER BY d.status""", (SOURCE,))
+          report = {
+              "status": "staging_readback_verified",
+              "source": SOURCE, "snapshot_sha256": digest, "snapshot_bytes": len(raw),
+              "company_count_before": int(before_company["n"]),
+              "company_count_after": int(company_state()["n"]),
+              "company_fingerprint_unchanged": True,
+              "before": before, "after": after, "first_run": {k: first.get(k) for k in (
+                 "status","fetched","new_observations","discoveries","candidate_existing",
+                 "holds","new_companies","cursor_out")},
+              "replay": {k: replay.get(k) for k in (
+                 "status","fetched","new_observations","discoveries","new_companies","cursor_out")},
+              "discovery_by_status": {r["status"]: r["n"] for r in status},
+          }
+          (out / "report.json").write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
+          print("DISCOVERY_STAGING " + json.dumps(report, sort_keys=True))
+          PY
+      - name: Archive source and aggregate staging report for 30 days
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eurosatory-staging-once-verified
+          path: output/discovery-staging-once/
+          retention-days: 30
