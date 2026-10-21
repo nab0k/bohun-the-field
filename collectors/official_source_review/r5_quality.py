@@ -11,6 +11,7 @@ from collections import Counter
 
 import normalize
 import official_sources
+import r5_quality_hardened
 
 
 SOURCES = ("uk", "ca_new", "ca_open", "eu")
@@ -94,9 +95,10 @@ def live_quality(source, *, transport=None):
         probe = official_sources.canada_probe(source, transport=capture)
     else:
         probe = official_sources.eu_probe("EDF", transport=capture)
-    report = count_quality(source, _rows(source, captures),
-                           complete=probe["complete"],
-                           reported_total=probe.get("reported_total"))
+    report = r5_quality_hardened.quality_report(
+        source, _rows(source, captures),
+        source_complete=probe["complete"],
+        reported_total=probe.get("reported_total"))
     if report["records_seen"] != probe["records"]:
         raise ValueError("probe_count_mismatch")
     report["pages_checked"] = probe.get("pages", 1)
