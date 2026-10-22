@@ -58,3 +58,41 @@ Aggregated counts across 81 rows, first 5 read-only GLEIF lookup outcomes,
 clear list of ambiguous/error/no-LEI results in a private, temporary file,
 and offline regression tests. If fewer than expected candidates are present,
 fail closed rather than guessing.
+
+
+## Actual read-only pilot results (2026-10-22)
+
+The actual connected Supabase candidate cohort was read with an explicit
+`SET TRANSACTION READ ONLY` (no DML/DDL). A bounded GLEIF smoke pass
+made **five** free public registry queries, stratified across
+2 discovered, 2 candidate_existing, and 1 HOLD case.
+
+[GitHub Actions run 39701649195](https://github.com/nab0k/bohun-the-field/actions/runs/39701649195)
+finished SUCCESS, after passing the full EXP-012 offline suite.
+
+Aggregate-only observed outputs:
+- **81** source-backed candidates read successfully, with unchanged group counts
+  (50 discovered / 20 candidate_existing / 11 HOLD).
+- Registry: **2** `single_exact_lei_candidate` provisional leads,
+  **2** `no_exact_registry_lead`,
+  **1** `registry_search_incomplete`,
+  **76** not queried.
+- **0** verified legal identities, **0** new companies,
+  **0** publications, **0** source-country legal inferences.
+- No research.jsonl, company names, registry LEIs or candidate IDs were
+  uploaded as GitHub Actions artifacts. Private evidence was ephemeral
+  on the runner and is **not persisted** outside its lifetime.
+- The one-time GitHub Actions research job was removed from the branch
+  immediately after the success; the branch contains normal offline CI only.
+
+The results demonstrate that the code reads the existing 81-row Supabase
+cohort and conducts bounded GLEIF lookups. They do **not** prove that
+the 2 single-name registry leads are identical to exhibition participants,
+nor do they establish that the other 76 have been enriched.
+
+### Next quality gate
+
+Use independent legal registration numbers and official websites to
+verify identity in an owner-reviewed private evidence set, then assess
+whether broader bounded GLEIF research across all 81 is cost-effective.
+Do not promote, merge identities or publish automatically.
