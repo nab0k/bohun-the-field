@@ -1,6 +1,6 @@
 # BOHUN G3: SQL migrations proposal (NOT executable / NOT applied)
 
-Status: **design review only**. G2.5 completed; depends on approval of G2 logical model PR #89 and database inspection before executable migration creation. Do not apply to Supabase, do not merge as a production migration.
+Status: **design review only; live Supabase inventory completed 2026-10-22, implementation plan supersedes greenfield SQL sketch below**. G2.5 completed; depends on approval of G2 logical model PR #89 and database inspection before executable migration creation. Do not apply to Supabase, do not merge as a production migration.
 
 ## Proposed rollout
 1. Migration 001: `source_system`, `ingestion_run`, `organization`, `organization_identifier`.
@@ -89,3 +89,43 @@ CREATE TABLE funding_project (
 - **Design decision**: keep surrogate UUID `source_document.document_id`; treat `(source_code, external_id)` as preferred natural key for BORME matching, but do not apply unique index until representative further testing and inspection of existing records.
 - On conflicts or missing ID, quarantine and review; do not automatically merge documents on title or URL alone.
 - The unique index is a separately approved migration gate and not part of the baseline schema migration.
+
+## Live Supabase schema / RLS audit (2026-10-22, READ ONLY)
+
+Project: `bohundefence-intelligence` (`tecrucawzukxqtchpxrh`), PostgreSQL 17.11.0.003, ACTIVE_HEALTHY.
+
+**CRITICAL: Existing schema is not empty. Do not apply the greenfield `CREATE TABLE` sketch above.** Nine Supabase migration records exist, including `companies_002_discovery_intake`, `companies_003_encrypted_evidence_archive`, and `create_private_source_registry`. `public` has no tables in the list_tables inventory, but domain tables live in private/custom schemas.
+
+Verified relevant tables:
+- `intelligence.sources`: id bigint, name, url, source_type, country_code, collection_method, active.
+- `intelligence.items`: id bigint, source_id bigint, external_id, title, url, item_type, published_at, raw_data jsonb, first_seen_at, last_seen_at.
+- `intelligence.organizations`: id bigint, name, website, country_code, organization_type.
+- `intelligence.events`: id bigint, item_id bigint, starts_at, ends_at, location_id. **This is a time/location event; do not assume it already models BORME corporate events.**
+- `intelligence.opportunities`: item_id, opportunity_type, amount, currency_code, deadline, buyer_organization_id.
+- `intelligence.item_changes`: item_id, source_change_id, detected_at, old_data, new_data.
+- `companies.company`: id text, name, name_norm, country, website, status, flags.
+- `companies.company_identifier`: scheme, value, company_id, source, observed_at.
+- `companies.run`, `companies.observation`, `companies.source_state` support ingestion and provenance.
+- `bohun_private.sources`: separate source registry.
+- `bohun_staging.raw_documents`: document_id text, source_id, external_id, content_sha256, media_type, original_url, raw_content.
+- `bohun_staging.inoreader_documents`: Inoreader-specific staged content, rights_status, qa_status, public_release.
+- `bohun_uk_intake.notices`: procurement notices, external_id, ocid, release data.
+- `exp009.runtime_documents`: experiment-specific document JSON.
+
+### Revised migration strategy (supersedes greenfield phases)
+0. **No writes** until schema ownership, data API exposed schemas, existing PK/FK/unique constraints, row counts, and grant/policy matrix are audited.
+1. Extend existing `intelligence.sources` / `intelligence.items` for BORME source + publication metadata only if existing constraints and ownership permit. Prefer `(source_id, external_id)` after a duplicate preflight; do not create a global index yet.
+2. Reuse `companies.company_identifier` for NIF and ICO with country-aware validation; map to `companies.company` via a reviewed bridge to `intelligence.organizations` rather than creating another company master.
+3. Design a distinct CDTI funding project model only if `intelligence.opportunities` cannot represent grant awards safely. Do not conflate awarded grants with open opportunities.
+4. Design a separate corporate-event extraction table if `intelligence.events` cannot represent document-derived corporate actions.
+5. Add observation/source provenance and idempotent upsert contracts by extending existing mechanisms; no destructive refactoring.
+6. Security review, staging migration, backfill simulation, rollback, then explicitly approved production migration.
+
+### RLS observations
+- `intelligence` domain tables inspected have RLS enabled, zero policies: likely intentional deny-by-default for ordinary roles, not automatically a vulnerability.
+- `companies.company` has RLS enabled with one policy; related `companies.company_identifier` and many other tables have zero policies.
+- `bohun_staging.company_candidates` and `harvest_candidates` have FORCE RLS and zero policies.
+- `bohun_staging.raw_documents` and `inoreader_documents`, `bohun_private.sources`, and `bohun_staging.contract_packets` have RLS disabled: **check schema exposure and role grants before assessing risk**.
+- Security advisor reported 38 `rls_enabled_no_policy` notices (INFO). These are not evidence of public access.
+- Check views, SECURITY DEFINER functions, EXECUTE privileges, Data API exposure, and direct grants before enabling new policies.
+- **No RLS changes or migrations executed during audit.**
