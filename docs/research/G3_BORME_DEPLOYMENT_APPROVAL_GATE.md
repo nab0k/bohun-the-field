@@ -1,6 +1,13 @@
 # BOHUN G3 / Deployment approval gate
 
-Status: **REVIEW ONLY. NOT APPROVED OR DEPLOYED.**
+Status: **CI PASS. REVIEW ONLY. NOT APPROVED OR DEPLOYED.**
+
+## CI evidence
+- PostgreSQL 17 workflow run **#39861378161**, run number 50: **PASS**.
+- URL: https://github.com/nab0k/bohun-the-field/actions/runs/39861378161
+- Verified: G3 schema, dedicated writer tests, complete G3 plus source-3 writer migration in a fresh disposable database, direct role source-scoped RLS, PASS report.
+- Caveat: this is synthetic PostgreSQL CI, not a full production clone or a real credential connection.
+
 
 ## Verified production state (2026-10-22)
 - BORME exists in intelligence.sources: **id=3**, country ES, active.
@@ -24,7 +31,15 @@ Status: **REVIEW ONLY. NOT APPROVED OR DEPLOYED.**
 - Cross-source isolation must be retested on a real non-bypass connection after provisioning.
 - The writer policy allows updating `unreviewed` actions to `reviewed`. Consider separating ingest and reviewer roles before production rollout.
 - The `service_role` and postgres roles bypass RLS. This design requires a dedicated non-bypass database role and prohibits service_role credentials for ingestion.
-- The new complete CI run must be PASS before any production approval.
+- Full disposable CI is PASS; a production preflight and explicit authorization are still required.
+
+## Final read-only production preflight (2026-10-22)
+- Source registry: TED id=1, Inoreader BOHUN id=2, BORME id=3 (active).
+- intelligence.items exists with RLS enabled, FORCE RLS disabled, and no policies.
+- intelligence.corporate_actions does not exist.
+- bohun_borme_ingest_login does not exist.
+- service_role has BYPASSRLS; it must not be used for this ingestion.
+- This preflight is metadata only and does not constitute a backup, restore test, or exposure audit.
 
 ## Explicit approval required
 Approve **only** step 3 + 4 as a single gated deployment after a confirmed PASS and preflight checks; do not provision credentials or enable ingestion automatically.
