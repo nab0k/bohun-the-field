@@ -3,7 +3,7 @@
 # trial/input48/{code-only.zip,owner-cert.pem}. Private key NEVER here.
 # Approval JSON: exact public block in PR body AFTER the head commit exists.
 name: EXP009 INPUT48 isolated core trial
-run-name: EXP009 INPUT48 ${{ github.event.label.name }} exp009-input48-fourth-trial-20261022
+run-name: EXP009 INPUT48 ${{ github.event.label.name }} exp009-input48-transport-r05-20261022
 on:
   pull_request:
     types: [labeled]
@@ -11,7 +11,7 @@ permissions:
   contents: read
   actions: read
 concurrency:
-  group: exp009-input48-fourth-trial-20261022
+  group: exp009-input48-transport-r05-20261022
   cancel-in-progress: false
 jobs:
   isolated:
@@ -19,10 +19,10 @@ jobs:
       github.repository == 'nab0k/bohun-the-field' &&
       github.actor == 'nab0k' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.label.name == 'exp009-input48-r04-live-20261022' &&
+      github.event.label.name == 'exp009-input48-r05-live-20261022' &&
       github.run_attempt == 1
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 10
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
@@ -53,13 +53,15 @@ jobs:
           need(len(plan_raw) <= 16384)
           plan = json.loads(plan_raw, object_pairs_hook=unique)
           need(plan['enabled'] is True and plan['repo'] == 'nab0k/bohun-the-field')
+          need(plan.get('probe_mode') == 'SHORT_THEN_CAL01_EXTRACT')
+          need(type(plan.get('max_model_calls')) is int and plan['max_model_calls'] == 2)
           need(plan['pr'] == event['number'] and plan['actor'] == os.environ['GITHUB_ACTOR'] == 'nab0k')
           need(plan['head_sha'] == event['pull_request']['head']['sha'])
           need(plan['head_branch'] == event['pull_request']['head']['ref'])
           need(event['pull_request']['head']['repo']['full_name'] == plan['repo'])
-          need(event['action'] == 'labeled' and event['label']['name'] == plan['label'] == 'exp009-input48-r04-live-20261022')
+          need(event['action'] == 'labeled' and event['label']['name'] == plan['label'] == 'exp009-input48-r05-live-20261022')
           need(os.environ['GITHUB_EVENT_NAME'] == 'pull_request' and os.environ['GITHUB_RUN_ATTEMPT'] == '1')
-          need(plan['trial_id'] == 'exp009-input48-fourth-trial-20261022')
+          need(plan['trial_id'] == 'exp009-input48-transport-r05-20261022')
           need(plan['workflow'] == '.github/workflows/exp009-input48.yml')
           root = pathlib.Path(os.environ['RUNNER_TEMP']) / 'input48'
           root.mkdir(mode=0o700)
