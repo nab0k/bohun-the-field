@@ -123,3 +123,21 @@ Repeated original snapshot returned 0 fetched, 0 new observations.
 The one-time staging job and label were subsequently removed. PR stays
 draft/HOLD: merge and enabling weekly schedule require independent
 authorization. See runbook and GitHub Actions run 39690314548.
+
+
+## DISCOVERY-ENRICH-01 (review-only)
+
+Follow-up research pilot on **81 frozen Eurosatory discovery candidates**
+(50 discovered, 20 possible existing, 11 ambiguous). Reuses the
+existing companies schema via an explicit READ ONLY transaction, and
+the existing bounded GLEIF + HTTP adapter for optional free registry leads.
+Never creates, modifies, matches as verified, merges or publishes a company.
+Stored exhibitor COUNTRY is not legal country or HQ.
+
+\`\`\`sh
+python -m collectors.companies.enrich_pilot --explain
+python -m unittest discover -s tests/companies -t .
+\`\`\`
+
+See \`docs/DISCOVERY-ENRICH-01-RUNBOOK.md\` for private readback and gated
+5-query GLEIF sample. Do not store private results in the Git checkout.

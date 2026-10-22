@@ -51,3 +51,46 @@ class Gleif:
         if exc and exc.get("data"):
             return "exception", (exc["data"].get("attributes") or {}).get("reason")
         return "none", None
+
+
+    def find_exact_candidates(self, name, max_pages=4, page_size=100):
+        """All exact normalized-name registry leads from a BOUNDED paginated search.
+
+        Returns (leads, complete). A limited/incomplete search must never be
+        interpreted as uniquely identifying a legal entity.
+        """
+        if not (1 <= max_pages <= 4 and 1 <= page_size <= 100):
+            raise ValueError("registry pagination exceeds research bounds")
+        target = name_norm(name)
+        if not target:
+            return [], True
+        leads = {}
+        scanned = 0
+        for page in range(1, max_pages + 1):
+            url = (f"{API}/lei-records?filter[entity.legalName]={urllib.parse.quote(name, safe='')}"
+                   f"&page[size]={page_size}&page[number]={page}")
+            response = self.http.get_json(url, accept=ACCEPT)
+            if not isinstance(response, dict) or not isinstance(response.get("data"), list):
+                return list(leads.values()), False
+            batch = response["data"]
+            scanned += len(batch)
+            for raw in batch:
+                entity = _entity(raw)
+                if (entity and entity.get("lei") and
+                        name_norm(entity.get("legal_name")) == target):
+                    leads[entity["lei"]] = entity
+            pagination = (response.get("meta") or {}).get("pagination") or {}
+            total = pagination.get("total")
+            links = response.get("links") or {}
+            next_page = bool(links.get("next"))
+            if isinstance(total, int) and scanned < total:
+                next_page = True
+            if not next_page and len(batch) < page_size:
+                return list(leads.values()), True
+            if not next_page and isinstance(total, int) and scanned >= total:
+                return list(leads.values()), True
+            # Exactly a full page without trustworthy totals may have more results;
+            # query another page rather than declare this a complete unique match.
+            if not batch:
+                return list(leads.values()), True
+        return list(leads.values()), False
