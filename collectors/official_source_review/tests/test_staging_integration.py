@@ -144,10 +144,10 @@ class SourceWindowTests(unittest.TestCase):
         with self.assertRaises(w.StagingError):
             w.source_window_utc("2026-03-29T00:30:00", "2026-03-29T01:30:00")
 
-    def test_utc_receipt_bounds_rejected_for_uk_local_data(self):
+    def test_legacy_manifest_without_complete_r8_receipt_rejected(self):
         import uk_hold_pilot
         m = uk_hold_pilot.prepare_releases([json.loads(page(release(1)))], verified_complete=True)
-        with self.assertRaisesRegex(w.StagingError, "outside_receipt_window"):
+        with self.assertRaisesRegex(w.StagingError, "complete_source_read_receipt_required"):
             w.validate_manifest(m, window_start=datetime(2026, 10, 15, 9, tzinfo=timezone.utc),
                                 window_end=datetime(2026, 10, 15, 10, tzinfo=timezone.utc))
 
