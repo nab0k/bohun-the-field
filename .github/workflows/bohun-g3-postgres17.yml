@@ -74,6 +74,9 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -c "SELECT CASE WHEN (SELECT count(*) FROM pg_policies WHERE schemaname='intelligence' AND policyname LIKE 'borme_ingest_%')=4 THEN 'PASS: four writer RLS policies installed' ELSE (1/0)::text END;"
           psql -X -v ON_ERROR_STOP=1 -c "SET ROLE bohun_borme_ingest_login; SELECT id FROM intelligence.items;"
           echo 'PASS: disposable migration deployment'
+          export PGDATABASE=bohun_g3
+          dropdb bohun_g3_deploy_test
+          psql -X -v ON_ERROR_STOP=1 -c 'DROP ROLE bohun_borme_ingest_login'
       - name: Verify direct BORME login and source-scoped RLS
         shell: bash
         run: |
