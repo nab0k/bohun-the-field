@@ -6,6 +6,8 @@ Output is private and must be kept outside the repository.
 import argparse
 import json
 import pathlib
+import sys
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 from collectors.companies.pg_store import PgStore
 
 IDS = [1,2,3,4,5,6,8,9,24,25,46,52,55,59,167,203,1203,1913,229,734]
