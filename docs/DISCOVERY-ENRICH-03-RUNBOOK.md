@@ -96,12 +96,21 @@ A proposed **additive** `db/companies/003_encrypted_evidence_archive.sql` and `c
 
 **NOT DONE:** migration 003 has NOT been applied and the encrypted artifact has NOT been uploaded to permanent storage. This is deliberate: applying schema migrations and activating persistent storage need separately scoped owner approval, a check of the recipient private key and recovery/retention policy. Current 30-day Actions artifact is temporary and should not be mistaken for permanent storage.
 
+Ordinary `scripts/companies-collect.py --store supabase --migrate` applies only
+versions 001/002. Migration 003 requires separate owner approval for the
+specific SQL contents: calculate the lowercase SHA-256 of
+`db/companies/003_encrypted_evidence_archive.sql`, independently review the SQL,
+then invoke a migration-only command with
+`--approve-evidence-migration-003-sha256 REVIEWED_64_CHARACTER_HASH`.
+Do not combine this option with collection, promotion or reset. This flag and
+checksum are operational safeguards, not substitutes for owner authorization.
+
 After owner approves the migration and recovers the test ciphertext locally with their key, upload would use:
 
 ```bash
-python -m collectors.companies.evidence_vault_store \\
-  --cipher /ABSOLUTE/PRIVATE/evidence-5ae24a63ed89dd1fe4098c25feb8b6c6688319de8db5dd42c8f79ee1f0481c11.cms.der \\
-  --manifest /ABSOLUTE/PRIVATE/manifest-5ae24a63ed89dd1fe4098c25feb8b6c6688319de8db5dd42c8f79ee1f0481c11.json \\
+python -m collectors.companies.evidence_vault_store \
+  --cipher /ABSOLUTE/PRIVATE/evidence-5ae24a63ed89dd1fe4098c25feb8b6c6688319de8db5dd42c8f79ee1f0481c11.cms.der \
+  --manifest /ABSOLUTE/PRIVATE/manifest-5ae24a63ed89dd1fe4098c25feb8b6c6688319de8db5dd42c8f79ee1f0481c11.json \
   --approve-upload-ciphertext
 ```
 
