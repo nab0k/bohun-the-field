@@ -72,3 +72,13 @@ legacy filenames and writes different later results to immutable,
 content-addressed research-SHA256.jsonl and aggregate-SHA256.json files.
 Identical replay is a no-op. This only protects files on a persistent volume;
 CI runner temporary files still disappear. Hashes are not encryption.
+
+
+## Verified read-only integration trial, 2026-10-22
+
+- One-time [GitHub Actions run 39705178941](https://github.com/nab0k/bohun-the-field/actions/runs/39705178941) finished SUCCESS.
+- The connected EXISTING Supabase cohort was read using SELECT in a read-only transaction: 81/81 candidates, with 50 discovered, 20 candidate_existing, 11 HOLD.
+- Exactly **20** review packets were built privately, with **0 verified identifications**, **0 company rows created**, and **0 publication**. No new GLEIF/API requests in this run.
+- No real legal evidence captures were recorded: all 20 source URLs remain link-only UNVERIFIED hints. The files on the runner were temporary and NOT uploaded to any artifact store.
+- The temporary test authorization label and one-time live read-only Actions job were removed after successful acceptance. Only the normal offline CI remains.
+- For ACTUAL persistent evidence, the owner must first approve encrypted durable storage and access/retention policy; the run above is NOT proof of durable custody.

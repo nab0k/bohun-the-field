@@ -159,3 +159,5 @@ See docs/DISCOVERY-ENRICH-02-RUNBOOK.md.
 Security: 0700/0600 filesystem permissions and a hash chain are NOT encryption
 or an authenticated signature. Operational use requires an owner-approved
 encrypted persistent volume, backups and QA. No evidence goes to public CI.
+
+Verified read-only pilot [39705178941](https://github.com/nab0k/bohun-the-field/actions/runs/39705178941): all 81 frozen Supabase candidates read successfully, **20 private review packets** generated and **0 identities auto-verified**. The runner files were ephemeral, not a permanent archive. No company or Supabase writes. One-shot test job and label removed.
