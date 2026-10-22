@@ -132,3 +132,32 @@ jobs:
             --benchmark collectors/companies/benchmarks/sipri_top100_2024.json \
             --benchmark collectors/companies/benchmarks/dod_top_recipients_fy2025.json \
             --report --sample 20
+
+  enrich02-readonly-review20:
+    # Explicitly label-gated one-time live SELECT validation for PR #80.
+    # Private 81-row output stays on temporary runner; no public artifact.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.action == 'labeled' &&
+      github.event.label.name == 'enrich02-readonly-review20' &&
+      github.event.pull_request.number == 80 &&
+      github.event.pull_request.head.repo.full_name == 'nab0k/bohun-the-field' &&
+      github.event.pull_request.head.ref == 'feature/discovery-evidence-02'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Full offline regression before live SELECT
+        run: python -m unittest discover -s tests/companies -t .
+      - name: Existing PostgreSQL client only
+        run: python -m pip install "psycopg[binary]"
+      - name: Read frozen 81 and create 20 unverified packets on ephemeral private disk
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          python -m collectors.companies.enrich_pilot --read-supabase \
+            --review20 --private-output-dir "$RUNNER_TEMP/bohun-enrich02-evidence"
+          # Ephemeral research files intentionally NOT uploaded.
