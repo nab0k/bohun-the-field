@@ -1,0 +1,102 @@
+name: BOHUN G1 API Probe (manual only)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bohun-g1-probe-once
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Probe three public endpoints, metadata only
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import datetime, hashlib, json, pathlib, socket
+          import urllib.error, urllib.request
+          import xml.etree.ElementTree as ET
+
+          ENDPOINTS = [
+              ("CDTI", "https://sede.cdti.gob.es/AreaPrivada/Servicios/DatosAbiertos/api/datos/proyectosidi/JSON/2026/ALL"),
+              ("BORME", "https://www.boe.es/datosabiertos/api/borme/sumario/20240529"),
+              ("ARES", "https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/00006947"),
+          ]
+          LIMIT = 131072
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, request, fp, code, msg, headers, newurl):
+                  return None
+
+          opener = urllib.request.build_opener(NoRedirect)
+          report = {
+              "timestamp_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+              "scope": "one GET per endpoint, no retries, redirects disabled, 128 KiB read cap",
+              "sources": [],
+          }
+          for source, url in ENDPOINTS:
+              item = {"source": source, "endpoint": url, "http_status": None,
+                      "content_type": None, "declared_content_length": None,
+                      "sample_bytes": None, "sample_sha256": None,
+                      "sample_truncated": None, "structure": None, "error_type": None}
+              request = urllib.request.Request(url, headers={
+                  "Accept": "application/json, application/xml, text/xml",
+                  "User-Agent": "BOHUN-G1-Probe/0.1 (manual research; 1 request per source)",
+                  "Range": "bytes=0-131071",
+              })
+              try:
+                  with opener.open(request, timeout=15) as response:
+                      item["http_status"] = response.status
+                      item["content_type"] = response.headers.get("Content-Type")
+                      item["declared_content_length"] = response.headers.get("Content-Length")
+                      payload = response.read(LIMIT + 1)
+                      item["sample_truncated"] = len(payload) > LIMIT
+                      payload = payload[:LIMIT]
+                      item["sample_bytes"] = len(payload)
+                      item["sample_sha256"] = hashlib.sha256(payload).hexdigest()
+                      if not item["sample_truncated"]:
+                          try:
+                              obj = json.loads(payload)
+                              item["structure"] = {
+                                  "format": "JSON",
+                                  "root_type": type(obj).__name__,
+                                  "top_level_keys": sorted(obj.keys())[:30] if isinstance(obj, dict) else None,
+                                  "root_array_length": len(obj) if isinstance(obj, list) else None,
+                              }
+                          except (ValueError, UnicodeDecodeError):
+                              try:
+                                  root = ET.fromstring(payload)
+                                  item["structure"] = {"format": "XML",
+                                      "root_tag": root.tag.split("}")[-1],
+                                      "direct_children": len(root)}
+                              except ET.ParseError:
+                                  item["structure"] = {"format": "unknown"}
+                      else:
+                          item["structure"] = {"format": "partial", "schema_verified": False}
+              except urllib.error.HTTPError as exc:
+                  item["http_status"] = exc.code
+                  item["content_type"] = exc.headers.get("Content-Type")
+                  item["error_type"] = "HTTPError; body not read"
+                  exc.close()
+              except (urllib.error.URLError, TimeoutError, socket.timeout, OSError) as exc:
+                  item["error_type"] = type(exc).__name__
+              report["sources"].append(item)
+
+          pathlib.Path("g1-probe").mkdir(exist_ok=True)
+          pathlib.Path("g1-probe/report.json").write_text(
+              json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+          print(json.dumps(report, indent=2, ensure_ascii=False))
+          PY
+      - name: Upload metadata-only report
+        if: always()
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: bohun-g1-probe-metadata
+          path: g1-probe/report.json
+          if-no-files-found: warn
+          retention-days: 7
