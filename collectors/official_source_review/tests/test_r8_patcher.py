@@ -3,20 +3,23 @@
 These checks are executable alongside PR #77 code in the review branch.
 """
 import inspect
+import importlib.util
 import sys
 import unittest
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import uk_staging_writer as w
 
 
+@unittest.skipUnless(importlib.util.find_spec("uk_staging_writer"), "requires R7.1 writer from PR #77")
 class R8WriterContractTests(unittest.TestCase):
     def test_new_reader_requires_bound_updated_window(self):
+        import uk_staging_writer as w
         src = inspect.getsource(w.validate_manifest)
         self.assertIn("require_bound_receipt", src)
         self.assertNotIn("candidate_outside_receipt_window", src)
 
     def test_default_live_path_uses_complete_r8_reader(self):
+        import uk_staging_writer as w
         src = inspect.getsource(w.write_live_window)
         self.assertIn("prepare_window", src)
         self.assertIn("make_window", src)
