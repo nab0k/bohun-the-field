@@ -204,6 +204,10 @@ def main(argv=None):
     p.add_argument("--gleif", action="store_true", help="opt-in free registry lookups")
     p.add_argument("--max-gleif", type=int, default=0)
     p.add_argument("--private-output-dir", type=pathlib.Path)
+    p.add_argument("--review20", action="store_true",
+                   help="create 20 private, link-only QA packets; no claim verified")
+    p.add_argument("--captured-evidence-manifest", type=pathlib.Path,
+                   help="private JSON list of local HTTPS source captures and exact quotes")
     args = p.parse_args(argv)
     manifest = load_manifest()
     if args.explain:
@@ -213,6 +217,8 @@ def main(argv=None):
         p.error("choose exactly one input: --read-supabase or --input-json")
     if not args.private_output_dir:
         p.error("--private-output-dir is required")
+    if args.captured_evidence_manifest and not args.review20:
+        p.error("--captured-evidence-manifest requires --review20")
     if args.gleif != bool(args.max_gleif):
         p.error("--gleif and --max-gleif must be used together")
     if args.gleif and not 1 <= args.max_gleif <= 81:
@@ -225,6 +231,45 @@ def main(argv=None):
     records = [research_record(row, registry_probe(row, client) if int(row["id"]) in to_probe else None)
                for row in sorted(rows, key=lambda x: int(x["id"]))]
     report = write_private(records, args.private_output_dir)
+    if args.review20:
+        from . import evidence_review
+        packets = evidence_review.review_packets(records)
+        report["review20_unverified_packets"] = evidence_review.persist_review_packets(
+            args.private_output_dir, packets)
+        report["verified_review20_identifications"] = 0
+        if args.captured_evidence_manifest:
+            manifest_file = args.captured_evidence_manifest.expanduser()
+            if not manifest_file.is_absolute():
+                p.error("capture manifest must be absolute and outside the repository")
+            resolved = manifest_file.resolve()
+            if resolved == REPO_ROOT or REPO_ROOT in resolved.parents:
+                p.error("capture manifest cannot be within the Git checkout")
+            captures = json.loads(manifest_file.read_text(encoding="utf-8"))
+            if not isinstance(captures, list) or len(captures) > 20:
+                p.error("expected a bounded list of at most 20 source captures")
+            by_id = {item["candidate_id"]: item for item in packets}
+            appended = 0
+            for capture in captures:
+                case = by_id.get(int(capture["candidate_id"]))
+                if case is None:
+                    p.error("capture references candidate outside the 20-case pilot")
+                snapshot_file = pathlib.Path(capture["snapshot_file"]).expanduser()
+                snapshot_path = snapshot_file.resolve()
+                if (not snapshot_file.is_absolute() or
+                        snapshot_path == REPO_ROOT or REPO_ROOT in snapshot_path.parents or
+                        snapshot_file.is_symlink()):
+                    p.error("captured source file must be absolute, outside Git and not a symlink")
+                # Files are supplied locally by a reviewer; no HTTP is done here.
+                with snapshot_file.open("rb") as inp:
+                    raw = inp.read(evidence_review.MAX_CAPTURE_BYTES + 1)
+                receipt = evidence_review.capture_receipt(
+                    case, capture["source_url"], raw, capture["exact_quote"],
+                    kind=capture.get("identity_kind", "unknown"),
+                    lifecycle=capture.get("lifecycle", "unknown"),
+                    source_as_of=capture.get("source_as_of"))
+                result = evidence_review.append_private_receipt(args.private_output_dir, receipt)
+                appended += result["status"] == "appended"
+            report["private_evidence_receipts_appended"] = appended
     # Names, LEIs, websites, and candidate IDs are never written to public logs.
     print(json.dumps(report, sort_keys=True))
     return 0
