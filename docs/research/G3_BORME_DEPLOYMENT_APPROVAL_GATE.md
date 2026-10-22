@@ -61,3 +61,21 @@ Status: **CI PASS. REVIEW ONLY. NOT APPROVED OR DEPLOYED.**
 
 ## Explicit approval required
 Approve **only** step 3 + 4 as a single gated deployment after a confirmed PASS and preflight checks; do not provision credentials or enable ingestion automatically.
+
+## Approval request (prepared 2026-10-22; execution NOT authorized)
+**Requested scope, only after closing preflight gates:**
+1. Apply `docs/sql/G3_BORME_CORPORATE_ACTIONS_REVIEW.sql` to production (new `intelligence.corporate_actions`, FORCE RLS).
+2. Apply `docs/sql/G3_BORME_WRITER_RLS_SOURCE3_REVIEW.sql` to production (dedicated NOLOGIN role, source_id=3 policies and scoped grants).
+3. Perform read-only post-deploy verification of RLS, role, grants and table metadata.
+
+**Excluded:** role LOGIN/password, secret provisioning, ingest activation, BORME data inserts, policy changes outside G3, PR merge, and deployment of any unrelated migrations.
+
+**Evidence:** GitHub Actions #39861378161 PASS on PostgreSQL 17; read-only production audit confirmed BORME id=3 and no pre-existing G3 table/role/policies. RPC privilege audit documented above.
+
+**Hard blockers:**
+- Record latest successful backup timestamp, retention and tested/available restore procedure in Supabase Dashboard > Database > Backups.
+- Record exact exposed schemas in Dashboard > Integrations > Data API > Settings, and verify that `intelligence` exposure is intentional or absent.
+- Re-run schema preflight immediately before applying.
+- Obtain explicit authorization after the two confirmations, not merely approval of this document.
+
+**Decision:** HOLD. User confirmation required after evidence is provided. No production DDL executed.
