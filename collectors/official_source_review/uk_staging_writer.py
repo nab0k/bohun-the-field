@@ -136,11 +136,13 @@ def validate_manifest(manifest, *, window_start, window_end):
     if type(manifest.get("observations")) is not int or manifest["observations"] < len(candidates):
         raise StagingError("observation_count_invalid")
     clean = [_canonical_metadata(c) for c in candidates]
-    # Cross-check that receipt bounds describe the window actually read (catches
-    # UTC vs UK-local mistakes before they reach run_receipts/checkpoints).
-    for c in candidates:
-        if c.published_at is None or not window_start <= c.published_at <= window_end:
-            raise StagingError("candidate_outside_receipt_window")
+    # Freeze and verify the *updatedFrom/updatedTo request bounds*, not release.date.
+    # The R8 manifest comes from the same in-memory complete source read.
+    from r8_bridge import require_bound_receipt, BridgeError
+    try:
+        require_bound_receipt(manifest, window_start=window_start, window_end=window_end)
+    except BridgeError as exc:
+        raise StagingError(str(exc)) from None
     ext = [r[0] for r in clean]
     origin = [(r[1],r[2]) for r in clean]
     if len(set(ext)) != len(ext) or len(set(origin)) != len(origin):
@@ -306,11 +308,20 @@ def check_connection(*, connect=None):
 
 def write_live_window(start, end, *, dry_run=True, connect=None, transport=None):
     """One bounded read of the official API, then one staging transaction."""
-    from uk_live_pilot import prepare_bounded_live
-    window_start, window_end = source_window_utc(start, end)
-    manifest = prepare_bounded_live(transport=transport, start=start, end=end)
-    return write_reviewed_pilot(manifest, window_start=window_start, window_end=window_end,
-                                connect=connect, dry_run=dry_run)
+    # This is a *manual pilot* path. Complete source read + identity normalization
+    # must succeed before attempting a DB connection. No checkpoints are advanced.
+    from r8_source_reader import make_window, WindowError
+    from r8_bridge import prepare_window, BridgeError
+    from r8_transport import bounded_get
+    from uk_hold_pilot import prepare_releases
+    try:
+        window = make_window(start, end)
+        manifest = prepare_window(window, transport or bounded_get, prepare_releases)
+    except (WindowError, BridgeError) as exc:
+        raise StagingError(str(exc)) from None
+    return write_reviewed_pilot(manifest, window_start=window.utc_from,
+                                window_end=window.utc_to, connect=connect,
+                                dry_run=dry_run)
 
 
 def main():
