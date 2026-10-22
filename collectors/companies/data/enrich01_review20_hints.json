@@ -1,0 +1,161 @@
+{
+  "version": 1,
+  "kind": "unverified_source_hints",
+  "derived_from": "DISCOVERY-ENRICH-01 20-case review (2026-10-22); hints NOT verified evidence",
+  "entries": [
+    {
+      "candidate_id": 57,
+      "review_focus": "legal_entity_alias",
+      "source_urls": [
+        "https://www.aeroglowinternational.com/get-in-touch/"
+      ]
+    },
+    {
+      "candidate_id": 84,
+      "review_focus": "registry_identifier",
+      "source_urls": [
+        "https://www.ajpowersupply.com/power-supply-contact/",
+        "https://sam.gov/opp/d32d4a36709b4b9eba94c9acfcba1e99/view"
+      ]
+    },
+    {
+      "candidate_id": 182,
+      "review_focus": "brand_vs_legal_entity",
+      "source_urls": [
+        "https://www.asiaequipaggiamenti.it/contatti/",
+        "https://www.asiaequipaggiamenti.it/about/"
+      ]
+    },
+    {
+      "candidate_id": 194,
+      "review_focus": "registry_identifier",
+      "source_urls": [
+        "https://www.atermes.fr/en/"
+      ]
+    },
+    {
+      "candidate_id": 406,
+      "review_focus": "subsidiary_vs_group",
+      "source_urls": [
+        "https://www.cojali.com/en/cojali-france/",
+        "https://www.pappers.fr/entreprise/cojali-france-394218473"
+      ]
+    },
+    {
+      "candidate_id": 457,
+      "review_focus": "registry_identifier",
+      "source_urls": [
+        "https://cvxinstruments.com/contact/",
+        "https://www.navair.navy.mil/osbp/node/12796"
+      ]
+    },
+    {
+      "candidate_id": 500,
+      "review_focus": "lifecycle_review",
+      "source_urls": [
+        "https://ariregister.rik.ee/eng/company/14514582/Defsecintel-Solutions-O%C3%9C"
+      ]
+    },
+    {
+      "candidate_id": 505,
+      "review_focus": "lifecycle_review",
+      "source_urls": [
+        "https://www.delfox.net/legal-notice",
+        "https://api-avis-situation-sirene.insee.fr/identification/pdf/83526361700044",
+        "https://entreprises.lefigaro.fr/delfox-predictive-technologies-33/entreprise-835263617"
+      ]
+    },
+    {
+      "candidate_id": 531,
+      "review_focus": "brand_vs_legal_entity",
+      "source_urls": [
+        "https://directactiongear.com/en/about-direct-action",
+        "https://entirem.com/en/our-brands/"
+      ]
+    },
+    {
+      "candidate_id": 542,
+      "review_focus": "registry_identifier",
+      "source_urls": [
+        "https://drone-geofencing.com/"
+      ]
+    },
+    {
+      "candidate_id": 123,
+      "review_focus": "registry_identifier",
+      "source_urls": [
+        "https://www.amz.pl/kontakt.html",
+        "https://rejestr.io/krs/581019/amz-kutno"
+      ]
+    },
+    {
+      "candidate_id": 211,
+      "review_focus": "registry_identifier",
+      "source_urls": [
+        "https://base.intelic.ai/"
+      ]
+    },
+    {
+      "candidate_id": 412,
+      "review_focus": "subsidiary_vs_group",
+      "source_urls": [
+        "https://www.combitech.com/about-us/"
+      ]
+    },
+    {
+      "candidate_id": 413,
+      "review_focus": "registry_identifier",
+      "source_urls": [
+        "https://www.comex.se/en"
+      ]
+    },
+    {
+      "candidate_id": 481,
+      "review_focus": "subsidiary_vs_group",
+      "source_urls": [
+        "https://dedienne-aero.com/company/"
+      ]
+    },
+    {
+      "candidate_id": 229,
+      "review_focus": "subsidiary_vs_group",
+      "source_urls": [
+        "https://find-and-update.company-information.service.gov.uk/company/01470151"
+      ]
+    },
+    {
+      "candidate_id": 265,
+      "review_focus": "registry_identifier",
+      "source_urls": [
+        "https://www.exensor.com/contact/",
+        "https://www.av.se/om-oss/diarium-och-allmanna-handlingar/bestall-handlingar/Company/?orgnr=5562964618"
+      ]
+    },
+    {
+      "candidate_id": 363,
+      "review_focus": "registry_identifier",
+      "source_urls": [
+        "https://verejnerejstriky.msp.gov.cz/vypis/174660"
+      ]
+    },
+    {
+      "candidate_id": 523,
+      "review_focus": "subsidiary_vs_group",
+      "source_urls": [
+        "https://new.diehl.com/defence/en/imprint-and-legal-notice/"
+      ]
+    },
+    {
+      "candidate_id": 726,
+      "review_focus": "legal_entity_alias",
+      "source_urls": [
+        "https://forcitgroup.com/privacy-policy-cookie-policy/"
+      ]
+    }
+  ],
+  "warnings": [
+    "URLs are researcher-supplied leads, NOT fetched or hash-verified.",
+    "Do not infer legal country from exhibition country.",
+    "All identity and lifecycle statuses remain unverified."
+  ]
+}
