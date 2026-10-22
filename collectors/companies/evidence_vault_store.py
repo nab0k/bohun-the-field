@@ -86,3 +86,23 @@ def upload_encrypted(cipher_path, manifest_path, *, approved=False, conn=None):
     finally:
         if own:
             store.close()
+
+
+def main(argv=None):
+    """Manual, separate-owner-approved Supabase ciphertext-only upload."""
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--cipher", required=True, type=pathlib.Path)
+    parser.add_argument("--manifest", required=True, type=pathlib.Path)
+    parser.add_argument("--approve-upload-ciphertext", action="store_true")
+    args = parser.parse_args(argv)
+    if not args.approve_upload_ciphertext:
+        parser.error("explicit approval flag required for any Supabase write")
+    result = upload_encrypted(args.cipher, args.manifest, approved=True)
+    # Only SHA and lifecycle outcome, never source or legal identity.
+    print(json.dumps(result, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
