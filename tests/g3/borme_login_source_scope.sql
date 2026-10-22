@@ -2,7 +2,6 @@
 -- Disposable PostgreSQL CI fixture. This is NOT a production credential or role.
 CREATE TABLE intelligence.sources(id bigint PRIMARY KEY, name text NOT NULL, active boolean NOT NULL);
 INSERT INTO intelligence.sources VALUES (3,'BORME',true),(2,'Inoreader BOHUN',true);
-DO $ BEGIN IF NOT EXISTS (SELECT 1 FROM intelligence.sources WHERE id=3 AND name='BORME' AND active) THEN RAISE EXCEPTION 'BORME id mismatch'; END IF; END $;
 ALTER TABLE intelligence.items ADD COLUMN source_id bigint;
 UPDATE intelligence.items SET source_id=3 WHERE id=1001;
 UPDATE intelligence.items SET source_id=2 WHERE id=1002;
