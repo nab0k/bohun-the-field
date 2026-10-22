@@ -32,10 +32,16 @@ def candidate(digest=A, tags=None, **overrides):
 
 def manifest(candidates=None):
     candidates=candidates or [candidate()]
-    return {"source":"uk_fts","qa":"HOLD","public_release":False,
+    result={"source":"uk_fts","qa":"HOLD","public_release":False,
             "source_window_complete":True,"production_write_approved":False,
             "pilot_candidates":len(candidates),"eligible_unique_tender_notices":len(candidates),
             "selection_limited":False,"observations":42,"candidates":candidates}
+    # Complete R8 read receipt: synthetic fixture, not a claim about live API.
+    from r8_source_reader import SourceWindow
+    result["r8_read_receipt"]={"window":SourceWindow(
+        "2026-10-15T10:00:00","2026-10-15T11:00:00",START,END),
+        "complete":True,"pages":1,"unique_releases":42,"duplicate_releases":0}
+    return result
 
 
 class FakeCursor:
