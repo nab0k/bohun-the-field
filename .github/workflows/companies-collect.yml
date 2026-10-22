@@ -132,3 +132,39 @@ jobs:
             --benchmark collectors/companies/benchmarks/sipri_top100_2024.json \
             --benchmark collectors/companies/benchmarks/dod_top_recipients_fy2025.json \
             --report --sample 20
+
+  enrich03-encrypted-source-capture:
+    # Single opt-in owner-approved source archive, no database credentials/writes.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.action == 'labeled' &&
+      github.event.label.name == 'enrich03-capture20-encrypted' &&
+      github.event.pull_request.number == 81 &&
+      github.event.pull_request.head.repo.full_name == 'nab0k/bohun-the-field' &&
+      github.event.pull_request.head.ref == 'feature/discovery-evidence-03'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Offline tests before fetch (includes encrypted roundtrip)
+        run: python -m unittest discover -s tests/companies -t .
+      - name: Fetch 20 allowlisted public primary leads and encrypt with owner public cert
+        run: |
+          python -m collectors.companies.evidence_archive \
+            --capture20 --private-dir "$RUNNER_TEMP/bohun-source-plain" \
+            --encrypted-dir "$RUNNER_TEMP/bohun-source-cipher"
+          # No names, original bytes, IDs or URLs emitted in runner logs.
+      - name: Retain ONLY encrypted envelopes, up to 30 days
+        uses: actions/upload-artifact@v4
+        with:
+          name: bohun-evidence03-aesgcm-ciphertext
+          path: |
+            ${{ runner.temp }}/bohun-source-cipher/*.cms.der
+            ${{ runner.temp }}/bohun-source-cipher/manifest-*.json
+          if-no-files-found: error
+          retention-days: 30
