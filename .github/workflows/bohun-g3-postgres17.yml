@@ -57,6 +57,8 @@ jobs:
             fi
             echo "PASS: $role denied SELECT"
           done
+      - name: Verify FORCE RLS and row policies with temporary grants
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/g3/rls_policy_tests.sql
       - name: Verify migration fails on repeat
         shell: bash
         run: |
@@ -77,7 +79,7 @@ jobs:
             echo "- Commit: ${GITHUB_SHA}"
             echo "- PostgreSQL: $(cat /tmp/g3_pg_version.txt)"
             echo '- Result: PASS'
-            echo '- Tests: migration, constraints, RLS metadata, grants, runtime role denial, duplicate migration rejection'
+            echo '- Tests: migration, constraints, RLS metadata, grants, runtime role denial, temporary grants and policy isolation, duplicate migration rejection'
             echo '- Scope: synthetic minimal fixture, not production schema/data'
           } > test-results/G3_LOCAL_SQL_TEST_REPORT.md
       - uses: actions/upload-artifact@v4
