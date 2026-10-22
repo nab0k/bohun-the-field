@@ -92,5 +92,5 @@ class Gleif:
             # Exactly a full page without trustworthy totals may have more results;
             # query another page rather than declare this a complete unique match.
             if not batch:
-                return list(leads.values()), True
+                return list(leads.values()), not next_page
         return list(leads.values()), False

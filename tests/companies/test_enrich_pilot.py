@@ -102,14 +102,34 @@ class TestIntegratedPilot(unittest.TestCase):
         self.assertEqual(result["status"], "ambiguous_registry_leads")
         self.assertEqual(len(http.queries), 2)
 
-    def test_partial_registry_not_unique(self):
+    def test_partial_registry_cannot_confirm_unique(self):
         name = "Fictional Supplier"
-        pages = {1: {"data": [lei_record("A"*20, name)], "links": {"next": "next"}}}
-        result = pilot.registry_probe({"name": name},
-                                      Gleif(FakeHttp(pages)))
-        self.assertEqual(result["status"], "single_exact_lei_candidate") if False else self.assertIn(
-            result["status"], {"single_exact_lei_candidate", "registry_search_incomplete"})
+        full = [lei_record("A"*20, name)] + [
+            lei_record(f"{i:020d}", f"Other {i}") for i in range(99)]
+        pages = {p: {"data": full, "links": {"next": "next"},
+                    "meta": {"pagination": {"total": 600}}} for p in (1, 2, 3, 4)}
+        result = pilot.registry_probe({"name": name}, Gleif(FakeHttp(pages)))
+        self.assertEqual(result["status"], "registry_search_incomplete")
         self.assertFalse(result.get("identity_confirmed", False))
+
+    def test_empty_page_with_claimed_more_is_incomplete(self):
+        name = "Fictional Supplier"
+        pages = {1: {"data": [lei_record("A"*20, name)], "links": {"next": "next"},
+                     "meta": {"pagination": {"total": 3}}},
+                 2: {"data": [], "links": {},
+                     "meta": {"pagination": {"total": 3}}}}
+        result = pilot.registry_probe({"name": name}, Gleif(FakeHttp(pages)))
+        self.assertEqual(result["status"], "registry_search_incomplete")
+
+    def test_registry_name_search_not_filtered_by_event_country(self):
+        row = {"name": "Fictional Supplier", "reported_country": "FINLAND"}
+        http = FakeHttp({1: {"data": [lei_record("A"*20, row["name"], "US")],
+                            "meta": {"pagination": {"total": 1}}}})
+        result = pilot.registry_probe(row, Gleif(http))
+        self.assertEqual(result["status"], "single_exact_lei_candidate")
+        self.assertEqual(result["registry_country"], "US")
+        self.assertNotIn("FINLAND", http.queries[0])
+        self.assertFalse(result["identity_confirmed"])
 
     def test_api_error_no_identity(self):
         class Broken:
