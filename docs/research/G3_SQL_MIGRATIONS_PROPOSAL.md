@@ -1,0 +1,82 @@
+# BOHUN G3: SQL migrations proposal (NOT executable / NOT applied)
+
+Status: **design review only**. Depends on G2.5 cross-issue BORME ID results and approval of G2 logical model PR #89. Do not apply to Supabase, do not merge as a production migration.
+
+## Proposed rollout
+1. Migration 001: `source_system`, `ingestion_run`, `organization`, `organization_identifier`.
+2. Migration 002: `source_document`, `funding_project`, `project_source_key`.
+3. Migration 003: `corporate_event`, `entity_mention`, `source_observation`.
+4. Migration 004: add **validated** partial unique indexes, check constraints and RLS policies only after sample and longitudinal validation.
+
+## PostgreSQL sketch (illustrative, intentionally not a runnable migration)
+
+```sql
+-- Design sketch only. Use reviewed migration tooling and explicit schema namespace.
+CREATE TABLE source_system (
+  source_code text PRIMARY KEY,
+  jurisdiction text NOT NULL,
+  source_url text,
+  terms_review_status text NOT NULL DEFAULT 'pending'
+);
+CREATE TABLE organization (
+  organization_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  country_code char(2),
+  legal_name text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE organization_identifier (
+  identifier_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id uuid NOT NULL REFERENCES organization(organization_id),
+  country_code char(2) NOT NULL,
+  scheme text NOT NULL,
+  normalized_value text NOT NULL,
+  validation_status text NOT NULL DEFAULT 'unverified',
+  provenance text NOT NULL
+);
+-- Unique index on verified identifiers only, after jurisdiction-specific validation.
+CREATE TABLE source_document (
+  document_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_code text NOT NULL REFERENCES source_system(source_code),
+  external_id text,
+  issue_date date,
+  title text,
+  canonical_url text,
+  first_seen_at timestamptz NOT NULL DEFAULT now(),
+  last_seen_at timestamptz NOT NULL DEFAULT now()
+);
+-- Do NOT yet create UNIQUE(source_code, external_id):
+-- G2.4 validated 37/37 IDs in ONE issue, G2.5 is pending.
+CREATE TABLE funding_project (
+  project_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_code text NOT NULL REFERENCES source_system(source_code),
+  organization_id uuid REFERENCES organization(organization_id),
+  project_title text NOT NULL,
+  decision_date date,
+  budget_amount numeric,
+  contribution_amount numeric,
+  currency_code char(3),
+  first_seen_at timestamptz NOT NULL DEFAULT now(),
+  last_seen_at timestamptz NOT NULL DEFAULT now()
+);
+```
+
+## Remaining entities
+- `ingestion_run`: run UUID, source FK, source period, started/completed timestamps, status, counts, safe error category.
+- `project_source_key`: project FK, source FK, key version and digest, first/last seen; no uniqueness until longitudinal CDTI tests.
+- `corporate_event`: event UUID, document FK, type, event date, extraction method and review status.
+- `entity_mention`: mention UUID, document FK, optional organization FK, role, confidence and review status.
+- `source_observation`: observation UUID, ingestion run FK, entity locator, change type and content digest. Raw payload retention separately approved.
+
+## Safety / acceptance gates
+- Confirm G2.5 results across multiple BORME issues/years, including how missing issues are handled.
+- Confirm source identifiers remain stable across repeated snapshots, and source terms permit storage and redistribution.
+- Check existing Supabase schema, migration history, schema namespace, extensions, roles, RLS, grants and service access **before** preparing executable SQL.
+- Choose exact RLS policies, retention limits, error handling, indices and backfill plan; review rollback for every migration.
+- Never expose source identifiers or raw records in Actions logs; secrets only in protected environment.
+- No automatic merge of organization entities by legal name, and no silent overwriting of funding project records on title changes.
+
+## Evidence
+- CDTI G2.2: 1,069 records, 925 distinct NIF, zero collisions for NIF + title in one snapshot.
+- BORME G2.4: 37/37 nonempty and unique publication IDs in 2024-05-29 issue.
+- G2.5: **pending**. This design is intentionally provisional.
