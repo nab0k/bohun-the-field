@@ -77,3 +77,32 @@ Possible later implementation, not authorized by this PR:
 an append-only ciphertext-only table or private object bucket in
 existing Supabase, with RLS, no anon/authenticated grants, no decryption
 keys on server and explicit rollback/disaster-recovery procedures.
+
+## Actual public-source capture and encryption trial (2026-10-22)
+
+A single label-gated read-only [GitHub Actions run 39707603739](https://github.com/nab0k/bohun-the-field/actions/runs/39707603739) completed successfully.
+
+- 20 case source URL allow-list checked; **17 original source responses captured** and **3 unavailable**. Availability does NOT mean the page is a primary legal register, so none of these cases is automatically identity-verified.
+- Raw source bytes and private URL/id manifest were packaged and encrypted with **OpenSSL CMS AES-256-GCM** to the existing owner public EXP-013 recipient certificate. Private key was not present in CI.
+- Exactly 18 files in the encrypted TAR (17 snapshots plus private manifest). Ciphertext **2,867,765 bytes**, SHA-256 `5ae24a63ed89dd1fe4098c25feb8b6c6688319de8db5dd42c8f79ee1f0481c11`.
+- Ciphertext and nonsensitive manifest only in artifact `bohun-evidence03-aesgcm-ciphertext` (artifact ID 12395289688, expires **2026-11-21**). No plaintext source URLs, names, LEIs or content uploaded.
+- **138/138 offline tests passed** in the actual collection run; no Supabase connections, no company changes or publication.
+- Actual recipient-owner private-key decryption has **NOT been tested**. Tests verified round-trip and authenticated tampering failure with an ephemeral TEST certificate.
+- Temporary Actions label and one-time source capture job were removed after the successful run. No schedule or automated continuation.
+
+## Design prepared for permanent ciphertext-only Supabase storage
+
+A proposed **additive** `db/companies/003_encrypted_evidence_archive.sql` and `collectors.companies.evidence_vault_store` are included in PR #81. They create an access-restricted table in the **existing Supabase companies schema**, with RLS and no grants to anon/authenticated. The only retained document field is **CMS encrypted bytes**, plus ciphertext checksum, public cert fingerprint, count and timestamps. No legal names, URLs, extracted quotes, original text or private keys are stored as PostgreSQL columns. Upload requires `--approve-upload-ciphertext` and version 003 ledger preflight; it can only INSERT encrypted bytes, with idempotent replay.
+
+**NOT DONE:** migration 003 has NOT been applied and the encrypted artifact has NOT been uploaded to permanent storage. This is deliberate: applying schema migrations and activating persistent storage need separately scoped owner approval, a check of the recipient private key and recovery/retention policy. Current 30-day Actions artifact is temporary and should not be mistaken for permanent storage.
+
+After owner approves the migration and recovers the test ciphertext locally with their key, upload would use:
+
+```bash
+python -m collectors.companies.evidence_vault_store \\
+  --cipher /ABSOLUTE/PRIVATE/evidence-5ae24a63ed89dd1fe4098c25feb8b6c6688319de8db5dd42c8f79ee1f0481c11.cms.der \\
+  --manifest /ABSOLUTE/PRIVATE/manifest-5ae24a63ed89dd1fe4098c25feb8b6c6688319de8db5dd42c8f79ee1f0481c11.json \\
+  --approve-upload-ciphertext
+```
+
+Use only a user-approved connection. Independently verify the ciphertext's DB length + SHA, RLS and absence of company changes. Database storage alone does not prove independent backups or WORM retention.
