@@ -38,7 +38,9 @@ class TestG2Postgres004(unittest.TestCase):
     def tearDownClass(cls):
         cls.db.close()
 
-    def expect_error(self,statement,args=(),exc=errors.CheckViolation):
+    def expect_error(self,statement,args=(),exc=None):
+        if exc is None:
+            exc=errors.CheckViolation
         with self.assertRaises(exc):
             with self.db.transaction():
                 self.db.execute(statement,args)
