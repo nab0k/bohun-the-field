@@ -40,7 +40,7 @@ def _public_https(url):
     host = parsed.hostname.lower()
     if (host in {"localhost", "localhost.localdomain"} or host.endswith(".local")
             or host.endswith(".internal") or host.endswith(".localhost")
-            or host.replace(".", "").isdigit()):
+            or host.replace(".", "").isdigit() or ":" in host):
         raise ValueError("local or numeric source host prohibited")
     return url
 
@@ -197,6 +197,20 @@ def append_private_receipt(root_dir, receipt):
     One local writer at a time. Remote concurrent writers require an actual
     transactional service and must not use this file journal.
     """
+    if not isinstance(receipt, dict):
+        raise ValueError("evidence receipt must be a dict")
+    if (receipt.get("review_status") != "unreviewed" or
+            receipt.get("exhibitor_identity_verified") is not False or
+            receipt.get("registry_identifier_correlated") is not False or
+            receipt.get("publication_allowed") is not False):
+        raise ValueError("verified/publishable evidence is forbidden in research ledger")
+    _public_https(receipt.get("source_url"))
+    if (receipt.get("event_key") != _digest({k: v for k, v in receipt.items()
+                                            if k not in {"event_key", "captured_at"}}) or
+            receipt.get("quote_sha256") != hashlib.sha256(
+                str(receipt.get("quote", "")).encode("utf-8")).hexdigest() or
+            not receipt.get("quote_present_in_capture")):
+        raise ValueError("receipt hash or quote metadata invalid")
     root = _private_root(root_dir)
     path = root / "evidence_chain.jsonl"
     existing, prev = verify_ledger(path)

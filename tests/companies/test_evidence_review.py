@@ -98,6 +98,19 @@ class TestPrivateEvidenceReview(unittest.TestCase):
             with self.assertRaises(ValueError):
                 ev.verify_ledger(chain)
 
+    def test_forged_verification_receipt_never_persists(self):
+        packet = ev.review_packets(research())[0]
+        receipt = example_capture(packet)
+        receipt["exhibitor_identity_verified"] = True
+        with tempfile.TemporaryDirectory() as temp:
+            with self.assertRaisesRegex(ValueError, "forbidden"):
+                ev.append_private_receipt(pathlib.Path(temp) / "secure", receipt)
+        receipt = example_capture(packet)
+        receipt["quote"] = "altered quote"
+        with tempfile.TemporaryDirectory() as temp:
+            with self.assertRaisesRegex(ValueError, "invalid"):
+                ev.append_private_receipt(pathlib.Path(temp) / "secure", receipt)
+
     def test_review_packets_refuse_silent_overwrite(self):
         packets = ev.review_packets(research())
         with tempfile.TemporaryDirectory() as temp:

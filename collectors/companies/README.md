@@ -141,3 +141,21 @@ python -m unittest discover -s tests/companies -t .
 
 See `docs/DISCOVERY-ENRICH-01-RUNBOOK.md` for private readback and gated
 5-query GLEIF sample. Do not store private results in the Git checkout.
+
+
+## DISCOVERY-ENRICH-02: private evidence review (review-only)
+
+Adds a review-only companion to the existing enrich_pilot, not a new collector.
+The 20-case manifest contains only public URLs copied as UNVERIFIED source hints
+from the October 22 report. It does not establish legal identity or status.
+
+Use enrich_pilot with --review20 and --private-output-dir on an approved
+private local volume. Optional --captured-evidence-manifest takes locally
+captured exact source quotes and SHA-256 receipts. No network is required
+for this evidence recording; no database, Notion, QA or publication changes.
+
+See docs/DISCOVERY-ENRICH-02-RUNBOOK.md.
+
+Security: 0700/0600 filesystem permissions and a hash chain are NOT encryption
+or an authenticated signature. Operational use requires an owner-approved
+encrypted persistent volume, backups and QA. No evidence goes to public CI.
