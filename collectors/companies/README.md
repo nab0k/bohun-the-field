@@ -161,3 +161,16 @@ or an authenticated signature. Operational use requires an owner-approved
 encrypted persistent volume, backups and QA. No evidence goes to public CI.
 
 Verified read-only pilot [39705178941](https://github.com/nab0k/bohun-the-field/actions/runs/39705178941): all 81 frozen Supabase candidates read successfully, **20 private review packets** generated and **0 identities auto-verified**. The runner files were ephemeral, not a permanent archive. No company or Supabase writes. One-shot test job and label removed.
+
+
+## DISCOVERY-ENRICH-03: encrypted legal-source capture (review-only)
+
+The existing 20-case review manifest is used as a strict HTTPS URL allow-list.
+One-time read-only Actions trial captured **17/20** source pages; original bytes
+were encrypted into a **CMS AES-256-GCM** artifact. No identities were
+confirmed and no companies were modified. Artifact expires 2026-11-21.
+
+An additive ciphertext-only migration `003_encrypted_evidence_archive.sql` and
+explicit-approval upload adapter are included in the stacked PR. **Migration
+003 is NOT applied**, and permanent evidence storage has NOT been activated.
+See `docs/DISCOVERY-ENRICH-03-RUNBOOK.md` for the approval and decryption gates.

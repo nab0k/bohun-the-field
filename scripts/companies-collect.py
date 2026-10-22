@@ -44,6 +44,8 @@ def main(argv=None):
     ap.add_argument("--expected-sha256", help="required SHA-256 verification for --snapshot-file")
     ap.add_argument("--db", help="local SQLite file (with --store sqlite)")
     ap.add_argument("--migrate", action="store_true", help="supabase: apply db/companies schema once if absent")
+    ap.add_argument("--approve-evidence-migration-003-sha256", metavar="REVIEWED_SQL_SHA256",
+                    help="migration-only; explicit approval of exact 003 SQL bytes (requires --store supabase --migrate)")
     ap.add_argument("--sample", type=int, default=0,
                     help="print N sample companies for manual review (public-source fields only, no Ukraine rows)")
     ap.add_argument("--sources", default="", help="comma list: " + ",".join(ADAPTERS))
@@ -59,6 +61,15 @@ def main(argv=None):
     ap.add_argument("--replay", action="store_true",
                     help="start the given sources from their first page again (idempotency check, AC1)")
     args = ap.parse_args(argv)
+
+    if args.approve_evidence_migration_003_sha256 is not None:
+        # The explicit 003 invocation must NEVER collect, promote or reset as a side effect.
+        if (args.store != "supabase" or not args.migrate or args.dry_run or
+                args.reset_staging or args.sources or args.gleif or args.promote or
+                args.replay or args.sample or args.report or args.benchmark or
+                args.legacy_snapshot or args.raw_dir or args.snapshot_file or
+                args.expected_sha256 or args.db):
+            ap.error("003 requires migration-only --store supabase --migrate, no collection/other flags")
 
     if args.snapshot_file:
         if not args.dry_run or args.sources != "eurosatory2024" or not args.expected_sha256:
@@ -91,7 +102,8 @@ def main(argv=None):
                 ap.error("--reset-staging requires --migrate")
             results["reset"] = store.reset_staging()
         if args.migrate:
-            results["migration"] = store.migrate()
+            results["migration"] = store.migrate(
+                approved_evidence_003_sha256=args.approve_evidence_migration_003_sha256)
         elif not store.schema_exists():
             ap.error("schema companies is absent: run with --migrate")
     else:

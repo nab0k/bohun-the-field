@@ -1,4 +1,5 @@
 """Offline migration-runner checks; no real database, network or secrets."""
+import hashlib
 import pathlib
 import unittest
 
@@ -56,12 +57,13 @@ def new_store(conn):
 
 
 class TestNumberedMigrations(unittest.TestCase):
-    def test_legacy_schema_skips_001_only_applies_002_then_noop(self):
+    def test_legacy_schema_default_applies_only_002_then_noop(self):
         conn = FakeConnection(has_schema=True)
         store = new_store(conn)
         self.assertEqual(store.migrate(), "applied:2")
         sqls = [sql for sql, _ in conn.statements]
         self.assertTrue(any("ADD COLUMN IF NOT EXISTS discoveries" in sql for sql in sqls))
+        self.assertFalse(any("cms_ciphertext BYTEA" in sql for sql in sqls))
         self.assertFalse(any("CREATE SCHEMA IF NOT EXISTS companies" in sql for sql in sqls))
         self.assertEqual(conn.versions, {1, 2})
         self.assertEqual(store.migrate(), "exists")
@@ -77,12 +79,35 @@ class TestNumberedMigrations(unittest.TestCase):
         self.assertEqual(conn.commits, 0)
         self.assertFalse(any("ADD COLUMN IF NOT EXISTS" in sql for sql, _ in conn.statements))
 
-    def test_new_install_applies_001_and_002(self):
+    def test_new_install_applies_001_and_002_only(self):
         conn = FakeConnection(has_schema=False)
         self.assertEqual(new_store(conn).migrate(), "applied:1,2")
         self.assertEqual(conn.versions, {1, 2})
         self.assertTrue(conn.has_schema)
         self.assertEqual(conn.commits, 1)
+
+    def test_003_requires_exact_reviewed_sha_and_prior_schema(self):
+        sql = pathlib.Path(__file__).resolve().parents[2] / "db/companies/003_encrypted_evidence_archive.sql"
+        approved = hashlib.sha256(sql.read_bytes()).hexdigest()
+        conn = FakeConnection(has_schema=True, versions=(1, 2))
+        store = new_store(conn)
+        for bad in ("invalid", "0" * 64, "A" * 64):
+            with self.assertRaises(PermissionError):
+                store.migrate(approved_evidence_003_sha256=bad)
+        self.assertEqual(conn.commits, 0)
+        self.assertEqual(conn.statements, [])
+        self.assertEqual(store.migrate(approved_evidence_003_sha256=approved), "applied:3")
+        self.assertEqual(conn.versions, {1, 2, 3})
+        self.assertEqual(store.migrate(approved_evidence_003_sha256=approved), "exists")
+        self.assertEqual(sum("cms_ciphertext BYTEA" in s for s, _ in conn.statements), 1)
+
+        for fresh, versions in ((False, ()), (True, (1,))):
+            unsafe = FakeConnection(has_schema=fresh, versions=versions)
+            with self.assertRaises(RuntimeError):
+                new_store(unsafe).migrate(approved_evidence_003_sha256=approved)
+            self.assertEqual(unsafe.commits, 0)
+            self.assertEqual(unsafe.rollbacks, 1)
+            self.assertFalse(any("cms_ciphertext BYTEA" in s for s, _ in unsafe.statements))
 
     def test_failure_rolls_back_instead_of_reset(self):
         conn = FakeConnection(has_schema=True, fail_002=True)
@@ -100,6 +125,29 @@ class TestNumberedMigrations(unittest.TestCase):
         self.assertIn("ENABLE ROW LEVEL SECURITY", sql)
         for word in ("DROP SCHEMA", "DROP TABLE", "TRUNCATE ", "DELETE FROM"):
             self.assertNotIn(word, sql)
+
+    def test_003_is_private_additive_ciphertext_only(self):
+        path = pathlib.Path(__file__).resolve().parents[2] / "db/companies/003_encrypted_evidence_archive.sql"
+        sql = path.read_text(encoding="utf-8").upper()
+        self.assertIn("CREATE TABLE IF NOT EXISTS", sql)
+        self.assertIn("ENABLE ROW LEVEL SECURITY", sql)
+        self.assertIn("CMS_CIPHERTEXT BYTEA", sql)
+        self.assertIn("REVOKE ALL", sql)
+        self.assertNotIn("GRANT SELECT", sql)
+        for word in ("DROP TABLE", "DROP SCHEMA", "TRUNCATE ", "DELETE FROM"):
+            self.assertNotIn(word, sql)
+
+    def test_003_runbook_command_has_single_line_continuations(self):
+        path = pathlib.Path(__file__).resolve().parents[2] / "docs/DISCOVERY-ENRICH-03-RUNBOOK.md"
+        doc = path.read_text(encoding="utf-8")
+        block = doc.split("python -m collectors.companies.evidence_vault_store ", 1)[1]
+        lines = block.split("```", 1)[0].splitlines()
+        # The command's first line and every continued argument line end in one
+        # literal backslash. A double backslash ends the Bash command early.
+        self.assertTrue(lines[0] == "\\")
+        self.assertTrue(lines[1].endswith(" \\") and not lines[1].endswith(" \\\\"))
+        self.assertTrue(lines[2].endswith(" \\") and not lines[2].endswith(" \\\\"))
+        self.assertIn("--approve-upload-ciphertext", lines[3])
 
     def test_sqlite_mirror_preserves_discovery_separation(self):
         from collectors.companies.store import SqliteStore
