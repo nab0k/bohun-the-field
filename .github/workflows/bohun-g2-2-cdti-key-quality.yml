@@ -1,0 +1,75 @@
+name: BOHUN G2.2 CDTI Key Quality (manual only)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Analyze in memory and write metadata only
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import collections, datetime, json, pathlib, re, socket, urllib.error, urllib.request
+          LIMIT = 1048576
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  return None
+          def fetch(url):
+              req = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": "BOHUN-Bounded-Research/0.1"})
+              with urllib.request.build_opener(NoRedirect).open(req, timeout=15) as res:
+                  raw = res.read(LIMIT + 1)
+                  if len(raw) > LIMIT:
+                      raise ValueError("ResponseTooLarge")
+                  return json.loads(raw)
+
+          # No source identifiers, names, titles, hashes, or record samples leave memory.
+          try:
+              rows = fetch("https://sede.cdti.gob.es/AreaPrivada/Servicios/DatosAbiertos/api/datos/proyectosidi/JSON/2026/ALL")
+              if not isinstance(rows, list) or not all(isinstance(r, dict) for r in rows):
+                  raise ValueError("UnexpectedRootSchema")
+              fields = ("NIFRazonSocial", "RazonSocial", "TituloProyecto", "FechaAprobacionResolucion", "Presupuesto", "AportacionCDTI", "UltimaFechaActualizacion")
+              def norm(v):
+                  return re.sub(r"\\s+", " ", v.strip()).casefold() if isinstance(v, str) else ""
+              completeness = {f: sum(bool(norm(r.get(f))) for r in rows) for f in fields}
+              candidates = {
+                  "company_nif": ("NIFRazonSocial",),
+                  "company_nif_title": ("NIFRazonSocial", "TituloProyecto"),
+                  "company_nif_title_date": ("NIFRazonSocial", "TituloProyecto", "FechaAprobacionResolucion"),
+                  "company_nif_title_date_budget": ("NIFRazonSocial", "TituloProyecto", "FechaAprobacionResolucion", "Presupuesto"),
+              }
+              metrics = {}
+              for label, keys in candidates.items():
+                  tuples = [tuple(norm(r.get(k)) for k in keys) for r in rows]
+                  complete = [t for t in tuples if all(t)]
+                  counts = collections.Counter(complete)
+                  metrics[label] = {
+                      "complete_records": len(complete),
+                      "missing_component_records": len(rows) - len(complete),
+                      "distinct_keys": len(counts),
+                      "duplicate_key_groups": sum(c > 1 for c in counts.values()),
+                      "records_in_duplicate_groups": sum(c for c in counts.values() if c > 1),
+                      "max_group_size": max(counts.values(), default=0),
+                  }
+              report = {"source": "CDTI", "record_count": len(rows),
+                        "field_nonempty_counts": completeness, "candidate_key_metrics": metrics,
+                        "notes": ["candidate keys are not validated project IDs",
+                                  "casefold and whitespace normalization only",
+                                  "duplicate key groups may be legitimate separate projects"]}
+          except (ValueError, TypeError, KeyError, urllib.error.URLError, TimeoutError, socket.timeout, OSError) as exc:
+              report = {"source": "CDTI", "error_type": type(exc).__name__}
+          pathlib.Path("g2-2").mkdir(exist_ok=True)
+          pathlib.Path("g2-2/report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+          print(json.dumps(report, indent=2))
+          PY
+      - name: Upload aggregates only
+        if: always()
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: bohun-g2-2-cdti-key-quality
+          path: g2-2/report.json
+          retention-days: 7
+          if-no-files-found: warn
