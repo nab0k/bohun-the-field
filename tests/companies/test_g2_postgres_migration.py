@@ -78,7 +78,9 @@ class TestG2Postgres004(unittest.TestCase):
         cid=self.db.execute("SELECT id FROM companies.profile_claim WHERE company_id=%s",(A,)).fetchone()[0]
         sid=self.db.execute("SELECT id FROM companies.profile_source WHERE company_id=%s",(A,)).fetchone()[0]
         self.db.execute("INSERT INTO companies.profile_claim_source(company_id,claim_id,source_id) VALUES (%s,%s,%s)",(A,cid,sid))
-        self.expect_error("INSERT INTO companies.profile_claim_source(company_id,claim_id,source_id) VALUES (%s,%s,%s)",(B,cid,sid),errors.ForeignKeyViolation)
+        self.db.execute("INSERT INTO companies.profile_source(company_id,source_ref,title,source_url,source_kind,as_of) VALUES (%s,'other','Second fixture','https://example.net','registry','2026-10-22')",(B,))
+        other_sid=self.db.execute("SELECT id FROM companies.profile_source WHERE company_id=%s",(B,)).fetchone()[0]
+        self.expect_error("INSERT INTO companies.profile_claim_source(company_id,claim_id,source_id) VALUES (%s,%s,%s)",(A,cid,other_sid),errors.ForeignKeyViolation)
 
     def test_04_cases_only_hold_and_valid_candidate(self):
         query="INSERT INTO companies.profile_research_case(candidate_id,research_payload,content_sha256) VALUES (%s,'{}'::jsonb,%s)"
