@@ -56,14 +56,14 @@ def new_store(conn):
 
 
 class TestNumberedMigrations(unittest.TestCase):
-    def test_legacy_schema_skips_001_only_applies_002_then_noop(self):
+    def test_legacy_schema_applies_002_and_003_then_noop(self):
         conn = FakeConnection(has_schema=True)
         store = new_store(conn)
-        self.assertEqual(store.migrate(), "applied:2")
+        self.assertEqual(store.migrate(), "applied:2,3")
         sqls = [sql for sql, _ in conn.statements]
         self.assertTrue(any("ADD COLUMN IF NOT EXISTS discoveries" in sql for sql in sqls))
         self.assertFalse(any("CREATE SCHEMA IF NOT EXISTS companies" in sql for sql in sqls))
-        self.assertEqual(conn.versions, {1, 2})
+        self.assertEqual(conn.versions, {1, 2, 3})
         self.assertEqual(store.migrate(), "exists")
         sqls = [sql for sql, _ in conn.statements]
         self.assertEqual(sum("ADD COLUMN IF NOT EXISTS discoveries" in sql for sql in sqls), 1)
@@ -77,10 +77,10 @@ class TestNumberedMigrations(unittest.TestCase):
         self.assertEqual(conn.commits, 0)
         self.assertFalse(any("ADD COLUMN IF NOT EXISTS" in sql for sql, _ in conn.statements))
 
-    def test_new_install_applies_001_and_002(self):
+    def test_new_install_applies_001_to_003(self):
         conn = FakeConnection(has_schema=False)
-        self.assertEqual(new_store(conn).migrate(), "applied:1,2")
-        self.assertEqual(conn.versions, {1, 2})
+        self.assertEqual(new_store(conn).migrate(), "applied:1,2,3")
+        self.assertEqual(conn.versions, {1, 2, 3})
         self.assertTrue(conn.has_schema)
         self.assertEqual(conn.commits, 1)
 
@@ -99,6 +99,17 @@ class TestNumberedMigrations(unittest.TestCase):
         self.assertIn("ADD COLUMN IF NOT EXISTS", sql)
         self.assertIn("ENABLE ROW LEVEL SECURITY", sql)
         for word in ("DROP SCHEMA", "DROP TABLE", "TRUNCATE ", "DELETE FROM"):
+            self.assertNotIn(word, sql)
+
+    def test_003_is_private_additive_ciphertext_only(self):
+        path = pathlib.Path(__file__).resolve().parents[2] / "db/companies/003_encrypted_evidence_archive.sql"
+        sql = path.read_text(encoding="utf-8").upper()
+        self.assertIn("CREATE TABLE IF NOT EXISTS", sql)
+        self.assertIn("ENABLE ROW LEVEL SECURITY", sql)
+        self.assertIn("CMS_CIPHERTEXT BYTEA", sql)
+        self.assertIn("REVOKE ALL", sql)
+        self.assertNotIn("GRANT SELECT", sql)
+        for word in ("DROP TABLE", "DROP SCHEMA", "TRUNCATE ", "DELETE FROM"):
             self.assertNotIn(word, sql)
 
     def test_sqlite_mirror_preserves_discovery_separation(self):
