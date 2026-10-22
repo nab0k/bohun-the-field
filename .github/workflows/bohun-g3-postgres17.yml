@@ -62,7 +62,15 @@ jobs:
       - name: Verify dedicated BORME writer policies
         run: psql -X -v ON_ERROR_STOP=1 -f tests/g3/borme_writer_tests.sql
       - name: Verify direct BORME login and source-scoped RLS
-        run: psql -X -v ON_ERROR_STOP=1 -f tests/g3/borme_login_source_scope.sql
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -f tests/g3/borme_login_source_scope.sql
+          if psql -X -v ON_ERROR_STOP=1 -c "SET ROLE bohun_borme_ingest_login; INSERT INTO intelligence.corporate_actions(item_id,action_ordinal,action_type,extraction_method) VALUES (1002,71,'test','ci');" > /tmp/g3_cross_source.log 2>&1; then
+            echo 'FAIL: cross-source INSERT accepted'; exit 1
+          fi
+          grep -Eq 'row-level security policy|violates row-level security' /tmp/g3_cross_source.log
+          echo 'PASS: cross-source INSERT rejected by RLS'
       - name: Verify migration fails on repeat
         shell: bash
         run: |
