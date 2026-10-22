@@ -1,10 +1,10 @@
-# BOHUN G2 storage & normalization design (DRAFT)
+# BOHUN G2 storage & normalization design (validated design v1)
 
-Status: design only; no migrations, no Supabase changes. Based on successful G1, G2, G2.1, G2.2, G2.3. Revise BORME key constraints after G2.4.
+Status: validated logical design v1; no migrations, no Supabase changes. Evidence: G1, G2, G2.1, G2.2, G2.3, G2.4. Deployment blocked by validation gates below.
 
 ## Evidence vs assumptions
 - CDTI 2026: 1,069 records, 925 distinct nonempty NIF values; NIF + project title unique across that one snapshot (G2.2). All seven tested fields populated. **Not proof of cross-snapshot stability**.
-- BORME 2024-05-29: `data.sumario.diario[].seccion[].item[]` has `identificador`, `titulo`, `url_html`, `url_xml`, `url_pdf` in inspected examples (G2.3). Uniqueness not yet measured.
+- BORME 2024-05-29: 37 publication items, 37 nonempty distinct `identificador`, zero within-issue collisions, 37/37 titles, HTML links and XML links (G2.4 run 39840525107). 3 sections, one with no item array. The fields `identificador`, `titulo`, `url_html`, `url_xml`, `url_pdf` are present in inspected examples (G2.3). **Only one issue tested; no cross-issue uniqueness guarantee**.
 - ARES Czech record has `ico`, `obchodniJmeno`, `sidlo`, etc. (G2); no population-wide validation.
 - Document is not equivalent to company, and a publication can describe multiple events.
 
@@ -13,7 +13,7 @@ Status: design only; no migrations, no Supabase changes. Based on successful G1,
 2. `ingestion_run`: run_id UUID PK, source_code FK, started_at, completed_at, status, source_period, record_count, error_class. No credentials or sensitive HTTP headers.
 3. `organization`: organization_id UUID PK, country_code, legal_name, created_at, updated_at. Do not use mutable name as PK.
 4. `organization_identifier`: identifier_id UUID PK, organization_id FK, country_code, scheme (ES_NIF/CZ_ICO), normalized_value, validation_status, provenance. Conditional UNIQUE(country_code, scheme, normalized_value) **only after jurisdiction-specific normalization/validation**. Restrict access to raw identifiers as needed.
-5. `source_document`: document_id UUID PK, source_code FK, external_id nullable, issue_date nullable, title nullable, canonical_url nullable, first_seen_at, last_seen_at, payload_fingerprint nullable. Proposed UNIQUE(source_code, external_id) WHERE external_id IS NOT NULL, **defer enforcement pending G2.4 and multi-issue checks**.
+5. `source_document`: document_id UUID PK, source_code FK, external_id nullable, issue_date nullable, title nullable, canonical_url nullable, first_seen_at, last_seen_at, payload_fingerprint nullable. Proposed UNIQUE(source_code, external_id) WHERE external_id IS NOT NULL, **defer enforcement until cross-issue and cross-year validation**. If identifiers are only issue-scoped, use UNIQUE(source_code, issue_date, external_id) after verifying stable issue-date semantics.
 6. `funding_project`: project_id UUID PK, source_code FK, organization_id FK nullable, project_title, decision_date, budget_amount NUMERIC nullable, contribution_amount NUMERIC nullable, currency_code nullable, sector_code nullable, region_code nullable, first_seen_at, last_seen_at.
 7. `project_source_key`: project_id FK, source_code FK, candidate_key_version, candidate_key_digest, first_seen_at, last_seen_at; UNIQUE(source_code, candidate_key_version, candidate_key_digest) **only as a guarded candidate after longitudinal validation**. Keep collisions reviewable. Do not treat NIF + title as permanent ID.
 8. `corporate_event`: event_id UUID PK, document_id FK, event_type nullable, occurred_at nullable, extracted_at, extraction_method, review_status. Multiple events may link to one document.
@@ -47,8 +47,14 @@ ARES:
 - No website publication before source licensing, provenance, quality and privacy review.
 
 ## Validation gates
-1. G2.4 confirms BORME ID completeness and within-issue uniqueness.
-2. Compare multiple BORME issue dates for cross-issue ID reuse.
+1. G2.4 completed: BORME ID completeness and within-issue uniqueness confirmed for 37 items on 2024-05-29.
+2. **Blocking:** Compare multiple BORME issue dates and years for ID reuse and identifier stability.
 3. Compare CDTI snapshots over time for project title changes and composite-key stability.
 4. Validate ES_NIF and CZ_ICO formats and organization linking.
 5. Only then propose actual Supabase SQL migrations in a separate reviewed PR.
+
+## G2.4 acceptance record (2026-10-22)
+- Workflow: https://github.com/nab0k/bohun-the-field/actions/runs/39840525107 (success)
+- Checked **all** 37 `item[]` entries in the single 2024-05-29 issue: 37 populated IDs, 37 distinct IDs, 0 duplicates; 37/37 HTML, XML and titles present.
+- Design accepted for **logical schema only**: source document external ID is a promising candidate, but global unique index is **not approved**.
+- No new ingestion jobs, migrations or external writes authorized by this document.
