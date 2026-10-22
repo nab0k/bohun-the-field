@@ -84,7 +84,7 @@ class FakeCur:
     def fetchone(self):return self.row
     def execute(self,sql,args=None):
         self.db.queries.append(sql)
-        if self.db.fail_sql and self.fail_sql in sql:raise RuntimeError('synthetic-failure')
+        if self.db.fail_sql and self.db.fail_sql in sql:raise RuntimeError('synthetic-failure')
         self.row=None
         if sql=='SELECT current_user':self.row=(self.db.role,)
         elif sql.startswith('SELECT id,ocid'):
