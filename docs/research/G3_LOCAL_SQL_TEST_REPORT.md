@@ -39,3 +39,31 @@
 
 **PASS for initial SQL compatibility and deny-by-default posture on PostgreSQL 17.11.**
 **NOT APPROVED FOR PRODUCTION** pending full-schema compatibility, role-specific RLS execution tests, writer policy design, and deployment review.
+
+
+## Second run: expanded FORCE RLS / temporary grants
+
+- Date: 2026-10-22 UTC
+- Run: https://github.com/nab0k/bohun-the-field/actions/runs/39852884863
+- Job: `120083431685`
+- Server: PostgreSQL **17.11**, verified in service container logs
+- Run result: **PASS**, job conclusion `success`
+- Artifact: `bohun-g3-sql-test-report`, ID `12458546162`
+- Added test: `tests/g3/rls_policy_tests.sql`
+
+| Expanded assertion | Status | Evidence |
+|---|---|---|
+| Temporary USAGE, table DML and sequence grants applied inside CI fixture | PASS | `Verify FORCE RLS and row policies with temporary grants` |
+| FORCE RLS denies row visibility with no SELECT policy despite table grants | PASS | Same step; assertion returned success |
+| INSERT rejected without INSERT policy under test roles | PASS | Same step; SQLSTATE `insufficient_privilege` handled |
+| Authenticated-only SELECT policy shows matching row | PASS | Same step |
+| Other roles cannot see authenticated-policy rows | PASS | Same step |
+| Additional nonmatching row remains invisible to authenticated | PASS | Same step |
+| Temporary policy and privileges removed, absence verified | PASS | Same step |
+| Repeated migration rejected after expanded tests | PASS | `Verify migration fails on repeat` |
+
+CI log includes: `PASS: FORCE RLS with temporary grants, role isolation, row policy, cleanup`. Earlier test results were also green.
+
+**Important interpretation:** The earlier runtime denial at schema USAGE is distinct from this second run's tests: the second run explicitly grants schema and table permissions before testing row-policy filtering. The SQL tests use `SET LOCAL ROLE` inside procedural blocks and test only the synthetic fixture. They do not emulate production service-role bypass, authenticated JWT context, API exposure, or SECURITY DEFINER RPCs. No production grants or policies changed.
+
+**Updated decision:** **PASS** for expanded synthetic PostgreSQL 17.11 RLS/constraints suite. **Production deployment remains NOT APPROVED** until writer-role policy, full schema compatibility, and Supabase API/RPC security gates are reviewed.
