@@ -1,0 +1,19 @@
+{
+  "bundle_sha256": "eb60912faa4f1857c8b0635871f7aaa1661d669b72456b6d33fe8ea12e4034e7",
+  "files": {
+    "analytic-pass-input45/contracts.py": "0df86e409f7ff3c64d91430fafebdf976c8ea27df9f108ea525b846868135736",
+    "analytic-pass-input45/ports.py": "0647bb7d86bde0c878854ae214805701e0f570345b5feda60b26a0bb74f2a787",
+    "analytic-pass-input45/ledger.py": "a3289d11fd260e513ab0393713a422e53fb0bd07a4f00a22dc85fb92d723cea9",
+    "analytic-pass-input45/checks.py": "60b91a818b94659d30081366eca9dbe8686138260787f018f8ed1bdb7c674b89",
+    "analytic-pass-input45/mechanisms.py": "d665389ba9ea725bc099cb077447d7d6c1dea56f4127f39ba5d53b7a0fa0bd9d",
+    "analytic-pass-input45/run.py": "94ca92196e438db058a0885985a5461d8323d738c3339ec45a38dcb246c96332",
+    "analytic-pass-input45/METHODS.json": "a3006370c3f674654d4597baa2c803b4958c6d7ab6e8eb6b23b357dcb1c7bd89",
+    "integration-input47/model_adapter.py": "775a8e8e7b3d7bf991c017881f2eb31de14c7ddeae604818941f54d9864d633f",
+    "integration-input47/runner.py": "809c998d065414a45d4982ce21d3d3551832c3cb25d092d00274d22df9c8c6be",
+    "integration-input47/company_links.py": "3982b2c099e612d883890982babfdeb4a68ae4a414e469d2c2d77b326701e100",
+    "integration-input47/geo_projection.py": "c579218521832dade0b93fa1a6eca1770f30d346db72b429e7406bc5828a9e00",
+    "integration-input47/preview.py": "e0dfe2a30db160580c254d5127f0e486d88210e464ba242ba6f7d7e54f364306",
+    "CLOUD_TRIAL_INPUT48.py": "18f43250b7593f8d4bf83f96391ff43bb42066e7f71c7fc9b9ee3f5079b2bbb8"
+  },
+  "code_files": 13
+}
