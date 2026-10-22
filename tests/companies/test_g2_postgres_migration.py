@@ -4,8 +4,10 @@ import os
 from pathlib import Path
 import unittest
 
-import psycopg
-from psycopg import errors
+DSN=os.environ.get('BOHUN_G2_TEST_POSTGRES_DSN')
+if DSN:
+    import psycopg
+    from psycopg import errors
 
 ROOT=Path(__file__).resolve().parents[2]
 DSN=os.environ.get("BOHUN_G2_TEST_POSTGRES_DSN")
