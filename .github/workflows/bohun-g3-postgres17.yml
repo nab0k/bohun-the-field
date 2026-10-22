@@ -71,7 +71,7 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -c "ALTER TABLE intelligence.items ADD COLUMN source_id bigint; UPDATE intelligence.items SET source_id=3 WHERE id=1001; UPDATE intelligence.items SET source_id=2 WHERE id=1002; ALTER TABLE intelligence.items ENABLE ROW LEVEL SECURITY; ALTER TABLE intelligence.items FORCE ROW LEVEL SECURITY; CREATE TABLE intelligence.sources(id bigint PRIMARY KEY,name text NOT NULL,active boolean NOT NULL); INSERT INTO intelligence.sources VALUES (3,'BORME',true),(2,'Inoreader BOHUN',true);"
           psql -X -v ON_ERROR_STOP=1 -f docs/sql/G3_BORME_CORPORATE_ACTIONS_REVIEW.sql
           psql -X -v ON_ERROR_STOP=1 -f docs/sql/G3_BORME_WRITER_RLS_SOURCE3_REVIEW.sql
-          psql -X -v ON_ERROR_STOP=1 -c "SELECT CASE WHEN (SELECT count(*) FROM pg_policies WHERE schemaname='intelligence' AND policyname LIKE 'borme_ingest_%')=4 THEN 'PASS: four writer RLS policies installed' ELSE (1/0)::text END;"
+          psql -X -v ON_ERROR_STOP=1 -c "DO \$\$ BEGIN IF (SELECT count(*) FROM pg_policies WHERE schemaname='intelligence' AND policyname LIKE 'borme_ingest_%') <> 4 THEN RAISE EXCEPTION 'Expected four writer policies'; END IF; END \$\$;"
           psql -X -v ON_ERROR_STOP=1 -c "SET ROLE bohun_borme_ingest_login; SELECT id FROM intelligence.items;"
           echo 'PASS: disposable migration deployment'
           export PGDATABASE=bohun_g3
