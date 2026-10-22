@@ -38,9 +38,11 @@ def load_encrypted(cipher_path, manifest_path):
         raise ValueError("manifest filename does not match envelope")
     # Parsing DER validates the structure. AEAD integrity can only be proven
     # later during private-key decryption by the owner.
-    subprocess.run(["openssl", "cms", "-cmsout", "-inform", "DER",
-                    "-in", str(cipher_path), "-noout"],
-                   capture_output=True, check=True, timeout=20)
+    inspection = subprocess.run(["openssl", "cms", "-cmsout", "-print",
+                                 "-inform", "DER", "-in", str(cipher_path)],
+                                capture_output=True, check=True, timeout=20)
+    if b"algorithm: aes-256-gcm" not in inspection.stdout.lower():
+        raise ValueError("CMS envelope does not actually use AES-256-GCM")
     return cipher, manifest
 
 
