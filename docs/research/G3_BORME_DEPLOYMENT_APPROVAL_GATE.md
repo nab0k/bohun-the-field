@@ -41,5 +41,18 @@ Status: **CI PASS. REVIEW ONLY. NOT APPROVED OR DEPLOYED.**
 - service_role has BYPASSRLS; it must not be used for this ingestion.
 - This preflight is metadata only and does not constitute a backup, restore test, or exposure audit.
 
+## Pre-deployment backup and Data API audit (2026-10-22)
+**Gate status: BLOCKED pending external verification.**
+- Project `bohundefence-intelligence` is ACTIVE_HEALTHY, PostgreSQL 17.11.
+- PostgreSQL reports `archive_mode=on` and `wal_level=logical`. **This does not prove a recoverable backup or PITR availability.**
+- Backup inventory, latest successful backup timestamp, retention, restore/PITR eligibility and recovery drill: **NOT VERIFIED**. Verify in Supabase Dashboard Database > Backups; capture evidence before deployment.
+- `intelligence` schema USAGE for anon/authenticated/service_role: **false**. No direct table grants for anon/authenticated/service_role on `intelligence.items` or `intelligence.sources` found.
+- Data API exposed schemas setting: **NOT VERIFIED**. Check Dashboard Integrations > Data API > Settings; ensure `intelligence` is not exposed unless explicitly designed.
+- `public.export_inoreader_source_wire` and `public.rls_auto_enable` are SECURITY DEFINER: review EXECUTE privileges, bodies and impact before deployment.
+- Supabase security advisor reports multiple RLS-enabled/no-policy findings across the project; assess relevance separately, do not broaden G3 grants to resolve them.
+- Never treat direct REST access denial as a sufficient exposure test if privileged RPCs can bypass RLS.
+
+**Release decision:** HOLD until backup evidence, Data API settings, privileged RPC review, and explicit user approval are recorded. No production DDL or credentials provisioning performed.
+
 ## Explicit approval required
 Approve **only** step 3 + 4 as a single gated deployment after a confirmed PASS and preflight checks; do not provision credentials or enable ingestion automatically.
