@@ -71,6 +71,19 @@ jobs:
           fi
           grep -Eq 'row-level security policy|violates row-level security' /tmp/g3_cross_source.log
           echo 'PASS: cross-source INSERT rejected by RLS'
+      - name: Verify complete G3 plus source-3 writer migration in fresh disposable database
+        shell: bash
+        run: |
+          set -euo pipefail
+          createdb bohun_g3_deploy_test
+          export PGDATABASE=bohun_g3_deploy_test
+          psql -X -v ON_ERROR_STOP=1 -f tests/g3/fixture.sql
+          psql -X -v ON_ERROR_STOP=1 -c "ALTER TABLE intelligence.items ADD COLUMN source_id bigint; UPDATE intelligence.items SET source_id=3 WHERE id=1001; UPDATE intelligence.items SET source_id=2 WHERE id=1002; ALTER TABLE intelligence.items ENABLE ROW LEVEL SECURITY; ALTER TABLE intelligence.items FORCE ROW LEVEL SECURITY; CREATE TABLE intelligence.sources(id bigint PRIMARY KEY,name text NOT NULL,active boolean NOT NULL); INSERT INTO intelligence.sources VALUES (3,'BORME',true),(2,'Inoreader BOHUN',true);"
+          psql -X -v ON_ERROR_STOP=1 -f docs/sql/G3_BORME_CORPORATE_ACTIONS_REVIEW.sql
+          psql -X -v ON_ERROR_STOP=1 -f docs/sql/G3_BORME_WRITER_RLS_SOURCE3_REVIEW.sql
+          psql -X -v ON_ERROR_STOP=1 -c "SELECT CASE WHEN (SELECT count(*) FROM pg_policies WHERE schemaname='intelligence' AND policyname LIKE 'borme_ingest_%')=4 THEN 'PASS: four writer RLS policies installed' ELSE (1/0)::text END;"
+          psql -X -v ON_ERROR_STOP=1 -c "SET ROLE bohun_borme_ingest_login; SELECT id FROM intelligence.items;"
+          echo 'PASS: disposable migration deployment'
       - name: Verify migration fails on repeat
         shell: bash
         run: |
