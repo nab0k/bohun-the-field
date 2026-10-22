@@ -54,5 +54,10 @@ Status: **CI PASS. REVIEW ONLY. NOT APPROVED OR DEPLOYED.**
 
 **Release decision:** HOLD until backup evidence, Data API settings, privileged RPC review, and explicit user approval are recorded. No production DDL or credentials provisioning performed.
 
+## RPC security review (2026-10-22, read-only)
+- `public.export_inoreader_source_wire()`: SECURITY DEFINER owned by postgres, `search_path=pg_catalog`; EXECUTE explicitly granted to anon, authenticated, service_role. Reads up to 100 most recent unique intelligence.items by URL and returns title, URL, published_at, without source filter. This is a privileged public data disclosure surface; evaluate whether intended before opening G3 or claiming intelligence data private. No production changes.
+- `public.rls_auto_enable()`: SECURITY DEFINER owned by postgres, `search_path=pg_catalog`, returns event_trigger. Default PUBLIC EXECUTE. Active event trigger `ensure_rls` on ddl_command_end. Body applies to schema `public` only, not intelligence; no direct G3 impact. Recommend explicit privilege review; do not assume callable as REST RPC.
+- Exposure through REST endpoints, exposed-schema settings, and actual unauthenticated RPC response were **not verified**. The function ACL is sufficient to establish database-level privilege, not actual HTTP accessibility.
+
 ## Explicit approval required
 Approve **only** step 3 + 4 as a single gated deployment after a confirmed PASS and preflight checks; do not provision credentials or enable ingestion automatically.
