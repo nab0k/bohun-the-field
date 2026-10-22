@@ -19,7 +19,7 @@ None establishes that a specific Eurosatory exhibitor is that legal entity.
 
 ## Commands (only with owner-approved connected environment)
 
-\`\`\`sh
+```sh
 python -m unittest discover -s tests/companies -t . -v
 python -m collectors.companies.enrich_pilot --explain
 python -m collectors.companies.enrich_pilot --read-supabase \
@@ -27,7 +27,7 @@ python -m collectors.companies.enrich_pilot --read-supabase \
 # Optional 5 free external GLEIF API calls, stratified 2 discovered, 2 potential, 1 HOLD:
 python -m collectors.companies.enrich_pilot --read-supabase --gleif --max-gleif 5 \
   --private-output-dir /tmp/bohun-enrich01-gleif-5
-\`\`\`
+```
 
 The SQL connection starts an explicit PostgreSQL READ ONLY transaction before
 the SELECT query; no database changes. The output path MUST be absolute and
