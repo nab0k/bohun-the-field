@@ -134,10 +134,10 @@ the existing bounded GLEIF + HTTP adapter for optional free registry leads.
 Never creates, modifies, matches as verified, merges or publishes a company.
 Stored exhibitor COUNTRY is not legal country or HQ.
 
-\`\`\`sh
+```sh
 python -m collectors.companies.enrich_pilot --explain
 python -m unittest discover -s tests/companies -t .
-\`\`\`
+```
 
-See \`docs/DISCOVERY-ENRICH-01-RUNBOOK.md\` for private readback and gated
+See `docs/DISCOVERY-ENRICH-01-RUNBOOK.md` for private readback and gated
 5-query GLEIF sample. Do not store private results in the Git checkout.
