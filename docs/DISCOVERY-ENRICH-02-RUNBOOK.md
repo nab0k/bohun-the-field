@@ -63,3 +63,12 @@ The manifest and source files must remain outside Git. This command does NO exte
 ## Next independent acceptance
 
 Run full CI offline tests and read-only review20 pilot, verify exactly 20 private packets and zero auto-confirmations. Then independently capture 20 primary-source documents and assess how many have verifiable entity identifiers. Do not claim 20 identities verified based solely on URL coverage.
+
+## Regression hardening: multiple research runs
+
+The previous EXP-012 private writer used research.jsonl with write-mode and
+could overwrite a prior registry research pass. It now preserves first-run
+legacy filenames and writes different later results to immutable,
+content-addressed research-SHA256.jsonl and aggregate-SHA256.json files.
+Identical replay is a no-op. This only protects files on a persistent volume;
+CI runner temporary files still disappear. Hashes are not encryption.

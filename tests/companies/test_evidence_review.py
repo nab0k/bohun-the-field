@@ -139,6 +139,23 @@ class TestPrivateEvidenceReview(unittest.TestCase):
             with self.assertRaises(ValueError):
                 ev._public_https(value)
 
+    def test_different_research_runs_are_content_addressed_not_overwritten(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = pathlib.Path(temp) / "private"
+            base = research()
+            pilot.write_private(base, root)
+            previous_bytes = (root / "research.jsonl").read_bytes()
+            updated = research()
+            updated[0]["registry_lead"] = {"status": "single_exact_lei_candidate",
+                                           "identity_confirmed": False}
+            pilot.write_private(updated, root)
+            self.assertEqual((root / "research.jsonl").read_bytes(), previous_bytes)
+            versions = list(root.glob("research-*.jsonl"))
+            self.assertEqual(len(versions), 1)
+            self.assertNotEqual(versions[0].read_bytes(), previous_bytes)
+            pilot.write_private(updated, root)
+            self.assertEqual(len(list(root.glob("research-*.jsonl"))), 1)
+
     def test_existing_enrichment_cli_handles_review20_without_network(self):
         with tempfile.TemporaryDirectory() as temp:
             tmp = pathlib.Path(temp)

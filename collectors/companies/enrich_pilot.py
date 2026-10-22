@@ -171,29 +171,50 @@ def prioritized_probe_ids(rows, maximum):
 
 
 def write_private(records, output_dir):
-    output = pathlib.Path(output_dir).expanduser()
-    if not output.is_absolute():
-        raise ValueError("private output directory must be absolute")
-    resolved = output.resolve()
-    if resolved == REPO_ROOT or REPO_ROOT in resolved.parents:
-        raise ValueError("private research data cannot be stored inside Git checkout")
-    previous_umask = os.umask(0o077)
-    try:
-        output.mkdir(parents=True, exist_ok=True, mode=0o700)
-        # Restrict permissions even when the directory already existed.
-        os.chmod(output, 0o700)
-        path = output / "research.jsonl"
-        with path.open("w", encoding="utf-8") as f:
-            for item in records:
-                f.write(json.dumps(item, ensure_ascii=False, sort_keys=True) + "\n")
-        os.chmod(path, 0o600)
-        report = aggregate(records)
-        report_file = output / "aggregate.json"
-        report_file.write_text(json.dumps(report, sort_keys=True, indent=2), encoding="utf-8")
-        os.chmod(report_file, 0o600)
-        return report
-    finally:
-        os.umask(previous_umask)
+    """Preserve every distinct run; never overwrite a previous GLEIF research file.
+
+    Legacy names research.jsonl/aggregate.json remain for first-run compatibility.
+    Any subsequent *different* result goes to a content-addressed immutable file.
+    """
+    from .evidence_review import _private_root
+    output = _private_root(output_dir)
+    report = aggregate(records)
+    research = "".join(json.dumps(item, ensure_ascii=False, sort_keys=True)
+                       + "\n" for item in records).encode("utf-8")
+    summary = json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2).encode("utf-8")
+
+    def preserve(basename, payload):
+        primary = output / basename
+        if primary.is_symlink():
+            raise ValueError("private research path must not be a symlink")
+        if primary.exists():
+            if primary.read_bytes() == payload:
+                return
+            path = output / (primary.stem + "-" + hashlib.sha256(payload).hexdigest()
+                             + primary.suffix)
+            if path.is_symlink():
+                raise ValueError("versioned research path must not be a symlink")
+            if path.exists():
+                if path.read_bytes() != payload:
+                    raise ValueError("existing content-addressed research file changed")
+                return
+        else:
+            path = primary
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
+        fd = os.open(path, flags, 0o600)
+        try:
+            with os.fdopen(fd, "wb", closefd=False) as f:
+                f.write(payload)
+                f.flush()
+                os.fsync(f.fileno())
+        finally:
+            os.close(fd)
+
+    preserve("research.jsonl", research)
+    preserve("aggregate.json", summary)
+    return report
 
 
 def main(argv=None):
