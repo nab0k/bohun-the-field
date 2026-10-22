@@ -234,3 +234,29 @@ def encrypted_export(private_dir, cipher_dir, *, cert_path=DEFAULT_CERT):
         json.dump(report, fh, indent=2, sort_keys=True)
     os.chmod(manifest, 0o600)
     return report
+
+
+def main(argv=None):
+    """Public-source capture and recipient encryption. Logs only aggregate counts."""
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--private-dir", required=True, type=pathlib.Path)
+    parser.add_argument("--encrypted-dir", required=True, type=pathlib.Path)
+    parser.add_argument("--cert", type=pathlib.Path, default=DEFAULT_CERT)
+    parser.add_argument("--capture20", action="store_true")
+    args = parser.parse_args(argv)
+    if not args.capture20:
+        parser.error("only bounded --capture20 is currently supported")
+    findings = collect_twenty(args.private_dir)
+    archive = encrypted_export(args.private_dir, args.encrypted_dir, cert_path=args.cert)
+    # No private URLs, company names, LEIs or source bytes in stdout.
+    print(json.dumps({
+        "stage": "DISCOVERY-ENRICH-03", "source_capture": findings,
+        "encrypted_archive": archive, "verified_identities": 0,
+        "legal_lifecycle_verified": 0, "published": 0
+    }, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
