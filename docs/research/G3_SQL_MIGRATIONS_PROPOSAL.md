@@ -129,3 +129,27 @@ Verified relevant tables:
 - Security advisor reported 38 `rls_enabled_no_policy` notices (INFO). These are not evidence of public access.
 - Check views, SECURITY DEFINER functions, EXECUTE privileges, Data API exposure, and direct grants before enabling new policies.
 - **No RLS changes or migrations executed during audit.**
+
+## Live PK/FK/UNIQUE and RLS access audit (2026-10-22, read-only)
+
+Verified directly from `pg_constraint`, `pg_policies`, `has_schema_privilege` and `has_table_privilege`:
+
+- `intelligence.items` already has `UNIQUE(source_id, external_id)` and FK to `intelligence.sources(id)`. **Do not add a duplicate unique constraint**. BORME ingestion can use this existing key with source-scoped IDs after preflight.
+- `bohun_staging.raw_documents` has PK `document_id`, `UNIQUE(source_id, external_id, content_sha256)`, and SHA256-format CHECK.
+- `companies.company_identifier` has PK `(scheme, value)` and FK `company_id` to `companies.company(id)` ON DELETE CASCADE. Namespace NIF/ICO schemes explicitly, and avoid altering existing primary key without migration impact analysis.
+- `intelligence.events` has `UNIQUE(item_id)`; cannot represent many corporate actions per BORME publication.
+- `intelligence.opportunities` has `UNIQUE(item_id)`; cannot represent multiple independently addressable funding awards per publication without a separate entity or reviewed remodel.
+- `companies.company` has PK text `id` and `UNIQUE(notion_page_id)`. No UUID migration is justified without a cross-schema identity plan.
+
+Access: for `anon`, `authenticated`, `service_role`, `USAGE` was false for `intelligence`, `companies`, `bohun_staging`, `bohun_private`, `bohun_uk_intake`, `exp009`; `public` had USAGE true. All inspected `intelligence`, `companies`, `bohun_staging`, `bohun_private` tables had SELECT false for those three roles. This is **not** a complete Data API exposure audit: check configured exposed schemas and views/RPCs separately.
+
+Existing RLS policies: `companies.company` has SELECT for `exp009_owner` limited to non-excluded companies; `bohun_uk_intake.notices` has 3 writer policies restricted to HOLD/UNVERIFIED, `notice_versions` has 2, `run_receipts` has 2. Preserve role-specific gates. 38 zero-policy RLS tables are not automatically a security vulnerability; do not blanket-add permissive policies.
+
+### Targeted migration plan (non-executable pending further review)
+- **M1**: no DDL for `intelligence.items` uniqueness; introduce BORME/CDTI/ARES source registrations through reviewed data-seeding, plus ingestion contracts. Existing source rows must be checked first.
+- **M2**: separate `intelligence.corporate_actions` (one publication to many actions) with FK to `intelligence.items`, type, effective date, extraction/review status; use RLS enabled and no public grants. Only after assessing schema ownership and existing views.
+- **M3**: separate CDTI award/project relation if `intelligence.opportunities` does not semantically fit awarded projects; versioned source-key and link to existing company identity. Do not use project title alone as key.
+- **M4**: optional reviewed crosswalk between `companies.company` and `intelligence.organizations`; preserve text and bigint PKs.
+- **M5**: role-specific ingestion grants/policies only after confirming the intended writer role and whether the schema is exposed through PostgREST. Test denial for anon/authenticated and scoped writes for writer.
+
+**Pending gates**: API exposed-schema configuration, views/RPC/SECURITY DEFINER audit, index inventory, duplicate preflight and row counts, schema owners, integration writer role, rollback and staging tests. No DDL applied.
