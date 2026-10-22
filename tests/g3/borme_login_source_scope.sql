@@ -1,8 +1,11 @@
 \set ON_ERROR_STOP on
 -- Disposable PostgreSQL CI fixture. This is NOT a production credential or role.
+CREATE TABLE intelligence.sources(id bigint PRIMARY KEY, name text NOT NULL, active boolean NOT NULL);
+INSERT INTO intelligence.sources VALUES (3,'BORME',true),(2,'Inoreader BOHUN',true);
+DO $ BEGIN IF NOT EXISTS (SELECT 1 FROM intelligence.sources WHERE id=3 AND name='BORME' AND active) THEN RAISE EXCEPTION 'BORME id mismatch'; END IF; END $;
 ALTER TABLE intelligence.items ADD COLUMN source_id bigint;
-UPDATE intelligence.items SET source_id=77 WHERE id=1001;
-UPDATE intelligence.items SET source_id=88 WHERE id=1002;
+UPDATE intelligence.items SET source_id=3 WHERE id=1001;
+UPDATE intelligence.items SET source_id=2 WHERE id=1002;
 ALTER TABLE intelligence.items ALTER COLUMN source_id SET NOT NULL;
 CREATE ROLE bohun_borme_ingest_login LOGIN NOBYPASSRLS NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
 GRANT USAGE ON SCHEMA intelligence TO bohun_borme_ingest_login;
@@ -10,7 +13,7 @@ GRANT SELECT (id,source_id) ON intelligence.items TO bohun_borme_ingest_login;
 ALTER TABLE intelligence.items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE intelligence.items FORCE ROW LEVEL SECURITY;
 CREATE POLICY g3_borme_item_read ON intelligence.items FOR SELECT TO bohun_borme_ingest_login
- USING (source_id=77);
+ USING (source_id=3);
 GRANT SELECT,INSERT,UPDATE ON intelligence.corporate_actions TO bohun_borme_ingest_login;
 GRANT USAGE ON SEQUENCE intelligence.corporate_actions_id_seq TO bohun_borme_ingest_login;
 CREATE POLICY g3_borme_action_select ON intelligence.corporate_actions FOR SELECT TO bohun_borme_ingest_login
