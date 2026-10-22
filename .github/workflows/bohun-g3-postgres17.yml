@@ -61,6 +61,8 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f tests/g3/rls_policy_tests.sql
       - name: Verify dedicated BORME writer policies
         run: psql -X -v ON_ERROR_STOP=1 -f tests/g3/borme_writer_tests.sql
+      - name: Verify direct BORME login and source-scoped RLS
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/g3/borme_login_source_scope.sql
       - name: Verify migration fails on repeat
         shell: bash
         run: |
