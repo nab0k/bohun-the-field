@@ -171,29 +171,50 @@ def prioritized_probe_ids(rows, maximum):
 
 
 def write_private(records, output_dir):
-    output = pathlib.Path(output_dir).expanduser()
-    if not output.is_absolute():
-        raise ValueError("private output directory must be absolute")
-    resolved = output.resolve()
-    if resolved == REPO_ROOT or REPO_ROOT in resolved.parents:
-        raise ValueError("private research data cannot be stored inside Git checkout")
-    previous_umask = os.umask(0o077)
-    try:
-        output.mkdir(parents=True, exist_ok=True, mode=0o700)
-        # Restrict permissions even when the directory already existed.
-        os.chmod(output, 0o700)
-        path = output / "research.jsonl"
-        with path.open("w", encoding="utf-8") as f:
-            for item in records:
-                f.write(json.dumps(item, ensure_ascii=False, sort_keys=True) + "\n")
-        os.chmod(path, 0o600)
-        report = aggregate(records)
-        report_file = output / "aggregate.json"
-        report_file.write_text(json.dumps(report, sort_keys=True, indent=2), encoding="utf-8")
-        os.chmod(report_file, 0o600)
-        return report
-    finally:
-        os.umask(previous_umask)
+    """Preserve every distinct run; never overwrite a previous GLEIF research file.
+
+    Legacy names research.jsonl/aggregate.json remain for first-run compatibility.
+    Any subsequent *different* result goes to a content-addressed immutable file.
+    """
+    from .evidence_review import _private_root
+    output = _private_root(output_dir)
+    report = aggregate(records)
+    research = "".join(json.dumps(item, ensure_ascii=False, sort_keys=True)
+                       + "\n" for item in records).encode("utf-8")
+    summary = json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2).encode("utf-8")
+
+    def preserve(basename, payload):
+        primary = output / basename
+        if primary.is_symlink():
+            raise ValueError("private research path must not be a symlink")
+        if primary.exists():
+            if primary.read_bytes() == payload:
+                return
+            path = output / (primary.stem + "-" + hashlib.sha256(payload).hexdigest()
+                             + primary.suffix)
+            if path.is_symlink():
+                raise ValueError("versioned research path must not be a symlink")
+            if path.exists():
+                if path.read_bytes() != payload:
+                    raise ValueError("existing content-addressed research file changed")
+                return
+        else:
+            path = primary
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
+        fd = os.open(path, flags, 0o600)
+        try:
+            with os.fdopen(fd, "wb", closefd=False) as f:
+                f.write(payload)
+                f.flush()
+                os.fsync(f.fileno())
+        finally:
+            os.close(fd)
+
+    preserve("research.jsonl", research)
+    preserve("aggregate.json", summary)
+    return report
 
 
 def main(argv=None):
@@ -204,6 +225,10 @@ def main(argv=None):
     p.add_argument("--gleif", action="store_true", help="opt-in free registry lookups")
     p.add_argument("--max-gleif", type=int, default=0)
     p.add_argument("--private-output-dir", type=pathlib.Path)
+    p.add_argument("--review20", action="store_true",
+                   help="create 20 private, link-only QA packets; no claim verified")
+    p.add_argument("--captured-evidence-manifest", type=pathlib.Path,
+                   help="private JSON list of local HTTPS source captures and exact quotes")
     args = p.parse_args(argv)
     manifest = load_manifest()
     if args.explain:
@@ -213,6 +238,8 @@ def main(argv=None):
         p.error("choose exactly one input: --read-supabase or --input-json")
     if not args.private_output_dir:
         p.error("--private-output-dir is required")
+    if args.captured_evidence_manifest and not args.review20:
+        p.error("--captured-evidence-manifest requires --review20")
     if args.gleif != bool(args.max_gleif):
         p.error("--gleif and --max-gleif must be used together")
     if args.gleif and not 1 <= args.max_gleif <= 81:
@@ -225,6 +252,45 @@ def main(argv=None):
     records = [research_record(row, registry_probe(row, client) if int(row["id"]) in to_probe else None)
                for row in sorted(rows, key=lambda x: int(x["id"]))]
     report = write_private(records, args.private_output_dir)
+    if args.review20:
+        from . import evidence_review
+        packets = evidence_review.review_packets(records)
+        report["review20_unverified_packets"] = evidence_review.persist_review_packets(
+            args.private_output_dir, packets)
+        report["verified_review20_identifications"] = 0
+        if args.captured_evidence_manifest:
+            manifest_file = args.captured_evidence_manifest.expanduser()
+            if not manifest_file.is_absolute():
+                p.error("capture manifest must be absolute and outside the repository")
+            resolved = manifest_file.resolve()
+            if resolved == REPO_ROOT or REPO_ROOT in resolved.parents:
+                p.error("capture manifest cannot be within the Git checkout")
+            captures = json.loads(manifest_file.read_text(encoding="utf-8"))
+            if not isinstance(captures, list) or len(captures) > 20:
+                p.error("expected a bounded list of at most 20 source captures")
+            by_id = {item["candidate_id"]: item for item in packets}
+            appended = 0
+            for capture in captures:
+                case = by_id.get(int(capture["candidate_id"]))
+                if case is None:
+                    p.error("capture references candidate outside the 20-case pilot")
+                snapshot_file = pathlib.Path(capture["snapshot_file"]).expanduser()
+                snapshot_path = snapshot_file.resolve()
+                if (not snapshot_file.is_absolute() or
+                        snapshot_path == REPO_ROOT or REPO_ROOT in snapshot_path.parents or
+                        snapshot_file.is_symlink()):
+                    p.error("captured source file must be absolute, outside Git and not a symlink")
+                # Files are supplied locally by a reviewer; no HTTP is done here.
+                with snapshot_file.open("rb") as inp:
+                    raw = inp.read(evidence_review.MAX_CAPTURE_BYTES + 1)
+                receipt = evidence_review.capture_receipt(
+                    case, capture["source_url"], raw, capture["exact_quote"],
+                    kind=capture.get("identity_kind", "unknown"),
+                    lifecycle=capture.get("lifecycle", "unknown"),
+                    source_as_of=capture.get("source_as_of"))
+                result = evidence_review.append_private_receipt(args.private_output_dir, receipt)
+                appended += result["status"] == "appended"
+            report["private_evidence_receipts_appended"] = appended
     # Names, LEIs, websites, and candidate IDs are never written to public logs.
     print(json.dumps(report, sort_keys=True))
     return 0

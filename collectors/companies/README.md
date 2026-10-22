@@ -141,3 +141,36 @@ python -m unittest discover -s tests/companies -t .
 
 See `docs/DISCOVERY-ENRICH-01-RUNBOOK.md` for private readback and gated
 5-query GLEIF sample. Do not store private results in the Git checkout.
+
+
+## DISCOVERY-ENRICH-02: private evidence review (review-only)
+
+Adds a review-only companion to the existing enrich_pilot, not a new collector.
+The 20-case manifest contains only public URLs copied as UNVERIFIED source hints
+from the October 22 report. It does not establish legal identity or status.
+
+Use enrich_pilot with --review20 and --private-output-dir on an approved
+private local volume. Optional --captured-evidence-manifest takes locally
+captured exact source quotes and SHA-256 receipts. No network is required
+for this evidence recording; no database, Notion, QA or publication changes.
+
+See docs/DISCOVERY-ENRICH-02-RUNBOOK.md.
+
+Security: 0700/0600 filesystem permissions and a hash chain are NOT encryption
+or an authenticated signature. Operational use requires an owner-approved
+encrypted persistent volume, backups and QA. No evidence goes to public CI.
+
+Verified read-only pilot [39705178941](https://github.com/nab0k/bohun-the-field/actions/runs/39705178941): all 81 frozen Supabase candidates read successfully, **20 private review packets** generated and **0 identities auto-verified**. The runner files were ephemeral, not a permanent archive. No company or Supabase writes. One-shot test job and label removed.
+
+
+## DISCOVERY-ENRICH-03: encrypted legal-source capture (review-only)
+
+The existing 20-case review manifest is used as a strict HTTPS URL allow-list.
+One-time read-only Actions trial captured **17/20** source pages; original bytes
+were encrypted into a **CMS AES-256-GCM** artifact. No identities were
+confirmed and no companies were modified. Artifact expires 2026-11-21.
+
+An additive ciphertext-only migration `003_encrypted_evidence_archive.sql` and
+explicit-approval upload adapter are included in the stacked PR. **Migration
+003 is NOT applied**, and permanent evidence storage has NOT been activated.
+See `docs/DISCOVERY-ENRICH-03-RUNBOOK.md` for the approval and decryption gates.

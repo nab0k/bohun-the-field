@@ -1,4 +1,5 @@
 """Supabase PostgreSQL companies store with additive, versioned migrations."""
+import hashlib
 import os
 import pathlib
 import re
@@ -55,16 +56,31 @@ class PgStore(SqliteStore):
         self.db.commit()
         return "dropped"
 
-    def migrate(self, path=None):
-        """001 on fresh schema; 002 on existing legacy schema; transactional and no reset."""
+    def migrate(self, path=None, *, approved_evidence_003_sha256=None):
+        """Apply routine 001/002 only; opt-in 003 requires the exact reviewed SQL hash."""
         folder = pathlib.Path(path).parent if path else MIGRATIONS
         scripts = sorted(folder.glob("[0-9][0-9][0-9]_*.sql"))
         nums = [int(f.name[:3]) for f in scripts]
         if not scripts or nums != list(range(1, len(scripts) + 1)):
             raise ValueError("numbered migrations must be contiguous beginning at 001")
+        use_003 = approved_evidence_003_sha256 is not None
+        if use_003:
+            if (not isinstance(approved_evidence_003_sha256, str) or
+                    not re.fullmatch(r"[0-9a-f]{64}", approved_evidence_003_sha256)):
+                raise PermissionError("003 requires a lowercase reviewed SQL SHA-256")
+            if (len(scripts) < 3 or
+                    scripts[2].name != "003_encrypted_evidence_archive.sql"):
+                raise RuntimeError("expected encrypted-evidence migration 003 is absent")
+            current_sha256 = hashlib.sha256(scripts[2].read_bytes()).hexdigest()
+            if current_sha256 != approved_evidence_003_sha256:
+                raise PermissionError("003 SQL changed since approval; migration refused")
+        # Future migrations are also excluded until each receives an explicit gate.
+        allowed_versions = {1, 2, 3} if use_003 else {1, 2}
         try:
             was_present = self.schema_exists()
             completed = []
+            if use_003 and not was_present:
+                raise RuntimeError("003 requires an existing migrated companies schema")
             if was_present:
                 # A namespace is not sufficient evidence that migration 001 completed.
                 for table in ("company", "observation", "run", "source_state", "company_alias"):
@@ -82,7 +98,11 @@ class PgStore(SqliteStore):
             if not seen:
                 self.db.execute("INSERT INTO companies.schema_migration(version) VALUES (1)")
                 seen.add(1)
+            if use_003 and not {1, 2}.issubset(seen):
+                raise RuntimeError("003 requires existing migration ledger versions 001 and 002")
             for num, script in zip(nums[1:], scripts[1:]):
+                if num not in allowed_versions:
+                    continue
                 if num not in seen:
                     self.db.execute(script.read_text(encoding="utf-8"))
                     self.db.execute("INSERT INTO companies.schema_migration(version) VALUES (%s)", (num,))
