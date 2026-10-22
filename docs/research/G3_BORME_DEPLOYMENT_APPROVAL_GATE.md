@@ -79,3 +79,10 @@ Approve **only** step 3 + 4 as a single gated deployment after a confirmed PASS 
 - Obtain explicit authorization after the two confirmations, not merely approval of this document.
 
 **Decision:** HOLD. User confirmation required after evidence is provided. No production DDL executed.
+
+## User-provided dashboard evidence (2026-10-23 local screenshot)
+- Supabase Database > Backups screenshot: project is on **Free**; dashboard explicitly states Free Plan does not include project backups. No scheduled backup is available.
+- Project overview screenshot: **Last Backup: No backups**; project status Healthy.
+- Therefore backup gate is **FAILED**, not merely unverified. Do not apply G3 to production until an independently created, restorable logical backup is verified, or supported backup service is enabled and restore readiness established.
+- Second screenshot is project overview, **not** Integrations > Data API > Settings; exposed-schema configuration remains **UNVERIFIED**.
+- Current release decision: **HOLD, NOT APPROVED**. No production changes made.
