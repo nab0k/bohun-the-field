@@ -1,0 +1,84 @@
+name: BOHUN G2.5 BORME Cross-Issue ID Probe (manual only)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cross-issue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Check ID reuse across bounded issues
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import collections, itertools, json, pathlib, re, socket, urllib.error, urllib.request
+          DATES = ("20240528", "20240529", "20240530", "20250528", "20250529", "20260528", "20260529")
+          LIMIT = 1048576
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  return None
+          opener = urllib.request.build_opener(NoRedirect)
+          def normalized(v):
+              return re.sub(r"\\s+", " ", v.strip()).casefold() if isinstance(v, str) else ""
+          snapshots, results = {}, []
+          for date in DATES:
+              row = {"date": date}
+              try:
+                  req = urllib.request.Request(
+                      "https://www.boe.es/datosabiertos/api/borme/sumario/" + date,
+                      headers={"Accept": "application/json", "User-Agent": "BOHUN-G2.5-Bounded-Probe/0.1"})
+                  with opener.open(req, timeout=15) as response:
+                      data = response.read(LIMIT + 1)
+                      if len(data) > LIMIT:
+                          raise ValueError("ResponseTooLarge")
+                      root = json.loads(data)
+                  ids = []
+                  for issue in root["data"]["sumario"]["diario"]:
+                      for section in issue.get("seccion", []):
+                          items = section.get("item")
+                          if items is None:
+                              continue
+                          if not isinstance(items, list):
+                              raise ValueError("UnexpectedItemType")
+                          for item in items:
+                              if not isinstance(item, dict):
+                                  raise ValueError("UnexpectedItemShape")
+                              ids.append(normalized(item.get("identificador")))
+                  present = [x for x in ids if x]
+                  counts = collections.Counter(present)
+                  row.update({"status": "ok", "items": len(ids), "ids_present": len(present),
+                              "distinct_ids": len(counts),
+                              "duplicate_id_groups": sum(n > 1 for n in counts.values())})
+                  snapshots[date] = set(present)
+              except (ValueError, KeyError, TypeError, urllib.error.URLError, TimeoutError, socket.timeout, OSError) as exc:
+                  row.update({"status": "error", "error_type": type(exc).__name__})
+              results.append(row)
+          pairs = [{"dates": [a,b], "shared_id_count": len(snapshots[a] & snapshots[b])}
+                   for a,b in itertools.combinations(sorted(snapshots),2)]
+          owners = collections.defaultdict(set)
+          for date, values in snapshots.items():
+              for value in values:
+                  owners[value].add(date)
+          report = {"source": "BORME", "issue_summaries": results, "cross_issue_pairs": pairs,
+                    "distinct_ids_reused_across_issues": sum(len(v)>1 for v in owners.values()),
+                    "issues_successful": len(snapshots),
+                    "scope": "7 bounded historical issue requests; counts only; no ID values, titles, hashes or source records",
+                    "caveats": ["No ID stability guarantee outside sampled dates.",
+                                "Issue summaries can be incomplete or differ by publication type.",
+                                "Do not create global unique index until reviewed."]}
+          pathlib.Path("g2-5").mkdir(exist_ok=True)
+          pathlib.Path("g2-5/report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+          print(json.dumps(report, indent=2))
+          PY
+      - name: Upload counts only
+        if: always()
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: bohun-g2-5-cross-issue
+          path: g2-5/report.json
+          retention-days: 7
+          if-no-files-found: warn
