@@ -1,0 +1,85 @@
+name: BOHUN G2.4 BORME Key Validation (manual only)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate BORME publication IDs in memory
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import collections, json, pathlib, re, urllib.request, urllib.error, socket
+          LIMIT = 1048576
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, request, fp, code, msg, headers, newurl):
+                  return None
+          report = {"source": "BORME", "sample_date": "2024-05-29",
+                    "scope": "one historical issue; counts only; no identifiers, titles or records exported"}
+          try:
+              req = urllib.request.Request(
+                  "https://www.boe.es/datosabiertos/api/borme/sumario/20240529",
+                  headers={"Accept": "application/json", "User-Agent": "BOHUN-G2.4-Bounded-Probe/0.1"})
+              with urllib.request.build_opener(NoRedirect).open(req, timeout=15) as response:
+                  body = response.read(LIMIT + 1)
+                  if len(body) > LIMIT:
+                      raise ValueError("ResponseTooLarge")
+                  doc = json.loads(body)
+              diarios = doc["data"]["sumario"]["diario"]
+              if not isinstance(diarios, list):
+                  raise ValueError("UnexpectedSchema")
+              items, section_count, no_items = [], 0, 0
+              for diario in diarios:
+                  for section in diario.get("seccion", []):
+                      section_count += 1
+                      group = section.get("item")
+                      if group is None:
+                          no_items += 1
+                      elif isinstance(group, list):
+                          items.extend(group)
+                      else:
+                          raise ValueError("UnexpectedItemType")
+              if not all(isinstance(x, dict) for x in items):
+                  raise ValueError("UnexpectedItemShape")
+              def norm(v):
+                  return re.sub(r"\\s+", " ", v.strip()).casefold() if isinstance(v, str) else ""
+              ids = [norm(x.get("identificador")) for x in items]
+              valid = [v for v in ids if v]
+              counts = collections.Counter(valid)
+              report.update({
+                  "diario_count": len(diarios),
+                  "section_count": section_count,
+                  "sections_without_items": no_items,
+                  "item_count": len(items),
+                  "id_present_count": len(valid),
+                  "id_missing_count": len(items) - len(valid),
+                  "distinct_ids": len(counts),
+                  "duplicate_id_groups": sum(v > 1 for v in counts.values()),
+                  "records_in_duplicate_groups": sum(v for v in counts.values() if v > 1),
+                  "max_duplicate_group_size": max(counts.values(), default=0),
+                  "url_html_present_count": sum(bool(norm(x.get("url_html"))) for x in items),
+                  "url_xml_present_count": sum(bool(norm(x.get("url_xml"))) for x in items),
+                  "title_present_count": sum(bool(norm(x.get("titulo"))) for x in items),
+                  "notes": ["Uniqueness within one issue does not prove cross-issue or cross-year stability.",
+                            "Document identifiers must not be equated with individual corporate events."]
+              })
+          except (ValueError, KeyError, TypeError, urllib.error.URLError, TimeoutError, socket.timeout, OSError) as exc:
+              report["error_type"] = type(exc).__name__
+          pathlib.Path("g2-4").mkdir(exist_ok=True)
+          pathlib.Path("g2-4/report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+          print(json.dumps(report, indent=2))
+          PY
+      - name: Upload aggregate report
+        if: always()
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: bohun-g2-4-borme-key-validation
+          path: g2-4/report.json
+          retention-days: 7
+          if-no-files-found: warn
