@@ -67,3 +67,16 @@ CI log includes: `PASS: FORCE RLS with temporary grants, role isolation, row pol
 **Important interpretation:** The earlier runtime denial at schema USAGE is distinct from this second run's tests: the second run explicitly grants schema and table permissions before testing row-policy filtering. The SQL tests use `SET LOCAL ROLE` inside procedural blocks and test only the synthetic fixture. They do not emulate production service-role bypass, authenticated JWT context, API exposure, or SECURITY DEFINER RPCs. No production grants or policies changed.
 
 **Updated decision:** **PASS** for expanded synthetic PostgreSQL 17.11 RLS/constraints suite. **Production deployment remains NOT APPROVED** until writer-role policy, full schema compatibility, and Supabase API/RPC security gates are reviewed.
+
+
+## Third run: dedicated BORME writer
+
+- Run: https://github.com/nab0k/bohun-the-field/actions/runs/39853810223
+- Job: `120086641643`
+- Conclusion: **PASS** (all CI steps succeeded)
+- Added test: `tests/g3/borme_writer_tests.sql`
+- Confirmed on synthetic PostgreSQL 17: dedicated NOLOGIN/NOBYPASSRLS role, permitted INSERT and review UPDATE, denied DELETE, denied invalid reviewed INSERT, rejected rows filtered from SELECT.
+- This writer policy is a test design, **not deployed**. It is not yet proven compatible with production `intelligence.items` RLS or real BORME ingestion.
+- Full read-only compatibility review: `docs/research/G3_SUPABASE_COMPATIBILITY_AND_WRITER_REVIEW.md`.
+
+**Decision remains: synthetic CI PASS; production deployment NOT APPROVED.**
