@@ -7,6 +7,8 @@ ALTER TABLE intelligence.items ALTER COLUMN source_id SET NOT NULL;
 CREATE ROLE bohun_borme_ingest_login LOGIN NOBYPASSRLS NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
 GRANT USAGE ON SCHEMA intelligence TO bohun_borme_ingest_login;
 GRANT SELECT (id,source_id) ON intelligence.items TO bohun_borme_ingest_login;
+ALTER TABLE intelligence.items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE intelligence.items FORCE ROW LEVEL SECURITY;
 CREATE POLICY g3_borme_item_read ON intelligence.items FOR SELECT TO bohun_borme_ingest_login
  USING (source_id=77);
 GRANT SELECT,INSERT,UPDATE ON intelligence.corporate_actions TO bohun_borme_ingest_login;
