@@ -13,20 +13,18 @@ ALTER TABLE intelligence.items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE intelligence.items FORCE ROW LEVEL SECURITY;
 CREATE POLICY g3_borme_item_read ON intelligence.items FOR SELECT TO bohun_borme_ingest_login
  USING (source_id=3);
-GRANT SELECT,INSERT,UPDATE ON intelligence.corporate_actions TO bohun_borme_ingest_login;
+GRANT SELECT,INSERT ON intelligence.corporate_actions TO bohun_borme_ingest_login;
 GRANT USAGE ON SEQUENCE intelligence.corporate_actions_id_seq TO bohun_borme_ingest_login;
 CREATE POLICY g3_borme_action_select ON intelligence.corporate_actions FOR SELECT TO bohun_borme_ingest_login
  USING (item_id IN (SELECT id FROM intelligence.items) AND extraction_status <> 'rejected');
 CREATE POLICY g3_borme_action_insert ON intelligence.corporate_actions FOR INSERT TO bohun_borme_ingest_login
  WITH CHECK (item_id IN (SELECT id FROM intelligence.items) AND extraction_status='unreviewed');
-CREATE POLICY g3_borme_action_update ON intelligence.corporate_actions FOR UPDATE TO bohun_borme_ingest_login
- USING (item_id IN (SELECT id FROM intelligence.items) AND extraction_status='unreviewed')
- WITH CHECK (item_id IN (SELECT id FROM intelligence.items) AND extraction_status IN ('unreviewed','reviewed'));
 -- Top-level SET ROLE ensures the query planner and RLS use the tested role.
 DO $$
 BEGIN
  IF (SELECT rolbypassrls FROM pg_roles WHERE rolname='bohun_borme_ingest_login') THEN RAISE EXCEPTION 'BYPASSRLS enabled'; END IF;
  IF has_table_privilege('bohun_borme_ingest_login','intelligence.items','INSERT') THEN RAISE EXCEPTION 'items write privilege leaked'; END IF;
+ IF has_table_privilege('bohun_borme_ingest_login','intelligence.corporate_actions','UPDATE') THEN RAISE EXCEPTION 'actions UPDATE leaked'; END IF;
  IF has_table_privilege('bohun_borme_ingest_login','intelligence.corporate_actions','DELETE') THEN RAISE EXCEPTION 'actions DELETE leaked'; END IF;
 END $$;
 SET ROLE bohun_borme_ingest_login;
