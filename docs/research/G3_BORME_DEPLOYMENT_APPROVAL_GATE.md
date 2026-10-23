@@ -86,3 +86,9 @@ Approve **only** step 3 + 4 as a single gated deployment after a confirmed PASS 
 - Therefore backup gate is **FAILED**, not merely unverified. Do not apply G3 to production until an independently created, restorable logical backup is verified, or supported backup service is enabled and restore readiness established.
 - Second screenshot is project overview, **not** Integrations > Data API > Settings; exposed-schema configuration remains **UNVERIFIED**.
 - Current release decision: **HOLD, NOT APPROVED**. No production changes made.
+
+## Data API dashboard evidence (2026-10-23)
+- User screenshot of Integrations > Data API > Settings shows **2 of 8 exposed schemas**, selected **public** and **graphql_public**. **intelligence is not exposed**. Data API schema exposure gate: **PASS**.
+- `public` is exposed and `public.export_inoreader_source_wire()` has EXECUTE for anon/authenticated; evaluate separately as existing privileged RPC exposure.
+- Backup gate remains **FAILED / unverified restore**: Free plan has no scheduled backups, and no independently verified restore artifact has been supplied.
+- Deployment remains **HOLD** until verified backup and explicit approval.
