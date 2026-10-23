@@ -109,3 +109,10 @@ Approve **only** step 3 + 4 as a single gated deployment after a confirmed PASS 
 
 ## Revised decision
 **HOLD: no production migrations, credentials, or ingestion activation authorized.** Request final explicit authorization for the two G3 migrations only after updated CI and RPC security gate are closed. Previous text above describing four policies or allowing UPDATE is superseded by this section (current migration has three policies).
+
+## Updated CI and RPC dependency investigation (2026-10-23)
+- GitHub Actions PostgreSQL 17 run **#39919850608** (`https://github.com/nab0k/bohun-the-field/actions/runs/39919850608`) completed **SUCCESS** at commit `246e569b25fc403b15028b012f0c820a0dbab3b0` (PR merge checkout). All sql-rls steps succeeded, including three-policy append-only migration, direct role RLS, cross-source INSERT denial, UPDATE privilege denial, duplicate migration rejection and uploaded PASS report.
+- GitHub code search for exact `export_inoreader_source_wire` and `inoreader_source_wire` returned **no matches**. Inspected frontend `src/main.js`, `src/atlas/main.js`, Inoreader collector `collectors/inoreader/sync.py`, its workflow, and read-only Supabase scripts; no RPC calls identified in those files. Inoreader collector uses PostgreSQL connection directly.
+- **Scope limit:** search/indexing may miss files, and external clients, scheduled jobs, database dependencies, API logs and actual HTTP RPC behavior were not exhaustively checked. No claim of zero production consumers. Database connector returned `link_id must identify an eligible linked account` in a previous read-only attempt.
+- **RPC decision:** public EXECUTE restriction is recommended but **not yet verified safe to apply**; first inventory production callers/API logs and approve a separate privilege-only change, with regression/rollback. Do not include RPC revoke in the two G3 migrations without separate approval.
+- **Release status:** current SQL CI **PASS**, backup application-schema restore **PASS**, Data API schema exposure **PASS**. RPC production usage remains open; G3 production migrations remain **HOLD** pending explicit authorization and final preflight.
