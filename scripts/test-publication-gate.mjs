@@ -1,0 +1,34 @@
+// Release-gate contract: only independently approved and explicitly released items are visible.
+// These tests run without live Supabase/Gemini credentials and do not authorize publication.
+import assert from 'node:assert/strict';
+import {validatePublicRecord,loadApprovedIntelligence} from '../src/atlas/approved-feed.js';
+import {createAtlasState,selectApproved} from '../src/atlas/m1-state.js';
+const good={event_id:'evt-1',company_id:'company-1',headline:'Verified source-backed event',published_at:'2026-10-13T07:00:00Z',country_iso2:'AT',source_url:'https://example.org/original',content_hash:'a'.repeat(64),qa:{decision:'APPROVE',public_release:true}};
+const deny=(changes)=>assert.equal(validatePublicRecord({...good,...changes}),false);
+assert.equal(validatePublicRecord(good),true);
+deny({qa:{decision:'HOLD',public_release:true}});
+deny({qa:{decision:'REJECT',public_release:true}});
+deny({qa:{decision:'APPROVE',public_release:false}});
+deny({qa:{decision:'APPROVE'}});
+deny({content_hash:null});
+deny({content_hash:'short'});
+deny({source_url:'http://example.org/original'});
+deny({source_url:'https://user:pass@example.org/original'});
+deny({headline:''});
+deny({published_at:'unknown'});
+deny({country_iso2:'AUT'});
+const mock=(records,status=200,type='application/json')=>async()=>({ok:status===200,headers:{get:()=>type},json:async()=>({records})});
+assert.deepEqual(await loadApprovedIntelligence({fetchImpl:mock([good])}),[good]);
+assert.deepEqual(await loadApprovedIntelligence({fetchImpl:mock([{...good,qa:{decision:'HOLD',public_release:true}}])}),[]);
+assert.deepEqual(await loadApprovedIntelligence({fetchImpl:mock([good,{...good,qa:{decision:'HOLD',public_release:true}}])}),[]);
+assert.deepEqual(await loadApprovedIntelligence({fetchImpl:mock([good],500)}),[]);
+assert.deepEqual(await loadApprovedIntelligence({fetchImpl:mock([good],200,'text/html')}),[]);
+assert.deepEqual(await loadApprovedIntelligence({fetchImpl:async()=>{throw Error('offline');}}),[]);
+const store=createAtlasState();
+assert.equal(selectApproved([good],store.get()).length,1);
+store.selectCompany('company-2','AT');
+assert.equal(selectApproved([good],store.get()).length,0);
+store.selectCompany('company-1','AT');
+assert.equal(selectApproved([good],store.get()).length,1);
+assert.equal(selectApproved([{...good,qa:{decision:'HOLD',public_release:true}}],store.get()).length,0);
+console.log('ok  approved-only API and atlas release gates (fail closed)');

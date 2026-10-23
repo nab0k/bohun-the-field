@@ -1,0 +1,38 @@
+name: Sync approved Notion companies to Atlas snapshot
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
+permissions:
+  contents: write
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Export full Notion company snapshot (fail closed)
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_COMPANIES_DATA_SOURCE: ec8c6312-3bfc-48e8-9a27-3c5827e72fda
+        run: node scripts/sync-notion-companies.mjs
+      - name: Validate exact export
+        run: node tests/test-notion-companies.mjs
+      - name: Commit validated snapshot only (no deployment)
+        run: |
+          git config user.name "bohun-data-bot"
+          git config user.email "bohun-data-bot@users.noreply.github.com"
+          git add public/atlas/notion-companies.json
+          if git diff --cached --quiet; then echo 'No company changes'; exit 0; fi
+          git commit -m "data: refresh reviewed Notion companies"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+      - name: Keep build artifact for inspection
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: notion-approved-companies-snapshot
+          path: public/atlas/notion-companies.json
+          if-no-files-found: warn

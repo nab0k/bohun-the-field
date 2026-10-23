@@ -1,0 +1,83 @@
+name: Global company harvest (private artifact)
+on:
+  push:
+    branches:
+      - feature/m0-approved-intelligence-feed-20261013
+    paths:
+      - 'scripts/global_harvester.py'
+      - '.github/workflows/global-company-harvest.yml'
+      - 'tests/test_global_harvester.py'
+  pull_request:
+    paths:
+      - 'scripts/global_harvester.py'
+      - '.github/workflows/global-company-harvest.yml'
+      - 'tests/test_global_harvester.py'
+  workflow_dispatch:
+    inputs:
+      programmes:
+        description: "CORDIS archives to read (cordis-horizon,cordis-h2020,cordis-fp7)"
+        required: false
+        default: "cordis-horizon"
+      discover_feeds:
+        description: "Find RSS/Atom links on listed sources (true/false)"
+        required: false
+        default: "true"
+  # Deliberately no schedule until source access, licensing and QA are reviewed.
+permissions:
+  contents: read
+jobs:
+  intake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Test offline archive parser and discovery structure
+        run: python3 -m unittest discover -s tests -p 'test_global_harvester.py' -v
+      - name: Read private Notion baseline (manual trusted dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_COMPANIES_DATA_SOURCE: ec8c6312-3bfc-48e8-9a27-3c5827e72fda
+        run: |
+          if [ -n "$NOTION_TOKEN" ]; then python3 scripts/export_notion_baseline.py .local/notion-baseline.jsonl; fi
+      - name: Read real CORDIS bulk archive and discover RSS
+        continue-on-error: false
+        env:
+          HARVEST_PROGRAMMES: ${{ inputs.programmes || 'cordis-horizon' }}
+          DISCOVER_FEEDS: ${{ inputs.discover_feeds || 'false' }}
+        run: |
+          args=()
+          if [ "$DISCOVER_FEEDS" = "true" ]; then args+=(--discover-feeds --max-sites 30); fi
+          if [ -f .local/notion-baseline.jsonl ]; then args+=(--notion-jsonl .local/notion-baseline.jsonl); fi
+          python3 scripts/global_harvester.py --programmes "$HARVEST_PROGRAMMES" --out-dir .local/harvest --max-download-mb 120 "${args[@]}"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          report=json.loads(Path('.local/harvest/report.json').read_text())
+          if not report['archives']:
+              raise SystemExit('No real archive ingested. Inspect source errors; NOT marking run successful.')
+          assert report['public_release_count']==0
+          print('Real source archive ingestion PASS:',report['archives'])
+          PY
+      - name: Private staging upsert (manual trusted dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          SUPABASE_STAGING_DATABASE_URL: ${{ secrets.SUPABASE_STAGING_DATABASE_URL }}
+        run: |
+          if [ -z "$SUPABASE_STAGING_DATABASE_URL" ]; then
+            echo "No staging DB credential; artifact-only run, zero cloud writes"
+            exit 0
+          fi
+          python3 -m pip install "psycopg[binary]>=3.2,<4"
+          python3 scripts/import_harvest_to_supabase.py .local/harvest/cordis-*.jsonl
+      - name: Upload private research artifact (NOT a public site deploy)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: global-company-harvest-internal
+          path: .local/harvest/
+          retention-days: 7
+          if-no-files-found: warn

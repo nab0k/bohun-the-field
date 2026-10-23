@@ -13,6 +13,8 @@ import assets from '../game/data/assets.json' with { type: 'json' };
 import { createNight } from './night.js';
 import { mountAustriaInternalReview } from './eng04-internal.js';
 import { createAtlasState, mountM1Panels } from './m1-state.js';
+import { loadApprovedIntelligence } from './approved-feed.js';
+import { loadNotionCompanies, mountNotionCompanyDirectory } from './notion-companies.js';
 import { mountCoverageControls } from './p2-coverage.js';
 import { createLive } from './live.js';
 import { createScaleDemo } from './scale-demo.js';
@@ -33,7 +35,10 @@ navDrawerToggle.addEventListener('click',()=>setDrawerOpen(!navDrawer.classList.
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&navDrawer.classList.contains('m1-drawer-open'))setDrawerOpen(false);});
 
 const m1State=createAtlasState();
-mountM1Panels({store:m1State,records:[]});
+// Approved-only read endpoint. Missing endpoint or invalid data preserves the honest empty state.
+const m1Panels=mountM1Panels({store:m1State,records:[]});
+// Do not block globe initialization while the read-only feed endpoint responds.
+void loadApprovedIntelligence().then(records=>m1Panels.setRecords(records));
 if(import.meta.env.DEV) window.__bohunM1State=m1State;
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -415,6 +420,30 @@ $('#n-companies').textContent = `${atData.companies.length} · Austria`;
 // ---------- search: companies, capitals and Ukrainian centres, countries ----------
 const norm = (t) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const countryFeature = Object.fromEntries(countries.features.map((f) => [f.properties.a3, f]));
+// Independent Notion-verified company layer: country polygons only, no factory coordinates.
+const NOTION_A3={AT:'AUT',BE:'BEL',NL:'NLD',DE:'DEU',PL:'POL',BG:'BGR',HR:'HRV',CY:'CYP',CZ:'CZE',DK:'DNK',EE:'EST',FI:'FIN',FR:'FRA',GR:'GRC',HU:'HUN',IE:'IRL',IT:'ITA',LV:'LVA',LT:'LTU',LU:'LUX',MT:'MLT',PT:'PRT',RO:'ROU',SK:'SVK',SI:'SVN',ES:'ESP',SE:'SWE',US:'USA',CA:'CAN',GB:'GBR',IN:'IND',PK:'PAK',MY:'MYS',AU:'AUS',NZ:'NZL'};
+void loadNotionCompanies().then(records=>{
+ if(!records.length)return;
+ mountNotionCompanyDirectory({records,store:m1State,onCountry:iso=>{
+  const f=countryFeature[NOTION_A3[iso]];
+  if(f?.geometry)map.fitBounds(bboxOf(f.geometry),{padding:65,maxZoom:6,pitch:0,duration:reduced?0:1100});
+ }});
+});
+// Approved feed selections focus only a corroborated COUNTRY polygon (not an
+// inferred event site or company facility). Country-less items never move map.
+// Initially constrain ISO mapping to the country needed by the verified AT pilot.
+const feedCountryA3=Object.freeze({AT:'AUT'});
+let previousFeedEvent=null;
+m1State.subscribe(state=>{
+  if(!state.event || state.event===previousFeedEvent)return;
+  previousFeedEvent=state.event;
+  const a3=feedCountryA3[state.country];
+  const feature=a3&&countryFeature[a3];
+  if(feature?.geometry)map.fitBounds(bboxOf(feature.geometry),{
+    padding:65,maxZoom:6,pitch:0,duration:reduced?0:1100
+  });
+});
+
 mountCoverageControls({store:m1State,industry,atData,countries,places,
  onCountry:a3=>{const f=countryFeature[a3];if(f)map.fitBounds(bboxOf(f.geometry),{padding:65,maxZoom:6,pitch:0,duration:1200});},
  onLayer:layer=>document.getElementById(layer==='world'?'all':layer)?.click()
