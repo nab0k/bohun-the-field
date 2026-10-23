@@ -1,6 +1,6 @@
 # BOHUN G3 / Deployment approval gate
 
-Status: **CI PASS. REVIEW ONLY. NOT APPROVED OR DEPLOYED.**
+Status: **PREVIOUS CI PASS; CHANGED SQL NEEDS NEW CI. REVIEW ONLY. NOT APPROVED OR DEPLOYED.**
 
 ## CI evidence
 - PostgreSQL 17 workflow run **#39861378161**, run number 50: **PASS**.
@@ -92,3 +92,20 @@ Approve **only** step 3 + 4 as a single gated deployment after a confirmed PASS 
 - `public` is exposed and `public.export_inoreader_source_wire()` has EXECUTE for anon/authenticated; evaluate separately as existing privileged RPC exposure.
 - Backup gate remains **FAILED / unverified restore**: Free plan has no scheduled backups, and no independently verified restore artifact has been supplied.
 - Deployment remains **HOLD** until verified backup and explicit approval.
+
+## Backup restore drill and production count comparison (2026-10-23; user terminal evidence)
+- User created custom-format PostgreSQL 17 dump at `~/BOHUN-backups/bohun_pre_g3_2026-10-23.dump`, reported 2.4 MB, using production Session Pooler.
+- Local PostgreSQL 17 database `bohun_g3_restore_test`: first `--schema=intelligence` restore failed because schema did not exist; after explicitly creating schema, second restore exited **0** and restored tables, constraints, indexes, RLS.
+- Restored counts and production read-only counts match: sources **3/3**, items **5296/5296**, organizations **0/0**, opportunities **217/217**.
+- **PASS: application schema `intelligence` restore drill and four-table row-count comparison.** Not a complete Supabase disaster-recovery test, not row-by-row checksums, and does not prove encrypted off-device retention. Dashboard managed backups remain unavailable on Free.
+- Data API exposure check: `public` and `graphql_public` exposed; `intelligence` not exposed: **PASS**.
+
+## Security remediation decision and outstanding RPC gate (2026-10-23)
+- Updated `docs/sql/G3_BORME_WRITER_RLS_SOURCE3_REVIEW.sql` to **append-only** ingestion: `SELECT, INSERT` grants only, no UPDATE policy, no DELETE. This prevents loader-driven `unreviewed` → `reviewed` promotion and audit/evidence rewrites. Reviewer functionality needs separate explicitly approved design and migration. This change **invalidates the previous full-CI PASS for the current SQL** until rerun.
+- `public.export_inoreader_source_wire()` remains SECURITY DEFINER and EXECUTE-granted to `anon` and `authenticated`, with privileged access to `intelligence.items`. Publishing `public` through Data API means `intelligence` being unexposed is **not** sufficient to dismiss RPC risk. Actual HTTP accessibility and intended public contract remain unverified. **Do not claim RPC remediation completed.**
+- Recommended independent security change, subject to explicit approval and regression review: revoke EXECUTE on this RPC from `PUBLIC`, `anon`, `authenticated` (and reassess `service_role`), or replace with authenticated, source-scoped, least-privilege interface if required. No production grants changed.
+- `public.rls_auto_enable()` is an event-trigger function affecting new `public` tables; its default PUBLIC EXECUTE deserves hardening review but direct REST callability is unverified. Do not conflate it with confirmed data disclosure.
+- Before final approval: rerun CI against revised append-only SQL; confirm current ingestion/test code does not require UPDATE; assess/mitigate privileged RPC; verify off-device backup custody; re-run production preflight.
+
+## Revised decision
+**HOLD: no production migrations, credentials, or ingestion activation authorized.** Request final explicit authorization for the two G3 migrations only after updated CI and RPC security gate are closed. Previous text above describing four policies or allowing UPDATE is superseded by this section (current migration has three policies).
