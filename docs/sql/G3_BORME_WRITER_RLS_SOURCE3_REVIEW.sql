@@ -17,7 +17,8 @@ END $$;
 CREATE ROLE bohun_borme_ingest_login NOLOGIN NOBYPASSRLS NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
 GRANT USAGE ON SCHEMA intelligence TO bohun_borme_ingest_login;
 GRANT SELECT (id, source_id) ON intelligence.items TO bohun_borme_ingest_login;
-GRANT SELECT, INSERT, UPDATE ON intelligence.corporate_actions TO bohun_borme_ingest_login;
+-- Ingest is append-only. Review transitions and corrections require a separate reviewer role/migration.
+GRANT SELECT, INSERT ON intelligence.corporate_actions TO bohun_borme_ingest_login;
 GRANT USAGE ON SEQUENCE intelligence.corporate_actions_id_seq TO bohun_borme_ingest_login;
 CREATE POLICY borme_ingest_items_select ON intelligence.items FOR SELECT TO bohun_borme_ingest_login
  USING (source_id = 3);
@@ -25,9 +26,7 @@ CREATE POLICY borme_ingest_actions_select ON intelligence.corporate_actions FOR 
  USING (item_id IN (SELECT id FROM intelligence.items) AND extraction_status <> 'rejected');
 CREATE POLICY borme_ingest_actions_insert ON intelligence.corporate_actions FOR INSERT TO bohun_borme_ingest_login
  WITH CHECK (item_id IN (SELECT id FROM intelligence.items) AND extraction_status = 'unreviewed');
-CREATE POLICY borme_ingest_actions_update ON intelligence.corporate_actions FOR UPDATE TO bohun_borme_ingest_login
- USING (item_id IN (SELECT id FROM intelligence.items) AND extraction_status = 'unreviewed')
- WITH CHECK (item_id IN (SELECT id FROM intelligence.items) AND extraction_status IN ('unreviewed','reviewed'));
+-- No UPDATE policy for ingestion: cannot promote unreviewed to reviewed or rewrite evidence.
 COMMIT;
 -- After approval, provision LOGIN and password using a secret manager, or prefer dedicated credential workflow.
--- No GRANT to service_role, anon or authenticated. No DELETE.
+-- No GRANT to service_role, anon or authenticated. No UPDATE or DELETE.
