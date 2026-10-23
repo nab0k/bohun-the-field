@@ -6,6 +6,7 @@ on:
     paths:
       - 'tests/g3/**'
       - 'docs/sql/G3_BORME_CORPORATE_ACTIONS_REVIEW.sql'
+      - 'docs/sql/G3_BORME_WRITER_RLS_SOURCE3_REVIEW.sql'
       - '.github/workflows/bohun-g3-postgres17.yml'
   workflow_dispatch:
 permissions:
@@ -71,9 +72,10 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -c "ALTER TABLE intelligence.items ADD COLUMN source_id bigint; UPDATE intelligence.items SET source_id=3 WHERE id=1001; UPDATE intelligence.items SET source_id=2 WHERE id=1002; ALTER TABLE intelligence.items ENABLE ROW LEVEL SECURITY; ALTER TABLE intelligence.items FORCE ROW LEVEL SECURITY; CREATE TABLE intelligence.sources(id bigint PRIMARY KEY,name text NOT NULL,active boolean NOT NULL); INSERT INTO intelligence.sources VALUES (3,'BORME',true),(2,'Inoreader BOHUN',true);"
           psql -X -v ON_ERROR_STOP=1 -f docs/sql/G3_BORME_CORPORATE_ACTIONS_REVIEW.sql
           psql -X -v ON_ERROR_STOP=1 -f docs/sql/G3_BORME_WRITER_RLS_SOURCE3_REVIEW.sql
-          psql -X -v ON_ERROR_STOP=1 -c "DO \$\$ BEGIN IF (SELECT count(*) FROM pg_policies WHERE schemaname='intelligence' AND policyname LIKE 'borme_ingest_%') <> 4 THEN RAISE EXCEPTION 'Expected four writer policies'; END IF; END \$\$;"
+          psql -X -v ON_ERROR_STOP=1 -c "DO \$\$ BEGIN IF (SELECT count(*) FROM pg_policies WHERE schemaname='intelligence' AND policyname LIKE 'borme_ingest_%') <> 3 THEN RAISE EXCEPTION 'Expected three writer policies'; END IF; END \$\$;"
           psql -X -v ON_ERROR_STOP=1 -c "SET ROLE bohun_borme_ingest_login; SELECT id FROM intelligence.items;"
-          echo 'PASS: disposable migration deployment'
+          psql -X -v ON_ERROR_STOP=1 -c "DO \$\$ BEGIN IF has_table_privilege('bohun_borme_ingest_login','intelligence.corporate_actions','UPDATE') OR has_table_privilege('bohun_borme_ingest_login','intelligence.corporate_actions','DELETE') THEN RAISE EXCEPTION 'Writer mutation privilege leaked'; END IF; END \$\$;"
+          echo 'PASS: disposable append-only migration deployment'
           export PGDATABASE=bohun_g3
           dropdb bohun_g3_deploy_test
           psql -X -v ON_ERROR_STOP=1 -c 'DROP ROLE bohun_borme_ingest_login'
@@ -87,6 +89,11 @@ jobs:
           fi
           grep -Eq 'row-level security policy|violates row-level security' /tmp/g3_cross_source.log
           echo 'PASS: cross-source INSERT rejected by RLS'
+          if psql -X -v ON_ERROR_STOP=1 -c "SET ROLE bohun_borme_ingest_login; UPDATE intelligence.corporate_actions SET extraction_status='reviewed' WHERE item_id=1001;" > /tmp/g3_update.log 2>&1; then
+            echo 'FAIL: writer UPDATE accepted'; exit 1
+          fi
+          grep -q 'permission denied' /tmp/g3_update.log
+          echo 'PASS: writer UPDATE denied'
       - name: Verify migration fails on repeat
         shell: bash
         run: |
