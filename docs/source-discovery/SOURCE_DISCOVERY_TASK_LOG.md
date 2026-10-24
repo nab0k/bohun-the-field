@@ -105,6 +105,14 @@
 
 | 2026-10-24 | SD-001 | GitHub web-monitor: 14 configs, 3 overlap, 11 new; Notion readback 111 rows/108 URLs; исторический registry 109 не найден | SD-001 ACTIVE, partial checkpoint |
 
+## SD-001 checkpoint — 2026-10-24, registry search / EDA evidence / Inoreader access
+
+**Новые проверенные сведения:** GitHub main содержит [docs/sources/country-source-leads-batch01-20261010.csv](https://github.com/nab0k/bohun-the-field/blob/main/docs/sources/country-source-leads-batch01-20261010.csv): 37 строк кандидатов (Austria и Belgium), не подтверждённых RSS/API. [Intelligence Network](https://app.notion.com/p/3f6c42d0b11b80e4a06edf6483ae6954) документирует EDA/ENDR 65 кандидатов (38 ассоциаций, 10 выставок, 17 кластеров), из них исторически только 5 сайтов проверены, 0 live RSS/API. В том же документе упомянуты старые локальные экспорты `bohun_registry_v2/source_registry_v2.csv` (100) и `inoreader-source-report(1).zip` (42 subscriptions в старом dry-run), **но они не доказаны присутствующими в GitHub или доступными в этой сессии**. Попытки fetch GitHub `bohun_registry_v2/source_registry_v2.csv` и `docs/sources/source_registry_v1.csv` вернули 404. Historical registry 109 из checkpoint пока не локализован. Нельзя объявлять его сверенным.
+
+**Inoreader:** поиск доступных подключаемых приложений по Inoreader дал пустой результат; отдельного Inoreader-коннектора в текущих инструментах нет. Исторические цифры 40/42/67 нельзя считать live. Для read-only сверки понадобится актуальный экспорт OPML/список подписок или безопасный API доступ через уже настроенную среду; не запрашивать секреты в чате. OAuth repair остаётся отдельно.
+
+**Дальше:** извлечь 37 строк GitHub leads, привести к источникам публикаций (многие являются ссылками на конкретные статьи/компании, не фидами); построчно добавить только пригодные и неповторяющиеся. EDA 65 сохранить как entity/event discovery leads, не выдавая их за подключённые источники. Не закрывать SD-001 до согласования live Inoreader evidence.
+
 ## Ближайший milestone
 
 **M1 — инвентаризация:** список существующих источников, формат доступа, страна, категория, статус проверки, принадлежность к Inoreader, источник доказательства и дата проверки.
