@@ -139,6 +139,16 @@
 
 **Next:** obtain full authenticated OPML export or read-only subscriptions API list for exact count and all-folder mapping; do not use historical 40/42/67 as live. No changes made to Inoreader subscriptions.
 
+## SD-001 — Full Inoreader OPML reconciliation, 2026-10-24
+
+**Evidence:** user-provided `Inoreader Feeds 20261024.xml`, valid OPML. Parsed **16 folders, 84 folder-feed memberships, 68 distinct xmlUrl**, 16 repeat memberships (same feed in two folders). This supersedes sidebar partial readback 35. OPML proves export inclusion at export time, not RSS endpoint health.
+
+**Compared with current Notion Source Registry (116 rows, read 100 + 16 via SQL OFFSET):** by exact normalized **host** of OPML `htmlUrl` or `xmlUrl` vs Notion `Website`, **50/68 distinct feeds matched**, **18/68 feed domains absent**. The 50 matched feeds map to **39 distinct Notion source names** (one publisher can have multiple feed URLs, notably Defense News). 18 unmatched: C4ISRNET, Army Technology, Airforce Technology, Naval Technology, European Defence Review, Defence Industry Europe, Defence24, Tectonic, Ukrinform, Department of War News Feed (war.gov), Navy Lookout, DRONES (drones-magazin.de), Militär Aktuell, INDUSTRIEMAGAZIN, OIP Sensor Systems, Msm.sk, International Trade Administration (trade.gov), govinfo. **This is domain-based matching**, not proof that the precise Notion URL is the same RSS or healthy. Domain aliases may affect counts.
+
+**EDA/ENDR specifically:** Agoria RSS `https://www.agoria.be/en/rss.xml` is present in OPML (matches Notion Agoria/BSDI); Targi Kielce RSS `https://www.targikielce.pl/feed` is present (matches Notion MSPO event publisher). NIDV, SOFF, SKYWIN, AERA not found by their corresponding domains in OPML. **BDSV/BDLI absent** from OPML by domain, despite GitHub web-monitor candidates. No feed additions made.
+
+**Caution:** Ukrinform low-priority generic news; do not upgrade priority based on subscription. 18 missing domains are real Inoreader subscriptions absent from registry, not 18 verified high-value publisher candidates. Reconcile naming and source-type before adding; ensure canonical RSS URL stored separately from website, and distinguish channel connection from website candidate.
+
 ## Ближайший milestone
 
 **M1 — инвентаризация:** список существующих источников, формат доступа, страна, категория, статус проверки, принадлежность к Inoreader, источник доказательства и дата проверки.
