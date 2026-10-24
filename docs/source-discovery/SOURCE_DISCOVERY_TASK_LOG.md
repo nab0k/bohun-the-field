@@ -155,6 +155,16 @@
 
 **Readback:** Notion SQL `COUNT(*)=134`, `COUNT(DISTINCT Website)=131`, `COUNT(Origin='Inoreader OPML export 2026-10-24')=18`. Pre-action 116/113. **All 68 unique OPML feed URLs now have a matching publisher domain in Notion**, assuming same canonical host logic. No RSS HTTP health check, no Supabase ingest confirmation, no subscription changes, no production deployment. **Next:** per-feed XML HTTP health/freshness test and pipeline ingress check, plus full EDA/ENDR 65-row provenance/dedup, without conflating candidate with operational feed.
 
+## SD-001 — Supabase ingestion audit, 2026-10-24 (read-only)
+
+**Verified project:** Supabase `tecrucawzukxqtchpxrh` / `bohundefence-intelligence` status ACTIVE_HEALTHY. Read-only SQL against `intelligence.sources` and `intelligence.items`.
+
+**Items:** 5,595 total; 293 with `discovered_at >= now()-24h`; max discovered_at `2026-10-24 11:17:32 UTC`. By source_id: Inoreader BOHUN `id=2`, active=true, collection_method=official_api, **5,372 total / 293 last 24h**; TED `id=1`, **223 total / 0 last 24h**, latest `2026-10-23 12:38:05 UTC`; BORME `id=3`, **0 total**. Do not confuse `sources` rows (3 ingestion connectors) with 68 subscribed RSS feeds.
+
+**Inoreader origin metadata:** raw_data contains `origin_stream_id`, `origin_title`, `folder`, `inoreader_id`, `published`. In Inoreader ingested records, **58 distinct origin_stream_id**, **48 distinct origin_title** historically; **42 distinct origin_stream_id / 33 origin_title** seen with discovered_at in last 24h. Compare to user OPML **68 unique xmlUrl**; cannot conclude 10 feed failures without URL normalization and lookback/publish-frequency checks. Agoria specifically present as `feed/https://www.agoria.be/en/rss.xml` with **136 ingested records**, latest discovered 2026-10-23 21:20:37 UTC. Top publishers by ingested count: Ukrinform 1015 (generic, low priority), Defense News 401, Tech.eu 287, UK MOD Activity 285, Defence Industry Europe 261, Targi Kielce 254. This proves actual pipeline ingestion for these sources, not merely OPML subscription.
+
+**Next:** exact normalized OPML xmlUrl ↔ Supabase raw_data.origin_stream_id 68-way reconciliation, identify never-ingested and stale streams, then RSS HTTP/feed freshness checks; protect distinction between sparse low-frequency publication and broken feed. No production writes.
+
 ## Ближайший milestone
 
 **M1 — инвентаризация:** список существующих источников, формат доступа, страна, категория, статус проверки, принадлежность к Inoreader, источник доказательства и дата проверки.
