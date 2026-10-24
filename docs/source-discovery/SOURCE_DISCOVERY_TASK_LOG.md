@@ -125,6 +125,14 @@
 
 **Следующее действие SD-001:** получить/восстановить EDA 65-row source CSV, выполнить полную 65-row name+canonical URL reconciliation и затем текущую Inoreader subscription readback. OAuth/access constraint separately logged.
 
+## SD-001 checkpoint — 2026-10-24, EDA/ENDR reconstructed CSV + Inoreader live access check
+
+**CSV artifact generated:** `bohun_eda_endr_reconstructed_65_20261024.csv` (local conversation attachment, not committed to repo): **65 rows**, 38 associations from EDA May 2024 PDF, 10 exhibitions from EDA 2026 annex, 17 selected ENDR clusters from European Commission directory. 29 country/region codes incl EU. **NOT the original 2026-10-11 EDA-001..065 file**; selected ENDR names may differ. Every row explicitly marked directory_named_only and ingestion_status=not_verified. Original PDF: https://eda.europa.eu/docs/default-source/documents/asd_ndias.pdf ; exhibitions: https://eda.europa.eu/docs/default-source/applicants/annex-2---major-exhibitions-2026.pdf ; ENDR: https://defence-industry-space.ec.europa.eu/eu-defence-industry/european-network-defence-related-regions/endr-members_en . CSV is research artifact, not feed import. No further Notion rows inserted in this pass.
+
+**Inoreader current-state check:** no Inoreader provider connector available via plugin search; connected browser open-tabs list (read-only) contains no Inoreader tab. No authenticated live subscription API/list accessible via these paths. Therefore **current subscriptions, categories, unread counts, plan and last sync UNKNOWN**. Historical 40, 42, 67 counts are snapshots, not live. User should provide current OPML export or open Inoreader in connected browser / establish authorized read-only connection. Do not request or expose API secrets. This is an access blocker, not proof of no subscriptions.
+
+**Caveat:** ENDR current official page shows 134 entities in prose while overview retains 132, compared with historical 132; do not interpret this discrepancy as source disappearance or subscribe 134 feeds.
+
 ## Ближайший milestone
 
 **M1 — инвентаризация:** список существующих источников, формат доступа, страна, категория, статус проверки, принадлежность к Inoreader, источник доказательства и дата проверки.
