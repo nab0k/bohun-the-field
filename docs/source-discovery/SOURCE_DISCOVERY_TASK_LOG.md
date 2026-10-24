@@ -133,6 +133,12 @@
 
 **Caveat:** ENDR current official page shows 134 entities in prose while overview retains 132, compared with historical 132; do not interpret this discrepancy as source disappearance or subscribe 134 feeds.
 
+## SD-001 — Inoreader connected browser live UI readback (2026-10-24)
+
+**Evidence:** connected Browser tab `https://www.inoreader.com/search/feeds/Bundeswehr`, authenticated account sidebar, read-only page context. **16 named folders** visible, incl BOHUN_01_DEFENCE_MEDIA, BOHUN_02_INDUSTRY, BOHUN_03_GOVERNMENT, BOHUN_04_PROCUREMENT, BOHUN_08_INVESTORS_VC, BOHUN_09_STARTUPS, BOHUN_13_UKRAINE, BOHUN_MEDIA, BOHUN_INDUSTRY, BOHUN_OPPORTUNITIES, BOHUN_GOV, BOHUN_RESEARCH, plus Media & Analysis, Government & Procurement, Industry & Companies, Capital Aid & Events. **43 visible feed link occurrences**, **35 unique feed URLs** after dedup (8 repeated across folders). **All 35 visible unique feed domains match a domain in the current Notion 116-row registry**. This is a **lower bound on currently visible subscribed feeds**, NOT total subscriptions; sidebar may be partially loaded or folders collapsed. UI shows **4014 unread articles**, NOT subscriptions. No observed EDA named candidate feed (Agoria, NIDV, SOFF, SKYWIN, AERA, Eurosatory, MSPO, BDSV, BDLI) among 35 visible URLs. This is **not evidence of their absence from full account**.
+
+**Next:** obtain full authenticated OPML export or read-only subscriptions API list for exact count and all-folder mapping; do not use historical 40/42/67 as live. No changes made to Inoreader subscriptions.
+
 ## Ближайший milestone
 
 **M1 — инвентаризация:** список существующих источников, формат доступа, страна, категория, статус проверки, принадлежность к Inoreader, источник доказательства и дата проверки.
