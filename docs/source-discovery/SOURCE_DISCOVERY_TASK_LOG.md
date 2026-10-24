@@ -113,6 +113,18 @@
 
 **Дальше:** извлечь 37 строк GitHub leads, привести к источникам публикаций (многие являются ссылками на конкретные статьи/компании, не фидами); построчно добавить только пригодные и неповторяющиеся. EDA 65 сохранить как entity/event discovery leads, не выдавая их за подключённые источники. Не закрывать SD-001 до согласования live Inoreader evidence.
 
+## SD-001 reconciliation result — 2026-10-24 (GitHub Austria/Belgium × Notion registry × EDA/ENDR)
+
+**Read-only сравнение:** GitHub [country-source-leads-batch01-20261010.csv](https://github.com/nab0k/bohun-the-field/blob/main/docs/sources/country-source-leads-batch01-20261010.csv) содержит **37 rows / 37 distinct hostname**: Austria 27, Belgium 10. Сопоставление с [Notion Source Registry](https://app.notion.com/p/ce41b2f029ef4794853f1448ca33112b) (111 строк до EDA additions): **0 exact full URL**, **3 domain matches** (rheinmetall.com, leonardo.com, news.lockheedmartin.com), **34 distinct domains without match**. URL на статьи/карточки компаний не считать 34 новыми live publication channels; **37 rows remain candidate evidence leads**, без автоматического добавления как feeds.
+
+**EDA/ENDR:** [Notion Intelligence Network](https://app.notion.com/p/3f6c42d0b11b80e4a06edf6483ae6954) утверждает 65 directory leads = 38 associations + 10 exhibitions + 17 clusters; полный row-level CSV в текущем доступе **отсутствует**, поэтому **65/65 live cross-check NOT DONE**. Исторически подтверждённые именованные EDA-003 Agoria/BSDI, EDA-028 NIDV, EDA-036 SOFF, EDA-050 SKYWIN, EDA-062 AERA: **5/5 не найдены по имени в текущем 111-row Notion registry**, добавлены как candidate publication surfaces с provenance и статусом Unknown/Unverified. Из EDA-043 Eurosatory и EDA-045 MSPO оба уже присутствуют в Top100, **не добавлены повторно**. Это **7 именованных EDA entities проверены по именам**, не 65. BDSV и BDLI уже в GitHub web-monitor конфигурациях, не добавлять как EDA новые.
+
+**Readback после добавления 5 EDA кандидатов:** **116 Notion rows / 113 distinct Website URLs**. Не считать эти 116 verified live feeds.
+
+**Blocker:** оригинальный 65-row `bohundefence_eda_endr_candidates_20261011.csv` / audit CSV упомянут в Notion, но не приложен к текущей среде и не найден в GitHub по известному пути. Для полной EDA/ENDR сверки нужен исходный файл либо повторная поштучная экстракция из официальных каталогов. Не выдумывать оставшиеся 58 записей.
+
+**Следующее действие SD-001:** получить/восстановить EDA 65-row source CSV, выполнить полную 65-row name+canonical URL reconciliation и затем текущую Inoreader subscription readback. OAuth/access constraint separately logged.
+
 ## Ближайший milestone
 
 **M1 — инвентаризация:** список существующих источников, формат доступа, страна, категория, статус проверки, принадлежность к Inoreader, источник доказательства и дата проверки.
