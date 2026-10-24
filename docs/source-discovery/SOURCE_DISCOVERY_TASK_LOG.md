@@ -95,6 +95,16 @@
 
 | 2026-10-24 | SD-001 | 100 источников из Top100 записаны в отдельную построчную Notion DB; readback 100/100, 97 доменов | Частично DONE (пакет), SD-001 ACTIVE |
 
+## SD-001 checkpoint — 2026-10-24, GitHub web-monitor inventory
+
+Из GitHub **main** прочитан реальный конфигурационный файл [collectors/web_monitor/sources.json](https://github.com/nab0k/bohun-the-field/blob/main/collectors/web_monitor/sources.json): **14 source configurations / 13 distinct configured URLs**, все status=candidate_unverified, enabled=true. Сопоставление с 100 записями Notion Top100 по точному case-insensitive имени: **3 совпадения** (Defense Innovation Unit, Polish Ministry of National Defence, European Defence Agency), **11 новых имён**. Эти 11 добавлены в [построчный Notion registry](https://app.notion.com/p/ce41b2f029ef4794853f1448ca33112b) с происхождением GitHub и статусом Unverified. SQL readback: **111 rows / 108 distinct Website**. Повторы URL не обязательно дубли источников (например Bundeswehr и BAAINBw на одном URL).
+
+**Найдено в историческом [Autonomous Intelligence Pipeline checkpoint](https://app.notion.com/p/3f4c42d0b11b81cd8f8bca6ea9884d20):** registry v1 109 = 16 accepted + 93 candidates и 40 Inoreader subscriptions по состоянию 2026-10-09. Это **исторические цифры, не live состояние**. Сам файл registry v1 в GitHub ещё не локализован. GitHub code search не дал результатов для source_registry/sources.json; не следует считать его отсутствующим. Следующий шаг SD-001: найти точный путь registry v1, проверить 109 строк и провести дедупликацию, затем EDA/ENDR.
+
+**Согласованный порядок:** сначала завершить инвентаризацию исходных списков Notion/GitHub, **затем проверить фактическое состояние Inoreader** (read-only API subscriptions), так как пользователь прямо запросил это после текущего шага. Проверку Inoreader занести в SD-001 как необходимую верификацию статуса подключения; OAuth repair остаётся parked, если не понадобится.
+
+| 2026-10-24 | SD-001 | GitHub web-monitor: 14 configs, 3 overlap, 11 new; Notion readback 111 rows/108 URLs; исторический registry 109 не найден | SD-001 ACTIVE, partial checkpoint |
+
 ## Ближайший milestone
 
 **M1 — инвентаризация:** список существующих источников, формат доступа, страна, категория, статус проверки, принадлежность к Inoreader, источник доказательства и дата проверки.
