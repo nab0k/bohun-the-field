@@ -149,6 +149,12 @@
 
 **Caution:** Ukrinform low-priority generic news; do not upgrade priority based on subscription. 18 missing domains are real Inoreader subscriptions absent from registry, not 18 verified high-value publisher candidates. Reconcile naming and source-type before adding; ensure canonical RSS URL stored separately from website, and distinguish channel connection from website candidate.
 
+## SD-001 — Inoreader OPML gap closure, 2026-10-24
+
+**Action authorized:** user requested to continue after OPML comparison. Added **18 previously missing-by-domain sources** as individual pages in [Notion Source Registry](https://app.notion.com/p/ce41b2f029ef4794853f1448ca33112b), using the user-provided `Inoreader Feeds 20261024.xml`. Stored exact OPML `xmlUrl` in Notes, publisher `htmlUrl` in Website, `Origin=Inoreader OPML export 2026-10-24`, `Connection=Confirmed current` meaning only OPML membership, `Content access=RSS candidate`, checked date 2026-10-24. Ukrinform marked Low candidate; other sources Unrated. Country Unverified pending research. 18 names: C4ISRNET, Army Technology, Airforce Technology, Naval Technology, European Defence Review, Defence Industry Europe, Defence24, Tectonic, Ukrinform, Department of War News Feed, Navy Lookout, DRONES, Militär Aktuell, INDUSTRIEMAGAZIN, OIP Sensor Systems, Msm.sk, International Trade Administration, govinfo.
+
+**Readback:** Notion SQL `COUNT(*)=134`, `COUNT(DISTINCT Website)=131`, `COUNT(Origin='Inoreader OPML export 2026-10-24')=18`. Pre-action 116/113. **All 68 unique OPML feed URLs now have a matching publisher domain in Notion**, assuming same canonical host logic. No RSS HTTP health check, no Supabase ingest confirmation, no subscription changes, no production deployment. **Next:** per-feed XML HTTP health/freshness test and pipeline ingress check, plus full EDA/ENDR 65-row provenance/dedup, without conflating candidate with operational feed.
+
 ## Ближайший milestone
 
 **M1 — инвентаризация:** список существующих источников, формат доступа, страна, категория, статус проверки, принадлежность к Inoreader, источник доказательства и дата проверки.
