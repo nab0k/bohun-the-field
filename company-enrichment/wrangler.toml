@@ -1,0 +1,7 @@
+name = "bohun-company-enrichment"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+workers_dev = false
+
+# No cron until explicitly approved. Secrets: NOTION_TOKEN, NOTION_DATA_SOURCE_ID, ADMIN_TOKEN.
+# Deploy manually after reviewing access and permissions.
