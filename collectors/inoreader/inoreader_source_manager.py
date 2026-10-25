@@ -139,7 +139,16 @@ def has_folder(sub, folder):
 
 API_ERRORS = (urllib.error.URLError, RuntimeError, ValueError, TimeoutError, OSError)
 
-def run(args):
+def run(args, *, discoverer=None, token_provider=None, snapshot_reader=None, writer=None):
+    # Optional transports let a caller enforce its own durable attempt ledger and
+    # network budget. Defaults keep the existing CLI and legacy test contracts.
+    services = (discoverer, token_provider, snapshot_reader, writer)
+    if any(service is not None and not callable(service) for service in services):
+        raise ValueError("Injected services must be callable")
+    discover_fn = discover if discoverer is None else discoverer
+    token_fn = access_token if token_provider is None else token_provider
+    snapshot_fn = subscriptions_snapshot if snapshot_reader is None else snapshot_reader
+    write_fn = post_api if writer is None else writer
     registry_bytes = Path(args.registry).read_bytes()
     registry = json.loads(registry_bytes)
     sources = registry.get("sources") if isinstance(registry, dict) else registry
@@ -170,7 +179,7 @@ def run(args):
             raise ValueError("Unknown source group in apply")
     # Selection must bound discovery as well as subscription writes.
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as pool:
-        discovered = dict(zip(indexes, pool.map(discover, (sources[i] for i in indexes))))
+        discovered = dict(zip(indexes, pool.map(discover_fn, (sources[i] for i in indexes))))
     results = [discovered.get(i, {**s, "status": "not_selected", "feed_url": None})
                for i, s in enumerate(sources)]
     seen = {}
@@ -202,13 +211,13 @@ def run(args):
     token = None
     if not stop_reason and (args.apply or args.check_subscriptions):
         try:
-            token = access_token()
+            token = token_fn()
         except API_ERRORS as exc:
             stop_reason = "oauth_failed"
             auth_error_type = type(exc).__name__
         else:
             try:
-                snapshot = subscriptions_snapshot(token)
+                snapshot = snapshot_fn(token)
                 current_count = final_count = len(snapshot)
             except API_ERRORS:
                 stop_reason = "initial_snapshot_failed"
@@ -216,7 +225,7 @@ def run(args):
     def read_back(item):
         nonlocal snapshot, final_count
         try:
-            fresh = subscriptions_snapshot(token)
+            fresh = snapshot_fn(token)
         except API_ERRORS as exc:
             item["readback_error_type"] = type(exc).__name__
             item["membership_verified"] = item["folder_verified"] = None
@@ -259,7 +268,7 @@ def run(args):
         # Count the attempted write before sending: an unknown response may have created a feed.
         attempts += 1
         try:
-            response = post_api("subscription/quickadd", token, {"quickadd": feed})
+            response = write_fn("subscription/quickadd", token, {"quickadd": feed})
             payload = json.loads(response)
             created_id = (payload.get("streamId") or payload.get("id")) if isinstance(payload, dict) else None
         except API_ERRORS as exc:
@@ -273,7 +282,7 @@ def run(args):
             continue
         folder_attempts += 1
         try:
-            post_api("subscription/edit", token,
+            write_fn("subscription/edit", token,
                      {"s": feed_id, "a": "user/-/label/" + item["folder"], "ac": "edit"})
         except API_ERRORS as exc:
             item["status"] = "added_needs_verification"

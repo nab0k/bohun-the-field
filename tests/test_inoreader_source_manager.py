@@ -119,6 +119,47 @@ class ApplyTests(OfflineCase):
         self.directory = Path(self.tmp.name)
         self.provider = FakeProvider()
 
+    def test_injected_services_use_existing_verification_without_default_transport(self):
+        sources = self.sources()
+        registry, report = self.directory / "injected.json", self.directory / "injected-report.json"
+        registry.write_text(json.dumps(sources))
+        args = SimpleNamespace(registry=str(registry), report=str(report), workers=1,
+                               apply=True, check_subscriptions=True, max_add=1, only=sources[0]["name"])
+        def snapshot(token):
+            data = self.provider.api("subscription/list", token)
+            return {s["id"]: s for s in data["subscriptions"]}
+        with patch.object(m, "discover", side_effect=blocked_transport), \
+             patch.object(m, "access_token", side_effect=blocked_transport), \
+             patch.object(m, "subscriptions_snapshot", side_effect=blocked_transport), \
+             patch.object(m, "post_api", side_effect=blocked_transport), contextlib.redirect_stdout(io.StringIO()):
+            code = m.run(args, discoverer=self.provider.discover, token_provider=self.provider.auth,
+                         snapshot_reader=snapshot, writer=self.provider.post)
+        self.assertEqual(code, 0)
+        self.assertEqual(len(self.provider.quickadds()), 1)
+        self.assertEqual(self.provider.reads, 2)
+        self.assertTrue(json.loads(report.read_text())["results"][0]["folder_verified"])
+
+    def test_injected_writer_uncertainty_still_stops_the_existing_batch(self):
+        sources = self.sources(3)
+        registry, report = self.directory / "injected.json", self.directory / "injected-report.json"
+        registry.write_text(json.dumps(sources))
+        args = SimpleNamespace(registry=str(registry), report=str(report), workers=1,
+                               apply=True, check_subscriptions=True, max_add=3,
+                               only=",".join(s["name"] for s in sources))
+        self.provider.quickadd_mode = "exception"
+        def snapshot(token):
+            return {s["id"]: s for s in self.provider.api("subscription/list", token)["subscriptions"]}
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = m.run(args, discoverer=self.provider.discover, token_provider=self.provider.auth,
+                         snapshot_reader=snapshot, writer=self.provider.post)
+        self.assertEqual(code, 2)
+        self.assertEqual(len(self.provider.quickadds()), 1)
+        self.assertEqual(json.loads(report.read_text())["summary"]["stop_reason"], "add_outcome_unknown")
+
+    def test_noncallable_injected_service_fails_before_registry_or_network_access(self):
+        with self.assertRaisesRegex(ValueError, "callable"):
+            m.run(SimpleNamespace(), writer="not a function")
+
     def sources(self, count=1):
         return [{"name": "Source " + str(i), "url": "https://example.test/feed/" + str(i),
                  "group": "Media / intelligence"} for i in range(count)]
