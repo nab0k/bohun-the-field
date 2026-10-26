@@ -1,0 +1,115 @@
+# LOCAL CANDIDATE ONLY. No GitHub installation or live execution authorized.
+name: EXP009 isolated GLiNER event check
+run-name: exp009-event-check-cloud-v1-20261026 ${{ github.event.label.name }}
+on:
+  pull_request:
+    types: [labeled]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: exp009-event-check-cloud-v1-20261026
+  cancel-in-progress: false
+jobs:
+  event-check:
+    if: >-
+      github.repository == 'nab0k/bohun-the-field' &&
+      github.actor == 'nab0k' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.label.name == 'exp009-event-check-cloud-live-20261026' &&
+      github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13'
+      - name: Validate code-only bootstrap without input data
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 -B - <<'PY'
+          import hashlib, json, os, pathlib, zipfile
+          def need(ok):
+              if not ok: raise SystemExit('EVENT_CHECK_BOOTSTRAP_STOP')
+          def unique(pairs):
+              out = {}
+              for k,v in pairs:
+                  need(k not in out); out[k] = v
+              return out
+          def load(raw):
+              need(len(raw) <= 524288)
+              return json.loads(raw, object_pairs_hook=unique)
+          event = load(pathlib.Path(os.environ['GITHUB_EVENT_PATH']).read_bytes())
+          body = event['pull_request'].get('body', '')
+          start, end = 'BOHUN_EVENT_CHECK_APPROVAL_BEGIN\n', '\nBOHUN_EVENT_CHECK_APPROVAL_END'
+          need(isinstance(body, str) and body.count(start) == body.count(end) == 1)
+          plan = load(body.split(start)[1].split(end)[0].encode())
+          need(plan.get('enabled') is True and plan.get('trial') == 'exp009-event-check-cloud-v1-20261026')
+          need(plan.get('head_sha') == event['pull_request']['head']['sha'])
+          source = pathlib.Path('trial/event-check')
+          raw = (source / 'code-only.zip').read_bytes()
+          need(len(raw) <= 2097152 and hashlib.sha256(raw).hexdigest() == plan['bundle_sha256'])
+          manifest_raw = (source / 'code-manifest.json').read_bytes()
+          need(hashlib.sha256(manifest_raw).hexdigest() == plan['manifest_sha256'])
+          manifest = load(manifest_raw)
+          cert = (source / 'owner-cert.pem').read_bytes()
+          need(len(cert) <= 8192 and b'PRIVATE KEY' not in cert)
+          need(hashlib.sha256(cert).hexdigest() == plan['certificate_sha256'])
+          packet_raw = json.dumps(manifest['packet_manifest'], sort_keys=True, separators=(',',':'), ensure_ascii=False).encode()
+          need(hashlib.sha256(packet_raw).hexdigest() == plan['packet_manifest_sha256'])
+          root = pathlib.Path(os.environ['RUNNER_TEMP']) / 'bohun-event-bootstrap'
+          root.mkdir(mode=0o700)
+          allowed = {'cloud_trial.py','runtime/run.py','runtime/prepare.py','linux-lock.json'}
+          need(set(manifest['files']) == allowed)
+          with zipfile.ZipFile(source / 'code-only.zip') as archive:
+              infos = archive.infolist()
+              need(len(infos) == len(allowed) and {i.filename for i in infos} == allowed)
+              need(sum(i.file_size for i in infos) <= 2097152)
+              for item in infos:
+                  need((item.external_attr >> 16) & 0o170000 != 0o120000)
+                  value = archive.read(item)
+                  need(hashlib.sha256(value).hexdigest() == manifest['files'][item.filename])
+                  dest = root / item.filename
+                  dest.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+                  dest.write_bytes(value)
+          (root / 'code-only.zip').write_bytes(raw)
+          (root / 'bundle-manifest.json').write_bytes(manifest_raw)
+          (root / 'owner-cert.pem').write_bytes(cert)
+          (root / 'packet-manifest.json').write_bytes(packet_raw)
+          PY
+      - name: Verify owner, approval, expiry and single-attempt history
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 -B "$RUNNER_TEMP/bohun-event-bootstrap/cloud_trial.py" preflight
+      - name: Execute separately authorized CPU trial and return ciphertext
+        env:
+          EXP009_EVENT_CHECK_PACKET_B64: ${{ secrets.EXP009_EVENT_CHECK_PACKET_B64 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 -B "$RUNNER_TEMP/bohun-event-check/cloud_trial.py" cloud --allow-live 2> "$RUNNER_TEMP/bohun-event-check-private-stderr.log"
+      - name: Remove ephemeral plaintext, wheels and model
+        if: always()
+        shell: bash
+        run: |
+          python3 -B - <<'PY'
+          import os, pathlib, shutil
+          root = pathlib.Path(os.environ['RUNNER_TEMP'])
+          for name in ['bohun-event-bootstrap', 'bohun-event-check']:
+              path = root / name
+              if path.is_dir(): shutil.rmtree(path)
+          (root / 'bohun-event-check-private-stderr.log').unlink(missing_ok=True)
+          PY
