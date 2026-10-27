@@ -36,7 +36,7 @@ jobs:
         with:
           python-version: '3.13'
       - name: Offline contracts and process boundaries
-        run: python -B -m unittest tests.test_company_ner tests.test_company_ner_native
+        run: python -B -m unittest tests.test_company_ner tests.test_company_ner_native tests.test_company_ner_cli
       - name: Acquire previously pinned CPU runtime
         run: python -B -m collectors.company_ner.bootstrap
       - name: One private persistent tick, at most twelve CPU extractions
@@ -47,14 +47,17 @@ jobs:
           set -euo pipefail
           umask 077
           "$RUNNER_TEMP/bohun-company-ner/venv/bin/python" -B - <<'PY'
-          import os, pathlib, runpy, sys
+          import hashlib, os, pathlib, runpy, sys
           from psycopg.conninfo import make_conninfo
           password=os.environ.get('SUPABASE_DB_PASSWORD')
           if not password: raise SystemExit('DATABASE_SECRET_ABSENT')
+          ca=pathlib.Path('collectors/company_ner/supabase-prod-ca-2021.crt').resolve()
+          if hashlib.sha256(ca.read_bytes()).hexdigest()!='700723581420dd1ac98fd7e9ac529f0ef210eadcaf87fc868a3ad7d114c2f3b7':
+              raise SystemExit('DATABASE_CA_PIN_MISMATCH')
           os.environ['COMPANY_NER_DATABASE_URL']=make_conninfo(
               host='aws-1-eu-central-1.pooler.supabase.com',port=5432,dbname='postgres',
               user='postgres.tecrucawzukxqtchpxrh',password=password,
-              sslmode='verify-full',sslrootcert='/etc/ssl/certs/ca-certificates.crt')
+              sslmode='verify-full',sslrootcert=str(ca))
           root=pathlib.Path(os.environ['RUNNER_TEMP'])/'bohun-company-ner'
           sys.argv=['scripts/company-ner.py','--run','--model-python',str(root/'venv/bin/python'),
                     '--model-dir',str(root/'model'),'--limit','12']

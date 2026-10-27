@@ -104,3 +104,31 @@ zero extractions and zero re-linkings. Replay is not a new model generation.
 SQL was exercised on disposable PostgreSQL17, not applied to Supabase.
 This code is not deployed or scheduled. Source completeness remains UNKNOWN;
 same-name retrieval does not establish the legal entity or analytic conclusion.
+
+## Verified TLS root and safe startup diagnostics
+
+The pooler chain uses Supabase Root2021 CA, which is not in the ordinary OS
+trust bundle. The workflow supplies the bundled public
+`supabase-prod-ca-2021.crt` while retaining `sslmode=verify-full` and hostname
+verification. PEM SHA256:
+`700723581420dd1ac98fd7e9ac529f0ef210eadcaf87fc868a3ad7d114c2f3b7`.
+
+Official download configuration:
+https://github.com/supabase/supabase/blob/845ed5a1e3e8e39f8eef41b2875be4e7a9b8bdfc/apps/studio/hooks/custom-content/custom-content.json
+Download URL:
+https://supabase-downloads.s3-ap-southeast-1.amazonaws.com/prod/ssl/prod-ca-2021.crt
+The certificate is public, not an authentication credential. Do not replace it
+with a certificate learned only from an unverified database handshake.
+
+A credential-free OpenSSL PostgreSQL STARTTLS check failed with the OS bundle
+and passed certificate+hostname verification with this official CA. This
+confirms the TLS configuration repair, not database authentication or inference.
+The first cloud run stopped with empty state tables; its generic error did not
+record an underlying category. The root mismatch is independently reproduced;
+a subsequent cloud run is needed to rule out additional startup problems.
+
+The CLI now reports only phase/category, an allowlisted exception class and a
+bounded SQLSTATE. Raw exceptions, DSNs, credentials and source rows are never
+printed. It still stops without an automatic retry. CLI tests execute a real
+entrypoint with a fake connection failure to verify both the diagnostic and
+non-disclosure.
