@@ -2,6 +2,11 @@ name: Bohundefence Inoreader Cloud
 
 on:
   workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact reviewed commit for one bounded 12-item body-storage pilot
+        required: true
+        type: string
   schedule:
     - cron: '7,37 * * * *'
 
@@ -17,15 +22,43 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Guard reviewed manual revision before credentials
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          test "$EXPECTED_SHA" = "$GITHUB_SHA"
+          test "${#EXPECTED_SHA}" -eq 40
+          case "$EXPECTED_SHA" in *[!0-9a-f]*) exit 1 ;; esac
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version: '3.12'
-      - run: python -m pip install "psycopg[binary]"
-      - name: Sync BOHUN folders and headlines
+      - name: Offline input and backfill checks
+        run: python -B -m unittest tests.test_inoreader_content tests.test_inoreader_body_backfill
+      - name: Temporary pinned PostgreSQL driver
+        run: |
+          python -m venv "$RUNNER_TEMP/bohun-inoreader-body"
+          "$RUNNER_TEMP/bohun-inoreader-body/bin/python" -m pip install --only-binary=:all: 'psycopg[binary]==3.3.6'
+      - name: Sync BOHUN folders with bounded provider body capture
         env:
           INOREADER_CLIENT_ID: ${{ secrets.INOREADER_CLIENT_ID }}
           INOREADER_CLIENT_SECRET: ${{ secrets.INOREADER_CLIENT_SECRET }}
           INOREADER_REFRESH_TOKEN: ${{ secrets.INOREADER_REFRESH_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-        run: python collectors/inoreader/sync.py --max-pages 2
+          EVENT_NAME: ${{ github.event_name }}
+        shell: bash
+        run: |
+          if [ "$EVENT_NAME" = 'workflow_dispatch' ]; then
+            "$RUNNER_TEMP/bohun-inoreader-body/bin/python" -B collectors/inoreader/sync.py --max-pages 1 --max-items 12 --backfill-bodies
+          else
+            "$RUNNER_TEMP/bohun-inoreader-body/bin/python" -B collectors/inoreader/sync.py --max-pages 2
+          fi
+      - name: Verify stored text hashes without logging content
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: '"$RUNNER_TEMP/bohun-inoreader-body/bin/python" -B scripts/inoreader-body-readback.py'
