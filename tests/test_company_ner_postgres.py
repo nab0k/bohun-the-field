@@ -23,29 +23,45 @@ class PostgresTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         import psycopg
-        from psycopg.conninfo import conninfo_to_dict
+        from psycopg.conninfo import conninfo_to_dict, make_conninfo
         from psycopg.rows import dict_row
         params=conninfo_to_dict(DSN);host=Path(params.get('host',''))
         if not host.is_absolute() or host.name!='socket' or not host.parent.name.startswith('bohun-ner-pg-') or params.get('dbname')!='bohun_ner_test':
             raise RuntimeError('LOCAL_DISPOSABLE_DB_REQUIRED')
         if host.parent.stat().st_uid!=os.getuid() or host.parent.stat().st_mode & 0o077:
             raise RuntimeError('PRIVATE_TEST_ROOT_REQUIRED')
-        cls.factory=staticmethod(lambda: psycopg.connect(DSN,row_factory=dict_row))
+        cls.admin_factory=staticmethod(lambda: psycopg.connect(DSN,row_factory=dict_row))
+        backend_dsn=make_conninfo(DSN,user='postgres')
+        cls.factory=staticmethod(lambda: psycopg.connect(backend_dsn,row_factory=dict_row))
         cls.psycopg=psycopg
-        with cls.factory() as c:
+        with cls.admin_factory() as c:
             assert c.execute('SELECT current_database() db,inet_server_addr() addr').fetchone()=={'db':'bohun_ner_test','addr':None}
-            c.execute('CREATE SCHEMA intelligence; CREATE SCHEMA companies; CREATE SCHEMA exp009')
+            c.execute('''CREATE ROLE postgres LOGIN NOSUPERUSER CREATEROLE NOINHERIT BYPASSRLS;
+              CREATE ROLE supabase_admin NOLOGIN SUPERUSER;
+              CREATE ROLE exp009_owner NOLOGIN NOINHERIT NOBYPASSRLS;
+              GRANT exp009_owner TO supabase_admin WITH ADMIN TRUE;
+              SET ROLE supabase_admin;
+              GRANT exp009_owner TO postgres WITH ADMIN TRUE, INHERIT FALSE, SET FALSE GRANTED BY supabase_admin;
+              RESET ROLE;
+              CREATE SCHEMA intelligence AUTHORIZATION postgres;
+              CREATE SCHEMA companies AUTHORIZATION postgres;
+              CREATE SCHEMA exp009 AUTHORIZATION exp009_owner;
+              GRANT USAGE ON SCHEMA exp009 TO postgres;
+              GRANT USAGE ON SCHEMA intelligence TO exp009_owner;
+              SET ROLE postgres;''')
             c.execute('''CREATE TABLE intelligence.items(id bigint PRIMARY KEY,title text,url text,
               item_type text,published_at timestamptz,updated_at timestamptz,raw_data jsonb);
               CREATE TABLE companies.company(id text PRIMARY KEY,name text,country text,status text,
                 notion_page_id text,updated_at timestamptz);
-              CREATE TABLE companies.company_alias(company_id text,alias text)''')
+              CREATE TABLE companies.company_alias(company_id text,alias text);
+              GRANT SELECT(id),REFERENCES(id) ON intelligence.items TO exp009_owner;
+              RESET ROLE;''')
         # Candidate SQL contains BEGIN/COMMIT; apply only after the local-DB guard.
-        with psycopg.connect(DSN,autocommit=True) as c:
+        with psycopg.connect(backend_dsn,autocommit=True) as c:
             c.execute((Path(__file__).resolve().parents[1]/'db/companies/company_ner_storage_candidate.sql').read_text())
 
     def setUp(self):
-        with self.factory() as c:
+        with self.admin_factory() as c:
             c.execute('TRUNCATE exp009.company_ner_links,exp009.company_ner_inputs,exp009.company_ner_cache,intelligence.items,companies.company,companies.company_alias')
             x=catalog()[0]
             c.execute('INSERT INTO companies.company VALUES(%s,%s,%s,%s,%s,%s)',
@@ -179,12 +195,13 @@ class PostgresTests(unittest.TestCase):
         with self.factory() as c:
             c.execute('SAVEPOINT malformed_packet')
             with self.assertRaises(self.psycopg.errors.CheckViolation):
-                c.execute("UPDATE exp009.company_ner_links SET packet='{}'::jsonb")
+                c.execute("""INSERT INTO exp009.company_ner_links(input_key,catalog_hash,linker_version,packet)
+                  SELECT input_key,%s,'malformed-check','{}'::jsonb FROM exp009.company_ner_inputs LIMIT 1""",('0'*64,))
             c.execute('ROLLBACK TO SAVEPOINT malformed_packet')
 
     def test_rls_prevents_read_even_after_select_grant(self):
         self.seed(row());run(self.store,self.model)
-        with self.factory() as c:
+        with self.admin_factory() as c:
             c.execute('CREATE ROLE ner_api_test NOLOGIN')
             c.execute('GRANT USAGE ON SCHEMA exp009 TO ner_api_test')
             c.execute('GRANT SELECT ON exp009.company_ner_cache,exp009.company_ner_inputs,exp009.company_ner_links TO ner_api_test')

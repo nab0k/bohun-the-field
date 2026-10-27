@@ -1,8 +1,25 @@
--- Review candidate, NOT installed. Requires existing intelligence.items and exp009.
+-- OWNER_FIX01 candidate, NOT installed. Requires existing intelligence.items and exp009.
 -- No grants to API roles, new roles, RPC, or changes to INPUT29 jobs/runtime_api.
 BEGIN;
 SET LOCAL lock_timeout='5s';
 SET LOCAL statement_timeout='30s';
+DO $preflight$ BEGIN
+ IF current_user<>'postgres' OR NOT has_schema_privilege(current_user,'exp009','USAGE')
+ OR (SELECT nspowner::regrole::text FROM pg_namespace WHERE nspname='exp009')<>'exp009_owner'
+ OR NOT has_column_privilege('exp009_owner','intelligence.items','id','REFERENCES')
+ OR NOT EXISTS(SELECT 1 FROM pg_auth_members a JOIN pg_roles r ON r.oid=a.roleid
+   JOIN pg_roles m ON m.oid=a.member JOIN pg_roles g ON g.oid=a.grantor
+   WHERE r.rolname='exp009_owner' AND m.rolname=current_user AND g.rolname='supabase_admin'
+     AND a.admin_option AND NOT a.inherit_option AND NOT a.set_option)
+ OR EXISTS(SELECT 1 FROM pg_auth_members a JOIN pg_roles r ON r.oid=a.roleid
+   WHERE r.rolname='exp009_owner' AND a.member=(SELECT oid FROM pg_roles WHERE rolname=current_user)
+     AND a.grantor=a.member)
+ THEN RAISE EXCEPTION 'NER_OWNER_FIX_PREFLIGHT'; END IF;
+END $preflight$;
+-- Temporary self-grant only; the original supabase_admin membership is unchanged.
+GRANT exp009_owner TO CURRENT_USER WITH SET TRUE GRANTED BY CURRENT_USER;
+GRANT exp009_owner TO CURRENT_USER WITH INHERIT FALSE GRANTED BY CURRENT_USER;
+SET LOCAL ROLE exp009_owner;
 CREATE TABLE exp009.company_ner_cache (
  job_key text PRIMARY KEY CHECK(job_key ~ '^[0-9a-f]{64}$'),
  contract_hash text NOT NULL CHECK(contract_hash ~ '^[0-9a-f]{64}$'),
@@ -56,4 +73,19 @@ DO $$ DECLARE r text; BEGIN
   END IF;
  END LOOP;
 END $$;
+-- Existing backend access only to the new tables; no public/frontend policies.
+GRANT SELECT,INSERT,UPDATE ON exp009.company_ner_cache TO postgres;
+GRANT SELECT,INSERT ON exp009.company_ner_inputs,exp009.company_ner_links TO postgres;
+RESET ROLE;
+REVOKE exp009_owner FROM CURRENT_USER GRANTED BY CURRENT_USER;
+DO $verify$ BEGIN
+ IF current_user<>'postgres' OR EXISTS(SELECT 1 FROM pg_auth_members a
+   JOIN pg_roles r ON r.oid=a.roleid WHERE r.rolname='exp009_owner'
+   AND a.member=(SELECT oid FROM pg_roles WHERE rolname=current_user) AND a.grantor=a.member)
+ OR NOT EXISTS(SELECT 1 FROM pg_auth_members a JOIN pg_roles r ON r.oid=a.roleid
+   JOIN pg_roles m ON m.oid=a.member JOIN pg_roles g ON g.oid=a.grantor
+   WHERE r.rolname='exp009_owner' AND m.rolname=current_user AND g.rolname='supabase_admin'
+     AND a.admin_option AND NOT a.inherit_option AND NOT a.set_option)
+ THEN RAISE EXCEPTION 'NER_OWNER_FIX_RESTORE'; END IF;
+END $verify$;
 COMMIT;

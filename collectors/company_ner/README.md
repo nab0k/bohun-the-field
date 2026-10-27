@@ -9,8 +9,11 @@ returned countries, vessels, products and programmes in this class.
 ## Durable state
 
 Review-only SQL: `db/companies/company_ner_storage_candidate.sql`. Three new
-private tables in the existing `exp009` schema; no changes to INPUT29 jobs,
-runtime RPC, old intake, catalog data, existing schedules or public permissions.
+private tables owned by the existing `exp009_owner` in the existing schema;
+no changes to INPUT29 jobs, runtime RPC, old intake, catalog data, schedules or
+public permissions. Installation temporarily enables SET to that owner using
+the backend's existing ADMIN membership, then removes only the temporary
+self-grant. The original supabase_admin membership remains unchanged.
 
 - `company_ner_cache`: one exact body/model/schema/adapter computation,
   `pending → running → complete|hold`. A claim commits before inference.
@@ -61,8 +64,11 @@ a live cloud inference test; no new installation/download has happened locally.
 Supply a backend PostgreSQL DSN only through an environment variable, with
 `sslmode=verify-full` and `sslrootcert`. A reviewed backend identity must have
 read access to the selected source/catalog columns and access to these private
-state tables. This candidate grants no new roles or privileges; do not expose
-it through frontend/API roles to make access work.
+state tables. The owner-fix candidate grants the existing postgres backend only
+SELECT/INSERT/UPDATE on the new cache and SELECT/INSERT on new inputs/links.
+It creates no roles, no permanent owner membership and no schema CREATE grant.
+The backend already bypasses RLS; frontend/API roles retain no access to these
+tables. Do not expose private state through API roles to make access work.
 
 ```sh
 python -B scripts/company-ner.py --run \
@@ -76,7 +82,7 @@ failures stop without printing database exceptions/source payloads. `--run`
 is required. The script installs nothing and applies no SQL. The proposed
 GitHub entry point builds this DSN only in process memory from the existing
 `SUPABASE_DB_PASSWORD`, using the same project/backend identity as Inoreader;
-it creates no new credential or privilege. This identity is privileged: the
+it creates no new credential; only the reviewed new-table backend grants are added. This identity is privileged: the
 bounded source/catalog reads and private-state writes are enforced by this
 reviewed code. A dedicated lower-privilege identity is a later improvement.
 
