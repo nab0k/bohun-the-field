@@ -1,0 +1,17 @@
+{
+  "name": "bohun-source-discovery-state",
+  "main": "state-worker.mjs",
+  "compatibility_date": "2026-10-26",
+  "workers_dev": true,
+  "observability": {"enabled": true},
+  "durable_objects": {
+    "bindings": [{"name": "STATE", "class_name": "DiscoveryState"}]
+  },
+  "migrations": [{"tag": "v1", "new_sqlite_classes": ["DiscoveryState"]}],
+  "vars": {
+    "DEPLOYMENT_ID": "bohun-discovery-cloud-v1",
+    "EXPECTED_CODE_SHA256": "",
+    "EXPECTED_POLICY_SHA256": "",
+    "ALLOW_BOOTSTRAP": "false"
+  }
+}

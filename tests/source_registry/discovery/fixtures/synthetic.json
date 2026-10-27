@@ -1,0 +1,105 @@
+{
+  "date": "2026-10-25T12:00:00Z",
+  "publisher": "https://publisher.example/",
+  "feed": "https://publisher.example/feed",
+  "title": "Defence Industry News",
+  "language": "en",
+  "entries": [
+    {
+      "id": "0",
+      "title": "Defence procurement contract award 0",
+      "url": "https://publisher.example/news/0",
+      "published": "2026-10-24T12:00:00Z"
+    },
+    {
+      "id": "1",
+      "title": "Defence procurement contract award 1",
+      "url": "https://publisher.example/news/1",
+      "published": "2026-10-24T12:00:00Z"
+    },
+    {
+      "id": "2",
+      "title": "Defence procurement contract award 2",
+      "url": "https://publisher.example/news/2",
+      "published": "2026-10-24T12:00:00Z"
+    },
+    {
+      "id": "3",
+      "title": "Defence procurement contract award 3",
+      "url": "https://publisher.example/news/3",
+      "published": "2026-10-24T12:00:00Z"
+    },
+    {
+      "id": "4",
+      "title": "Defence procurement contract award 4",
+      "url": "https://publisher.example/news/4",
+      "published": "2026-10-24T12:00:00Z"
+    },
+    {
+      "id": "5",
+      "title": "Defence procurement contract award 5",
+      "url": "https://publisher.example/news/5",
+      "published": "2026-10-24T12:00:00Z"
+    },
+    {
+      "id": "6",
+      "title": "Defence procurement contract award 6",
+      "url": "https://publisher.example/news/6",
+      "published": "2026-10-24T12:00:00Z"
+    },
+    {
+      "id": "7",
+      "title": "Defence procurement contract award 7",
+      "url": "https://publisher.example/news/7",
+      "published": "2026-10-24T12:00:00Z"
+    },
+    {
+      "id": "8",
+      "title": "Defence procurement contract award 8",
+      "url": "https://publisher.example/news/8",
+      "published": "2026-10-24T12:00:00Z"
+    },
+    {
+      "id": "9",
+      "title": "Defence procurement contract award 9",
+      "url": "https://publisher.example/news/9",
+      "published": "2026-10-24T12:00:00Z"
+    },
+    {
+      "id": "10",
+      "title": "Defence procurement contract award 10",
+      "url": "https://publisher.example/news/10",
+      "published": "2026-10-24T12:00:00Z"
+    },
+    {
+      "id": "11",
+      "title": "Defence procurement contract award 11",
+      "url": "https://publisher.example/news/11",
+      "published": "2026-10-24T12:00:00Z"
+    },
+    {
+      "id": "12",
+      "title": "Defence procurement contract award 12",
+      "url": "https://publisher.example/news/12",
+      "published": "2026-10-24T12:00:00Z"
+    },
+    {
+      "id": "13",
+      "title": "Defence procurement contract award 13",
+      "url": "https://publisher.example/news/13",
+      "published": "2026-10-24T12:00:00Z"
+    },
+    {
+      "id": "14",
+      "title": "Defence procurement contract award 14",
+      "url": "https://publisher.example/news/14",
+      "published": "2026-10-24T12:00:00Z"
+    }
+  ],
+  "radars": {
+    "google_alerts": "https://alerts.example/google",
+    "talkwalker": "https://alerts.example/talkwalker",
+    "inoreader_stream": "user/-/state/com.google/alerts/synthetic"
+  },
+  "all_data": "SYNTHETIC_NOT_REAL_DELIVERY"
+}
