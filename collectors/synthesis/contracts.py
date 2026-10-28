@@ -49,7 +49,7 @@ class Resources:
         t = json.loads(Path(topics).read_text(encoding="utf-8"))
         d = json.loads(Path(dictionaries).read_text(encoding="utf-8"))
         p = Path(prompt).read_text(encoding="utf-8")
-        if t.get("version") not in {"topics-v1", "topics-v2"} or d.get("version") not in {"dictionaries-v1", "dictionaries-v2"}:
+        if t.get("version") not in {"topics-v1", "topics-v2", "topics-v3"} or d.get("version") not in {"dictionaries-v1", "dictionaries-v2", "dictionaries-v3"}:
             raise ValueError("UNSUPPORTED_EDITORIAL_INPUTS")
         if not t.get("topics") or not d.get("key_facts_by_event_type"):
             raise ValueError("EDITORIAL_INPUTS_INCOMPLETE")

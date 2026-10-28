@@ -101,28 +101,54 @@ TYPE_MAP = {"contract_signed": "contract", "contract_award": "contract", "procur
             "regulation": "policy", "test_demo": "technology"}
 
 
+# Title cues, checked in this order. A headline without any cue is not routed as an
+# event: body words alone produced contracts out of commentary on the open stream.
+TITLE_TYPES = (
+    # A cancellation outranks the procurement words it negates ("drops ... procurement plan").
+    ("policy", r"\b(drops|dropped|scraps|scrapped|cancels|cancelled|canceled|renonce|verzichtet|abandons)\b"),
+    ("funding", r"\b(funding|grants?|raises|raised|series [a-f]\b|seed round|loan|invests?|investment|"
+                r"non-repayable contribution|financing|secures? (?:[$€£]|c\$|us\$)|förder\w*|financement)\b"),
+    ("contract", r"\b(contracts?|deals?|signs?|signed|orders?|ordered|awards?|awarded|to supply|supplies|to buy|buys?|bought|"
+                 r"procures?|procurement|selects?|selected|taps|wins|won|beschafft|bestellt|auftrag|zuschlag|"
+                 r"erhält|commande|contrat|achète|confirme l'achat|se procurer)\b|\bgoes to\b"),
+    ("partnership", r"\b(to acquire|acquires?|acquisition|controlling stake|takes? (?:a )?stake|merger|merge|"
+                    r"joint venture|teams? (?:up )?with|partner(?:s|ship)?|agree to explore|to explore|explores?|"
+                    r"memorandum|mou|joins? .{0,40}framework|übernimmt|rachète)\b"),
+    ("production", r"\b(production|produce|produces|plant|factory|ramps? up|capacity|delivers|delivered|delivery|"
+                   r"deliveries|shipset|milestone|launch(?:es|ed)? .{0,40}(?:frigate|corvette|submarine|ship|vessel)|"
+                   r"to build|builds|bauen|baut|fertig\w*)\b"),
+    ("technology", r"\b(tests?|tested|testing|trials?|unveils?|introduces?|showcases?|demonstrat\w*|prototype|"
+                   r"first flight|live-fire|certif\w*|launch(?:es)? \w+)\b"),
+    ("policy", r"\b(budget|white paper|weißbuch|strategy|spending target|law|act)\b"),
+)
+
+
 def event_type(title, text):
-    # Specific title cues outrank incidental contracts in the body.
     t = normalize(title)
-    for kind, rx in (("funding", r"\b(funding|grant|non-repayable contribution)\b"),
-                     ("production", r"\b(shipset|production milestone|production sprint|delivers|delivered)\b|\bto produce\b.*\bannually\b"),
-                     ("policy", r"\b(drops|scraps|cancels|renonce)\b")):
+    for kind, rx in TITLE_TYPES:
         if re.search(rx, t):
             return kind
-    if re.search(r"\b(contract|order|contrat)\b|confirme l'achat", t):
-        return "contract"
-    if re.search(r"\b(explore|partnership|joint venture|teams up)\b", t):
-        return "partnership"
-    found = legacy_rules.events(title + "\n" + text, title_len=len(title))
-    return TYPE_MAP.get(found[0]["type"], "other") if found else "other"
+    return "other"
+
+
+SUBJECT_VERBS = (r"awarded|awards?|advances|achieves|receives?|wins|won|delivers|delivered|signed|signs?|agree|agrees|"
+                 r"drops|confirme|plans|announces|secures|to explore|explores|to produce|produces|to acquire|acquires|"
+                 r"to take|takes|to supply|supplies|to build|builds|to buy|buys|orders|ordered|expands|launch(?:es)?|"
+                 r"unveils|introduces|showcases|tests|completes|invests|raises|ramps up|joins|taps|selects|picks|"
+                 r"approves|redirects|to give|to host|beschafft|erhält|bestellt|soll|liefert|kauft|bindet|gründet|"
+                 r"va se procurer|commande|reçoit|lance")
+TITLE_TAG = re.compile(r"^\s*(?:►|exclusive:|breaking:|[A-Z0-9][\w-]{1,15}\s+[–-]\s+|[A-Za-zÄÖÜäöü]+\s+[–-]\s+)", re.I)
 
 
 def title_subject(title):
     # Literal surface candidate only: never a confirmed corporate identity.
-    rx = r"\b(?:awarded|award|advances|achieves|receives|wins|delivers|signed|sign|agree|drops|confirme|plans|announces|secures|to explore|to produce)\b"
-    m = re.search(rx, title, re.I)
-    s = title[:m.start()].strip(" ,—–:-") if m else ""
-    if not s or len(s) > 110 or s.lower() in {"the", "a", "an"}:
+    clean = TITLE_TAG.sub("", title).strip()
+    passive = re.search(r"\bgoes to\s+([A-Z][\w&.-]*(?:\s+[A-Z][\w&.-]*){0,3})", clean)
+    if passive:
+        return passive[1]
+    m = re.search(r"\b(?:" + SUBJECT_VERBS + r")\b", clean, re.I)
+    s = clean[:m.start()].strip(" ,—–:-") if m else ""
+    if not s or len(s) > 110 or s.lower() in {"the", "a", "an"} or not re.match(r"[A-ZÀ-Ý0-9]", s):
         return None
     return s
 
@@ -196,7 +222,9 @@ def extract(doc, resources, catalog=(), ner_spans=()):
             facts.append(fact)
     all_mentions = company_mentions(doc.text, catalog, ner_spans)
     key = {"participant": bool(subject and any(f["participant"] for f in facts)),
-           "partner": bool(subject and re.search(r"\band\b|\bet\b", subject, re.I)),
+           # A partner is named jointly in the subject or as the counterparty of an acquisition/stake/merger/with.
+           "partner": bool(subject and (re.search(r"\band\b|\bet\b|&", subject, re.I) or re.search(
+               r"\b(acquire|acquires|stake in|merger|with|joins|und|mit)\b", doc.title, re.I))),
            "object": any(f["participant"] and len(f["quote"].split()) >= 6 for f in facts),
            # A programme-wide sum in a sidebar is not the participant's award.
            "amount_or_not_disclosed": any((f["amounts"] and f["amount_relevance"] == "event_clause") or
