@@ -12,6 +12,15 @@ on:
           - migration-apply
           - doctrine-load
           - control-live
+          - day-live
+      day_from:
+        description: day-live only, first publication day (YYYY-MM-DD)
+        type: string
+        required: false
+      day_to:
+        description: day-live only, last publication day (YYYY-MM-DD), at most 3 days in all
+        type: string
+        required: false
       expected_sha:
         description: Exact reviewed main commit
         type: string
@@ -53,7 +62,9 @@ jobs:
       - name: Run one stage; the public log gets counts, codes and cost only
         env:
           STAGE: ${{ inputs.stage }}
+          DAY_FROM: ${{ inputs.day_from }}
+          DAY_TO: ${{ inputs.day_to }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          # The model key is exposed to the control-live stage only.
-          GEMINI_API_KEY: ${{ inputs.stage == 'control-live' && secrets.GEMINI_API_KEY || '' }}
-        run: '"$RUNNER_TEMP/bohun-synthesis/bin/python" -B -m collectors.synthesis.live --stage "$STAGE"'
+          # The model key is exposed to the two writer stages only.
+          GEMINI_API_KEY: ${{ (inputs.stage == 'control-live' || inputs.stage == 'day-live') && secrets.GEMINI_API_KEY || '' }}
+        run: '"$RUNNER_TEMP/bohun-synthesis/bin/python" -B -m collectors.synthesis.live --stage "$STAGE" --day-from "$DAY_FROM" --day-to "$DAY_TO"'
