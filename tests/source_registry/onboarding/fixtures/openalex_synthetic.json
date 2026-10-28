@@ -1,0 +1,22 @@
+{
+  "source": "OpenAlex",
+  "since": "2026-10-01",
+  "queries": 1,
+  "unique_candidates": 1,
+  "errors": [],
+  "note": "SYNTHETIC metadata only; unverified relevance; no DB writes.",
+  "items": [
+    {
+      "external_id": "https://openalex.org/W999999999999999",
+      "doi": null,
+      "title": "SYNTHETIC research metadata — not a real work",
+      "publication_date": "2026-10-01",
+      "source_url": "https://example.invalid/synthetic-work",
+      "publisher_source": null,
+      "signal_type": "innovation_rd",
+      "discovery_query": "SYNTHETIC query",
+      "source_system": "openalex",
+      "is_verified_relevance": false
+    }
+  ]
+}
