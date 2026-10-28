@@ -24,7 +24,7 @@ LIVE_VERSION = PIPELINE_VERSION.replace("offline", "live")
 
 MODEL = "gemini-3.5-flash-lite"
 PRICE_VERSION = "gemini35fl-standard-input26-v1"
-MAX_OUTPUT_TOKENS = 2000
+MAX_OUTPUT_TOKENS = 4000  # answer plus low thinking; a cut answer is billed and held
 CAP_MICRO_USD = 1_000_000
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent"
 
@@ -46,7 +46,8 @@ class Ledger:
 
     def reserve(self, body_bytes):
         # A token is never shorter than one UTF-8 byte, so bytes bound input tokens from above.
-        worst = micro_usd(body_bytes, MAX_OUTPUT_TOKENS)
+        # Output is reserved twice over: thinking tokens are billed as output on top of the answer.
+        worst = micro_usd(body_bytes, 2 * MAX_OUTPUT_TOKENS)
         if self.spent + worst > self.cap:
             raise BudgetStop("BUDGET_CAP_WOULD_BE_EXCEEDED")
         return worst
@@ -82,11 +83,12 @@ class GeminiWriter:
 
     def body(self, req):
         system = req["system_instruction"] + "\n\nReturn only JSON matching this schema:\n" + canonical(req["schema"])
-        return {"systemInstruction": {"parts": [{"text": system}]},
+        # Same request shape as intelligence_pipeline.gemini (Gemini 3.x takes thinkingLevel, not a budget).
+        return {"serviceTier": "standard", "systemInstruction": {"parts": [{"text": system}]},
                 "contents": [{"role": "user", "parts": [{"text": canonical(req["packet"])}]}],
                 "generationConfig": {"temperature": req["temperature"], "maxOutputTokens": MAX_OUTPUT_TOKENS,
-                                     "responseMimeType": "application/json",
-                                     "thinkingConfig": {"thinkingBudget": 0}}}
+                                     "candidateCount": 1, "responseMimeType": "application/json",
+                                     "thinkingConfig": {"thinkingLevel": "low"}}}
 
     def __call__(self, req):
         body = self.body(req)
@@ -94,7 +96,12 @@ class GeminiWriter:
         try:
             reply = self.transport(GEMINI_URL.format(MODEL), {"x-goog-api-key": self.key}, body)
         except urllib.error.HTTPError as exc:
-            raise BudgetStop("MODEL_HTTP_%d_NO_RETRY" % exc.code) from None
+            # The API error message names the rejected field; it carries no key or source text.
+            try:
+                detail = json.loads(exc.read().decode("utf-8", "replace"))["error"]["message"][:160]
+            except Exception:
+                detail = ""
+            raise BudgetStop(("MODEL_HTTP_%d_NO_RETRY " % exc.code + detail).strip()) from None
         except Exception:
             # The call may have been billed; the cost is unknown, so the run stops.
             raise BudgetStop("MODEL_CALL_UNCERTAIN_NO_RETRY") from None
