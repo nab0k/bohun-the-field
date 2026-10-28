@@ -340,7 +340,7 @@ class OfflineProbeTests(unittest.TestCase):
 
 class WorkflowGuardTests(unittest.TestCase):
     def test_workflow_entrypoint_runs_as_package_before_credentials(self):
-        workflow = (probe.REPO / ".github/workflows/inoreader-cloud.yml").read_text()
+        workflow = (probe.REPO / ".github/workflows/inoreader-trials.yml").read_text()
         self.assertEqual(workflow.count("python -B -m collectors.inoreader.probe --expected-sha"), 2)
         self.assertNotIn("python -B collectors/inoreader/probe.py", workflow)
         # Real package import/argparse in a separate process. No credentials are
@@ -353,7 +353,7 @@ class WorkflowGuardTests(unittest.TestCase):
         self.assertIn("--apply", result.stdout)
 
     def test_feature_workflow_has_no_automatic_trigger_or_full_sync(self):
-        workflow = (probe.REPO / ".github/workflows/inoreader-cloud.yml").read_text()
+        workflow = (probe.REPO / ".github/workflows/inoreader-trials.yml").read_text()
         self.assertNotIn("schedule:", workflow)
         self.assertNotIn("  push:", workflow)
         self.assertNotIn("sync.py --max-pages", workflow)

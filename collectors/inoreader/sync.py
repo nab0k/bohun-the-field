@@ -18,11 +18,14 @@ import urllib.request
 
 if __package__:
     from .content_contract import CaptureBudget, extract_inoreader_content
+    from .body_backfill import backfill_missing_body
 elif __name__ == "__main__":
     from content_contract import CaptureBudget, extract_inoreader_content
+    from body_backfill import backfill_missing_body
 else:
     # Support existing file-spec test loaders without changing sys.path.
     from collectors.inoreader.content_contract import CaptureBudget, extract_inoreader_content
+    from collectors.inoreader.body_backfill import backfill_missing_body
 
 API = "https://www.inoreader.com/reader/api/0/"
 TOKEN = "https://www.inoreader.com/oauth2/token"
@@ -100,12 +103,14 @@ def folders_from_subscriptions(subscriptions):
     return sorted(folders), source_count
 
 
-def stream_items(folder, token, max_pages):
+def stream_items(folder, token, max_pages, page_size=100):
+    if type(page_size) is not int or not 1 <= page_size <= 100:
+        raise ValueError("stream page_size must be 1..100")
     stream = "user/-/label/" + folder
     seen = set()
     continuation = None
     for _ in range(max_pages):
-        params = {"n": 100}
+        params = {"n": page_size}
         if continuation:
             params["c"] = continuation
         result = api("stream/contents/" + urllib.parse.quote(stream, safe="/"), token, params)
@@ -147,7 +152,7 @@ def normalize(item, folder, *, captured_at=None, content_budget=None):
     }
 
 
-def import_items(items):
+def import_items(items, *, backfill_bodies=False):
     import psycopg
     from psycopg.types.json import Jsonb
     password = os.environ.get("SUPABASE_DB_PASSWORD")
@@ -163,6 +168,9 @@ def import_items(items):
     with psycopg.connect(**params) as conn:
         with conn.transaction():
             with conn.cursor() as cur:
+                if backfill_bodies:
+                    cur.execute("SET LOCAL statement_timeout = '15s'")
+                    cur.execute("SET LOCAL lock_timeout = '5s'")
                 cur.execute("SELECT to_regclass('intelligence.sources'), to_regclass('intelligence.items')")
                 if any(value is None for value in cur.fetchone()):
                     raise RuntimeError("Missing intelligence.sources or intelligence.items")
@@ -176,6 +184,7 @@ def import_items(items):
                         ("Inoreader BOHUN", "https://www.inoreader.com/", "news", "official_api"))
                     source_id = cur.fetchone()[0]
                 inserted = 0
+                backfilled = 0
                 for item in items:
                     cur.execute("""INSERT INTO intelligence.items
                         (source_id, external_id, title, url, item_type, published_at, raw_data)
@@ -184,9 +193,14 @@ def import_items(items):
                         RETURNING id""",
                         (source_id, item["external_id"], item["title"], item["url"],
                          item["published_at"], Jsonb(item["raw_data"])))
-                    inserted += int(cur.fetchone() is not None)
+                    created = cur.fetchone() is not None
+                    inserted += int(created)
+                    if not created and backfill_bodies:
+                        backfilled += int(backfill_missing_body(cur, source_id, item, Jsonb))
                 cur.execute("SELECT count(*) FROM intelligence.items WHERE source_id = %s", (source_id,))
                 total = cur.fetchone()[0]
+    if backfill_bodies:
+        print(f"CONTENT_BACKFILL updated={backfilled}")
     return inserted, total
 
 
@@ -194,9 +208,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--max-pages", type=int, default=2, help="Per BOHUN folder, max 100 items per page")
+    parser.add_argument("--max-items", type=int, help="Optional bound on unique items across all folders (1..1000)")
+    parser.add_argument("--backfill-bodies", action="store_true", help="Fill absent provider bodies on matching existing items; preserve stored bodies")
     args = parser.parse_args()
     if not 1 <= args.max_pages <= 20:
         parser.error("--max-pages must be 1..20")
+    if args.max_items is not None and not 1 <= args.max_items <= 1000:
+        parser.error("--max-items must be 1..1000")
     token = access_token()
     subscriptions = api("subscription/list", token).get("subscriptions", [])
     folders, source_count = folders_from_subscriptions(subscriptions)
@@ -206,12 +224,18 @@ def main():
     unique = {}
     content_budget = CaptureBudget()
     for folder in folders:
+        if args.max_items is not None and len(unique) >= args.max_items:
+            break
         count = 0
-        for raw in stream_items(folder, token, args.max_pages):
+        stream = (stream_items(folder, token, args.max_pages) if args.max_items is None else
+                  stream_items(folder, token, args.max_pages, page_size=min(100,args.max_items-len(unique))))
+        for raw in stream:
             external_id = str(raw["id"])
             if external_id not in unique:
                 unique[external_id] = normalize(raw, folder, content_budget=content_budget)
             count += 1
+            if args.max_items is not None and len(unique) >= args.max_items:
+                break
         print(f"FOLDER {folder}: fetched={count}")
     items = list(unique.values())
     print(f"VALIDATED unique_items={len(items)}")
@@ -223,7 +247,10 @@ def main():
     if args.dry_run:
         print("DRY RUN: no database writes")
         return
-    new, total = import_items(items)
+    if args.backfill_bodies:
+        new, total = import_items(items, backfill_bodies=True)
+    else:
+        new, total = import_items(items)
     print(f"COMMITTED fetched={len(items)} new={new} cloud_inoreader_items={total}")
 
 

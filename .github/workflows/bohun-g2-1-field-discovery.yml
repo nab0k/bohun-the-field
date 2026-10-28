@@ -1,0 +1,103 @@
+name: BOHUN G2.1 Field Discovery (manual only)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bohun-g2-1-field-discovery
+  cancel-in-progress: false
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Discover bounded schema field names only
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import datetime, json, pathlib, re, socket, urllib.error, urllib.request
+          SOURCES = [
+              ("CDTI", "https://sede.cdti.gob.es/AreaPrivada/Servicios/DatosAbiertos/api/datos/proyectosidi/JSON/2026/ALL"),
+              ("BORME", "https://www.boe.es/datosabiertos/api/borme/sumario/20240529"),
+          ]
+          LIMIT = 1048576
+          # Only conventional schema identifiers; reject potentially identifying free-text keys.
+          FIELD = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")
+          MAX_DEPTH, MAX_FIELDS, MAX_SAMPLES = 6, 60, 2
+
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, request, fp, code, msg, headers, newurl):
+                  return None
+
+          def inspect(value, depth=0):
+              if isinstance(value, dict):
+                  valid = sorted(k for k in value if isinstance(k, str) and FIELD.fullmatch(k))
+                  result = {"type": "object", "field_count": len(value),
+                            "safe_field_names": valid[:MAX_FIELDS],
+                            "suppressed_key_count": len(value) - min(len(valid), MAX_FIELDS)}
+                  if depth < MAX_DEPTH:
+                      result["fields"] = {k: inspect(value[k], depth + 1) for k in valid[:MAX_FIELDS]}
+                  return result
+              if isinstance(value, list):
+                  result = {"type": "array", "length": len(value)}
+                  if depth < MAX_DEPTH and value:
+                      result["element_shapes"] = [inspect(x, depth + 1) for x in value[:MAX_SAMPLES]]
+                  return result
+              if value is None:
+                  return {"type": "null"}
+              if isinstance(value, bool):
+                  return {"type": "boolean"}
+              if isinstance(value, (int, float)):
+                  return {"type": "number"}
+              return {"type": "string"}
+
+          report = {
+              "utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+              "policy": "one GET per source; max 1 MiB + 1 read; no retries or redirects; no scalar values or raw responses saved",
+              "sources": [],
+          }
+          opener = urllib.request.build_opener(NoRedirect)
+          for name, url in SOURCES:
+              row = {"source": name, "http_status": None, "bytes_read": None,
+                     "truncated": None, "schema": None, "error_type": None}
+              req = urllib.request.Request(url, headers={
+                  "User-Agent": "BOHUN-G2.1-Field-Discovery/0.1 (manual; one request/source)",
+                  "Accept": "application/json", "Range": "bytes=0-1048575",
+              })
+              try:
+                  with opener.open(req, timeout=15) as response:
+                      row["http_status"] = response.status
+                      body = response.read(LIMIT + 1)
+                      row["bytes_read"] = min(len(body), LIMIT)
+                      row["truncated"] = len(body) > LIMIT
+                      if row["truncated"]:
+                          row["error_type"] = "TooLarge"
+                      else:
+                          try:
+                              row["schema"] = inspect(json.loads(body))
+                          except (ValueError, UnicodeDecodeError):
+                              row["error_type"] = "InvalidJSON"
+              except urllib.error.HTTPError as exc:
+                  row["http_status"] = exc.code
+                  row["error_type"] = "HTTPError"
+                  exc.close()
+              except (urllib.error.URLError, TimeoutError, socket.timeout, OSError) as exc:
+                  row["error_type"] = type(exc).__name__
+              report["sources"].append(row)
+          pathlib.Path("g2-1").mkdir(exist_ok=True)
+          pathlib.Path("g2-1/report.json").write_text(
+              json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+          print(json.dumps(report, indent=2, ensure_ascii=False))
+          PY
+      - name: Upload schema-only artifact
+        if: always()
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: bohun-g2-1-field-discovery
+          path: g2-1/report.json
+          if-no-files-found: warn
+          retention-days: 7

@@ -1,0 +1,43 @@
+name: EXP-013 fetch texts (encrypted)
+
+# Owner consent D-20261019-EXP013-G2G3: ONE run. Inoreader reading-list n=100 -> OpenSSL CMS envelope for the
+# owner's certificate (scripts/exp013_cms.crt). The artifact holds only ciphertext + manifest (numbers), kept 1 day.
+# Log: numbers only. No schedule, no DB, no Notion.
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: exp013-fetch-texts
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    if: github.event.label.name == 'exp013-fetch-texts'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Offline tests (encryption, no plaintext)
+        run: python -m unittest discover -s tests/analyst -t .
+      - name: Fetch and encrypt
+        env:
+          INOREADER_CLIENT_ID: ${{ secrets.INOREADER_CLIENT_ID }}
+          INOREADER_CLIENT_SECRET: ${{ secrets.INOREADER_CLIENT_SECRET }}
+          INOREADER_REFRESH_TOKEN: ${{ secrets.INOREADER_REFRESH_TOKEN }}
+        run: python scripts/exp013-fetch-texts.py --out out-exp013 -n 100
+      - name: Upload ciphertext only
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp013-texts
+          path: |
+            out-exp013/texts.cms.der
+            out-exp013/manifest.json
+          retention-days: 1
+          if-no-files-found: error

@@ -1,0 +1,1302 @@
+{
+ "_source": "USAspending API v2 spending_by_category/recipient, DoD awarding, contracts A-D, FY2025 (2024-10-01..2025-09-30), top 100 recipient ids grouped by name",
+ "_retrieved": "2026-10-18",
+ "entries": [
+  {
+   "name": "LOCKHEED MARTIN CORPORATION",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "G4KDGE4JFFK7"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "6cf5fb1b-4988-d087-5dc1-70939d8fc6c4-C"
+    ],
+    [
+     "UEI",
+     "XFJMYSYFJEK4"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "779b3e3e-364f-7cbc-28a4-a2b4484b86f4-C"
+    ],
+    [
+     "UEI",
+     "H7PNSVNN5827"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "695d5739-ecc3-8484-ba2b-f9c8b4652a4a-C"
+    ],
+    [
+     "UEI",
+     "SJDEB3MKJEW5"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "4051d253-67f0-30bd-2c7f-5eb539533924-C"
+    ],
+    [
+     "UEI",
+     "CWM4UN76ZQW8"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "d7df489c-5a15-3e1b-e7fa-0e93eb94a166-C"
+    ],
+    [
+     "UEI",
+     "FYHNA5WC8XD7"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "6e7a895c-aa57-8600-2a8a-4e237f6213f6-C"
+    ],
+    [
+     "UEI",
+     "KMEVRAKJVBD3"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "8a7abf83-bb31-a229-bb3a-31eb356988eb-C"
+    ],
+    [
+     "UEI",
+     "NGBVY5X32XZ5"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "894dbedb-aca8-9b52-0a82-3b0fd8713b6d-C"
+    ],
+    [
+     "UEI",
+     "HJP4JZG1FUL9"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "5ad7895c-192b-21cd-8baf-92c6dce0b593-C"
+    ],
+    [
+     "UEI",
+     "H11HD5VHGHN3"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "687c4cc7-53f1-d028-875d-2fc73de19122-C"
+    ],
+    [
+     "UEI",
+     "CQWLW9XRQTH5"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "46023044-eacc-a9ca-5b5e-ddc4673fc267-C"
+    ],
+    [
+     "UEI",
+     "JKVWEPKJRR65"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "622f0580-7b5e-83b3-fedc-ebc6a2dee446-C"
+    ]
+   ],
+   "rank": 1
+  },
+  {
+   "name": "ELECTRIC BOAT CORPORATION",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "E7BEKJ4V9528"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "d5ab5f51-db3a-a26f-96a1-1b24c3e2802c-C"
+    ]
+   ],
+   "rank": 2
+  },
+  {
+   "name": "RAYTHEON COMPANY",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "VTEWM5QSE598"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "01c4a3a3-b4c5-ce4e-822b-d17f09985001-C"
+    ],
+    [
+     "UEI",
+     "XSV6AZJ6SDJ7"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "cce9df51-3950-87f4-0b34-4353d5a08f32-C"
+    ],
+    [
+     "UEI",
+     "YD6LTFVUZNG1"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "b91e6418-aa27-f6c2-90a9-1545753a6d15-C"
+    ],
+    [
+     "UEI",
+     "NBSLHP77ZJQ1"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "b6b091bb-570b-bf26-3e7a-b4a1a7c2d61a-C"
+    ],
+    [
+     "UEI",
+     "HEBCLD22EJD1"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "f5a16ae3-dea9-9665-e3ae-4580e21e57fc-C"
+    ],
+    [
+     "UEI",
+     "MZK8TCNF24G2"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "f321e226-c4b2-f29f-443b-86843ff28e53-C"
+    ]
+   ],
+   "rank": 3
+  },
+  {
+   "name": "AMERISOURCEBERGEN DRUG CORP",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "KABZK8W6PQT3"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "edc402f7-abac-eafe-2aae-3fdcd8d1bb8a-C"
+    ]
+   ],
+   "rank": 4,
+   "expected": "civil_supplier_may_be_out_of_scope"
+  },
+  {
+   "name": "RTX CORPORATION",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "QN1BCFY7JDJ5"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "62e141b3-4887-5b39-6b75-eace9326395c-C"
+    ]
+   ],
+   "rank": 5
+  },
+  {
+   "name": "HUMANA GOVERNMENT BUSINESS INC",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "ZE6ZM6NKSV43"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "1068e466-707d-6b6f-367f-0255fab79b8c-C"
+    ]
+   ],
+   "rank": 6,
+   "expected": "civil_supplier_may_be_out_of_scope"
+  },
+  {
+   "name": "THE BOEING COMPANY",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "JJM4FRDZJDX1"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "9ab85632-42cc-5fa4-2a9c-d734034ddd33-C"
+    ],
+    [
+     "UEI",
+     "WZWRLY4G3PL8"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "22d282c6-4508-7d30-97f1-7401ea73b12a-C"
+    ],
+    [
+     "UEI",
+     "MF2LE5RK6L84"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "241d908a-e5e9-f275-b625-6b1f76859002-C"
+    ],
+    [
+     "UEI",
+     "UEGFHX6R6KJ1"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "5fa231ae-15e3-afd3-8c5c-bb9911ba57f8-C"
+    ],
+    [
+     "UEI",
+     "M25AW7P5S7K7"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "e2d7a16e-029f-ce0e-97dc-8b32fa6dc1d1-C"
+    ],
+    [
+     "UEI",
+     "E466BXU4KJH8"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "f9736fab-29cf-0248-a01b-aea3ad360ecc-C"
+    ]
+   ],
+   "rank": 7
+  },
+  {
+   "name": "ATLANTIC DIVING SUPPLY, INC.",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "GJMSFBCNMSK3"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "9c708c7c-f339-5fc8-0455-a5aaea1d2da5-C"
+    ]
+   ],
+   "rank": 8,
+   "expected": "review",
+   "note": "tactical equipment distributor"
+  },
+  {
+   "name": "SIKORSKY AIRCRAFT CORPORATION",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "UTJWTSLMFNG4"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "d64537c9-5482-dd40-cdd4-5cf07b66329d-C"
+    ]
+   ],
+   "rank": 9
+  },
+  {
+   "name": "HUNTINGTON INGALLS INCORPORATED",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "C3NLZNSMU254"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "1eb5d9d6-aabf-3228-e6ab-79cf9729c9d7-C"
+    ],
+    [
+     "UEI",
+     "WMXDDH6HJNA5"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "dde47d6b-a165-dbed-d5bd-a6e55ca6e591-C"
+    ]
+   ],
+   "rank": 10
+  },
+  {
+   "name": "TRIWEST HEALTHCARE ALLIANCE CORP",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "J7M9HPTGJ1S9"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "bf1220c1-2373-042a-e8e1-33d5a29639d0-C"
+    ]
+   ],
+   "rank": 11,
+   "expected": "civil_supplier_may_be_out_of_scope"
+  },
+  {
+   "name": "BOOZ ALLEN HAMILTON INC",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "JCBMLGPE6Z71"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "ffca72e5-fba2-798a-6969-2a6c45e9f985-C"
+    ]
+   ],
+   "rank": 12
+  },
+  {
+   "name": "AMENTUM SERVICES, INC.",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "QEMLRQA7PLG4"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "fe5366b4-84c8-12ff-126f-f123de29819c-C"
+    ]
+   ],
+   "rank": 13
+  },
+  {
+   "name": "LEIDOS, INC.",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "UE9QJD4KK1L6"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "5ddb264f-234b-872c-2571-4731fde123c6-C"
+    ],
+    [
+     "UEI",
+     "KTMAJCY6JXM3"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "876f1621-8b69-d47c-7fa6-933c63b9da44-C"
+    ]
+   ],
+   "rank": 14
+  },
+  {
+   "name": "BATH IRON WORKS CORPORATION",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "FREEMCLKFXE3"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "7e9ba6ab-3f37-4abd-4708-bdeecb64ea02-C"
+    ]
+   ],
+   "rank": 15
+  },
+  {
+   "name": "SIERRA NEVADA COMPANY, LLC",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "N1PWVLN6F4U1"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "fbd9af5f-b33e-9331-9063-295f6910ddf1-C"
+    ]
+   ],
+   "rank": 16
+  },
+  {
+   "name": "BAE SYSTEMS LAND & ARMAMENTS L.P.",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "DMHSJF9K3XP9"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "aac98290-78f5-735a-8f80-d06daa6e4c59-C"
+    ]
+   ],
+   "rank": 17
+  },
+  {
+   "name": "BECHTEL PLANT MACHINERY, INC.",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "MTKMVNVK1MH6"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "2564523b-4d13-da43-99e7-d2fb15569c2d-C"
+    ]
+   ],
+   "rank": 18
+  },
+  {
+   "name": "SCIENCE APPLICATIONS INTERNATIONAL CORPORATION",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "MMLKPW9JLX64"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "20af0683-f17d-1f8f-38ee-2f11bd124559-C"
+    ]
+   ],
+   "rank": 19
+  },
+  {
+   "name": "CACI, INC. - FEDERAL",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "N3PBJAVNKF61"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "28eee911-76af-7147-f760-4ec5f90bec2d-C"
+    ]
+   ],
+   "rank": 20
+  },
+  {
+   "name": "THE JOHNS HOPKINS UNIVERSITY APPLIED PHYSICS LABORATORY LLC",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "C1HBCJ9RMBV3"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "4eae43e5-e1f1-0e77-b2fe-09a12a9a552c-C"
+    ]
+   ],
+   "rank": 21
+  },
+  {
+   "name": "ECC CONSTRUCTORS LLC",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "LJPLMV3GCYE7"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "201b337b-cf7d-75ff-d956-d2fd2282a790-C"
+    ]
+   ],
+   "rank": 22,
+   "expected": "civil_supplier_may_be_out_of_scope"
+  },
+  {
+   "name": "GENERAL ELECTRIC COMPANY",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "E3HYKKLT5ZT1"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "66092799-9c72-fde6-e008-9d381191aed2-C"
+    ],
+    [
+     "UEI",
+     "J1T1FEN3PWX6"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "61dfb4da-ba2f-398f-13e9-5792607bf051-C"
+    ]
+   ],
+   "rank": 23
+  },
+  {
+   "name": "DELL MARKETING L.P.",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "HJLSY7RZV8X6"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "d49f36ae-b747-42e3-5257-6787a69e51e9-C"
+    ]
+   ],
+   "rank": 24
+  },
+  {
+   "name": "FLUOR MARINE PROPULSION, LLC",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "CWHMVCX7K1N6"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "27de0316-220e-8297-411f-f99b6f60443a-C"
+    ]
+   ],
+   "rank": 25,
+   "note": "naval nuclear propulsion: defence"
+  },
+  {
+   "name": "ASHBRITT INC",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "YH8JGLSMAQX3"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "12044252-4d75-d818-5399-56425c7f8fcb-C"
+    ]
+   ],
+   "rank": 26
+  },
+  {
+   "name": "V2X SYSTEMS LLC",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "RRFJZGASZJ41"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "385c148c-559c-6218-53ff-80836c64dc4c-C"
+    ]
+   ],
+   "rank": 27
+  },
+  {
+   "name": "SPACE EXPLORATION TECHNOLOGIES CORP.",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "C6M7C2FLKER5"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "8a3a5525-3218-a488-db0e-4823241ceb90-C"
+    ]
+   ],
+   "rank": 28
+  },
+  {
+   "name": "L3HARRIS TECHNOLOGIES INTEGRATED SYSTEMS L.P.",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "RDFKNPZNQ8E3"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "9a8e6a0a-4913-b84b-e426-8fdaeb54a427-C"
+    ]
+   ],
+   "rank": 29
+  },
+  {
+   "name": "GENERAL ATOMICS AERONAUTICAL SYSTEMS, INC.",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "ZH4NVFG3Z526"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "e262465b-a9eb-8206-020a-98327ae917fa-C"
+    ]
+   ],
+   "rank": 30
+  },
+  {
+   "name": "GENERAL DYNAMICS LAND SYSTEMS INC.",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "HAWKSQF848W7"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "99938bc0-e262-06ff-9f94-386fd3da88dc-C"
+    ]
+   ],
+   "rank": 31
+  },
+  {
+   "name": "BELL TEXTRON INC",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "N5QUZAYGPKM3"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "9f062daf-f500-7d41-53d7-5248be76b69f-C"
+    ]
+   ],
+   "rank": 32
+  },
+  {
+   "name": "OSHKOSH DEFENSE LLC",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "ZMXAHH8M8VL8"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "5c99e12d-99a6-52a3-d019-34a3855a6ed7-C"
+    ]
+   ],
+   "rank": 33
+  },
+  {
+   "name": "NORTHROP GRUMMAN SYSTEMS CORPORATION",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "PK8PM2GNVMP8"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "a398e5f8-3381-5983-2fb6-c60a3f701eb4-C"
+    ],
+    [
+     "UEI",
+     "D8QQPFNYJD63"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "a039e3c2-edcd-2b9b-4459-dcde55990ab4-C"
+    ],
+    [
+     "UEI",
+     "E4X3BLZPPPX3"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "75dec7b1-56eb-4770-da4b-ac736121ab61-C"
+    ],
+    [
+     "UEI",
+     "LALWKM623MU7"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "fe5032b4-c053-b1d1-c4c9-7d6d9e770723-C"
+    ],
+    [
+     "UEI",
+     "FNBAMFZ3GD53"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "cbf8729b-05b4-083d-1dea-1bd2a60d19bd-C"
+    ],
+    [
+     "UEI",
+     "VSBAFMDKTWL4"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "c1d87c0c-1b5f-f2c8-c447-e001bb4cc08c-C"
+    ],
+    [
+     "UEI",
+     "ULU9F3WMEH66"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "a7284824-a186-1d38-f257-0fd2f2e09ff5-C"
+    ],
+    [
+     "UEI",
+     "DJUCEANK2KP4"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "20e2511b-72bb-ef09-f739-ac4bc059bafb-C"
+    ]
+   ],
+   "rank": 34
+  },
+  {
+   "name": "W S DARLEY & CO",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "TENRPZGMAGJ6"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "b60fab9a-d60a-1c33-1470-2729b041737f-C"
+    ]
+   ],
+   "rank": 35
+  },
+  {
+   "name": "DRAGADOS/HAWAIIAN DREDGING/ORION JV",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "E8AXVANBZBD4"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "15879ec6-1b21-46be-308d-e9dc98e307c2-C"
+    ]
+   ],
+   "rank": 36
+  },
+  {
+   "name": "MASSACHUSETTS INSTITUTE OF TECHNOLOGY",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "SN5KKUDR9LY8"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "00129762-bb69-300b-a2fb-ff1b071b1e42-C"
+    ]
+   ],
+   "rank": 37
+  },
+  {
+   "name": "HEALTH NET FEDERAL SERVICES, LLC",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "F7NGF6NJFB96"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "95e5fad6-bf60-0254-a5b0-65c750733414-C"
+    ]
+   ],
+   "rank": 38,
+   "expected": "civil_supplier_may_be_out_of_scope"
+  },
+  {
+   "name": "CANADIAN COMMERCIAL CORPORATION",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "FA38CTVQM319"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "feff6bf5-0c8a-4590-0796-eec837a63efa-C"
+    ]
+   ],
+   "rank": 39
+  },
+  {
+   "name": "BELL BOEING JOINT PROJECT OFFICE",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "JHFZTG8ZC9V2"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "846d3ff4-b2cb-3924-018c-2dee1e0259b7-C"
+    ]
+   ],
+   "rank": 40
+  },
+  {
+   "name": "GENERAL DYNAMICS INFORMATION TECHNOLOGY, INC.",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "SMNWM6HN79X5"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "455555be-773d-eab1-1e6b-7b94400b757e-C"
+    ]
+   ],
+   "rank": 41
+  },
+  {
+   "name": "ROLLS-ROYCE CORPORATION",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "KHK8QYLFGLU1"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "ae61fda0-8744-9361-a177-0ffcabb70c2e-C"
+    ]
+   ],
+   "rank": 42
+  },
+  {
+   "name": "BAE SYSTEMS TECHNOLOGY SOLUTIONS & SERVICES INC.",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "LX3BSV6NNW58"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "2e141abe-fe8f-7ddc-e6a3-8bb2165836be-C"
+    ]
+   ],
+   "rank": 43
+  },
+  {
+   "name": "THE AEROSPACE CORPORATION",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "YA8LJBJCND19"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "6cbea0a9-b56a-1fd8-3dee-e808ea373a4b-C"
+    ]
+   ],
+   "rank": 44
+  },
+  {
+   "name": "V2X AEROSPACE LLC",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "NVC1EFKKYB93"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "fb63ba18-02ee-d557-7366-681926c60e0d-C"
+    ]
+   ],
+   "rank": 45
+  },
+  {
+   "name": "VALERO MARKETING AND SUPPLY CO",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "CQXWTJPKQJ73"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "47c1ba83-c53d-4e92-e987-26c47ac8fb00-C"
+    ]
+   ],
+   "rank": 46,
+   "expected": "civil_supplier_may_be_out_of_scope"
+  },
+  {
+   "name": "AM GENERAL LLC",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "NWM1JWVDA853"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "8af25486-0968-17b8-5802-b353f36e9374-C"
+    ]
+   ],
+   "rank": 47
+  },
+  {
+   "name": "TEXTRON SYSTEMS CORP",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "WEE9WFHMACH9"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "4cda9ea4-034c-8fc4-fdd1-da02479ace65-C"
+    ]
+   ],
+   "rank": 48
+  },
+  {
+   "name": "CARAHSOFT TECHNOLOGY CORP",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "DT8KJHZXVJH5"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "4e74aeb5-dd21-20a7-63bd-e9f934d69583-C"
+    ]
+   ],
+   "rank": 49
+  },
+  {
+   "name": "ACCENTURE FEDERAL SERVICES LLC",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "C47BNA8GM833"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "d41a6b8a-9d6a-0d28-7e24-989e31731aad-C"
+    ]
+   ],
+   "rank": 50
+  },
+  {
+   "name": "M1 SUPPORT SERVICES, L.P.",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "PNAFHATW8BD7"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "f4832a42-513d-107f-4852-9539b2c518e1-C"
+    ]
+   ],
+   "rank": 51
+  },
+  {
+   "name": "RAYTHEON/LOCKHEED MARTIN JAVELIN JV",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "WGB7GAKM7A68"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "2acfbd75-26c2-0328-d37e-27e90dcef4db-C"
+    ]
+   ],
+   "rank": 52
+  },
+  {
+   "name": "SERCO INC",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "DKJ1R5ABCN48"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "89bcff2a-2813-19f6-92a5-47dd33313207-C"
+    ]
+   ],
+   "rank": 53
+  },
+  {
+   "name": "ROCKWELL COLLINS, INC.",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "J4Q3HP6NHK47"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "fbaf2f7a-d2a8-a4b8-2388-3abc483658a7-C"
+    ]
+   ],
+   "rank": 54
+  },
+  {
+   "name": "NOBLE SUPPLY & LOGISTICS, LLC",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "YLE5AAYNVPK6"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "f1addd3f-8f09-bd87-cec8-f143401629ba-C"
+    ]
+   ],
+   "rank": 55,
+   "expected": "civil_supplier_may_be_out_of_scope"
+  },
+  {
+   "name": "BAE SYSTEMS LAND AND ARMAMENTS L.P.",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "D2ETMTLWJCJ1"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "4e82bc60-9b65-7c43-0d5f-4d41ace9f16b-C"
+    ]
+   ],
+   "rank": 56
+  },
+  {
+   "name": "BAE SYSTEMS INFORMATION AND ELECTRONIC SYSTEMS INTEGRATION INC.",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "F9AVUZ8YBGQ6"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "cdc6b956-a9c8-8548-7902-4512c9ccb343-C"
+    ]
+   ],
+   "rank": 57
+  },
+  {
+   "name": "OLIN WINCHESTER LLC",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "HCFGYBJNH9S5"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "616bca4f-e2ec-546a-f5a9-246df427d803-C"
+    ]
+   ],
+   "rank": 58
+  },
+  {
+   "name": "MINISTRY OF DEFENSE",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "C1KKFURZSEF5"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "bbe9233e-e10f-881f-b54d-ff7c211a88aa-C"
+    ]
+   ],
+   "rank": 59
+  },
+  {
+   "name": "KBR WYLE SERVICES, LLC",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "L693MQDFLKD1"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "a0a87c1c-b46f-7c1f-9eb0-a389f77904a8-C"
+    ]
+   ],
+   "rank": 60
+  },
+  {
+   "name": "KONGSBERG DEFENCE & AEROSPACE AS",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "V24HYE4YVGH6"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "2f22cbe0-84d3-21d8-f5eb-bc0207105ebb-C"
+    ]
+   ],
+   "rank": 61
+  },
+  {
+   "name": "KBR SERVICES, LLC",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "YSQMHRS4HSC5"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "77b600af-8a01-de99-cfcc-06558d83a984-C"
+    ]
+   ],
+   "rank": 62
+  },
+  {
+   "name": "L3HARRIS GLOBAL COMMUNICATIONS, INC.",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "LJNAJVPB3MW1"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "fe1273eb-82d1-0fbe-536c-7bb59157c827-C"
+    ]
+   ],
+   "rank": 63
+  },
+  {
+   "name": "SUPPLYCORE LLC",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "HTYJC5P9ZMH5"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "038feb1d-f65f-cb60-0833-9e70db12d7b7-C"
+    ]
+   ],
+   "rank": 64,
+   "expected": "civil_supplier_may_be_out_of_scope"
+  },
+  {
+   "name": "GENERAL DYNAMICS ORDNANCE AND TACTICAL SYSTEMS, INC.",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "FNEJKBCACXL1"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "fefa9485-36e4-9820-72ad-356e6028032e-C"
+    ]
+   ],
+   "rank": 65
+  },
+  {
+   "name": "THE MITRE CORPORATION",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "DMHDNDCPWUD1"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "3903ae3c-2661-60bb-cdd3-1f26ad214167-C"
+    ]
+   ],
+   "rank": 66
+  },
+  {
+   "name": "ATLAS AIR, INC.",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "CKB5NJY4CQL3"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "411abe8c-ec15-5434-5e42-8e684d5992fc-C"
+    ]
+   ],
+   "rank": 67
+  },
+  {
+   "name": "ASRC FEDERAL FACILITIES LOGISTICS, LLC",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "MA1VZ6667CB1"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "bf9cd280-b7a0-642a-5795-f5156204f71a-C"
+    ]
+   ],
+   "rank": 68,
+   "expected": "civil_supplier_may_be_out_of_scope"
+  },
+  {
+   "name": "L3HARRIS TECHNOLOGIES, INC.",
+   "country": null,
+   "ids": [
+    [
+     "UEI",
+     "LB5KVANFKPY7"
+    ],
+    [
+     "USASPENDING_RECIPIENT",
+     "ff82f82d-0b7f-0534-6465-02811ca0e11a-C"
+    ]
+   ],
+   "rank": 69
+  }
+ ],
+ "_note": "expected=civil_supplier_may_be_out_of_scope is a name heuristic for review, not a decision"
+}

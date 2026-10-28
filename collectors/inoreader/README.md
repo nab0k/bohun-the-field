@@ -109,11 +109,12 @@ Offline probe tests, in addition to the three regression commands above:
 /opt/homebrew/bin/python3.13 -B -m unittest discover -s tests -p 'test_inoreader_probe.py'
 ```
 
-The feature copy of `inoreader-cloud.yml` is manual-only, has no schedule/push
-trigger, and refuses refs other than `codex/exp009-cloud-pipeline`. It shares the
-normal collector's concurrency group, defaults to preview and checks the reviewed
-SHA before credentials. The workflow already exists on main; a future separately
-approved feature-ref dispatch can test this copy without merging it into main.
+The bounded manual trials live in `inoreader-trials.yml` (split from the feature
+copy of `inoreader-cloud.yml` when merging main on 28.10.2026; the scheduled
+collector stays in `inoreader-cloud.yml`). The trials workflow is manual-only, has
+no schedule/push trigger, and refuses refs other than `codex/exp009-cloud-pipeline`.
+It shares the normal collector's concurrency group, defaults to preview and checks
+the reviewed SHA before credentials.
 The main collector/schedule has not been changed by local edits. Do not merge this
 temporary probe workflow into main as a production replacement.
 

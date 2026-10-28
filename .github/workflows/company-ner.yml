@@ -1,0 +1,83 @@
+name: BOHUN saved-text company NER
+run-name: company-ner bounded manual ${{ inputs.expected_sha }}
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact reviewed main commit with installed private NER storage
+        type: string
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: bohun-company-ner
+  cancel-in-progress: false
+jobs:
+  company-ner:
+    if: github.repository == 'nab0k/bohun-the-field' && github.actor == 'nab0k' && github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Verify reviewed revision before credentials
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          test "$EXPECTED_SHA" = "$GITHUB_SHA"
+          test "$GITHUB_REF" = 'refs/heads/main'
+          test "${#EXPECTED_SHA}" -eq 40
+          case "$EXPECTED_SHA" in *[!0-9a-f]*) exit 1 ;; esac
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13'
+      - name: Offline contracts and process boundaries
+        run: python -B -m unittest tests.test_company_ner tests.test_company_ner_native tests.test_company_ner_cli
+      - name: Acquire previously pinned CPU runtime
+        run: python -B -m collectors.company_ner.bootstrap
+      - name: One private persistent tick, at most twelve CPU extractions
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          "$RUNNER_TEMP/bohun-company-ner/venv/bin/python" -B - <<'PY'
+          import hashlib, os, pathlib, runpy, sys
+          from psycopg.conninfo import make_conninfo
+          password=os.environ.get('SUPABASE_DB_PASSWORD')
+          if not password: raise SystemExit('DATABASE_SECRET_ABSENT')
+          ca=pathlib.Path('collectors/company_ner/supabase-prod-ca-2021.crt').resolve()
+          if hashlib.sha256(ca.read_bytes()).hexdigest()!='700723581420dd1ac98fd7e9ac529f0ef210eadcaf87fc868a3ad7d114c2f3b7':
+              raise SystemExit('DATABASE_CA_PIN_MISMATCH')
+          os.environ['COMPANY_NER_DATABASE_URL']=make_conninfo(
+              host='aws-1-eu-central-1.pooler.supabase.com',port=5432,dbname='postgres',
+              user='postgres.tecrucawzukxqtchpxrh',password=password,
+              sslmode='verify-full',sslrootcert=str(ca))
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'bohun-company-ner'
+          sys.argv=['scripts/company-ner.py','--run','--model-python',str(root/'venv/bin/python'),
+                    '--model-dir',str(root/'model'),'--limit','12']
+          runpy.run_path('scripts/company-ner.py',run_name='__main__')
+          PY
+      - name: Verify native source integrity after inference
+        run: |
+          python -B - <<'PY'
+          import json, os, pathlib
+          from collectors.company_ner.bootstrap import native_integrity
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'bohun-company-ner'
+          if native_integrity(root)!=json.loads((root/'native-before.json').read_bytes()):
+              raise SystemExit('NATIVE_CODE_CHANGED')
+          print('NATIVE_91_SOURCE_FILES_UNCHANGED')
+          PY
+      - name: Remove temporary model, wheels and runtime
+        if: always()
+        run: |
+          python -B - <<'PY'
+          import os, pathlib, shutil
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'bohun-company-ner'
+          if root.is_dir(): shutil.rmtree(root)
+          PY

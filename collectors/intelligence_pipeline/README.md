@@ -3,7 +3,7 @@
 Локальный кандидат, **не развёрнутый облачный MVP**. Один выбранный путь:
 `Inoreader/web → source snapshot → context → extract/analyze/review + dossier → Notion`.
 Канонический CLI — `scripts/intelligence-pipeline.py runtime`; cloud mode —
-`pipeline` в `.github/workflows/inoreader-cloud.yml`. Версия config/лимитов:
+`pipeline` в `.github/workflows/inoreader-trials.yml`. Версия config/лимитов:
 `exp009-runtime-input29-v3`. Старые AUTO08 config и cloud-кандидаты с другим RPC
 не совместимы с этим запуском и не подставляются как fallback.
 
