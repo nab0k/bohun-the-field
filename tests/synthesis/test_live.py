@@ -91,6 +91,16 @@ class WriterTests(unittest.TestCase):
         self.assertEqual(ledger.calls, 1)
         self.assertGreater(ledger.spent, 0)
 
+    def test_response_schema_is_sent_without_length_keywords(self):
+        seen = {}
+        def capture(url, headers, body):
+            seen.update(body); return reply("{}")
+        req = self.req(); req["schema"] = {"type": "object", "properties": {"a": {"type": "string", "maxLength": 9}}}
+        GeminiWriter("k", Ledger(), capture)(req)
+        sent = seen["generationConfig"]["responseJsonSchema"]
+        self.assertEqual(sent, {"type": "object", "properties": {"a": {"type": "string"}}})
+        self.assertEqual(seen["generationConfig"]["thinkingConfig"], {"thinkingLevel": "low"})
+
     def test_key_goes_in_header_not_url(self):
         seen = {}
         def capture(url, headers, body):

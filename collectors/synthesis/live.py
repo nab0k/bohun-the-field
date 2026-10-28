@@ -73,6 +73,16 @@ def http_post(url, headers, body):
         return json.load(reply)
 
 
+def response_schema(schema):
+    """The writer schema for responseJsonSchema: structure keywords only; lengths stay code checks."""
+    if isinstance(schema, dict):
+        return {k: response_schema(v) for k, v in schema.items()
+                if k not in {"maxLength", "minLength", "minItems", "maxItems", "$schema"}}
+    if isinstance(schema, list):
+        return [response_schema(v) for v in schema]
+    return schema
+
+
 class GeminiWriter:
     """One structured call per event; cost from usageMetadata, unknown cost stops the run."""
 
@@ -88,6 +98,7 @@ class GeminiWriter:
                 "contents": [{"role": "user", "parts": [{"text": canonical(req["packet"])}]}],
                 "generationConfig": {"temperature": req["temperature"], "maxOutputTokens": MAX_OUTPUT_TOKENS,
                                      "candidateCount": 1, "responseMimeType": "application/json",
+                                     "responseJsonSchema": response_schema(req["schema"]),
                                      "thinkingConfig": {"thinkingLevel": "low"}}}
 
     def __call__(self, req):
@@ -414,7 +425,10 @@ def route_and_write(conn, resources, key, transport, stage, docs, item_ids, repo
                         mark_items(cur, event, item_ids, None, outcome, codes, cost)
                 summary.append({"docs": len(event["document_ids"]), "type": event["type"],
                                 "topic": (event["topic"]["main"] or {}).get("slug"), "outcome": outcome,
-                                "codes": codes, "synthesis": bool(event.get("writer_output")), "cost_micro_usd": cost})
+                                "codes": codes, "synthesis": bool(event.get("writer_output")), "cost_micro_usd": cost,
+                                # Field names and check codes only — never the written prose.
+                                "writer_keys": sorted(event["writer_output"]) if isinstance(event.get("writer_output"), dict) else None,
+                                "check_codes": (event.get("text_checks") or {}).get("codes")})
             for doc_id in result["duplicate_document_ids"]:
                 # Exact reprints (same URL and text) are marked too, so the next run skips them.
                 cur.execute("""INSERT INTO knowledge.item_processing (item_id, pipeline_version, outcome, reason_codes)
