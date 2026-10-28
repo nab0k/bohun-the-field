@@ -272,4 +272,29 @@ class EditorialV2(unittest.TestCase):
         self.assertTrue(validate(o,p,resources().dictionaries)['ok'])
 
 
+class StreamTitleTests(unittest.TestCase):
+    """Headline cues and subjects taken from the 27-28.10 stream (titles only, no source text)."""
+    def test_types(self):
+        from collectors.synthesis.extraction import event_type
+        cases = {"Germany Drops Boeing MQ-28 Ghost Bat Rapid Procurement Plan": "policy",
+                 "Pentagon, BAE sign deal for up to 25,000 precision-guided munition kits a year": "contract",
+                 "Panzerabwehr – Finnland beschafft RGW110 von Dynamit Nobel Defence": "contract",
+                 "Hanwha Defense USA to Acquire Hanwha Philly Shipyard": "partnership",
+                 "Nominal Secures $71M to Expand Across Collaborative Combat Aircraft Testing": "funding",
+                 "Navantia launches Spanish Navy's second F110 frigate four months ahead of schedule": "production",
+                 "Where Are The Aircraft Carriers?: October 27, 2026": "other",
+                 "Dozens of Former Airmen Are Running in the '26 Midterms": "other"}
+        for title, kind in cases.items():
+            self.assertEqual(event_type(title, ""), kind, title)
+    def test_subjects(self):
+        from collectors.synthesis.extraction import title_subject
+        cases = {"Geospatial intelligence contract goes to CGI": "CGI",
+                 "BNET-V – Dänemark beschafft Funkgeräte von DND Digital": "Dänemark",
+                 "► Chess Dynamics secures additional contract with PT Len": "Chess Dynamics",
+                 "Weibel to supply XENTA-M5 radars for Poland's SAN programme": "Weibel",
+                 "Where Are The Aircraft Carriers?: October 27, 2026": None}
+        for title, subject in cases.items():
+            self.assertEqual(title_subject(title), subject, title)
+
+
 if __name__=='__main__':unittest.main()
