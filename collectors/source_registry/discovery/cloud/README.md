@@ -50,8 +50,8 @@ Periodic execution never bootstraps or resets missing state. Use a fresh private
 runtime directory for every Actions job; a stale local directory causes HOLD.
 
 Only live modes look up `SOURCE_DISCOVERY_STATE_TOKEN`, after pins and permissions.
-Inoreader OAuth is still handled by existing Worker with explicit mapping; rotation
-causes HOLD, not an automatic shared-secret replacement. DB reading stays optional;
+Live cloud Inoreader requires `runtime.oauth_mode: "coordinator"`; legacy `oauth_env`
+is rejected before credential access. DB reading stays optional;
 psycopg is not installed by this adapter. Existing collector writes materials.
 
 ## Failure and recovery
@@ -79,3 +79,50 @@ claimed. No migration, route, secret or setting of the existing site/collector c
 Python/Node tests use artificial transports and a local SQLite implementation of the
 storage interface. They do not establish live Cloudflare behavior, publisher quality,
 OAuth scope, actual subscription membership, Supabase delivery or ACTIVE status.
+
+## Private OAuth lifecycle (local implementation only)
+
+`oauth.py` provides a lease-scoped access token in job memory. The existing Worker
+accepts an optional provider factory after its HTTP budget and durable API ledger
+are constructed. Before an OAuth RPC, it reserves one possible upstream refresh and
+128 KiB of bounded exchange bodies. A DO cache hit is conservatively counted too.
+Known quota failures before the RPC remain safe partial results; uncertain replies
+poison the client and stop without release/retry. Cached access is never returned
+after lease loss or poison. Apply requires a `read write` token as well as existing
+policy/pilot/delivery gates. An insufficient scope is never silently upgraded.
+
+The same `DiscoveryState` DO stores credentials in a separate `oauth_credentials`
+table. Operational Python snapshots/download/status never contain these records;
+checkpoint restoration does not roll their generation back. Expiry uses a 60-second
+margin. READY access is reused; expiry commits REFRESHING and waits for durability
+before exactly one fixed HTTPS POST, then commits the new pair and expiry before
+returning only access/expiry/scope plus lease fences. Unknown upstream outcome,
+malformed tokens/scope/expiry, crash or lost durable ACK gives HOLD. No automatic
+refresh retry, credential reset, lease stealing or recovery endpoint exists.
+
+Future separately approved setup uses a dedicated Discovery OAuth client/grant,
+not the working collector's grant. Only the DO receives these Cloudflare Secrets:
+`INOREADER_DISCOVERY_CLIENT_ID`, `INOREADER_DISCOVERY_CLIENT_SECRET`, and the initial
+`INOREADER_DISCOVERY_BOOTSTRAP_REFRESH_TOKEN`. Python/GitHub jobs receive only the
+existing `SOURCE_DISCOVERY_STATE_TOKEN`. Examples contain no credential values.
+Actual registration conditions, isolation, API scope/quota and Cloudflare behavior
+remain unverified; no account/resource/secret has been created by this local code.
+
+Credential bootstrap is distinct from operational bootstrap: an explicit
+`StateClient.oauth_bootstrap()` under a current lease and server
+`ALLOW_OAUTH_BOOTSTRAP=true` calls `/v1/oauth-bootstrap`. It seeds once from the DO
+secret, never overwrites a record and never refreshes a token. There is deliberately
+no automatic CLI/bootstrap fallback. Close the server flag after approved setup.
+`/v1/oauth-access` requires the runtime bearer plus current owner/generation/revision.
+Refresh transport accepts no caller URL, uses no redirect/retry, allows 16 KiB
+response bodies and has a 15-second abort. Auth/body/token errors are redacted.
+
+Unresolved REFRESHING blocks release and operational checkpoint writes; a restarted
+job cannot obtain the held lease. Reconcile only after the old job has terminated
+and the owner has reviewed the credential outcome. Whole-DO platform PITR also
+restores credentials; it is not a safe automatic operational checkpoint rollback.
+
+The code pin includes `collectors/inoreader/body_backfill.py` when that target
+dependency exists. Current main has it; the older local execution line does not.
+No collector file is replaced by this conditional pin. Main-based transfer must
+preserve current sync/body bytes and revalidate dependency pins and tests.

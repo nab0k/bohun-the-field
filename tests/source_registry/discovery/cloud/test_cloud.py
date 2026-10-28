@@ -41,7 +41,7 @@ def blocked(*_, **__):
 
 class NodeTransport:
     """Exercise state-core.mjs using its local SQLite harness, with no HTTP socket."""
-    def __init__(self, code_hash):
+    def __init__(self, code_hash, *, oauth=False):
         node = shutil.which("node", path="/opt/homebrew/bin:/usr/bin:/bin")
         if not node:
             raise AssertionError("INSTALLED_NODE_REQUIRED")
@@ -50,7 +50,7 @@ class NodeTransport:
             env={"PATH": "/usr/bin:/bin", "NODE_NO_WARNINGS": "1"})
         self.calls = []
         self.exchange({"setup": {"deployment": DEPLOYMENT, "code_sha256": code_hash,
-                                  "policy_sha256": POLICY_HASH, "token": TOKEN}})
+                                  "policy_sha256": POLICY_HASH, "token": TOKEN, "oauth": oauth}})
 
     def exchange(self, value):
         self.process.stdin.write(json.dumps(value, separators=(",", ":")) + "\n")

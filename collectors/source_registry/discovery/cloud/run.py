@@ -12,6 +12,7 @@ from ..health import optional_connect, read_delivery
 from ..policy import Problem, digest, load_policy, parse_json, read_file, require
 from ..store import CheckpointError, Store
 from .state import CloudHold, ENDPOINT, HEX, NAME, StateClient, MAX_SNAPSHOT, MAX_SECONDS
+from .oauth import AccessProvider
 
 FIELD = Path(__file__).resolve().parents[4]
 PACKAGE = Path(__file__).resolve().parents[1]
@@ -24,6 +25,9 @@ def code_pins():
              FIELD / "collectors/inoreader/content_contract.py",
              FIELD / "cloudflare/source-discovery/state-core.mjs",
              FIELD / "cloudflare/source-discovery/state-worker.mjs"]
+    body = FIELD / "collectors/inoreader/body_backfill.py"
+    if body.exists():
+        paths.append(body)
     return {str(p.relative_to(FIELD)): hashlib.sha256(read_file(p)).hexdigest() for p in sorted(paths)}
 
 
@@ -43,6 +47,10 @@ def settings(document, *, apply=False, approved_policy_hash=None):
     policy, policy_hash = load_policy(Path(document["policy_path"]))
     require(policy_hash == document["policy_sha256"], "CLOUD_POLICY_PIN")
     config = validate_config(document["runtime"])
+    if config.get("live_inputs") and (config.get("manager") or any(
+            p.get("enabled") and p.get("type") == "inoreader" for p in config.get("providers", []))):
+        require(config.get("oauth_mode") == "coordinator" and "oauth_env" not in config,
+                "CLOUD_COORDINATOR_OAUTH_REQUIRED")
     require(isinstance(config.get("deployment_id"), str) and NAME.fullmatch(config["deployment_id"]), "DEPLOYMENT_ID")
     allowed, root = runtime_paths(config)
     manager = None
@@ -116,7 +124,8 @@ def execute(document, *, mode="once", allow_live=False, apply=False, approved_po
     reader = (lambda profile: read_delivery(lambda: optional_connect(delivery), delivery, profile)) \
         if delivery.get("enabled") else None
     with Store(root, config["deployment_id"], checkpoint=client.checkpoint) as store:
-        worker = worker_factory(store, policy, policy_hash, config, manager=manager, delivery_reader=reader)
+        worker = worker_factory(store, policy, policy_hash, config, manager=manager, delivery_reader=reader,
+            token_provider_factory=lambda http: AccessProvider(client, http, scope="read write" if apply else "read"))
         report = worker.cycle(apply=apply, approved_policy_hash=approved_policy_hash)
         safe = summary(report, apply)
         store.sync_checkpoint()

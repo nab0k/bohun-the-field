@@ -9,7 +9,7 @@ import {createInterface} from "node:readline";
 import test from "node:test";
 import net from "node:net";
 import dns from "node:dns";
-import {StateCoordinator, authenticated, route, MAX_SNAPSHOT, CHUNK_SIZE} from "../../../../cloudflare/source-discovery/state-core.mjs";
+import {StateCoordinator, authenticated, route, refreshTransport, MAX_SNAPSHOT, CHUNK_SIZE} from "../../../../cloudflare/source-discovery/state-core.mjs";
 
 const TOKEN = "SYNTHETIC_" + "t".repeat(64);
 const identity = {deployment: "synthetic-cloud-v1", code_sha256: "a".repeat(64), policy_sha256: "b".repeat(64)};
@@ -43,8 +43,8 @@ function storage(path = ":memory:") {
   return value;
 }
 
-function fixture(expected = identity, path) {
-  const s = storage(path), core = new StateCoordinator(s, {...expected, bootstrap: true});
+function fixture(expected = identity, path, oauth = {}) {
+  const s = storage(path), core = new StateCoordinator(s, {...expected, bootstrap: true, ...oauth});
   const env = {RUNTIME_TOKEN: TOKEN, DEPLOYMENT_ID: expected.deployment,
     STATE: {idFromName(name) { assert.equal(name, expected.deployment); return "fixed-id"; },
             get(id) { assert.equal(id, "fixed-id"); return {fetch: request => core.handle(request)}; }}};
@@ -66,6 +66,24 @@ async function acquire(f, token = owner) {
   assert.equal(r.status, 200); return r.json();
 }
 
+const seed = "SYNTHETIC_REFRESH_SEED";
+const tokenReply = n => ({access_token: "SYNTHETIC_ACCESS_" + n, refresh_token: "SYNTHETIC_REFRESH_" + n,
+  token_type: "Bearer", scope: "read", expires_in: 3600});
+function oauthFixture(path) {
+  const seen = [], clock = {ms: Date.now()};
+  const f = fixture(identity, path, {oauthBootstrap: true, oauthSeed: () => seed,
+    now: () => clock.ms, oauthRefresh: async refresh => {
+      assert.equal(f.core.credential().status, "REFRESHING");
+      assert.equal(refresh, seen.length ? tokenReply(seen.length).refresh_token : seed);
+      seen.push(refresh); return tokenReply(seen.length);
+    }});
+  return Object.assign(f, {seen, clock});
+}
+async function oauthBoot(f) {
+  await bootstrap(f); const lease = await acquire(f);
+  assert.equal((await f.request("/v1/oauth-bootstrap", {lease})).status, 200); return lease;
+}
+
 if (process.argv.includes("--protocol")) {
   // Test-only stdin/stdout messages call actual JS coordinator and real local SQLite.
   let f;
@@ -74,9 +92,15 @@ if (process.argv.includes("--protocol")) {
       const item = JSON.parse(line);
       if (item.setup) {
         assert.ok(item.setup.token.startsWith("SYNTHETIC_"));
-        f = fixture(item.setup);
+        f = item.setup.oauth ? oauthFixture() : fixture(item.setup);
+        if (item.setup.oauth) Object.assign(f.core.expected, item.setup);
         f.env.RUNTIME_TOKEN = item.setup.token;
         console.log(JSON.stringify({ready: true}));
+      } else if (item.oauth_inspect) {
+        const row = f.core.credential();
+        console.log(JSON.stringify({calls: f.seen.length, phase: row.status, generation: row.generation}));
+      } else if (item.advance_seconds) {
+        f.clock.ms += item.advance_seconds * 1000; console.log(JSON.stringify({advanced: true}));
       } else {
         assert.ok(f);
         const request = new Request(item.url, {method: "POST", headers: item.headers,
@@ -189,5 +213,129 @@ if (process.argv.includes("--protocol")) {
     const f = fixture(); f.s.sync = async () => { throw Error(TOKEN); };
     const r = await f.request("/v1/bootstrap", {raw: snapshot}), text = await r.text();
     assert.equal(r.status, 409); assert.ok(!text.includes(TOKEN) && !text.includes("SYNTHETIC_PRIVATE_STATE")); f.s.db.close();
+  });
+  test("OAuth bootstrap requires lease, gate and missing credentials; never overwrites", async () => {
+    const f = oauthFixture(); await bootstrap(f); const lease = await acquire(f);
+    f.core.expected.oauthBootstrap = false;
+    assert.equal((await f.request("/v1/oauth-bootstrap", {lease})).status, 409);
+    f.core.expected.oauthBootstrap = true;
+    assert.equal((await f.request("/v1/oauth-bootstrap")).status, 409);
+    assert.equal((await f.request("/v1/oauth-bootstrap", {lease})).status, 200);
+    assert.equal((await f.request("/v1/oauth-bootstrap", {lease})).status, 409);
+    assert.equal(f.seen.length, 0); f.s.db.close();
+  });
+  test("OAuth persists rotation before response, caches and reuses newest refresh after expiry", async () => {
+    const f = oauthFixture(), lease = await oauthBoot(f), before = f.s.syncs;
+    const one = await (await f.request("/v1/oauth-access", {lease, body: {scope: "read"}})).json();
+    assert.equal(one.status, "OAUTH_ACCESS"); assert.equal(one.access_token, tokenReply(1).access_token);
+    assert.ok(f.s.syncs >= before + 2); assert.ok(!JSON.stringify(one).includes("refresh"));
+    const two = await (await f.request("/v1/oauth-access", {lease, body: {scope: "read"}})).json();
+    assert.equal(two.access_token, one.access_token); assert.equal(f.seen.length, 1);
+    f.clock.ms += 3600000;
+    const three = await (await f.request("/v1/oauth-access", {lease, body: {scope: "read"}})).json();
+    assert.equal(three.credential_generation, 2); assert.equal(f.seen.length, 2);
+    assert.equal(f.core.credential().refresh, tokenReply(2).refresh_token); f.s.db.close();
+  });
+  test("concurrent access cannot issue a second refresh", async () => {
+    const f = oauthFixture(), lease = await oauthBoot(f); let finish, started;
+    const ready = new Promise(resolve => { started = resolve; });
+    f.core.expected.oauthRefresh = () => { started(); return new Promise(resolve => { finish = resolve; }); };
+    const first = f.request("/v1/oauth-access", {lease, body: {scope: "read"}}); await ready;
+    assert.equal((await f.request("/v1/oauth-access", {lease, body: {scope: "read"}})).status, 409);
+    finish(tokenReply(1)); assert.equal((await first).status, 200); f.s.db.close();
+  });
+  test("unknown upstream response holds REFRESHING and fences release/checkpoint/retry", async () => {
+    const f = oauthFixture(), lease = await oauthBoot(f); let calls = 0;
+    f.core.expected.oauthRefresh = async () => { calls++; throw Error(seed); };
+    const response = await f.request("/v1/oauth-access", {lease, body: {scope: "read"}});
+    assert.equal(response.status, 409); assert.ok(!(await response.text()).includes(seed));
+    assert.equal(f.core.credential().status, "REFRESHING");
+    for (const path of ["/v1/oauth-access", "/v1/release", "/v1/checkpoint"])
+      assert.equal((await f.request(path, {lease, body: {scope: "read"}, ...(path.endsWith("checkpoint") ? {raw: snapshot} : {})})).status, 409);
+    assert.equal(calls, 1); f.s.db.close();
+  });
+  test("failed durability before refresh sends zero external POSTs", async () => {
+    const f = oauthFixture(), lease = await oauthBoot(f); f.s.failSync = true;
+    assert.equal((await f.request("/v1/oauth-access", {lease, body: {scope: "read"}})).status, 409);
+    assert.equal(f.seen.length, 0); assert.equal(f.core.credential().status, "REFRESHING"); f.s.db.close();
+  });
+  test("failed ACK after new pair persistence never returns token or releases lease", async () => {
+    const f = oauthFixture(), lease = await oauthBoot(f);
+    f.core.expected.oauthRefresh = async () => { f.s.failSync = true; return tokenReply(1); };
+    const response = await f.request("/v1/oauth-access", {lease, body: {scope: "read"}});
+    assert.equal(response.status, 409); assert.ok(!(await response.text()).includes("SYNTHETIC_ACCESS"));
+    assert.equal(f.core.credential().refresh, tokenReply(1).refresh_token);
+    assert.equal(f.core.control().owner, lease.owner); f.s.db.close();
+  });
+  test("scope, wrong owner and stale revision fail before another refresh", async () => {
+    const f = oauthFixture(), lease = await oauthBoot(f);
+    await f.request("/v1/oauth-access", {lease, body: {scope: "read"}});
+    for (const [l, body] of [[lease, {scope: "read write"}], [lease, {scope: "admin"}],
+      [lease, {scope: "read", refresh_token: seed}], [{...lease, owner: "e".repeat(64)}, {scope: "read"}],
+      [{...lease, revision: 99}, {scope: "read"}]])
+      assert.equal((await f.request("/v1/oauth-access", {lease: l, body})).status, 409);
+    assert.equal(f.seen.length, 1); assert.equal(f.core.credential().status, "READY"); f.s.db.close();
+  });
+  test("invalid OAuth responses halt without issuing access", async () => {
+    for (const override of [{scope: "write"}, {token_type: "other"}, {expires_in: 60},
+      {refresh_token: null}, {access_token: "bad\r\nvalue"}, {expires_in: Infinity}]) {
+      const f = oauthFixture(), lease = await oauthBoot(f);
+      f.core.expected.oauthRefresh = async () => ({...tokenReply(1), ...override});
+      assert.equal((await f.request("/v1/oauth-access", {lease, body: {scope: "read"}})).status, 409);
+      assert.equal(f.core.credential().status, "REFRESHING"); f.s.db.close();
+    }
+  });
+  test("operational checkpoint never includes or rolls back credential generation", async () => {
+    const f = oauthFixture(); let lease = await oauthBoot(f);
+    await f.request("/v1/oauth-access", {lease, body: {scope: "read"}});
+    f.clock.ms += 3600000; await f.request("/v1/oauth-access", {lease, body: {scope: "read"}});
+    const response = await f.request("/v1/checkpoint", {lease, raw: snapshot});
+    lease = {...lease, ...await response.json()};
+    const downloaded = Buffer.from(await (await f.request("/v1/download", {lease})).arrayBuffer());
+    assert.deepEqual(downloaded, snapshot); assert.equal(f.core.credential().generation, 2);
+    assert.ok(!(await (await f.request("/v1/status")).text()).includes("SYNTHETIC_REFRESH")); f.s.db.close();
+  });
+  test("disk restart retains an ambiguous refresh without retry", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "discovery-oauth-test-")), path = join(dir, "state.sqlite");
+    try {
+      const f = oauthFixture(path), lease = await oauthBoot(f);
+      f.core.expected.oauthRefresh = async () => { throw Error("SYNTHETIC_LOST_RESPONSE"); };
+      await f.request("/v1/oauth-access", {lease, body: {scope: "read"}}); f.s.db.close();
+      const next = oauthFixture(path);
+      assert.equal((await next.request("/v1/oauth-access", {lease, body: {scope: "read"}})).status, 409);
+      assert.equal(next.seen.length, 0); next.s.db.close();
+    } finally { rmSync(dir, {recursive: true, force: true}); }
+  });
+  test("disk restart uses the persisted rotated token for the next refresh", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "discovery-oauth-ready-")), path = join(dir, "state.sqlite");
+    try {
+      const first = oauthFixture(path), lease = await oauthBoot(first);
+      await first.request("/v1/oauth-access", {lease, body: {scope: "read"}}); first.s.db.close();
+      const next = oauthFixture(path); next.clock.ms += 3600000;
+      let calls = 0;
+      next.core.expected.oauthRefresh = async refresh => {
+        calls++; assert.equal(refresh, tokenReply(1).refresh_token); return tokenReply(2);
+      };
+      const response = await next.request("/v1/oauth-access", {lease, body: {scope: "read"}});
+      assert.equal(response.status, 200); assert.equal((await response.json()).credential_generation, 2);
+      assert.equal(calls, 1); next.s.db.close();
+    } finally { rmSync(dir, {recursive: true, force: true}); }
+  });
+  test("actual fixed OAuth transport is bounded, no redirects/retries and synthetic only", async () => {
+    let calls = 0;
+    const url = "https://www.inoreader.com/oauth2/token";
+    const fetcher = async (target, init) => {
+      calls++; assert.equal(target, url); assert.equal(init.redirect, "error"); assert.equal(init.method, "POST");
+      assert.equal(new URLSearchParams(init.body).get("refresh_token"), seed);
+      const response = new Response(JSON.stringify(tokenReply(1)));
+      Object.defineProperty(response, "url", {value: url}); return response;
+    };
+    assert.equal((await refreshTransport(fetcher, {client_id: "SYNTHETIC_ID", client_secret: "SYNTHETIC_SECRET"}, seed)).scope, "read");
+    assert.equal(calls, 1);
+    for (const response of [new Response("redirect", {status: 302}), new Response("x".repeat(16385)), new Response("invalid")]) {
+      Object.defineProperty(response, "url", {value: url});
+      await assert.rejects(refreshTransport(async () => response, {client_id: "SYNTHETIC_ID", client_secret: "SYNTHETIC_SECRET"}, seed));
+    }
+    await assert.rejects(refreshTransport(blocked, {client_id: "SYNTHETIC_ID", client_secret: "SYNTHETIC_SECRET"}, seed));
   });
 }

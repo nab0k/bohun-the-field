@@ -163,3 +163,32 @@ class StateClient:
         except BaseException:
             self.poisoned = True
             raise CloudHold("CLOUD_STATE_HOLD") from None
+
+    def oauth_bootstrap(self):
+        """Explicit one-time credential seed; no secrets are supplied by Python."""
+        try:
+            data = self._json(self._request("/v1/oauth-bootstrap", lease=True))
+            check(data.get("status") == "OAUTH_BOOTSTRAPPED" and data.get("credential_generation") == 0)
+            self._oauth_fence(data)
+        except BaseException:
+            self.poisoned = True
+            raise CloudHold("CLOUD_OAUTH_HOLD") from None
+
+    def _oauth_fence(self, data):
+        check(data.get("owner") == self.owner and type(data.get("generation")) is int and
+              data["generation"] == self.generation and type(data.get("revision")) is int and
+              data["revision"] == self.revision)
+
+    def oauth_access(self, scope):
+        try:
+            check(scope in ("read", "read write"))
+            data = self._json(self._request("/v1/oauth-access", data={"scope": scope}, lease=True))
+            check(set(data) == {"version", "deployment", "code_sha256", "policy_sha256", "status",
+                "owner", "generation", "revision", "credential_generation", "access_token", "expires_at", "scope"})
+            self._oauth_fence(data)
+            check(data.get("status") == "OAUTH_ACCESS" and type(data.get("credential_generation")) is int and
+                  data["credential_generation"] > 0)
+            return data
+        except BaseException:
+            self.poisoned = True
+            raise CloudHold("CLOUD_OAUTH_HOLD") from None

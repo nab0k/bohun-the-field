@@ -28,10 +28,12 @@ def code_identity():
 class Worker:
     def __init__(self, store, policy, policy_hash, config, *, clock=time.time,
                  monotonic=time.monotonic, http_factory=None, token_provider=None,
-                 manager=None, delivery_reader=None):
+                 manager=None, delivery_reader=None, token_provider_factory=None):
         self.store, self.policy, self.policy_hash, self.config = store, policy, policy_hash, config
         self.clock, self.monotonic = clock, monotonic
         self.http_factory, self.token_provider = http_factory, token_provider
+        require(not (token_provider is not None and token_provider_factory is not None), "TOKEN_PROVIDER_CONFLICT")
+        self.token_provider_factory = token_provider_factory
         self.manager, self.delivery_reader = manager, delivery_reader
         self.producer = code_identity()
         if manager is not None:
@@ -55,7 +57,8 @@ class Worker:
                                cycle_limit=self.policy["limits"]["max_requests"])
         http = self.http_factory(budget, api_reservation) if self.http_factory else HTTP(
             budget, enabled=self.config.get("live_inputs") is True, reserve_api=api_reservation)
-        token = self.token_provider or (lambda: oauth_token(http, self.config))
+        token = (self.token_provider_factory(http) if self.token_provider_factory is not None else
+                 self.token_provider or (lambda: oauth_token(http, self.config)))
         report = {"run_id": run, "observed_at": stamp(started), "producer": self.producer,
                   "policy_sha256": self.policy_hash, "mode": "APPLY" if apply else "OBSERVE",
                   "execution": "INJECTED_TRANSPORT_SIMULATION" if self.http_factory else

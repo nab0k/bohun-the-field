@@ -12,6 +12,7 @@
     "DEPLOYMENT_ID": "bohun-discovery-cloud-v1",
     "EXPECTED_CODE_SHA256": "",
     "EXPECTED_POLICY_SHA256": "",
-    "ALLOW_BOOTSTRAP": "false"
+    "ALLOW_BOOTSTRAP": "false",
+    "ALLOW_OAUTH_BOOTSTRAP": "false"
   }
 }

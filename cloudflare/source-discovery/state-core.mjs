@@ -3,7 +3,34 @@ export const MAX_SNAPSHOT = 2 * 1024 * 1024;
 export const CHUNK_SIZE = 64 * 1024;
 const HEX = /^[0-9a-f]{64}$/;
 const NAME = /^[A-Za-z0-9_-]{1,80}$/;
-const ROUTES = new Set(["/v1/bootstrap", "/v1/acquire", "/v1/download", "/v1/checkpoint", "/v1/release", "/v1/status"]);
+const ROUTES = new Set(["/v1/bootstrap", "/v1/acquire", "/v1/download", "/v1/checkpoint", "/v1/release", "/v1/status", "/v1/oauth-bootstrap", "/v1/oauth-access"]);
+const SECRET = /^[\x21-\x7e]{1,4096}$/;
+const OAUTH_URL = "https://www.inoreader.com/oauth2/token";
+const MAX_TTL = 31 * 86400;
+function scopes(value) {
+  check(typeof value === "string" && /^(read|read write)$/.test(value));
+  return value.split(" ");
+}
+
+// Called only inside the DO refresh callback, never at import or construction.
+export async function refreshTransport(fetcher, credentials, refresh) {
+  check(SECRET.test(refresh) && typeof refresh === "string" &&
+        typeof credentials.client_id === "string" && SECRET.test(credentials.client_id) &&
+        credentials.client_id.length <= 1024 && typeof credentials.client_secret === "string" &&
+        SECRET.test(credentials.client_secret));
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
+  try {
+    const body = new URLSearchParams({client_id: credentials.client_id,
+      client_secret: credentials.client_secret, refresh_token: refresh, grant_type: "refresh_token"});
+    const response = await fetcher(OAUTH_URL, {method: "POST", redirect: "error",
+      signal: controller.signal, headers: {"Content-Type": "application/x-www-form-urlencoded",
+        "Accept": "application/json"}, body: body.toString()});
+    check(response.status === 200 && response.url === OAUTH_URL && !response.redirected);
+    const raw = await readBounded(response, 16384);
+    return JSON.parse(new TextDecoder("utf-8", {fatal: true}).decode(raw));
+  } finally { clearTimeout(timer); }
+}
 
 class Hold extends Error {}
 function check(value) { if (!value) throw new Hold(); }
@@ -68,6 +95,8 @@ export class StateCoordinator {
     storage.sql.exec("CREATE TABLE IF NOT EXISTS control (id INTEGER PRIMARY KEY CHECK(id=1), revision INTEGER NOT NULL, generation INTEGER NOT NULL, owner TEXT, manifest TEXT NOT NULL)");
     storage.sql.exec("CREATE TABLE IF NOT EXISTS checkpoints (revision INTEGER NOT NULL, part INTEGER NOT NULL, payload BLOB NOT NULL, PRIMARY KEY(revision,part))");
     storage.sql.exec("CREATE TABLE IF NOT EXISTS manifests (revision INTEGER PRIMARY KEY, payload TEXT NOT NULL)");
+    // Separate from opaque operational checkpoint blobs. Never included in download/status.
+    storage.sql.exec("CREATE TABLE IF NOT EXISTS oauth_credentials (id INTEGER PRIMARY KEY CHECK(id=1), generation INTEGER NOT NULL, status TEXT NOT NULL, access TEXT NOT NULL, refresh TEXT NOT NULL, expires_at INTEGER NOT NULL, scope TEXT NOT NULL)");
   }
 
   identity() {
@@ -104,6 +133,90 @@ export class StateCoordinator {
     this.storage.sql.exec("DELETE FROM manifests WHERE revision < ?", revision - 1);
   }
 
+  credential() {
+    const rows = this.storage.sql.exec("SELECT * FROM oauth_credentials WHERE id=1").toArray();
+    check(rows.length === 1);
+    const row = rows[0];
+    check(Number.isSafeInteger(row.generation) && row.generation >= 0 &&
+      (row.status === "READY" || row.status === "REFRESHING") &&
+      typeof row.refresh === "string" && SECRET.test(row.refresh) &&
+      typeof row.access === "string" && (!row.access || SECRET.test(row.access)) &&
+      Number.isSafeInteger(row.expires_at) && row.expires_at >= 0);
+    if (row.access) scopes(row.scope);
+    return row;
+  }
+
+  oauthIdle() {
+    const rows = this.storage.sql.exec("SELECT status FROM oauth_credentials WHERE id=1").toArray();
+    check(rows.length === 0 || (rows.length === 1 && rows[0].status === "READY"));
+  }
+
+  async oauth(request, path) {
+    const bytes = await readBounded(request, 4096);
+    const body = JSON.parse(new TextDecoder("utf-8", {fatal: true}).decode(bytes));
+    check(body !== null && typeof body === "object" && !Array.isArray(body));
+    let credential, generation;
+    if (path === "/v1/oauth-bootstrap") {
+      const lease = this.storage.transactionSync(() => {
+        const row = this.lease(request);
+        check(Object.keys(body).length === 0 && this.expected.oauthBootstrap === true &&
+          this.storage.sql.exec("SELECT id FROM oauth_credentials").toArray().length === 0);
+        const seed = this.expected.oauthSeed?.();
+        check(typeof seed === "string" && SECRET.test(seed));
+        this.storage.sql.exec("INSERT INTO oauth_credentials VALUES (1,0,'READY','',?,0,'')", seed);
+        return row;
+      });
+      await this.storage.sync();
+      return {...this.identity(), status: "OAUTH_BOOTSTRAPPED", credential_generation: 0,
+        owner: lease.owner, generation: lease.generation, revision: lease.revision};
+    }
+    check(Object.keys(body).length === 1 && Object.hasOwn(body, "scope"));
+    const required = scopes(body.scope);
+    const now = () => Math.floor((this.expected.now ? this.expected.now() : Date.now()) / 1000);
+    const choice = this.storage.transactionSync(() => {
+      this.lease(request);
+      const row = this.credential();
+      check(row.status === "READY");
+      if (row.scope) check(required.every(s => scopes(row.scope).includes(s)));
+      if (row.access && Number.isSafeInteger(row.expires_at) && row.expires_at > now() + 60) {
+        check(SECRET.test(row.access) && row.expires_at <= now() + MAX_TTL && row.scope);
+        return {cached: true, row};
+      }
+      check(typeof this.expected.oauthRefresh === "function");
+      generation = row.generation + 1;
+      check(Number.isSafeInteger(generation));
+      this.storage.sql.exec("UPDATE oauth_credentials SET generation=?,status='REFRESHING' WHERE id=1", generation);
+      return {cached: false, row};
+    });
+    credential = choice.row;
+    // REFRESHING must be durable before the single external POST; no automatic retry.
+    await this.storage.sync();
+    if (!choice.cached) {
+      const data = await this.expected.oauthRefresh(credential.refresh);
+      check(data && typeof data === "object" && typeof data.access_token === "string" &&
+        SECRET.test(data.access_token) && typeof data.refresh_token === "string" &&
+        SECRET.test(data.refresh_token) && data.token_type === "Bearer" &&
+        Number.isSafeInteger(data.expires_in) && data.expires_in > 60 && data.expires_in <= MAX_TTL &&
+        required.every(s => scopes(data.scope).includes(s)));
+      const expires = now() + data.expires_in;
+      check(Number.isSafeInteger(expires));
+      this.storage.transactionSync(() => {
+        this.lease(request);
+        const pending = this.credential();
+        check(pending.status === "REFRESHING" && pending.generation === generation);
+        this.storage.sql.exec("UPDATE oauth_credentials SET status='READY',access=?,refresh=?,expires_at=?,scope=? WHERE id=1",
+          data.access_token, data.refresh_token, expires, data.scope);
+      });
+      await this.storage.sync();
+    }
+    const lease = this.lease(request), current = this.credential();
+    check(current.status === "READY" && SECRET.test(current.access) && current.expires_at > now() + 60 &&
+      required.every(s => scopes(current.scope).includes(s)));
+    return {...this.identity(), status: "OAUTH_ACCESS", owner: lease.owner,
+      generation: lease.generation, revision: lease.revision, credential_generation: current.generation,
+      access_token: current.access, expires_at: current.expires_at, scope: current.scope};
+  }
+
   async handle(request) {
     try {
       const url = new URL(request.url), path = url.pathname;
@@ -112,6 +225,10 @@ export class StateCoordinator {
       check(request.headers.get("X-Deployment") === identity.deployment &&
             request.headers.get("X-Code-Sha256") === identity.code_sha256 &&
             request.headers.get("X-Policy-Sha256") === identity.policy_sha256);
+      if (path === "/v1/oauth-bootstrap" || path === "/v1/oauth-access") {
+        check(request.headers.get("Content-Type") === "application/json");
+        return json(await this.oauth(request, path));
+      }
       let reply;
       if (path === "/v1/bootstrap" || path === "/v1/checkpoint") {
         check(request.headers.get("Content-Type") === "application/octet-stream");
@@ -130,6 +247,7 @@ export class StateCoordinator {
             return {...identity, status: "BOOTSTRAPPED", revision: 0, sha256};
           }
           const row = this.lease(request), revision = row.revision + 1;
+          this.oauthIdle();
           check(Number.isSafeInteger(revision));
           this.save(revision, raw, manifest);
           this.storage.sql.exec("UPDATE control SET revision=?,manifest=? WHERE id=1", revision, JSON.stringify(manifest));
@@ -156,6 +274,7 @@ export class StateCoordinator {
           check(Object.keys(body).length === 0);
           const row = this.lease(request);
           if (path === "/v1/release") {
+            this.oauthIdle();
             this.storage.sql.exec("UPDATE control SET owner=NULL WHERE id=1");
             return {...identity, status: "RELEASED", revision: row.revision};
           }
