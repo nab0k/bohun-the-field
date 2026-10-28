@@ -1,0 +1,101 @@
+{
+  "version": "doctrine-v1",
+  "note": "EXP-025 DOCTRINE_v1, verified records only; anchor_quote/check stay local.",
+  "records": [
+    {
+      "id": "US-02",
+      "jurisdiction": "US",
+      "title": "PAC-3 MSE framework agreement under the Acquisition Transformation Strategy",
+      "document_date": "2026-01-06",
+      "direction": "Seven-year framework agreements for proven munitions, giving industry long-term demand so it invests in capacity; PAC-3 MSE output to rise from about 600 to about 2,000 a year, subject to Congress.",
+      "change_summary": "Shift from year-to-year buys to seven-year demand signals; the same model to be applied to multiple munitions contracts over the next year, with seven-year subcontracts for key suppliers.",
+      "source_url": "https://www.war.gov/News/Releases/Release/Article/4371320/department-of-war-establishes-new-acquisition-model-to-more-than-triple-pac-3-m/",
+      "topics": [
+        "us-munitions-ramp-up",
+        "defence-industrial-policy"
+      ],
+      "verified": true
+    },
+    {
+      "id": "US-03",
+      "jurisdiction": "US",
+      "title": "President's Fiscal Year 2027 Defense Budget request",
+      "document_date": "2026-04-21",
+      "direction": "Record $1.5 trillion request (+42%) with funding to expand production and stockpiles of Patriot, THAAD, precision strike missiles and midrange weapons; multiyear contracts of up to seven years for critical munitions.",
+      "change_summary": "Multiyear authority extended to up to seven years; the department says it will request multiyear authority wherever it expects to keep buying a system.",
+      "source_url": "https://www.war.gov/News/News-Stories/Article/Article/4465551/15-trillion-budget-request-prioritizes-service-members-modernization/",
+      "topics": [
+        "us-munitions-ramp-up",
+        "defence-industrial-policy"
+      ],
+      "verified": true
+    },
+    {
+      "id": "US-04",
+      "jurisdiction": "US",
+      "title": "SM-6 multiyear procurement award (Department of the Navy)",
+      "document_date": "2026-10-01",
+      "direction": "Navy commits to a multiyear SM-6 buy (five years plus two options, up to $24.4 billion) to give industry a stable demand signal, expand production and build magazine depth.",
+      "change_summary": "Follows the Tomahawk award; part of the PAE Munitions effort to accelerate production of critical weapons.",
+      "source_url": "https://www.navy.mil/Press-Office/Press-Releases/display-pressreleases/Article/4617054/us-navy-rtx-strengthen-munitions-production-through-sm-6-award/",
+      "topics": [
+        "us-munitions-ramp-up"
+      ],
+      "verified": true
+    },
+    {
+      "id": "CA-01",
+      "jurisdiction": "CA",
+      "title": "Our North, Strong and Free: A Renewed Vision for Canada's Defence",
+      "document_date": "2024-04-08",
+      "direction": "Asserting sovereignty in the Arctic and northern regions is named the most urgent defence task: northern operational support hubs, coastal and underwater sensors, a High Arctic satellite ground station and improved satellite capabilities.",
+      "change_summary": "Arctic moves to the top of Canada's defence priorities, backed by C$8.1 billion over five years and C$73 billion over 20 years.",
+      "source_url": "https://www.canada.ca/en/department-national-defence/corporate/reports-publications/north-strong-free-2024/executive-summary.html",
+      "topics": [
+        "ca-arctic-connectivity"
+      ],
+      "verified": true
+    },
+    {
+      "id": "CA-02",
+      "jurisdiction": "CA",
+      "title": "Canada's Arctic Foreign Policy",
+      "document_date": "2024-12-06",
+      "direction": "Canada will continue to assert its sovereignty and take a comprehensive approach to Arctic security, with foreign and defence policy working together.",
+      "change_summary": "Diplomatic counterpart to Our North, Strong and Free.",
+      "source_url": "https://international.canada.ca/en/global-affairs/corporate/reports/arctic-policy-2024",
+      "topics": [
+        "ca-arctic-connectivity"
+      ],
+      "verified": true
+    },
+    {
+      "id": "CA-03",
+      "jurisdiction": "CA",
+      "title": "Security, Sovereignty and Prosperity: Canada's Defence Industrial Strategy",
+      "document_date": "2026-02-17",
+      "direction": "Build, partner, buy: build at home in areas of sovereign capability, partner with allies, buy abroad only when neither is feasible; raise the share of defence acquisitions awarded to Canadian firms to 70%, with the Defence Investment Agency at the centre.",
+      "change_summary": "Canada's first defence industrial strategy; 'Buy Canadian' becomes the guiding rule for defence acquisitions.",
+      "source_url": "https://www.pm.gc.ca/en/news/news-releases/2026/02/17/prime-minister-carney-launches-canadas-first-defence-industrial",
+      "topics": [
+        "ca-arctic-connectivity",
+        "defence-industrial-policy"
+      ],
+      "verified": true
+    },
+    {
+      "id": "CA-04",
+      "jurisdiction": "CA",
+      "title": "Enhanced Satellite Communications Project – Polar (ESCP-P): Mil-Ka contract to Telesat",
+      "document_date": "2026-08-04",
+      "direction": "Defence Investment Agency awards Telesat about C$2.3 billion (plus options of about C$214 million and C$218 million) for sovereign Arctic military satellite communications, as the BUILD component of the Defence Industrial Strategy.",
+      "change_summary": "Puts the strategy's BUILD component into a contract; the government says secure Arctic connectivity arrives years earlier than originally planned.",
+      "source_url": "https://www.canada.ca/en/defence-investment-agency/news/2026/08/the-government-of-canada-awards-a-military-communications-contract-to-support-arctic-sovereignty-and-national-security0.html",
+      "topics": [
+        "ca-arctic-connectivity",
+        "space-tech-funding"
+      ],
+      "verified": true
+    }
+  ]
+}

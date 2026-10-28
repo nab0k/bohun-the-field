@@ -1,0 +1,59 @@
+name: BOHUN synthesis live stage (manual)
+run-name: synthesis ${{ inputs.stage }} ${{ inputs.expected_sha }}
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: One reviewed stage per run
+        type: choice
+        required: true
+        options:
+          - migration-trial
+          - migration-apply
+          - doctrine-load
+          - control-live
+      expected_sha:
+        description: Exact reviewed main commit
+        type: string
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: bohun-synthesis-live
+  cancel-in-progress: false
+jobs:
+  stage:
+    if: github.repository == 'nab0k/bohun-the-field' && github.actor == 'nab0k' && github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Verify reviewed revision before credentials
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          test "$EXPECTED_SHA" = "$GITHUB_SHA"
+          test "$GITHUB_REF" = 'refs/heads/main'
+          test "${#EXPECTED_SHA}" -eq 40
+          case "$EXPECTED_SHA" in *[!0-9a-f]*) exit 1 ;; esac
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13'
+      - name: Offline route and live-adapter tests
+        run: python -B -m unittest tests/synthesis/test_route.py tests/synthesis/test_live.py
+      - name: Temporary pinned PostgreSQL driver
+        run: |
+          python -m venv "$RUNNER_TEMP/bohun-synthesis"
+          "$RUNNER_TEMP/bohun-synthesis/bin/python" -m pip install --only-binary=:all: --disable-pip-version-check 'psycopg[binary]==3.3.6'
+      - name: Run one stage; the public log gets counts, codes and cost only
+        env:
+          STAGE: ${{ inputs.stage }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          # The model key is exposed to the control-live stage only.
+          GEMINI_API_KEY: ${{ inputs.stage == 'control-live' && secrets.GEMINI_API_KEY || '' }}
+        run: '"$RUNNER_TEMP/bohun-synthesis/bin/python" -B -m collectors.synthesis.live --stage "$STAGE"'
