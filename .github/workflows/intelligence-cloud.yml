@@ -1,0 +1,70 @@
+name: BOHUN intelligence — one reviewed FREE_ONLY runtime
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact reviewed feature SHA; every live run needs separate approval
+        required: true
+        type: string
+
+permissions:
+  contents: read
+concurrency:
+  group: bohun-inoreader-cloud
+  cancel-in-progress: false
+jobs:
+  trial:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/exp009-cloud-pipeline'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Guard reviewed revision before dependencies or credentials
+        env:
+          REVIEWED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          test "$REVIEWED_SHA" = "$GITHUB_SHA"
+          test "$GITHUB_REF" = 'refs/heads/codex/exp009-cloud-pipeline'
+          test "${#REVIEWED_SHA}" -eq 40
+          case "$REVIEWED_SHA" in *[!0-9a-f]*) exit 1 ;; esac
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Offline behavioral checks — no credentials
+        run: |
+          python -B -m unittest discover -s tests/intelligence_cloud
+          python -B -m unittest discover -s tests/intelligence_pipeline
+          python -B -m unittest discover -s tests -p 'test_inoreader_*.py'
+          python -B -m unittest discover -s tests -p 'test_web_monitor_*.py'
+      - name: Install reviewed dependencies in temporary venv
+        run: |
+          python -m venv "$RUNNER_TEMP/bohun-analysis"
+          "$RUNNER_TEMP/bohun-analysis/bin/python" -m pip install --only-binary=:all: --disable-pip-version-check 'psycopg[binary]==3.3.6' 'trafilatura==2.3.1'
+      - name: Run separately authorized bounded trial
+        env:
+          REVIEWED_SHA: ${{ inputs.expected_sha }}
+          BOHUN_RUNTIME_CONFIG: ${{ secrets.BOHUN_RUNTIME_CONFIG }}
+          BOHUN_ANALYSIS_DSN: ${{ secrets.BOHUN_ANALYSIS_DSN }}
+          BOHUN_INTAKE_DSN: ${{ secrets.BOHUN_INTAKE_DSN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          BOHUN_NOTION_TOKEN: ${{ secrets.BOHUN_NOTION_TOKEN }}
+          INOREADER_CLIENT_ID: ${{ secrets.INOREADER_CLIENT_ID }}
+          INOREADER_CLIENT_SECRET: ${{ secrets.INOREADER_CLIENT_SECRET }}
+          INOREADER_REFRESH_TOKEN: ${{ secrets.INOREADER_REFRESH_TOKEN }}
+        run: |
+          umask 077
+          python -B - <<'PYCONFIG'
+          import os
+          from pathlib import Path
+          value=os.environ['BOHUN_RUNTIME_CONFIG']
+          if not value or len(value.encode())>256*1024:raise SystemExit('CONFIG_MISSING_OR_TOO_LARGE')
+          with (Path(os.environ['RUNNER_TEMP'])/'exp009-unified-config.json').open('x') as handle:handle.write(value)
+          PYCONFIG
+          "$RUNNER_TEMP/bohun-analysis/bin/python" -B scripts/intelligence-cloud.py --allow-live \
+            --expected-sha "$REVIEWED_SHA" --config "$RUNNER_TEMP/exp009-unified-config.json"
+      - name: Remove private runtime configuration
+        if: always()
+        run: rm -f "$RUNNER_TEMP/exp009-unified-config.json"
