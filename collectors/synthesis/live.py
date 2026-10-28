@@ -151,6 +151,41 @@ def load_documents(cur, control):
     return docs, item_ids, report
 
 
+MIN_BODY_CHARS = 300
+MAX_WINDOW_ITEMS = 200
+
+
+def window_bounds(day_from, day_to):
+    from datetime import date, timedelta
+    a, b = date.fromisoformat(day_from), date.fromisoformat(day_to)
+    if not timedelta(0) <= b - a <= timedelta(days=2):
+        raise SystemExit("DAY_WINDOW_MUST_BE_1_TO_3_DAYS")
+    return a.isoformat(), (b + timedelta(days=1)).isoformat()
+
+
+def load_window(cur, day_from, day_to, limit=MAX_WINDOW_ITEMS):
+    """Unprocessed items published in the window with a captured body of at least MIN_BODY_CHARS."""
+    start, end = window_bounds(day_from, day_to)
+    cur.execute("""SELECT i.id, i.external_id, i.title, i.url, i.published_at, i.raw_data
+                     FROM intelligence.items i
+                    WHERE i.published_at >= %s::date AND i.published_at < %s::date
+                      AND length(i.raw_data->'content_capture'->>'text') >= %s
+                      AND NOT EXISTS (SELECT 1 FROM knowledge.item_processing p
+                                       WHERE p.item_id = i.id AND p.pipeline_version = %s)
+                    ORDER BY i.published_at, i.id LIMIT %s""", (start, end, MIN_BODY_CHARS, LIVE_VERSION, limit))
+    docs, item_ids, report = [], {}, {"found": 0, "skipped": 0}
+    for item_id, external_id, title, url, published, raw in cur.fetchall():
+        body = raw["content_capture"]["text"]
+        try:
+            docs.append(Document(external_id, title, title + "\n" + body, url or "", published.isoformat(),
+                                 raw.get("origin_title") or url or "unknown"))
+        except ValueError:  # e.g. a non-https URL; such an item is not routed
+            report["skipped"] += 1; continue
+        item_ids[external_id] = item_id
+        report["found"] += 1
+    return docs, item_ids, report
+
+
 def doctrine_snapshot(cur):
     """Doctrine rows as source-bound context facts for the policy_direction block."""
     cur.execute("""SELECT d.id, t.slug, d.jurisdiction, d.title, d.document_date, d.direction, d.source_url
@@ -326,6 +361,19 @@ def stage_control_live(conn, resources, key, transport=http_post):
         docs, item_ids, report = load_documents(cur, control)
         if already_processed(cur, item_ids.values()):
             return {"stage": "control-live", "stop": "ALREADY_PROCESSED", "inputs": report}
+    return route_and_write(conn, resources, key, transport, "control-live", docs, item_ids, report)
+
+
+def stage_day_live(conn, resources, key, day_from, day_to, transport=http_post):
+    with conn.cursor() as cur:
+        docs, item_ids, report = load_window(cur, day_from, day_to)
+    if not docs:
+        return {"stage": "day-live", "stop": "NO_UNPROCESSED_ITEMS_WITH_BODY", "inputs": report}
+    return route_and_write(conn, resources, key, transport, "day-live", docs, item_ids, report)
+
+
+def route_and_write(conn, resources, key, transport, stage, docs, item_ids, report):
+    with conn.cursor() as cur:
         context = doctrine_snapshot(cur)
     ledger = Ledger()
     writer = GeminiWriter(key, ledger, transport)
@@ -341,7 +389,7 @@ def stage_control_live(conn, resources, key, transport=http_post):
     try:
         result = run(docs, resources, context=context, writer=counted)
     except BudgetStop as stop:
-        return {"stage": "control-live", "stop": str(stop), "spent_micro_usd": ledger.spent,
+        return {"stage": stage, "stop": str(stop), "spent_micro_usd": ledger.spent,
                 "model_calls": ledger.calls, "db_writes": 0, "inputs": report}
     summary = []
     with conn.transaction():
@@ -364,7 +412,7 @@ def stage_control_live(conn, resources, key, transport=http_post):
                 # Exact reprints (same URL and text) are marked too, so the next run skips them.
                 cur.execute("""INSERT INTO knowledge.item_processing (item_id, pipeline_version, outcome, reason_codes)
                                VALUES (%s,%s,'hold',%s)""", (item_ids[doc_id], LIVE_VERSION, ["exact_reprint"]))
-    return {"stage": "control-live", "model": MODEL, "price_version": PRICE_VERSION,
+    return {"stage": stage, "model": MODEL, "price_version": PRICE_VERSION,
             "spent_micro_usd": ledger.spent, "model_calls": ledger.calls, "inputs": report,
             "events": summary, "public_release": False}
 
@@ -372,7 +420,9 @@ def stage_control_live(conn, resources, key, transport=http_post):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--stage", required=True,
-                        choices=["migration-trial", "migration-apply", "doctrine-load", "control-live"])
+                        choices=["migration-trial", "migration-apply", "doctrine-load", "control-live", "day-live"])
+    parser.add_argument("--day-from")
+    parser.add_argument("--day-to")
     args = parser.parse_args(argv)
     resources = Resources.load(RESOURCES / "topics_v2.json", RESOURCES / "dictionaries_v2.json",
                                RESOURCES / "writer_prompt_v2.md")
@@ -384,11 +434,13 @@ def main(argv=None):
                 out = {"stage": "migration-trial", "table_present_before_rollback": rb.ok, "rolled_back": True}
         elif args.stage == "doctrine-load":
             out = stage_doctrine(conn, resources)
-        else:
+        elif args.stage == "control-live":
             out = stage_control_live(conn, resources, os.environ.get("GEMINI_API_KEY"))
+        else:
+            out = stage_day_live(conn, resources, os.environ.get("GEMINI_API_KEY"), args.day_from, args.day_to)
     # Public log: counts, codes and cost only.
     print("SYNTHESIS_LIVE_RESULT " + canonical(out))
-    return 1 if out.get("stop") and out["stop"] != "ALREADY_PROCESSED" else 0
+    return 1 if out.get("stop") and out["stop"] not in {"ALREADY_PROCESSED", "NO_UNPROCESSED_ITEMS_WITH_BODY"} else 0
 
 
 if __name__ == "__main__":

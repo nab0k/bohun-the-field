@@ -182,5 +182,26 @@ class StageTests(unittest.TestCase):
         self.assertEqual(rows[0]["quote"], rows[0]["source_text"])
 
 
+class DayLiveTests(unittest.TestCase):
+    def test_window_is_bounded(self):
+        self.assertEqual(live.window_bounds("2026-10-27", "2026-10-28"), ("2026-10-27", "2026-10-29"))
+        for bad in (("2026-10-28", "2026-10-27"), ("2026-10-20", "2026-10-28")):
+            with self.assertRaises(SystemExit):
+                live.window_bounds(*bad)
+
+    def test_window_loader_builds_documents(self):
+        raw = {"origin_title": "Outlet", "content_capture": {"text": "Body text " * 40}}
+        items = [(5, "ext1", "Title", "https://example.org/a", datetime(2026, 10, 27, tzinfo=timezone.utc), raw),
+                 (6, "ext2", "Title", "http://insecure.example/a", datetime(2026, 10, 27, tzinfo=timezone.utc), raw)]
+        docs, ids, report = live.load_window(FakeCursor(items=items), "2026-10-27", "2026-10-28")
+        self.assertEqual(ids, {"ext1": 5}); self.assertEqual(report, {"found": 1, "skipped": 1})
+        self.assertTrue(docs[0].text.startswith("Title\n"))
+
+    def test_empty_window_stops_before_model(self):
+        calls = []
+        out = live.stage_day_live(FakeConn(FakeCursor()), None, "k", "2026-10-27", "2026-10-28", lambda *a: calls.append(1))
+        self.assertEqual(out["stop"], "NO_UNPROCESSED_ITEMS_WITH_BODY"); self.assertEqual(calls, [])
+
+
 if __name__ == "__main__":
     unittest.main()
