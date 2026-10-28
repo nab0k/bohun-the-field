@@ -1,0 +1,24 @@
+{
+  "source": "Grants.gov",
+  "kind": "grant_opportunity",
+  "ingestion_status": "read_only_artifact_not_database",
+  "keyword_count": 1,
+  "unique_results": 1,
+  "errors": {},
+  "items": [
+    {
+      "external_id": "900001",
+      "title": "SYNTHETIC grant fixture — no real opportunity",
+      "opportunity_number": "SYNTHETIC-001",
+      "agency": "SYNTHETIC agency",
+      "agency_code": "SYN",
+      "status": "posted",
+      "open_date": "2026-10-01",
+      "close_date": "2026-11-01",
+      "source": "Grants.gov search2",
+      "matched_keywords": [
+        "SYNTHETIC keyword"
+      ]
+    }
+  ]
+}

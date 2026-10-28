@@ -1,24 +1,277 @@
-# Inoreader BOHUN folder sync v1
+# Inoreader BOHUN folder sync and bounded content capture
 
-**Status: proposed PR, NOT deployed or tested against live Inoreader.**
+**INPUT-02 status: committed locally as `aba17ec`, not deployed.** The existing
+metadata collector has written items to Supabase; the content extension described
+below has only been checked offline. Its release and a bounded cloud run require
+separate approval. Live API text coverage and completeness are not established.
 
 - Automatically discovers subscriptions and their `BOHUN_*` folders on each run.
 - Reads up to 200 most recent items per folder (configurable), deduplicates by Inoreader item ID, and inserts metadata into existing Supabase `intelligence.sources` and `intelligence.items`.
-- Stores headline, URL, publication timestamp, feed origin and folder. **Does not store article content or summaries**.
+- Preserves headline, URL, publication timestamp, feed origin and folder. New
+  records additionally carry bounded provider content in `raw_data.content_capture`.
 - Safe to rerun: `ON CONFLICT (source_id, external_id) DO NOTHING`.
 - Runs every 30 minutes in GitHub Actions. Actual execution time may vary. Not a real-time feed.
 - A new source is picked up if assigned to a `BOHUN_*` folder; unassigned subscriptions are ignored.
 - Required GitHub Actions secrets: `INOREADER_CLIENT_ID`, `INOREADER_CLIENT_SECRET`, `INOREADER_REFRESH_TOKEN`, `SUPABASE_DB_PASSWORD`.
 - Inoreader OAuth refresh token is never logged. If provider rotates refresh tokens, manually update the secret; future version should automate secure rotation.
 - Limitations: this is a rolling recent-items window, **not guaranteed full historical backfill**; multiple folders for the same item retain the first folder only; deleted subscriptions are not deleted from historical DB. API quotas and schema compatibility must be verified in first run.
-- **Architecture conflict:** `docs/DECISIONS.md` specifies Cloudflare D1 as canonical website DB, while the proven TED pipeline currently uses Supabase. This collector deliberately targets the *existing working ingestion DB* to avoid inventing D1 credentials or schema. Do not claim that the website is wired. Resolve D1 vs Supabase through an explicit architecture decision and migration/replication plan before publication.
+- The current EXP-009 plan uses the existing Supabase ingestion database. Historical
+  D1 guidance in older repository documents is not evidence of today's canonical
+  deployment. This input change does not connect the analytical pipeline or website.
 
-## First deployment
-1. Review PR and ensure the secrets above exist in GitHub repository Actions secrets. Never paste their values into chat.
-2. Merge PR, run workflow manually, inspect `DISCOVERED`, `VALIDATED`, `COMMITTED` lines.
-3. Run a second time to verify `new=0` when no new items have arrived.
-4. Confirm source metadata in Supabase, check folder naming and quotas.
-5. Only then mark this component as operational in Notion.
+## Content capture contract, version 1
+
+Only `summary.content`, when returned as an HTML string, is captured. The input
+HTML is preserved exactly and gets its own SHA256 over UTF-8 bytes; extracted text
+has a separate hash and extraction version. `captured_at` is an aware UTC receipt
+timestamp, separate from the publication date. Original feed/publisher labels stay
+in their existing origin fields; their presence is not identity verification.
+
+The HTML parser removes script/style/noscript/svg text without executing markup.
+It does not evaluate CSS or establish that an excerpt is a complete article.
+`completeness` always remains `UNKNOWN`. Capture grants no QA, evidence or public
+release approval. The HTML is untrusted data and must not be rendered as active HTML.
+
+| Status | Meaning |
+| --- | --- |
+| `METADATA_ONLY` | No nonblank provider body; titles are not promoted to article text |
+| `BODY_PRESENT_COMPLETENESS_UNVERIFIED` | Bounded text exists; completeness and rights still need checking |
+| `EMPTY_TEXT` | HTML exists but yields no extracted text |
+| `UNSUPPORTED_SHAPE` | Unexpected field type or invalid UTF-8; no coerced body |
+| `TOO_LARGE` | Per-message HTML or extracted-text limit exceeded |
+| `CAPTURE_BUDGET_EXHAUSTED` | Body omitted to keep the complete run's capture JSON within budget |
+
+Limits: **2 MiB HTML / message, 128 KiB extracted text / message, 5 MiB total
+capture JSON / run**, measured in UTF-8 bytes (including JSON escaping). Oversized
+bodies are not silently truncated. To retain room for later status records, the
+latest retained bodies may be removed and explicitly marked before database import.
+If even bodyless capture metadata cannot fit, the run fails with
+`CAPTURE_METADATA_BUDGET_EXHAUSTED` before any database write. Input objects are not
+modified. These limits do not cap the existing client's HTTP response download.
+
+Only the first occurrence of each item ID is normalized and charged to the capture
+budget. The existing insert and `ON CONFLICT DO NOTHING` are unchanged: this is
+**new-record capture, not a backfill**. Re-reading a previously stored metadata-only
+item will not enrich it. Updating old records needs a separate versioning/backfill
+plan. No schema change or new table is introduced.
+
+Logs show aggregate capture statuses and JSON bytes, never raw HTML, extracted text,
+or OAuth credentials. The existing public wire's title/URL/date allowlist is not
+expanded. No workflow, database permissions or publication gate is changed here.
+
+## Offline checks
+
+From the repository root, using the installed Python 3.13 and no new dependencies:
+
+```sh
+/opt/homebrew/bin/python3.13 -B -m unittest discover -s tests -p 'test_inoreader_content.py'
+/opt/homebrew/bin/python3.13 -B -m unittest discover -s tests -p 'test_inoreader_rate_limit.py'
+/opt/homebrew/bin/python3.13 -B -m unittest discover -s tests -p 'test_inoreader_source_manager.py'
+```
+
+The content tests mock OAuth/API/database boundaries, including dry-run. **Running
+the collector itself with `--dry-run` is not an offline check:** it still refreshes
+OAuth and reads Inoreader. Do not combine it with the commands above.
+
+## Bounded acceptance probe for the existing INPUT-02 patch
+
+`probe.py` reuses `sync.normalize` and the existing `CaptureBudget` unchanged.
+It is a test runner around the committed capture patch, not a second text extractor.
+The probe/workflow changes are local and uncommitted until separately reviewed.
+No live probe has run. Running preview also needs approval: it refreshes OAuth,
+reads Inoreader and performs database SELECTs; it is not an offline check.
+
+- One subscription list, at most three alphabetically sorted BOHUN folders, one
+  page of 20 items each, no continuation: at most 60 input positions.
+- Select at most five genuinely new external IDs, preferring provider body strings;
+  normalize only this batch. Existing items are not enriched or overwritten.
+- Require exactly one existing `Inoreader BOHUN` source. Never create a source.
+- Preview is read-only and prints only counts, statuses, bytes and fingerprints.
+- Apply requires a reviewed full commit SHA, catalog fingerprint and batch
+  fingerprint from preview. Batch identity excludes receipt time, but binds
+  provider text/hashes/metadata; changed candidates abort instead of widening scope.
+- Catalog guards require RLS, no public-role schema/table/raw-column SELECT access,
+  one source-wire function and no enabled custom item triggers. Catalog/defaults/
+  function text must also be reviewed separately before approving its fingerprint;
+  a matching hash is not an automated proof of safe SQL or publication defaults.
+- One transaction inserts at most five new rows with `ON CONFLICT DO NOTHING`,
+  compares the stored batch, repeats the same inserted keys and verifies no change.
+  Mismatch before commit rolls back. A separate read-only connection checks after
+  commit. Post-commit failure is UNCONFIRMED and must not trigger automatic retry.
+- No new body-bearing rows means INCONCLUSIVE (exit 2), even if the job stored
+  metadata. It does not authorize backfill, more folders or more rows.
+- Original HTTP download is still unbounded; these are capture/row limits. Existing
+  bounded 429 retries remain. The workflow has a ten-minute timeout.
+
+Offline probe tests, in addition to the three regression commands above:
+
+```sh
+/opt/homebrew/bin/python3.13 -B -m unittest discover -s tests -p 'test_inoreader_probe.py'
+```
+
+The bounded manual trials live in `inoreader-trials.yml` (split from the feature
+copy of `inoreader-cloud.yml` when merging main on 28.10.2026; the scheduled
+collector stays in `inoreader-cloud.yml`). The trials workflow is manual-only, has
+no schedule/push trigger, and refuses refs other than `codex/exp009-cloud-pipeline`.
+It shares the normal collector's concurrency group, defaults to preview and checks
+the reviewed SHA before credentials.
+The main collector/schedule has not been changed by local edits. Do not merge this
+temporary probe workflow into main as a production replacement.
+
+Before any cloud run: review the exact diff, commit and separately approve push,
+the exact feature ref/SHA and dispatch. Before apply: inspect current catalog/
+defaults/triggers/grants and the proposed batch; approve the exact fingerprints and
+up to five inserts separately. Do not print raw payloads/credentials into Actions
+logs or artifacts. Public source-wire headlines/URLs/dates may include the new rows
+under its existing contract; its content need not remain identical. Its body access
+and QA/public-release rules must not expand. No source-wire function is executed by
+the probe: catalog definitions/permissions are compared before and after writing.
+
+Only after a verified new body, conflict/replay and post-commit readback can this
+input component be considered tested in cloud. That still does not connect the
+analytical queue, models, Notion editor or automatic three-stream publication.
+
+## Private immutable intake — local INPUT-16 candidate
+
+The bounded-probe section above records its original pre-run implementation.
+Subsequently INPUT-12 preview read succeeded and INPUT-14 apply stopped before
+INSERT on changed input. Those runs do not test this new private intake layer.
+
+`intake_contract.py`, `intake_store.py`, `intake.py` and
+`db/migrations/20261018_exp009_intake.sql` implement the first slice of the
+accepted batch design. **The exact private migration was installed and independently
+verified in AUTO-04 on 18 October 2026.** Four tables were empty at that check;
+the two roles remain NOLOGIN. Runtime credentials and a real body batch have not
+been provisioned/run. The collector, capture and probe remain unchanged; the
+INPUT-24 workflow candidate below is local. This is not yet the full A18
+PostgreSQL worker Store or analytical system.
+
+One receipt binds a preallocated batch UUID, canonical manifest and up to five
+exact UTF-8 payloads. The payload reuses `sync.normalize` and its capture, with
+only `content_capture.captured_at` moved into the batch membership. Hashes bind
+the exact stored text, never `jsonb::text`. A second receipt with the same evidence
+reuses the artifact/job, while changed input creates a new artifact. Completeness
+stays UNKNOWN; no QA/public-release/company verification is inferred.
+
+The private schema candidate has batches, artifacts, batch membership and initial
+queued `intake_validate` jobs. It provides only persist/read-batch/read-artifact
+entrypoints. There are no worker leases, models, Notion writes or publication
+functions. Runtime cannot directly change tables; `anon`/`authenticated`/PUBLIC
+receive no access. Both new roles start NOLOGIN, with credential provisioning
+deferred. The SQL deliberately aborts on existing schema/role names and unexpected
+inherited access; do not turn it into a blind `IF NOT EXISTS` migration.
+
+Initial intake is bound to the separately checked `Inoreader BOHUN` source ID 2.
+It does not require metadata to be absent from `intelligence.items`, and never
+inserts/updates those old rows. The optional metadata reference is initially NULL.
+Supplying one requires a matching visible id/source/external_id under existing
+RLS; no intelligence policy is broadened to make this work. Historical acceptance
+of body storage in `intelligence.items.raw_data` remains NOT_PROVEN: private
+artifact storage is a separate path, not a retroactive success for that probe.
+
+Limits remain 3 folders × 20 items fetched, five selected, 2 MiB HTML/128 KiB text
+per item and 5 MiB total capture JSON. The new entire payload cap is 6 MiB UTF-8,
+manifest 32 KiB and external ID 2 KiB. Rejection is explicit, not truncation.
+The old HTTP response-download limitation remains. Empty/bodyless capture is
+stored with its status and reported INCONCLUSIVE, not analysis-ready content.
+
+`PostgresIntakeStore` requires a fresh non-autocommit connection authenticated
+directly as `bohun_intake`, checks the in-transaction response, commits once and
+verifies via a fresh read-only connection. If COMMIT acknowledgement is lost,
+it returns UNKNOWN without reconnect/retry. The caller must read the same batch
+ID, not fetch another RSS batch. If the runner loses its unsaved request and no
+committed batch can be confirmed, that input cannot be recovered by refetching.
+After an uncertain result, **only `read` mode is a recovery operation**. Do not
+rerun `capture` on a not-found/possibly still pending batch. A new capture is an
+explicit new request after resolving the previous attempt, not an automatic retry.
+
+The CLI imports no driver and performs no I/O for help:
+
+```sh
+/opt/homebrew/bin/python3.13 -B -m collectors.inoreader.intake --help
+/opt/homebrew/bin/python3.13 -B -m unittest discover -s tests -p 'test_inoreader_intake.py'
+```
+
+`capture`/`read` both require a reviewed full SHA, preallocated `--batch-id` and
+`--allow-live`. They remain **unapproved for execution in this local stage**.
+They require a separately provisioned `BOHUN_INTAKE_DSN` with reviewed TLS/role
+settings; the old full-access password is never a fallback. The candidate roles
+cannot log in until separately provisioned. An already stored batch is read
+without OAuth/provider access. Only IDs/hashes/counts/status are printed, never
+payloads, source URLs or credentials. SQL/driver/network errors are withheld.
+
+Offline fault-injection tests prove client behavior only. AUTO-03 separately
+passed the authorized synthetic SQL/role/ACL rehearsal with full ROLLBACK, and
+AUTO-04 verified permanent empty schema installation. These results do not prove
+runtime TLS/login, real body COMMIT/readback, concurrent submissions or the full
+worker. HTTP Data API exposure settings were not inspected; SQL privileges are
+private. No new dependency is required for offline checks. The migration must
+not be rerun; runtime provisioning and a bounded cloud acceptance run need their
+own exact plans and approvals.
+
+Relevant official references checked for this local implementation:
+[PostgreSQL secure functions](https://www.postgresql.org/docs/current/sql-createfunction.html#SQL-CREATEFUNCTION-SECURITY),
+[SHA-256 and UTF-8 bytes](https://www.postgresql.org/docs/current/functions-binarystring.html),
+[RLS and foreign keys](https://www.postgresql.org/docs/current/ddl-rowsecurity.html),
+[Supabase function privileges](https://supabase.com/docs/guides/database/functions),
+[psycopg transactions](https://www.psycopg.org/psycopg3/docs/basic/transactions.html).
+No documentation example was executed against the real database.
+
+## INPUT-24 — local one-body trial candidate
+
+`capture` now accepts `--max-items 1..5` (default 5) and `--require-body`.
+The latter requires every selected item to retain nonempty extracted text under
+the validated content contract. Missing/empty/script-only/oversize or evicted text
+returns `INCONCLUSIVE_REQUIRED_BODY_MISSING` (exit 2) **before any persist**.
+No extra candidate/page is tried to turn that result into success. Without these
+flags the previous five-item/bodyless capture behavior remains. Capture flags
+are rejected in read mode when they change its defaults.
+
+The existing manual workflow adds `intake` and `read` choices. Both require a
+canonical preallocated batch UUID and the exact reviewed feature SHA. Its guards
+run before dependency/credential steps. The intake step runs:
+
+```sh
+python -B -m collectors.inoreader.intake capture --expected-sha "$EXPECTED_SHA" \
+  --batch-id "$BATCH_ID" --max-items 1 --require-body --allow-live
+```
+
+After success a different Python process runs `read` for the same UUID and compares
+manifest SHA, item/body counts, UTF-8 payload bytes and contract version. The store
+also validates every payload/hash. An existing batch is read without OAuth;
+an oversized existing batch cannot satisfy the one-item capture limit. Neither
+mode refetches a batch after an uncertain COMMIT. Only a separately authorized
+`read` of that UUID is recovery; do not rerun capture or invent a new UUID.
+
+New steps receive only `BOHUN_INTAKE_DSN`; the capture step additionally receives
+the existing three OAuth secrets, while read receives none. The old admin password
+is confined to the old preview/apply step. Safe JSON summaries contain only
+IDs/hashes/counts/status, are briefly stored with mode 0600 under RUNNER_TEMP,
+and are removed by an always-cleanup step. No raw input or body is uploaded or
+logged. The capture pipeline uses Bash pipefail so tee cannot hide failure/exit 2.
+The workflow remains manual-only, on the feature branch, same concurrency group
+and ten-minute timeout; psycopg[binary] is pinned to 3.3.6 for the future runner.
+Nothing was installed locally.
+
+This candidate is **not committed, pushed or dispatched**. Provisioning an expiring
+least-privileged login/DSN secret, verified TLS/CA, its cleanup, and one exact
+cloud run/DB write need separate approval. No runtime credential has been created.
+For the planned session pooler, obtain the actual host from Connect; custom roles
+use `ROLE.PROJECT_REF`. `sslmode=verify-full` verifies both CA and hostname; the
+reviewed DSN/CA transport and actual current_user=session_user=bohun_intake must
+be verified before accepting a live run. There is no admin fallback or permission
+expansion to solve login errors. Existing provider page bounds are unchanged:
+3 BOHUN folders × one page of 20, no continuation; HTTP response bytes remain
+unbounded, so this is not a production ingestion/memory guarantee.
+
+Official references checked for this candidate:
+[Supabase connections and custom-role mapping](https://supabase.com/docs/guides/database/connecting-to-postgres),
+[role isolation](https://supabase.com/docs/guides/database/postgres/roles),
+[TLS modes](https://supabase.com/docs/guides/platform/ssl-enforcement),
+[GitHub workflow_dispatch](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onworkflow_dispatch),
+[step secrets](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets).
+No model, dossier generation, Notion delivery, schedule or publication is enabled
+by this local acceptance candidate; completeness stays UNKNOWN.
 
 ## Next work
 - Incremental watermark and catch-up pagination.

@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "enabled": false,
+  "state_endpoint": "",
+  "code_sha256": "",
+  "policy_sha256": "",
+  "policy_path": "",
+  "runtime": {
+    "version": 1,
+    "deployment_id": "bohun-discovery-cloud-v1",
+    "runtime_root": "",
+    "state_path": "",
+    "live_inputs": false,
+    "writer_enabled": false,
+    "collector_ready": false,
+    "pilot_proofs": {"single": false, "batch3": false},
+    "manager": null,
+    "providers": [
+      {"id": "inoreader-radar", "type": "inoreader", "query_id": "review-pending", "enabled": false, "stream": ""},
+      {"id": "google-alerts", "type": "google_alerts", "query_id": "review-pending", "enabled": false, "url": ""},
+      {"id": "talkwalker", "type": "talkwalker", "query_id": "review-pending", "enabled": false, "url": ""}
+    ],
+    "artifacts": [],
+    "delivery": {"enabled": false}
+  }
+}

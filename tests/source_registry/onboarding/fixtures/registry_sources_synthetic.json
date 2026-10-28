@@ -1,0 +1,343 @@
+{
+  "schema_name": "bohun-planning-fixture",
+  "schema_version": "1.0.0",
+  "synthetic": true,
+  "rows": [
+    [
+      "S01",
+      "SYNTHETIC same-host publisher",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S02",
+      "SYNTHETIC same-host publisher",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S03",
+      "SYNTHETIC publisher 3",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S04",
+      "Grants.gov",
+      "SYNTHETIC purpose",
+      "R0",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S05",
+      "SYNTHETIC publisher 5",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S06",
+      "SYNTHETIC publisher 6",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S07",
+      "SYNTHETIC publisher 7",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S08",
+      "SYNTHETIC publisher 8",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S09",
+      "SYNTHETIC publisher 9",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S10",
+      "SYNTHETIC publisher 10",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S11",
+      "SYNTHETIC publisher 11",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S12",
+      "SYNTHETIC publisher 12",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S13",
+      "SYNTHETIC publisher 13",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S14",
+      "SYNTHETIC publisher 14",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S15",
+      "SYNTHETIC publisher 15",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S16",
+      "SYNTHETIC publisher 16",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S17",
+      "SYNTHETIC publisher 17",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S18",
+      "SYNTHETIC publisher 18",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S19",
+      "SYNTHETIC publisher 19",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S20",
+      "SYNTHETIC publisher 20",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S21",
+      "SYNTHETIC publisher 21",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S22",
+      "SYNTHETIC publisher 22",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S23",
+      "SYNTHETIC publisher 23",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S24",
+      "SYNTHETIC publisher 24",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S25",
+      "SYNTHETIC publisher 25",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S26",
+      "SYNTHETIC publisher 26",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S27",
+      "SYNTHETIC publisher 27",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S28",
+      "SYNTHETIC publisher 28",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S29",
+      "SYNTHETIC publisher 29",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S30",
+      "SYNTHETIC publisher 30",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S31",
+      "SYNTHETIC publisher 31",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S32",
+      "SYNTHETIC publisher 32",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S33",
+      "SYNTHETIC publisher 33",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S34",
+      "OpenAlex",
+      "SYNTHETIC purpose",
+      "R0",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S35",
+      "SYNTHETIC publisher 35",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S36",
+      "SYNTHETIC publisher 36",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S37",
+      "SYNTHETIC publisher 37",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S38",
+      "SYNTHETIC publisher 38",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S39",
+      "SYNTHETIC publisher 39",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S40",
+      "SYNTHETIC publisher 40",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S41",
+      "SYNTHETIC publisher 41",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ],
+    [
+      "S42",
+      "SYNTHETIC publisher 42",
+      "SYNTHETIC purpose",
+      "R1",
+      "CODE is NOT admission",
+      "SYNTHETIC / EXP-009"
+    ]
+  ]
+}
