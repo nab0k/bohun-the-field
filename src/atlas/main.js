@@ -13,6 +13,7 @@ import assets from '../game/data/assets.json' with { type: 'json' };
 import { createNight } from './night.js';
 import { mountAustriaInternalReview } from './eng04-internal.js';
 import { createAtlasState, mountM1Panels } from './m1-state.js';
+import { mountApprovedMaterials } from './approved-materials.js';
 import { mountCoverageControls } from './p2-coverage.js';
 import { createLive } from './live.js';
 import { createScaleDemo } from './scale-demo.js';
@@ -33,11 +34,23 @@ navDrawerToggle.addEventListener('click',()=>setDrawerOpen(!navDrawer.classList.
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&navDrawer.classList.contains('m1-drawer-open'))setDrawerOpen(false);});
 
 const m1State=createAtlasState();
-mountM1Panels({store:m1State,records:[]});
+const m1Panels=mountM1Panels({store:m1State,records:[],publicMaterials:true});
 if(import.meta.env.DEV) window.__bohunM1State=m1State;
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const params = new URLSearchParams(location.search);
+const approvedMaterials=mountApprovedMaterials({feedHost:m1Panels.feed,readerHost:m1Panels.dossier,reducedMotion:reduced});
+let approvedPreview=false;
+if(import.meta.env.DEV){
+  const previewCase=params.get('approvedPreview');
+  if(['valid','bad-schema','bad-version'].includes(previewCase)){
+    approvedPreview=true;
+    import('../../tests/fixtures/exp009-approved-preview-v1.json').then(({default:fixtures})=>{
+      approvedMaterials.setSnapshot(fixtures[previewCase],{isSynthetic:true});
+    }).catch(()=>approvedMaterials.setSnapshot(null,{isSynthetic:true}));
+  }
+}
+if(!approvedPreview)void approvedMaterials.load(document.querySelector('meta[name="bohun-approved-snapshot"]')?.content||'');
 const PROJECTION = params.get('projection') === 'mercator' ? 'mercator' : 'globe';
 // Serhii, 09.10.2026: no points on the map until the company data is collected — no companies, no undersea list, no demo
 // journeys (actors, routes, Bohun), no scale demo. The code stays and is opened only for review: ?journeys=1, ?industry=1,
@@ -171,6 +184,7 @@ const map = new maplibregl.Map({
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
 window.__map = map;
 await new Promise((r) => map.once('load', r));
+approvedMaterials.setMap(map);
 if (PROJECTION === 'globe') map.setProjection({ type: 'globe' });
 
 // night side with city lights (NASA Black Marble), redrawn every 5 minutes as the Earth turns; ?night=0 switches it off

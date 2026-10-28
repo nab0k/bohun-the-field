@@ -30,7 +30,7 @@ export function selectApproved(records,state){
    &&(!state.filters.types?.length||state.filters.types.includes(r.event_type))
    &&(!state.filters.sectors?.length||state.filters.sectors.includes(r.sector)));
 }
-export function mountM1Panels({store,records=[]}){
+export function mountM1Panels({store,records=[],publicMaterials=false}){
   const create=(id,title,left)=>{
     const box=document.createElement('aside');
     box.id=id;box.hidden=true;box.setAttribute('aria-label',title);box.setAttribute('role','region');
@@ -43,6 +43,14 @@ export function mountM1Panels({store,records=[]}){
   dossier.hidden=false;
   const signals=create('m1-signals','Evidence-backed signals',false);
   signals.style.top='auto';signals.style.bottom='25px';
+  if(publicMaterials){
+    // Snapshot items have no legacy company/date/filter fields. Give their reader
+    // stable hosts rather than fabricating fields or erasing it on store updates.
+    feed.classList.add('approved-mode');dossier.classList.add('approved-mode');
+    feed.setAttribute('aria-label','Published analysis');dossier.setAttribute('aria-label','Analysis article');
+    feed.hidden=false;dossier.hidden=true;
+    return {feed,dossier,signals,dispose(){for(const box of [feed,dossier,signals])box.remove();}};
+  }
   const text=(node,type,value)=>{const child=document.createElement(type);child.textContent=value;node.append(child);return child;};
   const link=(node,url)=>{
     const a=document.createElement('a');a.href=url;a.textContent='Primary source';
