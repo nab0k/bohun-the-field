@@ -137,10 +137,13 @@ Subsequently INPUT-12 preview read succeeded and INPUT-14 apply stopped before
 INSERT on changed input. Those runs do not test this new private intake layer.
 
 `intake_contract.py`, `intake_store.py`, `intake.py` and
-`db/migrations/20261018_exp009_intake.sql` implement the first local slice of the
-accepted batch design. **No migration, runtime credentials, cloud run or schedule
-has been applied.** The existing collector, capture, probe and workflow are not
-changed. This is not yet the full A18 PostgreSQL worker Store or analytical system.
+`db/migrations/20261018_exp009_intake.sql` implement the first slice of the
+accepted batch design. **The exact private migration was installed and independently
+verified in AUTO-04 on 18 October 2026.** Four tables were empty at that check;
+the two roles remain NOLOGIN. Runtime credentials and a real body batch have not
+been provisioned/run. The collector, capture and probe remain unchanged; the
+INPUT-24 workflow candidate below is local. This is not yet the full A18
+PostgreSQL worker Store or analytical system.
 
 One receipt binds a preallocated batch UUID, canonical manifest and up to five
 exact UTF-8 payloads. The payload reuses `sync.normalize` and its capture, with
@@ -196,11 +199,14 @@ cannot log in until separately provisioned. An already stored batch is read
 without OAuth/provider access. Only IDs/hashes/counts/status are printed, never
 payloads, source URLs or credentials. SQL/driver/network errors are withheld.
 
-Offline fault-injection tests prove client behavior only. Real SQL parsing,
-transactions/concurrency, JSON byte accounting, role/ACL tests, exposure settings
-and live body/readback acceptance are **NOT_RUN**. No new dependency is required
-for the offline checks. Review the migration/ACL/rollback and exact runtime before
-separately approving application and one bounded cloud acceptance run.
+Offline fault-injection tests prove client behavior only. AUTO-03 separately
+passed the authorized synthetic SQL/role/ACL rehearsal with full ROLLBACK, and
+AUTO-04 verified permanent empty schema installation. These results do not prove
+runtime TLS/login, real body COMMIT/readback, concurrent submissions or the full
+worker. HTTP Data API exposure settings were not inspected; SQL privileges are
+private. No new dependency is required for offline checks. The migration must
+not be rerun; runtime provisioning and a bounded cloud acceptance run need their
+own exact plans and approvals.
 
 Relevant official references checked for this local implementation:
 [PostgreSQL secure functions](https://www.postgresql.org/docs/current/sql-createfunction.html#SQL-CREATEFUNCTION-SECURITY),
@@ -209,6 +215,62 @@ Relevant official references checked for this local implementation:
 [Supabase function privileges](https://supabase.com/docs/guides/database/functions),
 [psycopg transactions](https://www.psycopg.org/psycopg3/docs/basic/transactions.html).
 No documentation example was executed against the real database.
+
+## INPUT-24 — local one-body trial candidate
+
+`capture` now accepts `--max-items 1..5` (default 5) and `--require-body`.
+The latter requires every selected item to retain nonempty extracted text under
+the validated content contract. Missing/empty/script-only/oversize or evicted text
+returns `INCONCLUSIVE_REQUIRED_BODY_MISSING` (exit 2) **before any persist**.
+No extra candidate/page is tried to turn that result into success. Without these
+flags the previous five-item/bodyless capture behavior remains. Capture flags
+are rejected in read mode when they change its defaults.
+
+The existing manual workflow adds `intake` and `read` choices. Both require a
+canonical preallocated batch UUID and the exact reviewed feature SHA. Its guards
+run before dependency/credential steps. The intake step runs:
+
+```sh
+python -B -m collectors.inoreader.intake capture --expected-sha "$EXPECTED_SHA" \
+  --batch-id "$BATCH_ID" --max-items 1 --require-body --allow-live
+```
+
+After success a different Python process runs `read` for the same UUID and compares
+manifest SHA, item/body counts, UTF-8 payload bytes and contract version. The store
+also validates every payload/hash. An existing batch is read without OAuth;
+an oversized existing batch cannot satisfy the one-item capture limit. Neither
+mode refetches a batch after an uncertain COMMIT. Only a separately authorized
+`read` of that UUID is recovery; do not rerun capture or invent a new UUID.
+
+New steps receive only `BOHUN_INTAKE_DSN`; the capture step additionally receives
+the existing three OAuth secrets, while read receives none. The old admin password
+is confined to the old preview/apply step. Safe JSON summaries contain only
+IDs/hashes/counts/status, are briefly stored with mode 0600 under RUNNER_TEMP,
+and are removed by an always-cleanup step. No raw input or body is uploaded or
+logged. The capture pipeline uses Bash pipefail so tee cannot hide failure/exit 2.
+The workflow remains manual-only, on the feature branch, same concurrency group
+and ten-minute timeout; psycopg[binary] is pinned to 3.3.6 for the future runner.
+Nothing was installed locally.
+
+This candidate is **not committed, pushed or dispatched**. Provisioning an expiring
+least-privileged login/DSN secret, verified TLS/CA, its cleanup, and one exact
+cloud run/DB write need separate approval. No runtime credential has been created.
+For the planned session pooler, obtain the actual host from Connect; custom roles
+use `ROLE.PROJECT_REF`. `sslmode=verify-full` verifies both CA and hostname; the
+reviewed DSN/CA transport and actual current_user=session_user=bohun_intake must
+be verified before accepting a live run. There is no admin fallback or permission
+expansion to solve login errors. Existing provider page bounds are unchanged:
+3 BOHUN folders × one page of 20, no continuation; HTTP response bytes remain
+unbounded, so this is not a production ingestion/memory guarantee.
+
+Official references checked for this candidate:
+[Supabase connections and custom-role mapping](https://supabase.com/docs/guides/database/connecting-to-postgres),
+[role isolation](https://supabase.com/docs/guides/database/postgres/roles),
+[TLS modes](https://supabase.com/docs/guides/platform/ssl-enforcement),
+[GitHub workflow_dispatch](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onworkflow_dispatch),
+[step secrets](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets).
+No model, dossier generation, Notion delivery, schedule or publication is enabled
+by this local acceptance candidate; completeness stays UNKNOWN.
 
 ## Next work
 - Incremental watermark and catch-up pagination.

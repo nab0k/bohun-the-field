@@ -23,14 +23,21 @@ def summary(batch, *, existing=False):
             "result": "BODY_SNAPSHOT_READBACK" if bodies else "INCONCLUSIVE_NO_BODY"}
 
 
-def capture_new(store, batch_id, producer_sha, pipeline_version):
+def capture_new(store, batch_id, producer_sha, pipeline_version, *,
+                max_items=MAX_ITEMS, require_body=False):
     # Validate invocation before even a DB SELECT or an OAuth request.
+    require(type(max_items) is int and 1 <= max_items <= MAX_ITEMS, "INTAKE_ITEM_LIMIT_INVALID")
+    require(type(require_body) is bool, "INTAKE_REQUIRE_BODY_INVALID")
     prepare_batch([], batch_id=batch_id, producer_sha=producer_sha,
                   pipeline_version=pipeline_version, collected_at=datetime.now(timezone.utc))
     # An existing immutable batch is read without OAuth or a provider call.
     existing = store.read(batch_id)
     if existing is not None:
-        return summary(existing[0], existing=True)
+        report = summary(existing[0], existing=True)
+        require(report["items"] <= max_items, "INTAKE_EXISTING_BATCH_EXCEEDS_LIMIT_NO_REFETCH")
+        if require_body and not (report["items"] > 0 and report["body_items"] == report["items"]):
+            report["result"] = "INCONCLUSIVE_REQUIRED_BODY_MISSING"
+        return report
     from . import probe, sync
     from .content_contract import CaptureBudget
     token = sync.access_token()
@@ -38,14 +45,20 @@ def capture_new(store, batch_id, producer_sha, pipeline_version):
     def has_body(pair):
         body = pair[0].get("summary")
         return isinstance(body, dict) and isinstance(body.get("content"), str) and bool(body["content"].strip())
-    pairs = sorted(unique.values(), key=lambda pair: not has_body(pair))[:MAX_ITEMS]
+    pairs = sorted(unique.values(), key=lambda pair: not has_body(pair))[:max_items]
     now = datetime.now(timezone.utc)
     budget = CaptureBudget()
     items = [sync.normalize(raw, folder, captured_at=now, content_budget=budget) for raw, folder in pairs]
     batch = prepare_batch(items, batch_id=batch_id, producer_sha=producer_sha,
                           pipeline_version=pipeline_version, collected_at=now)
+    report = summary(batch)
+    if require_body and not (report["items"] > 0 and report["body_items"] == report["items"]):
+        # Validate retained text through prepare_batch/validate_batch above, not
+        # merely provider HTML. Never select another item to manufacture success.
+        report["result"] = "INCONCLUSIVE_REQUIRED_BODY_MISSING"
+        return report
     store.persist(batch)
-    return summary(batch)
+    return report
 
 
 def open_store():
@@ -77,20 +90,27 @@ def main(argv=None):
     parser.add_argument("--batch-id", required=True, help="Preallocated UUID; recovery uses read with this ID")
     parser.add_argument("--expected-sha", required=True, help="Separately reviewed full feature commit SHA")
     parser.add_argument("--pipeline-version", default="intake-v1")
+    parser.add_argument("--max-items", type=int, choices=range(1, MAX_ITEMS + 1), default=MAX_ITEMS,
+                        help="Capture only: selected item limit (default: 5)")
+    parser.add_argument("--require-body", action="store_true",
+                        help="Capture only: stop before persist unless every selected item retains text")
     parser.add_argument("--allow-live", action="store_true", help="Explicitly enable separately authorized DB/API access")
     args = parser.parse_args(argv)
     uuid_string(args.batch_id)
+    require(args.mode == "capture" or (args.max_items == MAX_ITEMS and not args.require_body),
+            "INTAKE_CAPTURE_FLAGS_IN_READ_MODE")
     require(args.allow_live, "INTAKE_LIVE_ACCESS_NOT_ENABLED")
     verify_revision(args.expected_sha)
     store = open_store()
     if args.mode == "capture":
-        report = capture_new(store, args.batch_id, args.expected_sha, args.pipeline_version)
+        report = capture_new(store, args.batch_id, args.expected_sha, args.pipeline_version,
+                             max_items=args.max_items, require_body=args.require_body)
     else:
         stored = store.read(args.batch_id)
         require(stored is not None, "INTAKE_BATCH_NOT_FOUND_DO_NOT_REFETCH")
         report = summary(stored[0], existing=True)
     print(json.dumps(report, sort_keys=True))
-    return 0 if report["body_items"] else 2
+    return 0 if report["result"] == "BODY_SNAPSHOT_READBACK" else 2
 
 
 if __name__ == "__main__":

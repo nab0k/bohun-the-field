@@ -8,7 +8,7 @@ from pathlib import Path
 import subprocess
 import sys
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from uuid import uuid4
 
 from collectors.inoreader import intake, intake_contract as contract, sync
@@ -427,6 +427,145 @@ class CLITests(OfflineTest):
         store = PostgresIntakeStore(lambda: self.fail("Unexpected DB connection"))
         with self.assertRaises(contract.IntakeError):
             intake.capture_new(store,BATCH_ID,SHA,"INVALID VERSION")
+
+
+class OneBodyTrialTests(OfflineTest):
+    @staticmethod
+    def entries(*bodies):
+        return {str(i): ({"id":str(i), "title":"PRIVATE_TITLE_SENTINEL",
+                         "summary":{"content":body}}, "BOHUN_Test")
+                for i,body in enumerate(bodies)}
+
+    def capture(self, store, entries, **options):
+        from collectors.inoreader import probe
+        with patch.object(sync,"access_token",return_value="mock-token") as oauth, \
+             patch.object(probe,"collect",return_value=(entries,{})) as collect:
+            report = intake.capture_new(store,BATCH_ID,SHA,"intake-v1",**options)
+        self.assertEqual(oauth.call_count,1)
+        self.assertEqual(collect.call_count,1)
+        return report
+
+    def test_one_body_uses_existing_normalizer_and_persists_only_selected_item(self):
+        db = FakeDB(); store = PostgresIntakeStore(db.connect)
+        report = self.capture(store,self.entries("", "<p>PRIVATE_BODY_SENTINEL</p>", "<p>Other</p>"),
+                              max_items=1,require_body=True)
+        self.assertEqual((report["items"],report["body_items"]),(1,1))
+        self.assertEqual(report["result"],"BODY_SNAPSHOT_READBACK")
+        saved,_ = store.read(BATCH_ID)
+        self.assertEqual(len(saved.payloads),1)
+        self.assertEqual(contract.validate_batch(saved)["items"][0]["external_id"],"1")
+        self.assertEqual([len(db.data[k]) for k in ("batches","artifacts","jobs")],[1,1,1])
+        self.assertNotIn("PRIVATE",json.dumps(report))
+
+    def test_empty_script_oversize_or_empty_batch_never_persist(self):
+        for bodies in ((), (None,), ("",), ("<script>PRIVATE_BODY_SENTINEL</script>",),
+                       ("x"*(128*1024+1),)):
+            store = Mock()
+            store.read.return_value = None
+            with self.subTest(bodies=len(bodies)):
+                report = self.capture(store,self.entries(*bodies),max_items=1,require_body=True)
+                self.assertEqual(report["result"],"INCONCLUSIVE_REQUIRED_BODY_MISSING")
+                self.assertEqual(report["body_items"],0)
+                store.persist.assert_not_called()
+
+    def test_failed_first_selected_html_does_not_scan_for_another_success(self):
+        store = Mock(); store.read.return_value = None
+        report = self.capture(store,self.entries("<script>empty</script>","<p>Valid second</p>"),
+                              max_items=1,require_body=True)
+        self.assertEqual(report["result"],"INCONCLUSIVE_REQUIRED_BODY_MISSING")
+        store.persist.assert_not_called()
+
+    def test_partial_body_batch_is_inconclusive_without_any_write(self):
+        store = Mock(); store.read.return_value = None
+        report = self.capture(store,self.entries("<p>Body</p>",""),max_items=2,require_body=True)
+        self.assertEqual((report["items"],report["body_items"]),(2,1))
+        self.assertEqual(report["result"],"INCONCLUSIVE_REQUIRED_BODY_MISSING")
+        store.persist.assert_not_called()
+
+    def test_capture_budget_eviction_is_not_treated_as_retained_text(self):
+        from collectors.inoreader.content_contract import CaptureBudget
+        store = Mock(); store.read.return_value = None
+        with patch("collectors.inoreader.content_contract.CaptureBudget",return_value=CaptureBudget(limit=650)):
+            report = self.capture(store,self.entries("<p>"+"x"*1500+"</p>"),
+                                  max_items=1,require_body=True)
+        self.assertEqual(report["result"],"INCONCLUSIVE_REQUIRED_BODY_MISSING")
+        self.assertEqual(report["body_items"],0)
+        store.persist.assert_not_called()
+
+    def test_invalid_options_stop_before_read_or_oauth(self):
+        for options in ({"max_items":0},{"max_items":6},{"max_items":True},
+                        {"max_items":"1"},{"max_items":1.5},{"require_body":"yes"}):
+            store = Mock()
+            with self.subTest(options=options), \
+                 patch.object(sync,"access_token",side_effect=AssertionError("Unexpected OAuth")):
+                with self.assertRaises(contract.IntakeError):
+                    intake.capture_new(store,BATCH_ID,SHA,"intake-v1",**options)
+                store.read.assert_not_called()
+                store.persist.assert_not_called()
+
+    def test_existing_bodyless_or_oversize_batch_does_not_fetch_or_rewrite(self):
+        for prepared in (batch([item(body=None)]),batch([item("one"),item("two")])):
+            store = Mock(); store.read.return_value = (prepared,{})
+            with patch.object(sync,"access_token",side_effect=AssertionError("Unexpected OAuth")):
+                if len(prepared.payloads) == 2:
+                    with self.assertRaisesRegex(contract.IntakeError,"EXCEEDS_LIMIT_NO_REFETCH"):
+                        intake.capture_new(store,BATCH_ID,SHA,"intake-v1",max_items=1,require_body=True)
+                else:
+                    report = intake.capture_new(store,BATCH_ID,SHA,"intake-v1",max_items=1,require_body=True)
+                    self.assertEqual(report["result"],"INCONCLUSIVE_REQUIRED_BODY_MISSING")
+                    self.assertTrue(report["existing_batch"])
+            store.persist.assert_not_called()
+
+    def test_unknown_commit_propagates_without_refetch_or_second_write(self):
+        from collectors.inoreader import probe
+        for error in (CommitUnknown,PostCommitUnconfirmed):
+            store = Mock(); store.read.return_value = None
+            store.persist.side_effect = error()
+            with self.subTest(error=error.__name__), \
+                 patch.object(sync,"access_token",return_value="mock-token") as oauth, \
+                 patch.object(probe,"collect",return_value=(self.entries("<p>Body</p>"),{})) as collect:
+                with self.assertRaises(error):
+                    intake.capture_new(store,BATCH_ID,SHA,"intake-v1",max_items=1,require_body=True)
+            self.assertEqual((store.read.call_count,store.persist.call_count,oauth.call_count,collect.call_count),
+                             (1,1,1,1))
+
+    def test_cli_rejects_limits_mode_or_capture_flags_before_any_io(self):
+        base = ["--batch-id",BATCH_ID,"--expected-sha",SHA,"--allow-live"]
+        for args in (["capture",*base,"--max-items","0"], ["capture",*base,"--max-items","6"],
+                     ["capture",*base,"--max-items","one"], ["unknown",*base],
+                     ["read",*base,"--max-items","1"], ["read",*base,"--require-body"]):
+            with self.subTest(args=args), patch.object(intake,"open_store") as open_store, \
+                 patch.object(intake,"verify_revision") as revision, patch("sys.stderr",new_callable=io.StringIO):
+                with self.assertRaises((SystemExit,contract.IntakeError)):
+                    intake.main(args)
+                revision.assert_not_called()
+                open_store.assert_not_called()
+
+    def test_cli_one_body_missing_returns_two_and_no_write(self):
+        from collectors.inoreader import probe
+        store = Mock(); store.read.return_value = None
+        with patch.object(intake,"verify_revision"), patch.object(intake,"open_store",return_value=store), \
+             patch.object(sync,"access_token",return_value="mock-token"), \
+             patch.object(probe,"collect",return_value=(self.entries("<script>empty</script>"),{})), \
+             patch("sys.stdout",new_callable=io.StringIO) as output:
+            code = intake.main(["capture","--batch-id",BATCH_ID,"--expected-sha",SHA,
+                                "--max-items","1","--require-body","--allow-live"])
+        self.assertEqual(code,2)
+        self.assertEqual(json.loads(output.getvalue())["result"],"INCONCLUSIVE_REQUIRED_BODY_MISSING")
+        store.persist.assert_not_called()
+
+    def test_cli_read_existing_one_body_without_oauth_or_write(self):
+        db = FakeDB(); store = PostgresIntakeStore(db.connect)
+        store.persist(batch())
+        before = copy.deepcopy(db.data)
+        with patch.object(intake,"verify_revision"), patch.object(intake,"open_store",return_value=store), \
+             patch.object(sync,"access_token",side_effect=AssertionError("Unexpected OAuth")), \
+             patch("sys.stdout",new_callable=io.StringIO) as output:
+            code = intake.main(["read","--batch-id",BATCH_ID,"--expected-sha",SHA,"--allow-live"])
+        self.assertEqual(code,0)
+        self.assertEqual(db.data,before)
+        self.assertEqual(db.connections[-1].commits,0)
+        self.assertEqual(json.loads(output.getvalue())["manifest_sha256"],batch().manifest_sha256)
 
 
 class MigrationBoundaryTests(OfflineTest):
