@@ -1,0 +1,381 @@
+{
+  "version": "topics-v2",
+  "created": "2026-10-28",
+  "by": "Claude (A-18 v2, по offline-отчёту A-07)",
+  "note": "Стартовый список тем для маршрута синтеза (EXP-024 §3 шаг 3). Тема выбирается по совпадению ключевых слов в заголовке и фактах события (без учёта регистра, по границе слов). Нужно min_hits совпадений; при нескольких темах главная — с наибольшим числом совпадений, при равенстве — с меньшим priority. Нет темы → HOLD topic_missing. Слова — английские (синтез на английском; извлечение работает по исходному тексту — для FR/DE/UA добавлены основные формы). v2: keywords — сильные слова, weak_keywords — общие (страны, ведомства, компании, «award/program»). Тема подходит, если сильных совпадений >= min_strong и всех (сильные + слабые) >= min_hits. Главная тема: больше сильных совпадений, затем больше всех, затем меньший priority.",
+  "topics": [
+    {
+      "slug": "us-munitions-ramp-up",
+      "title": "US missile and munitions production ramp-up",
+      "description": "Multiyear contracts, framework agreements and factory capacity for US missiles, rockets and precision munitions.",
+      "priority": 1,
+      "min_hits": 2,
+      "keywords": [
+        "SM-6",
+        "SM-3",
+        "SM-2",
+        "PAC-3",
+        "Patriot",
+        "GMLRS",
+        "ER GMLRS",
+        "APKWS",
+        "Javelin",
+        "Tomahawk",
+        "AMRAAM",
+        "Stinger",
+        "JASSM",
+        "LRASM",
+        "rocket motor",
+        "solid rocket",
+        "munitions",
+        "missile production",
+        "production rate",
+        "ramp up",
+        "ramp-up",
+        "multiyear",
+        "framework agreement",
+        "precision-guided"
+      ],
+      "weak_keywords": [
+        "Department of War",
+        "Pentagon",
+        "U.S. Army",
+        "U.S. Navy"
+      ],
+      "min_strong": 1
+    },
+    {
+      "slug": "european-air-missile-defence",
+      "title": "European air and missile defence",
+      "description": "European procurement and production of air and missile defence systems and interceptors.",
+      "priority": 2,
+      "min_hits": 2,
+      "keywords": [
+        "air defence",
+        "air defense",
+        "missile defence",
+        "missile defense",
+        "SAMP/T",
+        "IRIS-T",
+        "Patriot",
+        "NASAMS",
+        "Arrow",
+        "ESSI",
+        "European Sky Shield",
+        "interceptor"
+      ],
+      "weak_keywords": [
+        "MBDA",
+        "Diehl",
+        "Kongsberg",
+        "Rafael",
+        "Germany",
+        "Poland",
+        "Netherlands",
+        "Denmark",
+        "European"
+      ],
+      "min_strong": 1
+    },
+    {
+      "slug": "ca-arctic-connectivity",
+      "title": "Canada: sovereign Arctic connectivity and surveillance",
+      "description": "Canadian spending on satellite communications, sensing and connectivity for the Arctic and the North.",
+      "priority": 3,
+      "min_hits": 2,
+      "keywords": [
+        "Arctic",
+        "polar",
+        "Telesat",
+        "Lightspeed",
+        "ESCP-P",
+        "Defence Investment Agency",
+        "satellite communications",
+        "satcom"
+      ],
+      "weak_keywords": [
+        "Canada",
+        "Canadian",
+        "North",
+        "northern",
+        "MDA",
+        "Canadian Space Agency",
+        "CSA",
+        "LEO",
+        "IoT",
+        "sovereignty"
+      ],
+      "min_strong": 1
+    },
+    {
+      "slug": "space-tech-funding",
+      "title": "Government funding for space and dual-use technology",
+      "description": "Grants, contributions and challenge awards from agencies for space and dual-use technology companies.",
+      "priority": 4,
+      "min_hits": 2,
+      "keywords": [
+        "Space Technology Development Program",
+        "STDP",
+        "Canadian Space Agency",
+        "ESA",
+        "European Defence Fund",
+        "EDF",
+        "DIU",
+        "SBIR"
+      ],
+      "weak_keywords": [
+        "grant",
+        "funding",
+        "contribution",
+        "award",
+        "awarded",
+        "programme",
+        "program",
+        "Horizon",
+        "satellite",
+        "space",
+        "dual-use",
+        "startup",
+        "SME"
+      ],
+      "min_strong": 1
+    },
+    {
+      "slug": "uncrewed-systems",
+      "title": "Uncrewed ground, surface and air systems",
+      "description": "Production, partnerships and procurement of uncrewed ground vehicles, surface vessels and drones.",
+      "priority": 5,
+      "min_hits": 2,
+      "keywords": [
+        "unmanned",
+        "uncrewed",
+        "UGV",
+        "USV",
+        "UAV",
+        "UAS",
+        "drone",
+        "drones",
+        "robotic",
+        "Milrem",
+        "THeMIS",
+        "Saildrone",
+        "loitering munition",
+        "counter-drone",
+        "C-UAS"
+      ],
+      "weak_keywords": [
+        "autonomous",
+        "autonomy",
+        "Anduril",
+        "Shield AI",
+        "Lattice"
+      ],
+      "min_strong": 1
+    },
+    {
+      "slug": "electronic-warfare",
+      "title": "Electronic warfare and jamming",
+      "description": "Jammers, EW suites and spectrum operations contracts and programmes.",
+      "priority": 6,
+      "min_hits": 2,
+      "keywords": [
+        "electronic warfare",
+        "jammer",
+        "jamming",
+        "Next Generation Jammer",
+        "NGJ",
+        "EA-18G",
+        "Growler",
+        "SIGINT",
+        "radar warning",
+        "laser warning"
+      ],
+      "weak_keywords": [
+        "EW",
+        "spectrum",
+        "self-protection",
+        "countermeasures",
+        "L3Harris",
+        "Elbit"
+      ],
+      "min_strong": 1
+    },
+    {
+      "slug": "nato-training-simulation",
+      "title": "NATO and allied training, simulation and exercises",
+      "description": "Contracts for training, simulation, scenario development and exercise support for NATO and allies.",
+      "priority": 7,
+      "min_hits": 2,
+      "keywords": [
+        "Joint Warfare Centre",
+        "JWC",
+        "simulation",
+        "simulator",
+        "wargaming",
+        "synthetic environment"
+      ],
+      "weak_keywords": [
+        "NATO",
+        "training",
+        "exercise",
+        "scenario",
+        "readiness",
+        "Calian",
+        "CAE"
+      ],
+      "min_strong": 1
+    },
+    {
+      "slug": "naval-shipbuilding",
+      "title": "Naval shipbuilding and shipyards",
+      "description": "Warship and submarine programmes, shipyard acquisitions and naval capacity.",
+      "priority": 8,
+      "min_hits": 2,
+      "keywords": [
+        "shipyard",
+        "shipbuilding",
+        "frigate",
+        "destroyer",
+        "corvette",
+        "submarine",
+        "F127",
+        "Zumwalt",
+        "Type 26",
+        "Type 31",
+        "Naval Group",
+        "Fincantieri",
+        "TKMS",
+        "HII",
+        "Damen",
+        "Mangalia"
+      ],
+      "weak_keywords": [
+        "naval",
+        "Navy",
+        "Rheinmetall"
+      ],
+      "min_strong": 1
+    },
+    {
+      "slug": "combat-aircraft-and-helicopters",
+      "title": "Combat aircraft, helicopters and upgrades",
+      "description": "Procurement, upgrades and support of fighters, helicopters and collaborative combat aircraft.",
+      "priority": 9,
+      "min_hits": 2,
+      "keywords": [
+        "F-35",
+        "F-16",
+        "F-15",
+        "Eurofighter",
+        "Gripen",
+        "Rafale",
+        "B-21",
+        "TR3",
+        "helicopter",
+        "MH-60R",
+        "Seahawk",
+        "CH-47",
+        "NH90",
+        "collaborative combat aircraft",
+        "CCA",
+        "MQ-28",
+        "Ghost Bat",
+        "YFQ-44A"
+      ],
+      "weak_keywords": [
+        "mission computer",
+        "Lockheed Martin",
+        "Boeing",
+        "Sikorsky",
+        "Airbus"
+      ],
+      "min_strong": 1
+    },
+    {
+      "slug": "land-fires-rockets-artillery",
+      "title": "Land fires: rockets and artillery",
+      "description": "Rocket launchers, artillery systems and their munitions for land forces.",
+      "priority": 10,
+      "min_hits": 2,
+      "keywords": [
+        "artillery",
+        "howitzer",
+        "rocket launcher",
+        "MLRS",
+        "HIMARS",
+        "PULS",
+        "EXTRA",
+        "Predator Hawk",
+        "GMLRS",
+        "155mm"
+      ],
+      "weak_keywords": [
+        "shells",
+        "ammunition",
+        "Elbit",
+        "Rheinmetall",
+        "KNDS",
+        "Hanwha",
+        "Nammo"
+      ],
+      "min_strong": 1
+    },
+    {
+      "slug": "defence-industrial-policy",
+      "title": "Defence industrial policy and procurement reform",
+      "description": "National and EU industrial strategies, procurement agencies and reforms that shape defence spending.",
+      "priority": 11,
+      "min_hits": 2,
+      "keywords": [
+        "industrial strategy",
+        "Defence Industrial Strategy",
+        "procurement reform",
+        "Defence Investment Agency",
+        "EDIP",
+        "European Defence Industry Programme",
+        "ReArm Europe",
+        "SAFE",
+        "buy European",
+        "Build-Partner-Buy"
+      ],
+      "weak_keywords": [
+        "defence budget",
+        "defense budget",
+        "spending",
+        "2%",
+        "5%"
+      ],
+      "min_strong": 1
+    },
+    {
+      "slug": "critical-materials-supply",
+      "title": "Critical materials and export controls",
+      "description": "Export bans, licensing and supply of critical minerals and materials used by the defence industry.",
+      "priority": 12,
+      "min_hits": 2,
+      "keywords": [
+        "gallium",
+        "germanium",
+        "antimony",
+        "rare earth",
+        "rare earths",
+        "dysprosium",
+        "terbium",
+        "tungsten",
+        "graphite",
+        "export control",
+        "export ban",
+        "MOFCOM",
+        "critical minerals",
+        "critical raw materials",
+        "CRMA"
+      ],
+      "weak_keywords": [
+        "licensing",
+        "supply chain",
+        "titanium"
+      ],
+      "min_strong": 1
+    }
+  ]
+}

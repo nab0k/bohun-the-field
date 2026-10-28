@@ -1,0 +1,91 @@
+{
+  "version": "a06-control-v1",
+  "note": "A-06 control set: Inoreader item ids, URLs and pinned text hashes only. No expected labels.",
+  "documents": [
+    {
+      "id": "tag:google.com,2005:reader/item/0000000bd9d46626",
+      "url": "https://canadiandefencereview.com/calian-awarded-47m-contract-for-nato-joint-warfare-centre/",
+      "text_sha256": "f5c6e293e36405274bee4826944a9df08e90354680a31cbdf32497866eb1620c"
+    },
+    {
+      "id": "tag:google.com,2005:reader/item/0000000bd9eaae07",
+      "url": "https://asiapacificdefencereporter.com/calian-awarded-contract-for-nato-joint-warfare-centre-scenario-development-program/",
+      "text_sha256": "3fe85b270714a6ef36484c58f22f8068dce3ac856e730e36c5d061be13d8a9b5"
+    },
+    {
+      "id": "tag:google.com,2005:reader/item/0000000bd9dab841",
+      "url": "https://www.defensenews.com/pentagon/2026/10/19/pentagon-bae-sign-deal-for-up-to-25000-precision-guided-munition-kits-a-year/",
+      "text_sha256": "6bd80f90ed43ebe279622ec0006c2b7651307cc521204bdfa23e1e381e0b2bb0"
+    },
+    {
+      "id": "tag:google.com,2005:reader/item/0000000bd9d7f310",
+      "url": "https://www.defensenews.com/pentagon/2026/10/19/pentagon-bae-sign-deal-for-up-to-25000-precision-guided-munition-kits-a-year/",
+      "text_sha256": "6bd80f90ed43ebe279622ec0006c2b7651307cc521204bdfa23e1e381e0b2bb0"
+    },
+    {
+      "id": "tag:google.com,2005:reader/item/0000000bd9d7c83b",
+      "url": "https://www.defensenews.com/pentagon/2026/10/19/pentagon-bae-sign-deal-for-up-to-25000-precision-guided-munition-kits-a-year/",
+      "text_sha256": "6bd80f90ed43ebe279622ec0006c2b7651307cc521204bdfa23e1e381e0b2bb0"
+    },
+    {
+      "id": "tag:google.com,2005:reader/item/0000000bd9bf0c0d",
+      "url": "https://www.defensemirror.com/news/42213",
+      "text_sha256": "1d91683523492aae307a9a5a707028064d869e58dfbbbc02821ea8e197db3cb7"
+    },
+    {
+      "id": "tag:google.com,2005:reader/item/0000000bd9b7e55d",
+      "url": "https://defence-industry.eu/bae-systems-and-pentagon-agree-plan-for-up-to-25000-apkws-guidance-kits-annually-with-capacity-to-reach-35000/",
+      "text_sha256": "01e8661de56bd7d7716fd5fc45e0415620700403e50c985778e5aebddd4bac50"
+    },
+    {
+      "id": "tag:google.com,2005:reader/item/0000000bd9bd4be8",
+      "url": "https://www.l3harris.com/newsroom/press-release/2026/10/l3harris-advances-us-navy-next-generation-jammer-low-band-program",
+      "text_sha256": "0d7ef27056dd6e9f36b37044832cd99a82f5d2d733c80ebb7f54534012af998e"
+    },
+    {
+      "id": "tag:google.com,2005:reader/item/0000000bd9bd4beb",
+      "url": "https://www.l3harris.com/newsroom/editorial/2026/10/l3harris-achieves-1000th-shipset-milestone-major-elements-f-35-tr3",
+      "text_sha256": "0805627478f8e6f75d6a9a299573ea2f44904c290bb3037c50fccd0a25bd2523"
+    },
+    {
+      "id": "tag:google.com,2005:reader/item/0000000bd9cf141f",
+      "url": "https://defence-industry.eu/l3harris-delivers-more-than-1000-display-and-memory-systems-each-for-f-35-tr3-upgrades/",
+      "text_sha256": "04cab9812c0dafb8d4d51ede25bf22ead18db2e70482a86636b3f7aa97cae693"
+    },
+    {
+      "id": "tag:google.com,2005:reader/item/0000000bd9b7e561",
+      "url": "https://defence-industry.eu/javelin-joint-venture-receives-215-million-u-s-army-contract-to-produce-lightweight-launchers/",
+      "text_sha256": "6d258fea090675d34d2b49acf5892ff1cbf032732fb4957c0b6a13ae48a8fc39"
+    },
+    {
+      "id": "tag:google.com,2005:reader/item/0000000bd9c6788d",
+      "url": "https://www.army-technology.com/news/elbit-systems-extra-mr-puls/",
+      "text_sha256": "6c612883a1a7a14ef758ddeef46431bfb79a60d342af19bd32b2cb921774e742"
+    },
+    {
+      "id": "tag:google.com,2005:reader/item/0000000bd9d46625",
+      "url": "https://canadiandefencereview.com/photon-iv-awarded-csa-funding-for-pleo-satellite-iot-technology/",
+      "text_sha256": "b08cbb467357e036d83351dc5108afd29fbc75f207e57434ff5b254d4d74a934"
+    },
+    {
+      "id": "tag:google.com,2005:reader/item/0000000bd9eaae09",
+      "url": "https://asiapacificdefencereporter.com/milrem-robotics-and-chugach-to-explore-us-production-of-unmanned-ground-systems/",
+      "text_sha256": "387cb80ad256717665bbdcddd0443718a63bc4ac64668eb9a6dff71f1033e86f"
+    },
+    {
+      "id": "tag:google.com,2005:reader/item/0000000bd9c3e81a",
+      "url": "https://www.opex360.com/2026/10/19/la-nouvelle-zelande-confirme-lachat-de-cinq-helicopteres-americains-mh-60r-seahawk-pour-plus-de-930-millions-de-dollars/",
+      "text_sha256": "53dfa6ccbf48e0348fa85c57d198ec6fe40032510289a3c5230afc3b55329680"
+    },
+    {
+      "id": "tag:google.com,2005:reader/item/0000000bd9e710bf",
+      "url": "https://www.twz.com/air/germany-drops-boeing-mq-28-ghost-bat-rapid-procurement-plan",
+      "text_sha256": "9f278e366985cafa59ee7d37a55b0664d2d5da8b4df951517d36131d5e18234d"
+    },
+    {
+      "id": "tag:google.com,2005:reader/item/0000000bd9e46400",
+      "url": "https://www.ukrinform.net/rubric-ato/4176072-russian-attack-on-kyiv-region-enterprise-kills-one-injures-six.html",
+      "text_sha256": "8067c7c92b49cc822233e4c6e9f06fb59583699402b47d9f62168a42c7535390"
+    }
+  ]
+}
