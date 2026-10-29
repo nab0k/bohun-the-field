@@ -90,7 +90,7 @@ def run(documents, resources, *, catalog=(), context=None, writer=None, store=No
                     checks = validate(writer_output, packet, resources.dictionaries)
                     if not checks["ok"]:
                         reasons.append("text_mismatch")
-                    elif not writer_output["why_it_matters"]:
+                    if not writer_output["why_it_matters"]:
                         # writer_prompt_v2: no supported implication -> empty block, never invented.
                         reasons.append("why_unsupported")
                 except (ValueError, TypeError, KeyError):

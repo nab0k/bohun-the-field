@@ -153,12 +153,17 @@ class WriteEventTests(unittest.TestCase):
         live.write_event(cur, event("HOLD", ["source_unassessed"], cls="unknown"), {"doc1": 7}, "v")
         self.assertEqual(cur.sql, [])
 
-    def test_empty_why_has_no_synthesis_version(self):
+    def test_empty_why_is_stored_empty_and_held(self):
         cur = FakeCursor()
         _, outcome, codes = live.write_event(cur, event("HOLD", ["why_unsupported"], why=False), {"doc1": 7}, "v")
         self.assertEqual((outcome, codes), ("hold", ["why_unsupported"]))
+        self.assertEqual(self.sql(cur, "synthesis_version")[0][7], "")
+        self.assertEqual(self.sql(cur, "synthesis_admission")[0][1], "HOLD")
+
+    def test_broken_reply_shape_writes_no_version(self):
+        cur = FakeCursor(); e = event("HOLD", ["text_mismatch"]); e["writer_output"] = {"headline": "x"}
+        live.write_event(cur, e, {"doc1": 7}, "v")
         self.assertEqual(self.sql(cur, "synthesis_version"), [])
-        self.assertEqual(len(self.sql(cur, "fact")), 1)
 
     def test_negation_stored_with_prefix(self):
         cur = FakeCursor()

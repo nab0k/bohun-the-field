@@ -285,7 +285,11 @@ def write_event(cur, event, item_ids, extractor_version):
     for fid in db_fact.values():
         cur.execute("INSERT INTO knowledge.event_fact (event_id, fact_id) VALUES (%s,%s)", (event_id, fid))
     out = event.get("writer_output")
-    if out and out.get("why_it_matters") and event.get("text_checks"):
+    # A checked reply is stored even when held, so the owner can review it; an empty implication
+    # is stored as an empty string with why_unsupported, never filled in.
+    blocks = ("what_happened", "context", "policy_direction", "bigger_picture", "supply_chain", "why_it_matters")
+    if (isinstance(out, dict) and event.get("text_checks") and isinstance(out.get("headline"), dict)
+            and all(isinstance(out.get(b), list) for b in blocks) and out["what_happened"]):
         if decision == "PUBLISH":
             # Stage A: owner reviews every first synthesis before any public_release (rules v2.0 §10).
             decision, codes = "HOLD", ["owner_review"]
@@ -293,7 +297,7 @@ def write_event(cur, event, item_ids, extractor_version):
         version = {"headline": out["headline"]["text"], "what_happened": join("what_happened"),
                    "context": join("context"), "policy_direction": join("policy_direction"),
                    "bigger_picture": join("bigger_picture"), "supply_chain": join("supply_chain"),
-                   "why_it_matters": join("why_it_matters")}
+                   "why_it_matters": join("why_it_matters") or ""}
         source_list = [{k: s[k] for k in ("url", "outlet", "date", "role", "class")} for s in
                        sorted(sources, key=lambda s: s["role"] != "primary")][:5]
         cur.execute("""INSERT INTO knowledge.synthesis (event_id, active_version, active_origin)
