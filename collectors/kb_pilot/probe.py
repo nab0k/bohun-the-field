@@ -152,6 +152,7 @@ def free_providers():
         if not key:
             print("KB_FREE %s key=absent" % name); continue
         head = {"Authorization": "Bearer " + key} if style == "bearer" else {"x-goog-api-key": key}
+        head["User-Agent"] = "bohun-kb-pilot/1.0 (+https://bohundefence.com)"
         try:
             req = urllib.request.Request(models_url, headers=head)
             with urllib.request.urlopen(req, timeout=60) as r:
