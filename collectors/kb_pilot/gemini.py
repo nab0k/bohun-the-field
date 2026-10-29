@@ -57,7 +57,8 @@ def parse_json_text(text):
     start = min([i for i in (text.find("{"), text.find("[")) if i >= 0], default=-1)
     if start > 0:
         text = text[start:]
-    return json.loads(text)
+    # raw_decode ignores trailing prose after the object ("Extra data")
+    return json.JSONDecoder().raw_decode(text)[0]
 
 
 class Gemini:
@@ -66,9 +67,9 @@ class Gemini:
             raise BudgetStop("GEMINI_API_KEY_ABSENT")
         self.key, self.ledger, self.transport, self.thinking = key, ledger, transport, thinking
 
-    def body(self, system, packet, schema, grounded, max_output, schema_mode):
+    def body(self, system, packet, schema, grounded, max_output, schema_mode, thinking=None, task=None):
         config = {"temperature": 0.2, "maxOutputTokens": max_output, "candidateCount": 1,
-                  "thinkingConfig": {"thinkingLevel": self.thinking}}
+                  "thinkingConfig": {"thinkingLevel": thinking or self.thinking}}
         instruction = system
         if schema_mode == "schema":
             config["responseMimeType"] = "application/json"
@@ -76,14 +77,24 @@ class Gemini:
         else:
             instruction += "\n\nReturn only one JSON object matching this schema, no prose:\n" + canonical(schema)
         body = {"serviceTier": "standard", "systemInstruction": {"parts": [{"text": instruction}]},
-                "contents": [{"role": "user", "parts": [{"text": canonical(packet)}]}],
+                "contents": [{"role": "user", "parts": ([{"text": task}] if task else []) + [{"text": canonical(packet)}]}],
                 "generationConfig": config}
         if grounded:
             body["tools"] = [{"google_search": {}}]
         return body
 
-    def __call__(self, system, packet, schema, grounded=False, max_output=6000, schema_mode="schema"):
-        body = self.body(system, packet, schema, grounded, max_output, schema_mode)
+    def __call__(self, system, packet, schema, grounded=False, max_output=6000, schema_mode="schema",
+                 thinking=None, task=None, retries=1):
+        body = self.body(system, packet, schema, grounded, max_output, schema_mode, thinking, task)
+        for attempt in range(retries + 1):
+            try:
+                return self._send(body, max_output, grounded)
+            except json.JSONDecodeError:
+                # Malformed JSON is billed and charged; one more attempt, then the event fails alone.
+                if attempt == retries:
+                    raise
+
+    def _send(self, body, max_output, grounded):
         self.ledger.reserve(len(canonical(body).encode()), max_output, grounded)
         try:
             reply = self.transport(GEMINI_URL.format(MODEL), {"x-goog-api-key": self.key}, body)
