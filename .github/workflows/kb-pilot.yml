@@ -1,0 +1,78 @@
+name: BOHUN knowledge-base pilot (manual, EXP-028)
+run-name: kb-pilot ${{ inputs.day_from }}..${{ inputs.day_to }} limit ${{ inputs.limit }}
+on:
+  workflow_dispatch:
+    inputs:
+      day_from:
+        description: First publication day (YYYY-MM-DD)
+        type: string
+        required: true
+      day_to:
+        description: Last publication day (YYYY-MM-DD)
+        type: string
+        required: true
+      limit:
+        description: First N news items only (0 = all)
+        type: string
+        required: false
+        default: '1'
+      schema_mode:
+        description: schema = JSON schema with search; text = JSON asked in the prompt
+        type: choice
+        options: [schema, text]
+        default: schema
+      expected_sha:
+        description: Exact reviewed main commit
+        type: string
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: bohun-kb-pilot
+  cancel-in-progress: false
+jobs:
+  pilot:
+    if: github.repository == 'nab0k/bohun-the-field' && github.actor == 'nab0k' && github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Verify reviewed revision before credentials
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          test "$EXPECTED_SHA" = "$GITHUB_SHA"
+          test "$GITHUB_REF" = 'refs/heads/main'
+          test "${#EXPECTED_SHA}" -eq 40
+          case "$EXPECTED_SHA" in *[!0-9a-f]*) exit 1 ;; esac
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13'
+      - name: Offline pilot tests
+        run: python -B -m unittest tests/kb_pilot/test_pilot.py
+      - name: Temporary pinned PostgreSQL driver
+        run: |
+          python -m venv "$RUNNER_TEMP/bohun-kb"
+          "$RUNNER_TEMP/bohun-kb/bin/python" -m pip install --only-binary=:all: --disable-pip-version-check 'psycopg[binary]==3.3.6'
+      - name: Run the pilot (reads the database, writes nothing to it; cap $2)
+        env:
+          DAY_FROM: ${{ inputs.day_from }}
+          DAY_TO: ${{ inputs.day_to }}
+          LIMIT: ${{ inputs.limit }}
+          SCHEMA_MODE: ${{ inputs.schema_mode }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: '"$RUNNER_TEMP/bohun-kb/bin/python" -B -m collectors.kb_pilot --day-from "$DAY_FROM" --day-to "$DAY_TO" --limit "${LIMIT:-0}" --schema-mode "$SCHEMA_MODE" --out "$RUNNER_TEMP/kb-pilot-out"'
+      - name: Keep the result for review
+        if: always()
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: kb-pilot-result
+          path: ${{ runner.temp }}/kb-pilot-out
+          retention-days: 14
+          if-no-files-found: warn
