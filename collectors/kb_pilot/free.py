@@ -20,10 +20,11 @@ FREE_MODEL = os.environ.get("KB_FREE_MODEL", "@cf/google/gemma-4-26b-a4b-it")
 # Neurons per million tokens for gemma-4-26b-a4b-it ($0.10 / $0.30 per M at $0.011 per 1 000 neurons).
 NEURONS_PER_M_IN, NEURONS_PER_M_OUT = 9_091, 27_273
 FREE_NEURONS_PER_RUN = 9_000      # stay under the 10 000 free neurons per day
-WORKERS = 4
+WORKERS = 3
+MIN_OUTPUT_TOKENS = 8000  # free models reason before answering; a small cap cuts the JSON (run 40934038923)
 
 
-def http_post_json(url, headers, body, timeout=120):
+def http_post_json(url, headers, body, timeout=300):
     req = urllib.request.Request(url, data=json.dumps(body).encode(), method="POST",
                                  headers={**headers, "Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=timeout) as reply:
@@ -50,7 +51,7 @@ class FreeModel:
             raise ValueError("FREE_MODEL_HAS_NO_SEARCH")  # search and free text stay on Gemini
         gem = self.fallback.request(system, packet, schema, False, max_output, schema_mode, thinking, task, step)
         user = ((task + "\n\n") if task else "") + canonical(packet)
-        body = {"model": self.model, "temperature": 0.2, "max_tokens": max_output,
+        body = {"model": self.model, "temperature": 0.2, "max_tokens": max(max_output, MIN_OUTPUT_TOKENS),
                 "response_format": {"type": "json_object"},
                 "messages": [{"role": "system", "content": system + "\n\nReturn only one JSON object matching this "
                                                                     "schema, no prose:\n" + canonical(schema)},
@@ -74,16 +75,19 @@ class FreeModel:
                                    req["free_body"])
         except urllib.error.HTTPError as exc:
             raise RuntimeError("free_http_%d" % exc.code) from None
-        except Exception:
-            raise RuntimeError("free_transport") from None
+        except Exception as exc:
+            raise RuntimeError("free_transport_" + type(exc).__name__) from None
         usage = reply.get("usage") or {}
         self.neurons += (int(usage.get("prompt_tokens") or 0) * NEURONS_PER_M_IN
                          + int(usage.get("completion_tokens") or 0) * NEURONS_PER_M_OUT) // 1_000_000 + 1
+        choice = (reply.get("choices") or [{}])[0]
+        if choice.get("finish_reason") == "length":
+            raise RuntimeError("free_truncated")
         try:
-            text = reply["choices"][0]["message"]["content"]
+            text = (choice.get("message") or {}).get("content") or ""
             answer = unwrap(parse_json_text(text))
         except Exception:
-            raise RuntimeError("free_bad_json") from None
+            raise RuntimeError("free_bad_json_len%d" % min(len(text) // 1000, 9)) from None
         if not isinstance(answer, dict):
             raise RuntimeError("free_not_object")
         self.ledger.steps["free_" + req["step"]] = self.ledger.steps.get("free_" + req["step"], 0)
