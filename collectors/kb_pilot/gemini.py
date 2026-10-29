@@ -163,9 +163,7 @@ class Gemini:
 
     def request(self, system, packet, schema, grounded=False, max_output=6000, schema_mode="schema", thinking=None,
                 task=None, step="other"):
-        if self.batch and schema_mode == "schema":
-            schema_mode = "text"  # Batch does not keep responseJsonSchema (run 40920575588): schema goes in the prompt
-        return {"body": self.body(system, packet, schema, grounded, max_output, schema_mode, thinking, task),
+        return {"schema": schema, "schema_mode": schema_mode,"body": self.body(system, packet, schema, grounded, max_output, schema_mode, thinking, task),
                 "grounded": grounded, "max_output": max_output, "plain": schema_mode == "plain", "step": step}
 
     def __call__(self, system, packet, schema, grounded=False, max_output=6000, schema_mode="schema",
@@ -195,6 +193,16 @@ class Gemini:
             return out
         return self._batch(reqs)
 
+    def as_text_mode(self, req):
+        if req.get("schema_mode") != "schema":
+            return req
+        body = json.loads(json.dumps(req["body"]))
+        config = body["generationConfig"]
+        config.pop("responseMimeType", None); config.pop("responseJsonSchema", None)
+        body["systemInstruction"]["parts"][0]["text"] += (
+            "\n\nReturn only one JSON object matching this schema, no prose:\n" + canonical(req["schema"]))
+        return dict(req, body=body, schema_mode="text")
+
     def _retry(self, req):
         try:
             return self._direct(req)
@@ -217,6 +225,9 @@ class Gemini:
         return answer, info
 
     def _batch(self, reqs):
+        # Batch does not keep responseJsonSchema (run 40920575588): for batched requests only, the schema goes
+        # into the prompt. Direct calls (grouping, single requests) keep structured output (run 40923499569).
+        reqs = [self.as_text_mode(r) for r in reqs]
         worsts = [self.ledger.worst(len(canonical(r["body"]).encode()), r["max_output"], r["grounded"]) // 2
                   for r in reqs]
         self.ledger.reserve(sum(worsts), any(r["grounded"] for r in reqs))

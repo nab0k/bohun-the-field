@@ -109,6 +109,8 @@ Sections (each 1-4 sentences; leave a section empty only if no fact supports it)
   chronology facts, ending with a short signal.
 - supply_chain: what limits output down the chain and dated restrictions.
 - why_it_matters: who in industry should care and what they can do.
+Coverage rules: if the packet has any S or R fact, supply_chain must use them; if it has any D fact, policy_direction
+must use it; if it has three or more dated T facts, context must walk through them with dates and money status.
 Also list the companies named in your text with their role."""
 
 _SENTENCES = {"type": "array", "items": {"type": "object", "required": ["text", "refs"], "properties": {
