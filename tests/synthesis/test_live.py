@@ -99,7 +99,7 @@ class WriterTests(unittest.TestCase):
         GeminiWriter("k", Ledger(), capture)(req)
         sent = seen["generationConfig"]["responseJsonSchema"]
         self.assertEqual(sent, {"type": "object", "properties": {"a": {"type": "string"}}})
-        self.assertEqual(seen["generationConfig"]["thinkingConfig"], {"thinkingLevel": "low"})
+        self.assertEqual(seen["generationConfig"]["thinkingConfig"], {"thinkingLevel": live.THINKING_LEVEL})
 
     def test_key_goes_in_header_not_url(self):
         seen = {}
