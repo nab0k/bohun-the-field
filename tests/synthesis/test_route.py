@@ -243,6 +243,14 @@ class WriterTests(unittest.TestCase):
         p = packet(); p['facts'][0]['text'] = p['facts'][0]['quote'] = 'Aster Labs was awarded a PAC-3 radar contract.'
         o = output(); o['headline'] = {'text': 'Aster Labs Wins PAC 3 Radar Contract', 'fact_ids': ['F1']}
         self.assertNotIn('unsupported_name', validate(o, p, resources().dictionaries)['codes'])
+    def test_pasted_fact_id_is_removed(self):
+        from collectors.synthesis.route import drop_unsupported_layers
+        o = output(); o['what_happened'] = [{'text': 'Aster Labs was awarded a radar contract [F1abc].', 'fact_ids': ['F1']}]
+        self.assertEqual(drop_unsupported_layers(o, packet())['what_happened'][0]['text'], 'Aster Labs was awarded a radar contract.')
+    def test_spelled_out_name_with_initials_passes(self):
+        p = packet(); p['facts'][0]['text'] = p['facts'][0]['quote'] = 'ESA awarded Aster Labs a radar contract.'
+        o = output(); o['what_happened'] = [{'text': 'The European Space Agency awarded Aster Labs a radar contract.', 'fact_ids': ['F1']}]
+        self.assertNotIn('unsupported_name', validate(o, p, resources().dictionaries)['codes'])
     def test_missing_writer_blocks(self):self.assertFalse(validate({},packet(),resources().dictionaries)['ok'])
 
 

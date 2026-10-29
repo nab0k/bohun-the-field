@@ -1,4 +1,5 @@
 """Offline event route with injected snapshots and writer fixtures, no live I/O."""
+import re
 from datetime import timedelta
 from . import PIPELINE_VERSION
 from .contracts import canonical, sha
@@ -19,6 +20,13 @@ def drop_unsupported_layers(output, packet):
         return output
     blocks = {f["id"]: f.get("block") for f in packet["facts"]}
     out = dict(output)
+    # A fact ID pasted into prose is removed (fact_ids already carry it); nothing is reworded.
+    strip = lambda t: re.sub(r"\s*\[[FD][0-9a-f]{2,}[^\]]*\]", "", t) if isinstance(t, str) else t
+    for key, value in out.items():
+        if isinstance(value, dict):
+            out[key] = {**value, "text": strip(value.get("text"))}
+        elif isinstance(value, list):
+            out[key] = [{**x, "text": strip(x.get("text"))} if isinstance(x, dict) else x for x in value]
     for layer in LAYERS:
         if isinstance(out.get(layer), list):
             out[layer] = [s for s in out[layer] if isinstance(s, dict) and

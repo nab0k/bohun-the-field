@@ -105,11 +105,15 @@ def validate(output, packet, dictionaries):
         # verbs in Title Case are not names.
         outlets = " ".join(s.get("outlet", "") for s in packet.get("sources", []))
         known = set(name_words(support + " " + outlets))
-        for name in re.findall(r"\b[A-Z][A-Za-z0-9]*(?:[-][A-Za-z0-9]+)+(?:\s+[A-Z][\w-]+)*|\b[A-Z][\w-]+\s+[A-Z][\w-]+", text):
-            if any(w not in known and w not in TITLE_WORDS for w in name_words(name)):
+        for name in re.findall(r"\b[A-Z][A-Za-z0-9]*(?:[-][A-Za-z0-9]+)+(?:\s+[A-Z][\w-]+)*|\b[A-Z][\w-]+(?:\s+[A-Z][\w-]+)+", text):
+            parts = name_words(name)
+            # A translated or spelled-out name passes when its initials are in the facts (ESA, SBIR).
+            initials = "".join(w[0] for w in parts if w not in TITLE_WORDS)
+            if any(w not in known and w not in TITLE_WORDS for w in parts) and initials not in known:
                 reasons.append("unsupported_name")
         reported_mode = modality(text, dictionaries)[0]
-        modes = {f.get("modality", "unknown") for f in refs}
+        # Doctrine records are reference summaries, not statements with a modality of their own.
+        modes = {f.get("modality", "unknown") for f in refs if not str(f["id"]).startswith("D")} or {reported_mode}
         if reported_mode in {"signed", "delivered", "completed"} and reported_mode not in modes:
             reasons.append("modality_strengthened")
         if "negated" in modes and reported_mode != "negated":
