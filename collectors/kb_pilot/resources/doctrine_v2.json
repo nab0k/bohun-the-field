@@ -1,0 +1,366 @@
+{
+  "version": "v2",
+  "created": "2026-10-28",
+  "author": "Claude",
+  "basis": "D-20261028-A16-DOCTRINE-SEARCH (США, Канада) + D-20261028-A07-CONTROL-LIVE-CONSENTS п.5 (остальные темы); формат knowledge.doctrine (DDL v1.3)",
+  "fields_note": "jurisdiction/title/document_date/direction/change_summary/source_url — колонки knowledge.doctrine; topics — для knowledge.doctrine_topic по slug из topics_v2.json (слаги совпадают с v1); anchor_quote — дословная опора со страницы (<= 25 слов, только для проверки, в синтез не копируется); verified — опора прочитана на официальной странице 28.10.2026; check — что ещё проверить. Записи в базу нет.",
+  "records": [
+    {
+      "id": "US-01",
+      "jurisdiction": "US",
+      "title": "2026 National Defense Strategy",
+      "document_date": "2026-01-23",
+      "direction": "Four lines of effort: defend the homeland (including Golden Dome missile defence), deter China in the Indo-Pacific, more burden-sharing by allies, and supercharge the US defence industrial base.",
+      "change_summary": "Homeland defence moves to the first priority; industrial base becomes a line of effort in its own right.",
+      "source_url": "https://media.defense.gov/2026/Jan/23/2003864773/-1/-1/0/2026-national-defense-strategy.pdf",
+      "topics": [
+        "us-munitions-ramp-up",
+        "defence-industrial-policy"
+      ],
+      "anchor_quote": null,
+      "verified": false,
+      "check": "PDF не прочитан (403 для автоматического чтения, текст PDF в браузере недоступен без скачивания). Четыре линии — по вторичным сводкам и war.gov (история 12.05.2026 говорит о supercharging industrial capacity). Дату и формулировки сверить по тексту PDF."
+    },
+    {
+      "id": "US-02",
+      "jurisdiction": "US",
+      "title": "PAC-3 MSE framework agreement under the Acquisition Transformation Strategy",
+      "document_date": "2026-01-06",
+      "direction": "Seven-year framework agreements for proven munitions, giving industry long-term demand so it invests in capacity; PAC-3 MSE output to rise from about 600 to about 2,000 a year, subject to Congress.",
+      "change_summary": "Shift from year-to-year buys to seven-year demand signals; the same model to be applied to multiple munitions contracts over the next year, with seven-year subcontracts for key suppliers.",
+      "source_url": "https://www.war.gov/News/Releases/Release/Article/4371320/department-of-war-establishes-new-acquisition-model-to-more-than-triple-pac-3-m/",
+      "topics": [
+        "us-munitions-ramp-up",
+        "defence-industrial-policy"
+      ],
+      "anchor_quote": "This facilitization strategy will be applied to multiple munitions procurement contracts over the next year, pending Congressional appropriations, to replenish our stockpiles",
+      "verified": true,
+      "check": null
+    },
+    {
+      "id": "US-03",
+      "jurisdiction": "US",
+      "title": "President's Fiscal Year 2027 Defense Budget request",
+      "document_date": "2026-04-21",
+      "direction": "Record $1.5 trillion request (+42%) with funding to expand production and stockpiles of Patriot, THAAD, precision strike missiles and midrange weapons; multiyear contracts of up to seven years for critical munitions.",
+      "change_summary": "Multiyear authority extended to up to seven years; the department says it will request multiyear authority wherever it expects to keep buying a system.",
+      "source_url": "https://www.war.gov/News/News-Stories/Article/Article/4465551/15-trillion-budget-request-prioritizes-service-members-modernization/",
+      "topics": [
+        "us-munitions-ramp-up",
+        "defence-industrial-policy"
+      ],
+      "anchor_quote": "the department also looks to expand multiyear contracts up to seven years for critical munitions",
+      "verified": true,
+      "check": "Сумма на 12/14 приоритетных боеприпасов Munitions Acceleration Council (~$52,9 млрд) — только в PDF Comptroller (не прочитан); в синтез не брать без чтения."
+    },
+    {
+      "id": "US-04",
+      "jurisdiction": "US",
+      "title": "SM-6 multiyear procurement award (Department of the Navy)",
+      "document_date": "2026-10-01",
+      "direction": "Navy commits to a multiyear SM-6 buy (five years plus two options, up to $24.4 billion) to give industry a stable demand signal, expand production and build magazine depth.",
+      "change_summary": "Follows the Tomahawk award; part of the PAE Munitions effort to accelerate production of critical weapons.",
+      "source_url": "https://www.navy.mil/Press-Office/Press-Releases/display-pressreleases/Article/4617054/us-navy-rtx-strengthen-munitions-production-through-sm-6-award/",
+      "topics": [
+        "us-munitions-ramp-up"
+      ],
+      "anchor_quote": "The SM-6 contract establishes a multi-year procurement commitment",
+      "verified": true,
+      "check": "Официальный релиз ВМС НЕ называет пополнение запасов после Ближнего Востока — это формулировка Defense News. В EXAMPLE_01 §10 это указано как «официальное обоснование» — исправить при использовании."
+    },
+    {
+      "id": "CA-01",
+      "jurisdiction": "CA",
+      "title": "Our North, Strong and Free: A Renewed Vision for Canada's Defence",
+      "document_date": "2024-04-08",
+      "direction": "Asserting sovereignty in the Arctic and northern regions is named the most urgent defence task: northern operational support hubs, coastal and underwater sensors, a High Arctic satellite ground station and improved satellite capabilities.",
+      "change_summary": "Arctic moves to the top of Canada's defence priorities, backed by C$8.1 billion over five years and C$73 billion over 20 years.",
+      "source_url": "https://www.canada.ca/en/department-national-defence/corporate/reports-publications/north-strong-free-2024/executive-summary.html",
+      "topics": [
+        "ca-arctic-connectivity"
+      ],
+      "anchor_quote": "The most urgent and important task we face is asserting Canada's sovereignty in the Arctic and northern regions",
+      "verified": true,
+      "check": "Дата 08.04.2024 — по релизу Премьер-министра (pm.gc.ca, 2024/04/08); страница резюме датирована 17.04.2024."
+    },
+    {
+      "id": "CA-02",
+      "jurisdiction": "CA",
+      "title": "Canada's Arctic Foreign Policy",
+      "document_date": "2024-12-06",
+      "direction": "Canada will continue to assert its sovereignty and take a comprehensive approach to Arctic security, with foreign and defence policy working together.",
+      "change_summary": "Diplomatic counterpart to Our North, Strong and Free.",
+      "source_url": "https://international.canada.ca/en/global-affairs/corporate/reports/arctic-policy-2024",
+      "topics": [
+        "ca-arctic-connectivity"
+      ],
+      "anchor_quote": "To achieve its objective of a stable, prosperous and secure Arctic, Canada will continue to assert its sovereignty.",
+      "verified": true,
+      "check": "Точная дата публикации на странице не указана (только 2024); 06.12.2024 — по памяти, сверить."
+    },
+    {
+      "id": "CA-03",
+      "jurisdiction": "CA",
+      "title": "Security, Sovereignty and Prosperity: Canada's Defence Industrial Strategy",
+      "document_date": "2026-02-17",
+      "direction": "Build, partner, buy: build at home in areas of sovereign capability, partner with allies, buy abroad only when neither is feasible; raise the share of defence acquisitions awarded to Canadian firms to 70%, with the Defence Investment Agency at the centre.",
+      "change_summary": "Canada's first defence industrial strategy; 'Buy Canadian' becomes the guiding rule for defence acquisitions.",
+      "source_url": "https://www.pm.gc.ca/en/news/news-releases/2026/02/17/prime-minister-carney-launches-canadas-first-defence-industrial",
+      "topics": [
+        "ca-arctic-connectivity",
+        "defence-industrial-policy"
+      ],
+      "anchor_quote": "raise the share of defence acquisitions awarded to Canadian firms to 70%",
+      "verified": true,
+      "check": "Полный текст стратегии: canada.ca .../industrial-strategy/security-sovereignty-prosperity.html (не читался целиком)."
+    },
+    {
+      "id": "CA-04",
+      "jurisdiction": "CA",
+      "title": "Enhanced Satellite Communications Project – Polar (ESCP-P): Mil-Ka contract to Telesat",
+      "document_date": "2026-08-04",
+      "direction": "Defence Investment Agency awards Telesat about C$2.3 billion (plus options of about C$214 million and C$218 million) for sovereign Arctic military satellite communications, as the BUILD component of the Defence Industrial Strategy.",
+      "change_summary": "Puts the strategy's BUILD component into a contract; the government says secure Arctic connectivity arrives years earlier than originally planned.",
+      "source_url": "https://www.canada.ca/en/defence-investment-agency/news/2026/08/the-government-of-canada-awards-a-military-communications-contract-to-support-arctic-sovereignty-and-national-security0.html",
+      "topics": [
+        "ca-arctic-connectivity",
+        "space-tech-funding"
+      ],
+      "anchor_quote": "The contract will defend Canadian sovereignty in the Arctic",
+      "verified": true,
+      "check": "«15 лет» и начало сервиса в 2028 — только у Telesat, не в релизе правительства. Это событие-контракт, а не доктрина: в справочнике как реализация CA-01/CA-03."
+    },
+    {
+      "id": "EU-01",
+      "jurisdiction": "EU",
+      "title": "White Paper for European Defence – Readiness 2030 and ReArm Europe Plan",
+      "document_date": "2025-03-19",
+      "direction": "Close critical capability gaps in seven priority areas (including air and missile defence and artillery) and build a stronger European defence industrial base; ReArm Europe enables over €800 billion of defence spending.",
+      "change_summary": "National escape clause of the Stability and Growth Pact for defence (up to 1.5% of GDP a year for four years) and a new EU loan instrument, SAFE, of up to €150 billion.",
+      "source_url": "https://ec.europa.eu/commission/presscorner/detail/en/ip_25_793",
+      "topics": [
+        "european-air-missile-defence",
+        "defence-industrial-policy",
+        "land-fires-rockets-artillery"
+      ],
+      "anchor_quote": "the Commission will raise up to €150 billion on the capital markets",
+      "verified": true,
+      "check": "Дата 19.03.2025 — по заголовку/поиску, на странице пресс-релиза дата текстом не извлечена; перечень семи областей — по поисковой сводке, фраза со страницы не извлечена."
+    },
+    {
+      "id": "EU-02",
+      "jurisdiction": "EU",
+      "title": "Council Regulation establishing the Security Action for Europe (SAFE) instrument",
+      "document_date": "2025-05-27",
+      "direction": "Up to €150 billion in EU loans for member states investing in defence industrial production through common procurement of priority capabilities.",
+      "change_summary": "First large-scale EU-level defence investment programme; loans in principle require common procurement by at least two countries; Ukraine and EEA-EFTA industries can take part.",
+      "source_url": "https://www.consilium.europa.eu/en/press/press-releases/2025/05/27/safe-council-adopts-150-billion-boost-for-joint-procurement-on-european-security-and-defence/",
+      "topics": [
+        "defence-industrial-policy",
+        "european-air-missile-defence"
+      ],
+      "anchor_quote": "support those member states that wish to invest in defence industrial production through common procurement, focusing on priority capabilities",
+      "verified": true,
+      "check": null
+    },
+    {
+      "id": "EU-03",
+      "jurisdiction": "EU",
+      "title": "Preserving Peace – Defence Readiness Roadmap 2030",
+      "document_date": "2025-10-16",
+      "direction": "Milestones towards full EU defence readiness by 2030, with four flagships: European Drone Defence Initiative, Eastern Flank Watch, European Air Shield and European Space Shield.",
+      "change_summary": "Moves from financing (ReArm Europe) to concrete joint projects; an EU-wide military mobility area by 2027 and a single defence market with harmonised rules by 2030.",
+      "source_url": "https://defence-industry-space.ec.europa.eu/commission-and-high-representative-present-new-defence-roadmap-strengthen-european-defence-2025-10-16_en",
+      "topics": [
+        "european-air-missile-defence",
+        "uncrewed-systems",
+        "space-tech-funding",
+        "defence-industrial-policy"
+      ],
+      "anchor_quote": "the Roadmap proposes four European Flagships: the European Drone Defence Initiative, the Eastern Flank Watch, the European Air Shield, and the European Space Shield",
+      "verified": true,
+      "check": null
+    },
+    {
+      "id": "NATO-01",
+      "jurisdiction": "NATO",
+      "title": "The Hague Summit Declaration",
+      "document_date": "2025-06-25",
+      "direction": "Allies commit to 5% of GDP a year by 2035: at least 3.5% on core defence requirements and up to 1.5% on broader security spending, including the defence industrial base.",
+      "change_summary": "Replaces the 2% guideline; commitment to rapidly expand transatlantic defence industrial cooperation; trajectory reviewed in 2029.",
+      "source_url": "https://www.nato.int/cps/en/natohq/official_texts_236705.htm",
+      "topics": [
+        "defence-industrial-policy",
+        "european-air-missile-defence"
+      ],
+      "anchor_quote": "Allies commit to invest 5% of GDP annually on core defence requirements",
+      "verified": true,
+      "check": "Цитата получена через автоматическое чтение (WebFetch), не через браузер; при загрузке сверить формулировку."
+    },
+    {
+      "id": "UK-01",
+      "jurisdiction": "UK",
+      "title": "Strategic Defence Review 2025 – Making Britain Safer: secure at home, strong abroad",
+      "document_date": "2025-06-02",
+      "direction": "Move to warfighting readiness: £6bn on munitions this Parliament with an 'always on' pipeline and at least six new energetics and munitions factories; up to £1bn for homeland air and missile defence; a Digital Targeting Web by 2027; more autonomy and uncrewed systems; up to 12 SSN-AUKUS submarines; a new CyberEM Command.",
+      "change_summary": "Shift towards networks of crewed, uncrewed and autonomous assets and an always-on munitions industrial base.",
+      "source_url": "https://www.gov.uk/government/publications/the-strategic-defence-review-2025-making-britain-safer-secure-at-home-strong-abroad/the-strategic-defence-review-2025-making-britain-safer-secure-at-home-strong-abroad",
+      "topics": [
+        "uncrewed-systems",
+        "naval-shipbuilding",
+        "european-air-missile-defence",
+        "electronic-warfare",
+        "defence-industrial-policy"
+      ],
+      "anchor_quote": "building at least six new energetics and munitions factories in the UK",
+      "verified": true,
+      "check": "Дата 02.06.2025 — по поиску; HTML-страница показывает только «Updated 8 July 2025»."
+    },
+    {
+      "id": "UK-02",
+      "jurisdiction": "UK",
+      "title": "Defence Industrial Strategy 2025: Making Defence an Engine for Growth",
+      "document_date": "2025-09-08",
+      "direction": "Reform procurement, innovate at wartime pace and grow the UK industrial base so industry can deliver the Strategic Defence Review.",
+      "change_summary": "Defence becomes the sector plan of the UK Modern Industrial Strategy, with priority outcomes on UK-based businesses, resilience and procurement reform.",
+      "source_url": "https://www.gov.uk/government/publications/defence-industrial-strategy-2025-making-defence-an-engine-for-growth",
+      "topics": [
+        "defence-industrial-policy"
+      ],
+      "anchor_quote": "we will reform procurement, innovate at wartime pace, and grow our industrial base",
+      "verified": true,
+      "check": null
+    },
+    {
+      "id": "DE-01",
+      "jurisdiction": "DE",
+      "title": "Bundeswehr Planning and Procurement Acceleration Act (BwPBBG)",
+      "document_date": "2026-01-15",
+      "direction": "Faster planning and procurement so that equipment and materiel reach the troops sooner, as the Bundeswehr refocuses on national and alliance defence and grows.",
+      "change_summary": "Joint bill of the economy and defence ministries (cabinet 23.07.2025) passed by the Bundestag on 15.01.2026.",
+      "source_url": "https://www.bmvg.de/de/aktuelles/parlament-beschliesst-beschaffungsbeschleunigungsgesetz-6058406",
+      "topics": [
+        "defence-industrial-policy"
+      ],
+      "anchor_quote": "Es soll dazu beitragen, dass Gerät, Ausrüstung und Material in Zukunft schneller bei der Truppe ankommen.",
+      "verified": true,
+      "check": "Срок до 2035, отмена деления на лоты, прямые закупки и авансы — только по поисковой сводке; на странице BMVg нет. В синтез не брать без чтения текста закона."
+    },
+    {
+      "id": "FR-01",
+      "jurisdiction": "FR",
+      "title": "Actualisation de la loi de programmation militaire 2024-2030",
+      "document_date": "2026-08-16",
+      "direction": "€36 billion extra for the armed forces in 2026–2030 on top of the €413 billion LPM: nuclear deterrence, air defence, counter-drone, deep strike, munitions, drones, space and electromagnetic warfare.",
+      "change_summary": "Munitions +€8.5 billion (+53%) to raise stocks and industrial production capacity; space +€3.9 billion; counter-drone systems for every unit in the short term.",
+      "source_url": "https://www.defense.gouv.fr/actualites/actualisation-lpm-france-intensifie-son-effort-rearmement",
+      "topics": [
+        "defence-industrial-policy",
+        "european-air-missile-defence",
+        "uncrewed-systems",
+        "space-tech-funding",
+        "electronic-warfare",
+        "land-fires-rockets-artillery"
+      ],
+      "anchor_quote": "L’effort sur les munitions est majeur, avec 8,5 milliards d’euros supplémentaires",
+      "verified": true,
+      "check": "Год промульгации (16 августа) на странице не указан, дата страницы — 27.11.2025, что противоречит; по поиску проект представлен 08.04.2026 → вероятно 16.08.2026. Сверить по Légifrance."
+    },
+    {
+      "id": "NL-01",
+      "jurisdiction": "NL",
+      "title": "Defensienota 2024: Sterk, slim en samen",
+      "document_date": "2024-09-05",
+      "direction": "Structural €2.4 billion a year more for Defence so the Netherlands meets the NATO 2% norm; €1.5 billion extra for combat power, including two ASW frigates, extra NH90 helicopters and uncrewed vessels.",
+      "change_summary": "Netherlands moves to structural compliance with the 2% norm and heavier land capabilities at NATO's request.",
+      "source_url": "https://www.rijksoverheid.nl/documenten/2024/09/05/toespraak-minister-brekelmans-bij-perspresentatie-defensienota-2024",
+      "topics": [
+        "naval-shipbuilding",
+        "uncrewed-systems",
+        "combat-aircraft-and-helicopters"
+      ],
+      "anchor_quote": "Met de Defensienota 2024 krijgt Defensie structureel 2,4 miljard euro per jaar extra te besteden.",
+      "verified": true,
+      "check": "Источник — речь министра при презентации (официальный сайт), не сам документ (PDF не читался). €1 млрд на оборонную промышленность — только по поиску."
+    },
+    {
+      "id": "NZ-01",
+      "jurisdiction": "NZ",
+      "title": "2025 Defence Capability Plan",
+      "document_date": "2025-04-07",
+      "direction": "NZ$12 billion over four years (NZ$9 billion new) for a combat-capable NZDF: increased strike capabilities, closer integration with Australia, and new technologies such as uncrewed vehicles and space systems.",
+      "change_summary": "Defence spending to rise above 2% of GDP within eight years.",
+      "source_url": "https://www.defence.govt.nz/news/defence-capability-plan-released/",
+      "topics": [
+        "uncrewed-systems",
+        "space-tech-funding"
+      ],
+      "anchor_quote": "Under the plan defence spending will lift to more than 2% of GDP in the next eight years.",
+      "verified": true,
+      "check": "Дата 07.04.2025 — по поиску, на странице дата не извлечена."
+    },
+    {
+      "id": "PL-01",
+      "jurisdiction": "PL",
+      "title": "Narodowy Program Odstraszania i Obrony – Tarcza Wschód",
+      "document_date": "2024-07-10",
+      "direction": "Deterrence infrastructure on the eastern border: fortifications, reconnaissance and drone and counter-drone systems as a layer of air defence.",
+      "change_summary": "Funding raised from 10 billion złoty to 10 billion euro, per the ministry's two-year review (21.08.2026).",
+      "source_url": "https://www.gov.pl/web/obrona-narodowa/tarcza-wschod---program-o-strategicznym-znaczeniu",
+      "topics": [
+        "uncrewed-systems",
+        "european-air-missile-defence"
+      ],
+      "anchor_quote": "Rada Ministrów przyjęła uchwałę w sprawie ustanowienia programu „Narodowy Program Odstraszania i Obrony - Tarcza Wschód”",
+      "verified": true,
+      "check": "10.07.2024 — дата страницы MON; дата самой uchwały не указана (поиск: июнь 2024). Сумма в евро — по странице https://www.gov.pl/web/obrona-narodowa/2-lata-tarczy-wschod-od-decyzji-do-zdolnosci (цитата министра)."
+    },
+    {
+      "id": "US-05",
+      "jurisdiction": "US",
+      "title": "Unleashing U.S. Military Drone Dominance (Secretary of Defense memorandum)",
+      "document_date": "2025-07-10",
+      "direction": "Ramp up US production and fielding of low-cost drones: buy American-made drones and parts, equip combat units, and delegate drone procurement authority down to commanders.",
+      "change_summary": "Rescinds restrictive policies that hindered drone production; drones treated as consumables rather than major end items.",
+      "source_url": "https://www.war.gov/News/News-Stories/Article/Article/4246987/pentagon-to-increase-low-cost-drone-production-in-us/",
+      "topics": [
+        "uncrewed-systems"
+      ],
+      "anchor_quote": "he's rescinding restrictive policies that hindered drone production",
+      "verified": true,
+      "check": "Сам меморандум (PDF media.defense.gov) не читался; источник — статья war.gov от 16.07.2025. «Consumables» и делегирование — по поиску, сверить."
+    },
+    {
+      "id": "US-06",
+      "jurisdiction": "US",
+      "title": "NSPM: Rebuilding the United States Navy and America's Shipbuilding Industrial Base",
+      "document_date": "2026-08-13",
+      "direction": "Fix long-term problems in Navy shipbuilding and repair: a fifth Naval shipyard, a submarine Component Repair Center, reorganisation of NAVSEA and direct investment in shipyards on the 'Finland model'.",
+      "change_summary": "Foreign shipbuilders investing in US yards may temporarily build up to two ships abroad; CVN-81 returns to steam catapults and hydraulic elevators.",
+      "source_url": "https://www.whitehouse.gov/fact-sheets/2026/08/fact-sheet-president-donald-j-trump-rebuilds-the-u-s-navy-and-americas-shipbuilding-industrial-base/",
+      "topics": [
+        "naval-shipbuilding"
+      ],
+      "anchor_quote": "The Memorandum directs the Secretary of War to establish a fifth Naval shipyard, the first in over 80 years",
+      "verified": true,
+      "check": "Источник — fact sheet Белого дома, текст меморандума не читался."
+    },
+    {
+      "id": "US-07",
+      "jurisdiction": "US",
+      "title": "Executive Order on securing defense supply chains and domestic acquisition of critical materials",
+      "document_date": "2026-07-20",
+      "direction": "Fewer waivers for critical materials from covered nations, mandatory supply-chain mapping for critical defence supply chains, and qualification of new domestic and partner-nation sources.",
+      "change_summary": "Builds on the March 2025 mineral-production order; puts the burden on defence contractors to requalify suppliers away from adversary sources.",
+      "source_url": "https://www.whitehouse.gov/fact-sheets/2026/07/fact-sheet-president-donald-j-trump-secures-americas-defense-supply-chains-and-ensures-domestic-acquisition-of-critical-materials/",
+      "topics": [
+        "critical-materials-supply",
+        "defence-industrial-policy"
+      ],
+      "anchor_quote": "The Order limits circumstances in which the Secretary of Defense should issue waivers for critical materials from covered nations",
+      "verified": true,
+      "check": "Источник — fact sheet, текст указа и его номер не читались."
+    }
+  ],
+  "changes_from_v1": "Добавлены 14 записей: EU 3, NATO 1, UK 2, DE 1, FR 1, NL 1, NZ 1, PL 1, US 3 (дроны, судостроение, критические материалы). v1-записи без изменений. В базу загружается только v1 (согласие 28.10); v2 — отдельным согласием."
+}
