@@ -131,8 +131,8 @@ def group_items(model, items, known_programmes=(), topics=()):
     answer, meta = model(GROUP_SYSTEM, packet, GROUP_SCHEMA, max_output=16000, step="grouping")
     groups = valid_groups(answer, len(items))
     if groups is None:
-        groups = [{"items": [k + 1], "programme": it["title"], "organisations": [], "terms": [],
-                   "place": None} for k, it in enumerate(items)]
+        groups = [{"items": [k + 1], "programme": None, "organisations": [], "terms": [it["title"]],
+                   "place": None} for k, it in enumerate(items)]  # no programme: a headline is not a programme name
         meta["fallback"] = "invalid_grouping"
     return groups, meta
 

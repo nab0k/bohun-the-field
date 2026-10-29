@@ -16,6 +16,7 @@ def programme_key(name):
     return key if len(key) >= 2 and key[0].isalnum() else None
 
 
+MAX_NAME_KEY = 60
 KIND = {"T": "chronology", "S": "supply_chain", "R": "restriction"}
 PREFIX = {v: k for k, v in KIND.items()}
 
@@ -88,7 +89,9 @@ class DbStore:
         self.cur = cur
 
     def known_names(self, limit=400):
-        self.cur.execute("SELECT name FROM knowledge.programme ORDER BY updated_at DESC LIMIT %s", (limit,))
+        # Programme names are short; long keys are headlines saved by a failed grouping (run 40923499569).
+        self.cur.execute("""SELECT name FROM knowledge.programme WHERE length(key) <= %s
+                             ORDER BY updated_at DESC LIMIT %s""", (MAX_NAME_KEY, limit))
         return [r[0] for r in self.cur.fetchall()]
 
     def find(self, name):
@@ -113,8 +116,8 @@ class DbStore:
 
     def save(self, name, aliases, topic, summary, facts, cards, run_ref, version):
         key = programme_key(name)
-        if not key:
-            return {"programme": None, "added": 0}
+        if not key or len(key) > MAX_NAME_KEY:
+            return {"programme": None, "added": 0, "skipped": "no_programme_name"}
         alias_keys = sorted({k for k in map(programme_key, aliases) if k and k != key})
         existing = self.find(name)
         if existing:
