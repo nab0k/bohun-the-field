@@ -28,6 +28,7 @@ MAX_EVENT_CHARS = 5000
 MAX_URLS_PER_EVENT = 30
 MAX_FULL_MD = 200_000
 MIN_CHRONOLOGY = 3
+RESEARCH_THINKING = os.environ.get("KB_RESEARCH_THINKING", "low")
 
 
 # --- input -------------------------------------------------------------------------------------
@@ -136,7 +137,18 @@ def anchor_for(page, row):
     return None
 
 
-def build_facts(event_items, research, pages, archive, doctrine):
+def rescue(row, status, url, grounded_pages):
+    """A row whose cited page fails is checked against the pages search actually returned."""
+    if status == "ok":
+        return status, url, None
+    for gurl, page in grounded_pages.items():
+        if page and page.get("kind") == "html" and check_row(row, page.get("markdown")) == "ok":
+            return "ok", page.get("final_url") or gurl, page
+    return status, url, None
+
+
+def build_facts(event_items, research, pages, archive, doctrine, grounded_pages=None):
+    grounded_pages = grounded_pages or {}
     """Numbered facts for the writer; each keeps its source, verification status and anchor."""
     facts, dropped = [], {}
 
@@ -164,7 +176,8 @@ def build_facts(event_items, research, pages, archive, doctrine):
         status = ("no_source" if not row.get("source_url") else "source_unreachable" if not page
                   else "pdf_not_read" if page["kind"] == "pdf" else check_row(row, page.get("markdown"))
                   if page["kind"] == "html" else "source_unreachable")
-        add("T", row, text.strip(), status, url=row.get("source_url"), anchor=anchor_for(page, row))
+        status, url, gpage = rescue(row, status, row.get("source_url"), grounded_pages)
+        add("T", row, text.strip(), status, url=url, anchor=anchor_for(gpage or page, row))
     for row in research.get("supply_chain") or []:
         page = pages.get(row.get("source_url"))
         ok = bool(page and page.get("kind") == "html" and norm(row.get("lower")).split(" ")[0] in norm(page.get("markdown")))
@@ -317,8 +330,11 @@ def research_event(model, cur, group, event_items, doctrine_records, schema_mode
                                "url": a["url"], "text": a["text"][:600]} for a in archive],
               "doctrine_known": [{"title": d["title"], "jurisdiction": d["jurisdiction"], "date": d["document_date"]}
                                  for d in doctrine]}
-    research, meta = model(RESEARCH_SYSTEM, packet, RESEARCH_SCHEMA, grounded=True, max_output=8000,
-                           schema_mode=schema_mode)
+    task = ("Search the web with Google Search now. Event: %s (%s). Run several searches: the announcement itself, "
+            "the history of %s, and the supply chain of the product. Then answer only with the JSON object."
+            % (event_items[0]["title"], event_items[0]["published"][:10], group.get("programme") or "the programme"))
+    research, meta = model(RESEARCH_SYSTEM, packet, RESEARCH_SCHEMA, grounded=True, max_output=10000,
+                           schema_mode=schema_mode, thinking=RESEARCH_THINKING, task=task)
     return research, meta, archive, doctrine, terms
 
 
@@ -348,8 +364,10 @@ def run(cur, model, items, companies_by_event, doctrine_records, out_dir, schema
         try:
             research, rmeta, archive, doctrine, terms = research_event(model, cur, g, ev_items, doctrine_records,
                                                                        schema_mode)
-            pages = fetcher(cited_urls(research))
-            facts, dropped = build_facts(ev_items, research, pages, archive, doctrine)
+            grounded = [c["uri"] for c in rmeta["grounding_chunks"] if c.get("uri")][:15]
+            pages = fetcher(cited_urls(research) + grounded)
+            facts, dropped = build_facts(ev_items, research, pages, archive, doctrine,
+                                         {u: pages.get(u) for u in grounded})
             cards = documents(research, facts, pages, terms, out_dir)
             output, wmeta = model(WRITER_SYSTEM, writer_packet(ev_items, facts), WRITER_SCHEMA, max_output=6000)
             strip_refs(output)

@@ -226,3 +226,26 @@ class DoctrineTest(unittest.TestCase):
                 {"jurisdiction": "EU", "topics": ["naval-shipbuilding"]}]
         self.assertEqual([r["jurisdiction"] for r in pilot.doctrine_for("naval-shipbuilding", recs, ["ES", "SA"])], ["EU"])
         self.assertEqual(pilot.doctrine_for("naval-shipbuilding", recs, ["SA"]), [])
+
+
+class RobustnessTest(unittest.TestCase):
+    def test_trailing_prose_is_ignored(self):
+        self.assertEqual(parse_json_text('{"a": 1}\nHope this helps.'), {"a": 1})
+
+    def test_malformed_json_is_retried_once(self):
+        bad = {"candidates": [{"finishReason": "STOP", "content": {"parts": [{"text": "{a:}"}]}}], "usageMetadata": usage()}
+        t = Scripted([bad, reply({"ok": True})])
+        out, _ = Gemini("k", Ledger(), t)("s", {}, {"type": "object"})
+        self.assertEqual(out, {"ok": True})
+        self.assertEqual(len(t.bodies), 2)
+
+    def test_failed_row_is_rescued_by_a_search_page(self):
+        row = {"date": "2026-07-29", "what": "Multiyear award for PAC-3 MSE.", "amount": 58620000000}
+        page = {"kind": "html", "markdown": html_to_markdown(PAGE)[1], "final_url": "https://real.example/award"}
+        status, url, _ = pilot.rescue(row, "source_unreachable", "https://dead.example", {"https://g/1": page})
+        self.assertEqual((status, url), ("ok", "https://real.example/award"))
+
+    def test_task_goes_first_in_the_user_turn(self):
+        body = Gemini("k", Ledger(), None).body("s", {"p": 1}, {"type": "object"}, True, 100, "text", "medium", "Search now")
+        self.assertEqual(body["contents"][0]["parts"][0]["text"], "Search now")
+        self.assertEqual(body["generationConfig"]["thinkingConfig"]["thinkingLevel"], "medium")
