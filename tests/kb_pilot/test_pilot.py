@@ -1,5 +1,7 @@
+import io
 import json
 import urllib.error
+from datetime import datetime
 import tempfile
 import unittest
 from pathlib import Path
@@ -509,3 +511,28 @@ class EmbedTest(unittest.TestCase):
         self.assertEqual(len(embed_texts(["x"], "a", "t", ok)[0]), 1024)
         with self.assertRaises(RuntimeError):
             embed_texts(["x", "y"], "a", "t", ok)
+
+
+class EmbedFallbackTest(unittest.TestCase):
+    def test_cloudflare_refusal_switches_to_local(self):
+        from collectors.kb_pilot import embed
+
+        class Cur:
+            def __init__(self, rows): self.rows, self.sql = rows, []
+            def execute(self, q, p=None): self.sql.append(q)
+            def fetchall(self):
+                q = self.sql[-1]
+                return self.rows if "LEFT JOIN knowledge.item_embedding" in q else []
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+
+        class Conn:
+            def __init__(self): self.cur = Cur([(1, "t", "b", datetime(2026, 10, 29))])
+            def cursor(self): return self.cur
+            def commit(self): pass
+
+        def refuse(req):
+            raise urllib.error.HTTPError("u", 429, "limit", {}, io.BytesIO(b'{"errors":[{"message":"daily"}]}'))
+        stats = embed.run(Conn(), "a", "t", transport=refuse, local=lambda texts: [[0.0] * 1024 for _ in texts])
+        self.assertEqual(stats["by_backend"], {embed.LOCAL_MODEL: 1})
+        self.assertEqual(stats["error_codes"]["429"], ["daily"])
