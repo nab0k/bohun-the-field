@@ -290,6 +290,8 @@ def compose_sections(facts):
     for f in [f for f in ok if f["kind"] == "S"][:3]:
         r = f["row"]
         note = (r.get("note") or "").strip().rstrip(".")
+        if norm(r.get("lower") or "") and norm(r.get("lower"))[:40] in norm(note):
+            note = ""  # the note only repeats the link
         supply.append({"text": "%s depends on %s%s." % (r.get("upper"), r.get("lower"), " — " + note if note else ""),
                        "refs": [f["id"]]})
     for f in [f for f in ok if f["kind"] == "R"][:2]:
@@ -405,6 +407,8 @@ def admit(facts, output, codes):
     vertical = any(f["kind"] in ("S", "R") and f["status"] == "ok" and f["id"] in used for f in facts)
     doctrine = any(f["kind"] == "D" and f["id"] in used for f in facts)
     reasons = list(codes)
+    if not (output.get("headline") or "").strip() or not output.get("what_happened"):
+        reasons.append("writer_incomplete")
     if not horizontal:
         reasons.append("analysis_missing_chronology")
     if not (vertical or doctrine):
