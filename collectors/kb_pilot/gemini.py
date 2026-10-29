@@ -22,6 +22,7 @@ BATCH_URL = "https://generativelanguage.googleapis.com/v1beta/models/{}:batchGen
 API_ROOT = "https://generativelanguage.googleapis.com/v1beta/"
 BATCH_WAIT_SECONDS = 2700          # the workflow job has 60 minutes
 BATCH_POLL_SECONDS = 20
+BATCH_CHUNK = 20                   # run 40927675931: 63 grounded requests reserved more than the $2 cap at once
 BATCH_DONE = ("SUCCEEDED", "FAILED", "CANCELLED", "EXPIRED")
 
 
@@ -191,7 +192,10 @@ class Gemini:
                 except Exception as exc:
                     out.append(("error", exc))
             return out
-        return self._batch(reqs)
+        out = []
+        for i in range(0, len(reqs), BATCH_CHUNK):  # the worst-case reserve is checked per chunk
+            out += self._batch(reqs[i:i + BATCH_CHUNK])
+        return out
 
     def as_text_mode(self, req):
         if req.get("schema_mode") != "schema":

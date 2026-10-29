@@ -428,3 +428,14 @@ class TemplateTest(unittest.TestCase):
         cheap = FreeModel(gem, account="", token="")
         self.assertEqual(cheap("s", {}, {"type": "object"})[0], {"a": 1})
         self.assertEqual(cheap.stats["fallback"], {"free_disabled": 1})
+
+
+class ChunkTest(unittest.TestCase):
+    def test_batches_are_sent_in_chunks(self):
+        import collectors.kb_pilot.gemini as g
+        sent = []
+        model = Gemini("k", Ledger(), None, batch=True)
+        model._batch = lambda reqs: sent.append(len(reqs)) or [("ok", {}, {})] * len(reqs)
+        reqs = [model.request("s", {}, {"type": "object"}) for _ in range(g.BATCH_CHUNK * 2 + 3)]
+        self.assertEqual(len(model.many(reqs)), len(reqs))
+        self.assertEqual(sent, [g.BATCH_CHUNK, g.BATCH_CHUNK, 3])
