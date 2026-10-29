@@ -53,6 +53,9 @@ class FreeModel:
         user = ((task + "\n\n") if task else "") + canonical(packet)
         body = {"model": self.model, "temperature": 0.2, "max_tokens": max(max_output, MIN_OUTPUT_TOKENS),
                 "response_format": {"type": "json_object"},
+                # Reasoning off (Workers AI docs, gemma-4 / nemotron): with it on, every large step ran out of
+                # tokens before the JSON (run 40935846507: 12/13 truncated at 8000 tokens).
+                "chat_template_kwargs": {"enable_thinking": False},
                 "messages": [{"role": "system", "content": system + "\n\nReturn only one JSON object matching this "
                                                                     "schema, no prose:\n" + canonical(schema)},
                              {"role": "user", "content": user}]}
