@@ -17,14 +17,14 @@ import urllib.parse
 import urllib.request
 
 if __package__:
-    from .content_contract import CaptureBudget, extract_inoreader_content
+    from .content_contract import capture_size, extract_inoreader_content
     from .body_backfill import backfill_missing_body
 elif __name__ == "__main__":
-    from content_contract import CaptureBudget, extract_inoreader_content
+    from content_contract import capture_size, extract_inoreader_content
     from body_backfill import backfill_missing_body
 else:
     # Support existing file-spec test loaders without changing sys.path.
-    from collectors.inoreader.content_contract import CaptureBudget, extract_inoreader_content
+    from collectors.inoreader.content_contract import capture_size, extract_inoreader_content
     from collectors.inoreader.body_backfill import backfill_missing_body
 
 API = "https://www.inoreader.com/reader/api/0/"
@@ -204,6 +204,87 @@ def import_items(items, *, backfill_bodies=False):
     return inserted, total
 
 
+BATCH_ITEMS = 50
+BATCH_CAPTURE_BYTES = 5 * 1024 * 1024
+
+
+def normalized_items(folders, token, max_pages, max_items=None):
+    """Deduplicate IDs only; provider pages remain bounded by stream_items."""
+    seen = set()
+    for folder in folders:
+        if max_items is not None and len(seen) >= max_items:
+            break
+        count = 0
+        stream = (stream_items(folder, token, max_pages) if max_items is None else
+                  stream_items(folder, token, max_pages, page_size=min(100, max_items - len(seen))))
+        for raw in stream:
+            external_id = str(raw["id"])
+            count += 1
+            if external_id not in seen:
+                seen.add(external_id)
+                # No whole-run eviction budget: each capture is bounded individually.
+                yield normalize(raw, folder)
+            if max_items is not None and len(seen) >= max_items:
+                break
+        print(f"FOLDER {folder}: fetched={count}")
+
+
+def process_batches(items, writer=None, *, max_items=BATCH_ITEMS,
+                    max_capture_bytes=BATCH_CAPTURE_BYTES):
+    """Flush before exceeding a buffer limit; never evict a received body.
+
+    writer must return only after committing its batch. An oversized single
+    capture is sent alone. Earlier committed batches survive a later failure.
+    None is a non-persisting observer, used by the still-networked CLI dry run.
+    """
+    for limit in (max_items, max_capture_bytes):
+        if type(limit) is not int or limit <= 0:
+            raise ValueError("Batch limits must be positive integers")
+    stats = {"items": 0, "bytes": 0, "statuses": {}, "batches": 0,
+             "committed_items": 0, "new": 0, "total": None}
+    batch = []
+    batch_bytes = 0
+
+    def flush():
+        nonlocal batch_bytes
+        if not batch:
+            return
+        if writer is not None:
+            new, total = writer(batch)
+            stats["committed_items"] += len(batch)
+            stats["new"] += new
+            stats["total"] = total
+        stats["batches"] += 1
+        if writer is not None:
+            print(f"BATCH_COMMITTED batch={stats['batches']} items={len(batch)} "
+                  f"capture_bytes={batch_bytes} committed_items={stats['committed_items']}")
+        batch.clear()
+        batch_bytes = 0
+
+    try:
+        for item in items:
+            capture = item["raw_data"]["content_capture"]
+            size = capture_size(capture)
+            if batch and (len(batch) >= max_items or batch_bytes + size > max_capture_bytes):
+                flush()
+            batch.append(item)
+            batch_bytes += size
+            stats["items"] += 1
+            stats["bytes"] += size
+            status = capture["status"]
+            stats["statuses"][status] = stats["statuses"].get(status, 0) + 1
+            if len(batch) >= max_items or batch_bytes >= max_capture_bytes:
+                flush()
+        flush()
+    except Exception:
+        # Never emit provider bodies, URLs, credentials or raw DB exceptions.
+        raise RuntimeError(
+            f"BATCH_PROCESSING_FAILED committed_batches={stats['batches'] if writer else 0} "
+            f"committed_items={stats['committed_items']}; rerun is safe via existing unique/backfill guards"
+        ) from None
+    return stats
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dry-run", action="store_true")
@@ -221,37 +302,16 @@ def main():
     print(f"DISCOVERED subscriptions={len(subscriptions)} bohun_subscriptions={source_count} folders={len(folders)}")
     if not folders:
         raise RuntimeError("No BOHUN_ folders found; refusing empty successful run")
-    unique = {}
-    content_budget = CaptureBudget()
-    for folder in folders:
-        if args.max_items is not None and len(unique) >= args.max_items:
-            break
-        count = 0
-        stream = (stream_items(folder, token, args.max_pages) if args.max_items is None else
-                  stream_items(folder, token, args.max_pages, page_size=min(100,args.max_items-len(unique))))
-        for raw in stream:
-            external_id = str(raw["id"])
-            if external_id not in unique:
-                unique[external_id] = normalize(raw, folder, content_budget=content_budget)
-            count += 1
-            if args.max_items is not None and len(unique) >= args.max_items:
-                break
-        print(f"FOLDER {folder}: fetched={count}")
-    items = list(unique.values())
-    print(f"VALIDATED unique_items={len(items)}")
-    capture_statuses = {}
-    for item in items:
-        status = item["raw_data"]["content_capture"]["status"]
-        capture_statuses[status] = capture_statuses.get(status, 0) + 1
-    print(f"CONTENT_CAPTURE bytes={content_budget.bytes_used} statuses={json.dumps(capture_statuses, sort_keys=True)}")
+    items = normalized_items(folders, token, args.max_pages, args.max_items)
+    writer = None if args.dry_run else (
+        (lambda batch: import_items(batch, backfill_bodies=True)) if args.backfill_bodies else import_items)
+    stats = process_batches(items, writer)
+    print(f"VALIDATED unique_items={stats['items']}")
+    print(f"CONTENT_CAPTURE bytes={stats['bytes']} statuses={json.dumps(stats['statuses'], sort_keys=True)}")
     if args.dry_run:
-        print("DRY RUN: no database writes")
+        print("DRY RUN: no database writes (Inoreader API access was live)")
         return
-    if args.backfill_bodies:
-        new, total = import_items(items, backfill_bodies=True)
-    else:
-        new, total = import_items(items)
-    print(f"COMMITTED fetched={len(items)} new={new} cloud_inoreader_items={total}")
+    print(f"COMMITTED fetched={stats['committed_items']} new={stats['new']} cloud_inoreader_items={stats['total']}")
 
 
 if __name__ == "__main__":
