@@ -21,6 +21,11 @@ on:
         type: choice
         options: [schema, text]
         default: text
+      mode:
+        description: pilot = the run; probe = one neutral grounded question, structure only
+        type: choice
+        options: [pilot, probe]
+        default: pilot
       research_thinking:
         description: Thinking level of the research (search) step
         type: choice
@@ -71,6 +76,7 @@ jobs:
           LIMIT: ${{ inputs.limit }}
           SCHEMA_MODE: ${{ inputs.schema_mode }}
           KB_RESEARCH_THINKING: ${{ inputs.research_thinking }}
+          KB_MODE: ${{ inputs.mode }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: '"$RUNNER_TEMP/bohun-kb/bin/python" -B -m collectors.kb_pilot --day-from "$DAY_FROM" --day-to "$DAY_TO" --limit "${LIMIT:-0}" --schema-mode "$SCHEMA_MODE" --out "$RUNNER_TEMP/kb-pilot-out"'
