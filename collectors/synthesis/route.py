@@ -21,7 +21,7 @@ def drop_unsupported_layers(output, packet):
     blocks = {f["id"]: f.get("block") for f in packet["facts"]}
     out = dict(output)
     # A fact ID pasted into prose is removed (fact_ids already carry it); nothing is reworded.
-    strip = lambda t: re.sub(r"\s*\[[FD][0-9a-f]{2,}[^\]]*\]", "", t) if isinstance(t, str) else t
+    strip = lambda t: re.sub(r"\s*\[[FD][0-9a-f]{1,}[^\]]*\]", "", t) if isinstance(t, str) else t
     for key, value in out.items():
         if isinstance(value, dict):
             out[key] = {**value, "text": strip(value.get("text"))}
