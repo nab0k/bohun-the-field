@@ -547,6 +547,8 @@ def run(cur, model, items, companies_by_event, doctrine_records, out_dir, fetche
             fail(ev, exc); continue
         rec.update(outcome=decision, reasons=reasons, analysis=analysis, parent=ev["research"].get("parent"),
                    primary_source=ev["research"].get("primary_source"), archive_hits=len(ev["archive"]),
+                   research_keys={k: (len(v) if isinstance(v, list) else type(v).__name__)
+                                  for k, v in ev["research"].items()},
                    search_queries=rinfo["search_queries"], grounding_chunks=rinfo["grounding_chunks"][:30],
                    cost_micro_usd=rinfo["cost_micro_usd"] + ev["sinfo"]["cost_micro_usd"] + ev["winfo"]["cost_micro_usd"],
                    sentences=sentences, dropped=ev["dropped"], documents=ev["cards"], synthesis=output,

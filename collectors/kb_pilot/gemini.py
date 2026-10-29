@@ -113,7 +113,25 @@ def parse_reply(reply, plain):
                          for g in grounding.get("groundingSupports") or []],
             "grounding_chunks": [{"uri": (c.get("web") or {}).get("uri"), "title": (c.get("web") or {}).get("title")}
                                  for c in grounding.get("groundingChunks") or []]}
-    return (text if plain else parse_json_text(text)), info
+    return (text if plain else unwrap(parse_json_text(text))), info
+
+
+def unwrap(answer):
+    """Batch answers sometimes wrap the object in a list; take the single object."""
+    if isinstance(answer, list):
+        objs = [a for a in answer if isinstance(a, dict)]
+        if len(objs) == 1:
+            return objs[0]
+        if objs:
+            merged = {}
+            for o in objs:
+                for k, v in o.items():
+                    if isinstance(v, list):
+                        merged.setdefault(k, []).extend(v)
+                    else:
+                        merged.setdefault(k, v)
+            return merged
+    return answer
 
 
 class Gemini:
@@ -145,6 +163,8 @@ class Gemini:
 
     def request(self, system, packet, schema, grounded=False, max_output=6000, schema_mode="schema", thinking=None,
                 task=None, step="other"):
+        if self.batch and schema_mode == "schema":
+            schema_mode = "text"  # Batch does not keep responseJsonSchema (run 40920575588): schema goes in the prompt
         return {"body": self.body(system, packet, schema, grounded, max_output, schema_mode, thinking, task),
                 "grounded": grounded, "max_output": max_output, "plain": schema_mode == "plain", "step": step}
 
