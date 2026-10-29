@@ -128,3 +128,74 @@ def cloudflare():
                 len(content), json.dumps(content[:60]), parsed, json.dumps(data.get("usage")),
                 json.dumps([e.get("message") for e in data.get("errors") or []])[:200]))
     return 0
+
+
+FREE_PROVIDERS = {
+    # name: (env key, models url, chat url, candidate models, auth style)
+    "mistral": ("MISTRAL_API_KEY", "https://api.mistral.ai/v1/models", "https://api.mistral.ai/v1/chat/completions",
+                ["mistral-small-latest", "mistral-medium-latest"], "bearer"),
+    "groq": ("GROQ_API_KEY", "https://api.groq.com/openai/v1/models", "https://api.groq.com/openai/v1/chat/completions",
+             ["openai/gpt-oss-120b", "llama-3.3-70b-versatile"], "bearer"),
+    "gemini_free": ("GEMINI_FREE_API_KEY", "https://generativelanguage.googleapis.com/v1beta/models", None,
+                    ["gemini-3.5-flash-lite", "gemini-3.8-flash"], "google"),
+}
+
+
+def free_providers():
+    """For each free provider: key present, model ids available, one tiny JSON call per candidate model.
+    Prints codes, model names, timing and parse results only — never a key."""
+    import time
+    from .gemini import parse_json_text
+    task = "Return only one JSON object: {\"items\": [{\"name\": string, \"year\": integer}]} listing three NATO members with their joining year."
+    for name, (env, models_url, chat_url, models, style) in FREE_PROVIDERS.items():
+        key = (os.environ.get(env) or "").strip()
+        if not key:
+            print("KB_FREE %s key=absent" % name); continue
+        head = {"Authorization": "Bearer " + key} if style == "bearer" else {"x-goog-api-key": key}
+        try:
+            req = urllib.request.Request(models_url, headers=head)
+            with urllib.request.urlopen(req, timeout=60) as r:
+                data = json.load(r)
+            ids = sorted((m.get("id") or m.get("name") or "") for m in (data.get("data") or data.get("models") or []))
+            print("KB_FREE %s models=%d %s" % (name, len(ids), json.dumps([i for i in ids if i][:60])))
+        except urllib.error.HTTPError as exc:
+            print("KB_FREE %s models_http=%d" % (name, exc.code))
+        for model in models:
+            if style == "bearer":
+                url, body = chat_url, {"model": model, "max_tokens": 400, "temperature": 0.2,
+                                       "response_format": {"type": "json_object"},
+                                       "messages": [{"role": "user", "content": task}]}
+            else:
+                url = "https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent" % model
+                body = {"contents": [{"role": "user", "parts": [{"text": task}]}],
+                        "generationConfig": {"responseMimeType": "application/json", "maxOutputTokens": 400}}
+            t0 = time.time()
+            req = urllib.request.Request(url, data=json.dumps(body).encode(), method="POST",
+                                         headers={**head, "Content-Type": "application/json"})
+            try:
+                with urllib.request.urlopen(req, timeout=120) as r:
+                    data = json.load(r); code = r.status
+            except urllib.error.HTTPError as exc:
+                code = exc.code
+                try:
+                    err = json.loads(exc.read().decode())
+                    msg = (err.get("error") or {}).get("message") if isinstance(err.get("error"), dict) else err.get("message") or err.get("error")
+                except Exception:
+                    msg = ""
+                print("KB_FREE %s %s http=%d msg=%s" % (name, model, code, json.dumps(str(msg)[:160]))); continue
+            except Exception as exc:
+                print("KB_FREE %s %s transport=%s" % (name, model, type(exc).__name__)); continue
+            if style == "bearer":
+                text = ((data.get("choices") or [{}])[0].get("message") or {}).get("content") or ""
+                usage = data.get("usage")
+            else:
+                parts = (((data.get("candidates") or [{}])[0].get("content") or {}).get("parts") or [])
+                text = "".join(p.get("text", "") for p in parts)
+                usage = data.get("usageMetadata")
+            try:
+                parsed = type(parse_json_text(text)).__name__
+            except Exception as exc:
+                parsed = "fail:" + type(exc).__name__
+            print("KB_FREE %s %s http=%d secs=%.1f parsed=%s usage=%s" % (name, model, code, time.time() - t0, parsed,
+                                                                          json.dumps(usage)[:200]))
+    return 0
