@@ -275,6 +275,32 @@ def numbers_in(text):
 REF_MARK = re.compile(r"\s*\[(?:[A-Z]\d+(?:,\s*)?)+\]")
 
 
+REF_ID = re.compile(r"\b[A-Z]\d+\b")
+
+
+def normalize_output(output):
+    """Writer sections as lists of {text, refs}; a bare string keeps the ids it cites in brackets."""
+    if not isinstance(output, dict):
+        raise ValueError("WRITER_NOT_OBJECT")
+    for sec in SECTIONS:
+        items = output.get(sec)
+        if isinstance(items, (str, dict)):
+            items = [items]
+        fixed = []
+        for s in items or []:
+            if isinstance(s, str):
+                refs = [r for m in re.findall(r"\[([^\]]+)\]", s) for r in REF_ID.findall(m)]
+                fixed.append({"text": s, "refs": refs})
+            elif isinstance(s, dict):
+                fixed.append({"text": str(s.get("text") or ""), "refs": [str(r) for r in s.get("refs") or []]})
+        output[sec] = fixed
+    for key in ("headline", "lead"):
+        output[key] = str(output.get(key) or "")
+    if not isinstance(output.get("companies"), list):
+        output["companies"] = []
+    return output
+
+
 def strip_refs(output):
     """References live in refs; bracketed ids the model repeats inside the text are removed."""
     for sec in SECTIONS:
@@ -511,11 +537,14 @@ def run(cur, model, items, companies_by_event, doctrine_records, out_dir, fetche
             if "output" not in ev and not ev["record"].get("outcome"):
                 ev["record"]["outcome"] = "stopped"
     for ev in live:
-        output, facts, rinfo = ev["output"], ev["facts"], ev["rinfo"]
-        strip_refs(output)
-        codes, sentences = check_text(output, facts)
-        decision, reasons, analysis = admit(facts, output, codes)
-        rec = ev["record"]
+        facts, rinfo, rec = ev["facts"], ev["rinfo"], ev["record"]
+        try:
+            output = normalize_output(ev["output"])
+            strip_refs(output)
+            codes, sentences = check_text(output, facts)
+            decision, reasons, analysis = admit(facts, output, codes)
+        except Exception as exc:  # one malformed answer fails its event only
+            fail(ev, exc); continue
         rec.update(outcome=decision, reasons=reasons, analysis=analysis, parent=ev["research"].get("parent"),
                    primary_source=ev["research"].get("primary_source"), archive_hits=len(ev["archive"]),
                    search_queries=rinfo["search_queries"], grounding_chunks=rinfo["grounding_chunks"][:30],
@@ -603,6 +632,10 @@ def main(argv=None):
             except BudgetStop as stop:
                 conn.rollback()
                 result = {"version": PILOT_VERSION, "items": len(items), "groups": 0, "events": [], "stop": str(stop)}
+            except Exception as exc:  # the spend and batch names are still written and printed
+                conn.rollback()
+                result = {"version": PILOT_VERSION, "items": len(items), "groups": 0, "events": [],
+                          "stop": "CRASH " + type(exc).__name__ + ":" + str(exc)[:160], "batches": model.batches}
     result["spent_micro_usd"], result["search_queries"] = ledger.spent, ledger.search_queries
     result["spent_by_step"] = ledger.steps
     (out_dir / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
