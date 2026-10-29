@@ -79,8 +79,16 @@ def archive_hits(cur, terms, before, limit=15):
             for i, t, u, p, b in cur.fetchall()]
 
 
-def doctrine_for(topic, records):
-    return [r for r in records if topic and topic in (r.get("topics") or [])]
+EU = {"AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IE", "IT", "LV", "LT", "LU",
+      "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE"}
+NATO = (EU - {"AT", "CY", "IE", "MT"}) | {"US", "CA", "GB", "NO", "IS", "TR", "AL", "ME", "MK"}
+
+
+def doctrine_for(topic, records, countries):
+    """Doctrine of the event's topic AND of a country involved (EU/NATO when a member is involved)."""
+    c = {x.upper() for x in countries or []}
+    c = c | ({"EU"} if c & EU else set()) | ({"NATO"} if c & NATO else set())
+    return [r for r in records if topic and topic in (r.get("topics") or []) and r.get("jurisdiction") in c]
 
 
 # --- grouping ----------------------------------------------------------------------------------
@@ -263,6 +271,7 @@ def documents(research, facts, pages, terms, out_dir):
         official = is_official(url)
         card = {"id": doc_id, "url": url, "host": host(url), "official": official, "format": page.get("kind", "unread"),
                 "title": meta.get("title") or page.get("title"), "doc_type": meta.get("doc_type"),
+                "fetch_error": page.get("error"),
                 "issuer": meta.get("issuer"), "date": meta.get("date"), "storage": "link_only", "anchors": []}
         if official and page.get("kind") == "html" and page.get("markdown"):
             secs = sections(page["markdown"])
@@ -290,7 +299,7 @@ def research_event(model, cur, group, event_items, doctrine_records, schema_mode
     terms = [t.strip() for t in terms if t and t.strip()]
     archive = archive_hits(cur, terms, before) if cur is not None else []
     topic = event_items[0]["topic"]
-    doctrine = doctrine_for(topic, doctrine_records)
+    doctrine = doctrine_for(topic, doctrine_records, group.get("countries"))
     packet = {"news": [{"title": it["title"], "outlet": it["outlet"], "date": it["published"][:10], "text": it["text"]}
                        for it in event_items],
               "programme_hint": group.get("programme"), "topic": topic,
@@ -323,7 +332,7 @@ def run(cur, model, items, companies_by_event, doctrine_records, out_dir, schema
         record = {"titles": [it["title"] for it in ev_items], "item_ids": [it["item_id"] for it in ev_items],
                   "old_event_ids": [it["event_id"] for it in ev_items], "topic": ev_items[0]["topic"],
                   "type": ev_items[0]["type"], "date": ev_items[0]["published"][:10], "place": g.get("place"),
-                  "programme": g.get("programme"), "news": [{"title": it["title"], "url": it["url"], "outlet": it["outlet"],
+                  "programme": g.get("programme"), "countries": g.get("countries"), "news": [{"title": it["title"], "url": it["url"], "outlet": it["outlet"],
                                                              "date": it["published"][:10]} for it in ev_items]}
         result["events"].append(record)
         try:
@@ -344,7 +353,7 @@ def run(cur, model, items, companies_by_event, doctrine_records, out_dir, schema
             continue
         record.update(outcome=decision, reasons=reasons, analysis=analysis, parent=research.get("parent"),
                       primary_source=research.get("primary_source"), archive_hits=len(archive),
-                      search_queries=rmeta["search_queries"], grounding_chunks=len(rmeta["grounding_chunks"]),
+                      search_queries=rmeta["search_queries"], grounding_chunks=rmeta["grounding_chunks"][:30],
                       cost_micro_usd=rmeta["cost_micro_usd"] + wmeta["cost_micro_usd"], sentences=sentences,
                       facts=[{k: f[k] for k in ("id", "kind", "text", "status", "source_url", "archive_id", "anchor",
                                                 "document_id")} for f in facts],
