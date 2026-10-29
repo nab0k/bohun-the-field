@@ -29,6 +29,17 @@ def request(packet, resources):
             "transport": "NOT_CONFIGURED", "model": None}
 
 
+TITLE_WORDS = {"secures", "wins", "awards", "awarded", "selects", "selected", "launches", "unveils", "introduces", "signs",
+               "orders", "buys", "delivers", "completes", "tests", "expands", "plans", "to", "for", "of", "the", "and",
+               "in", "on", "with", "a", "an", "as", "at", "by", "new", "first", "second", "contract", "deal", "order",
+               "receives", "builds", "build", "supply", "supplies", "host", "hosts", "drops", "joins", "takes", "acquire",
+               "acquires", "stake", "redirects", "showcases", "approves", "invests", "raises"}
+
+
+def name_words(text):
+    return re.findall(r"\w+", normalize(text).replace("-", " "))
+
+
 def words(text):
     return re.findall(r"\w+(?:[-']\w+)*", normalize(text))
 
@@ -86,10 +97,16 @@ def validate(output, packet, dictionaries):
                 reasons.append("unsupported_currency")
         # Proper-name-like phrases and product identifiers must be literal in
         # cited evidence. This is a necessary check, not semantic entailment.
-        # Attribution "according to <outlet>" is required by the rules, so source outlets count as support.
+        # Fact IDs belong in fact_ids, never in the published prose.
+        if re.search(r"\[[FD][0-9a-f]{2,}", text):
+            reasons.append("fact_id_in_text")
+        # A name passes when each of its words occurs in the cited facts or the source outlets
+        # ("according to <outlet>" is required). Hyphens count as spaces (PAC 3 = PAC-3); headline
+        # verbs in Title Case are not names.
         outlets = " ".join(s.get("outlet", "") for s in packet.get("sources", []))
+        known = set(name_words(support + " " + outlets))
         for name in re.findall(r"\b[A-Z][A-Za-z0-9]*(?:[-][A-Za-z0-9]+)+(?:\s+[A-Z][\w-]+)*|\b[A-Z][\w-]+\s+[A-Z][\w-]+", text):
-            if normalize(name) not in normalize(support) and normalize(name) not in normalize(outlets):
+            if any(w not in known and w not in TITLE_WORDS for w in name_words(name)):
                 reasons.append("unsupported_name")
         reported_mode = modality(text, dictionaries)[0]
         modes = {f.get("modality", "unknown") for f in refs}

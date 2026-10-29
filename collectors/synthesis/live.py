@@ -450,7 +450,7 @@ def main(argv=None):
     parser.add_argument("--day-to")
     args = parser.parse_args(argv)
     resources = Resources.load(RESOURCES / "topics_v3.json", RESOURCES / "dictionaries_v3.json",
-                               RESOURCES / "writer_prompt_v3.md")
+                               RESOURCES / "writer_prompt_v4.md")
     with connect() as conn:
         if args.stage.startswith("migration"):
             try:

@@ -236,6 +236,13 @@ class WriterTests(unittest.TestCase):
         kept = drop_unsupported_layers(o, p)
         self.assertEqual([x['text'] for x in kept['context']], ['Earlier award.'])
         self.assertEqual(kept['what_happened'], o['what_happened'])
+    def test_fact_id_in_text_is_caught(self):
+        o = output(); o['what_happened'] = [{'text': 'Aster Labs was awarded a radar contract [F1abc].', 'fact_ids': ['F1']}]
+        self.assertIn('fact_id_in_text', validate(o, packet(), resources().dictionaries)['codes'])
+    def test_title_case_headline_and_hyphen_names_pass(self):
+        p = packet(); p['facts'][0]['text'] = p['facts'][0]['quote'] = 'Aster Labs was awarded a PAC-3 radar contract.'
+        o = output(); o['headline'] = {'text': 'Aster Labs Wins PAC 3 Radar Contract', 'fact_ids': ['F1']}
+        self.assertNotIn('unsupported_name', validate(o, p, resources().dictionaries)['codes'])
     def test_missing_writer_blocks(self):self.assertFalse(validate({},packet(),resources().dictionaries)['ok'])
 
 
