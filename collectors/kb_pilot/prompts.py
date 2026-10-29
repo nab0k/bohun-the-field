@@ -10,18 +10,23 @@ GROUP_SYSTEM = """You prepare defence-industry news for analysis. You receive nu
    search terms (English, no generic words like "defence" or "contract"), the countries involved (ISO 3166
    alpha-2 codes: buyer, supplier, host) and the place of the event (city or country with latitude and
    longitude) for a map.
+3. Programme naming: known_programmes lists programmes we already keep a dossier for. If a group belongs to one of
+   them, give its name exactly as listed. Otherwise name the programme the way its owner calls it (e.g. "PAC-3 MSE",
+   "Galileo Second Generation"), not the headline.
+4. topic: the closest slug from topics, or "other".
 Use only the given text; do not add facts."""
 
 GROUP_SCHEMA = {
     "type": "object", "required": ["groups"],
     "properties": {"groups": {"type": "array", "items": {
-        "type": "object", "required": ["items", "programme", "organisations", "terms", "countries", "place"],
+        "type": "object", "required": ["items", "programme", "organisations", "terms", "countries", "topic", "place"],
         "properties": {
             "items": {"type": "array", "items": {"type": "integer"}},
             "programme": {"type": "string"},
             "organisations": {"type": "array", "items": {"type": "string"}},
             "terms": {"type": "array", "items": {"type": "string"}},
             "countries": {"type": "array", "items": {"type": "string"}},
+            "topic": {"type": "string"},
             "place": {"type": "object", "required": ["label", "lat", "lon"], "properties": {
                 "label": {"type": "string"}, "lat": {"type": "number"}, "lon": {"type": "number"}}}}}}}}
 

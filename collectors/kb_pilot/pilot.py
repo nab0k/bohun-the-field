@@ -4,7 +4,9 @@ Steps per DESIGN §8 v1.1: (1) group duplicates and get search keys (Gemini); (2
 (intelligence.items); (3) research with Google Search (Gemini, grounded); (4) code reads every cited page and
 checks dates and amounts, official HTML becomes Markdown with anchors; (5) writer on verified facts only;
 (6) code checks numbers and references, then the §6 rule: no chronology and no supply chain/doctrine → HOLD.
-Nothing is written to the database. The public log gets counts and cost only.
+v1.2 (DESIGN §12): verified rows are kept per programme (dossier, migration v16) and reused, so research asks
+only for what is new; each model step can go as one Batch request (−50%); spend is kept per step.
+Only the dossier tables are written. The public log gets counts and cost only.
 """
 import argparse
 from datetime import date, timedelta
@@ -15,6 +17,7 @@ import re
 import sys
 
 from . import PILOT_VERSION
+from .dossier import DbStore, KIND, MemoryStore, PREFIX, row_hash
 from .gemini import Gemini, Ledger
 from .pages import amount_forms, check_row, fetch_all, host, is_official, norm, sections
 from .prompts import (GROUP_SCHEMA, GROUP_SYSTEM, RESEARCH_SCHEMA, RESEARCH_SYSTEM, SECTIONS, STRUCTURE_SYSTEM,
@@ -29,6 +32,7 @@ MAX_URLS_PER_EVENT = 30
 MAX_FULL_MD = 200_000
 MIN_CHRONOLOGY = 3
 RESEARCH_THINKING = os.environ.get("KB_RESEARCH_THINKING", "low")
+TOPICS = ROOT.parent / "synthesis" / "resources" / "topics_v3.json"
 
 
 # --- input -------------------------------------------------------------------------------------
@@ -54,6 +58,22 @@ def load_events(cur, day_from, day_to):
                       "text": (ititle + "\n" + body)[:MAX_EVENT_CHARS]})
     items.sort(key=lambda x: (x["published"], x["item_id"]))
     return items
+
+
+def load_items(cur, day_from, day_to, min_body=300):
+    """All news items of the window with a captured body; no relevance or importance filter (D-…-COST)."""
+    end = (date.fromisoformat(day_to) + timedelta(days=1)).isoformat()
+    cur.execute("""SELECT i.id, i.title, i.url, i.published_at, i.raw_data FROM intelligence.items i
+                    WHERE i.published_at >= %s::date AND i.published_at < %s::date
+                      AND length(i.raw_data->'content_capture'->>'text') >= %s
+                 ORDER BY i.published_at, i.id""", (day_from, end, min_body))
+    out = []
+    for iid, title, url, published, raw in cur.fetchall():
+        body = raw["content_capture"]["text"]
+        out.append({"event_id": None, "type": None, "topic": None, "item_id": iid, "title": title, "url": url,
+                    "published": published.isoformat(), "outlet": (raw or {}).get("origin_title") or host(url or ""),
+                    "text": (title + "\n" + body)[:MAX_EVENT_CHARS]})
+    return out
 
 
 def confirmed_companies(cur, event_ids):
@@ -103,10 +123,11 @@ def valid_groups(answer, n):
     return groups
 
 
-def group_items(model, items):
+def group_items(model, items, known_programmes=(), topics=()):
     packet = {"items": [{"n": k + 1, "title": it["title"], "outlet": it["outlet"], "date": it["published"][:10],
-                         "text": it["text"][:700]} for k, it in enumerate(items)]}
-    answer, meta = model(GROUP_SYSTEM, packet, GROUP_SCHEMA, max_output=8000)
+                         "text": it["text"][:700]} for k, it in enumerate(items)],
+              "known_programmes": list(known_programmes), "topics": list(topics)}
+    answer, meta = model(GROUP_SYSTEM, packet, GROUP_SCHEMA, max_output=16000, step="grouping")
     groups = valid_groups(answer, len(items))
     if groups is None:
         groups = [{"items": [k + 1], "programme": it["title"], "organisations": [], "terms": [],
@@ -153,18 +174,37 @@ def real_url(url, pages):
     return (page or {}).get("final_url") or url
 
 
-def build_facts(event_items, research, pages, archive, doctrine, grounded_pages=None):
+def row_text(prefix, row):
+    if prefix == "T":
+        return ("%s (%s): %s Status: %s. %s" % (row.get("date"), row.get("precision"), row.get("what"),
+                                                row.get("commitment"), human_amount(row.get("amount"), row.get("currency")))).strip()
+    if prefix == "S":
+        return "%s depends on %s (%s): %s" % (row.get("upper"), row.get("lower"), row.get("level"), row.get("note"))
+    return "%s %s on %s. From %s to %s, status %s." % (row.get("issuer"), row.get("kind"), row.get("subject"),
+                                                      row.get("starts_on"), row.get("ends_on"), row.get("status"))
+
+
+def build_facts(event_items, research, pages, archive, doctrine, grounded_pages=None, dossier=()):
+    """Numbered facts for the writer; each keeps its source, verification status and anchor.
+
+    Dossier rows were verified on an earlier run and come first; a new row that repeats one is dropped.
+    """
     grounded_pages = grounded_pages or {}
-    """Numbered facts for the writer; each keeps its source, verification status and anchor."""
     facts, dropped = [], {}
 
-    def add(prefix, row, text, status, url=None, archive_id=None, anchor=None):
+    def add(prefix, row, text, status, url=None, archive_id=None, anchor=None, origin="new"):
         fid = "%s%d" % (prefix, 1 + sum(f["id"].startswith(prefix) for f in facts))
         facts.append({"id": fid, "kind": prefix, "text": text, "status": status, "source_url": url,
-                      "archive_id": archive_id, "anchor": anchor, "row": row})
+                      "archive_id": archive_id, "anchor": anchor, "row": row, "origin": origin})
 
     for it in event_items:
         add("N", None, it["text"], "news", url=it["url"])
+    known = set()
+    for e in dossier:
+        prefix = PREFIX[e["kind"]]
+        known.add(row_hash(e["kind"], e["row"], e["source_url"], e["archive_id"]))
+        add(prefix, e["row"], row_text(prefix, e["row"]), "ok", url=e["source_url"], archive_id=e["archive_id"],
+            anchor=e.get("anchor"), origin="dossier")
     ps = research.get("primary_source") or {}
     page = pages.get(ps.get("url"))
     if page and page.get("kind") == "html":
@@ -200,10 +240,14 @@ def build_facts(event_items, research, pages, archive, doctrine, grounded_pages=
         add("D", d, "%s, %s (%s): %s" % (d["jurisdiction"], d["title"], d["document_date"], d["direction"]),
             "ok" if d.get("verified") else "check", url=d.get("source_url"))
     for f in facts:
-        if f["source_url"] and f["kind"] in ("P", "T", "S", "R"):
+        if f["source_url"] and f["kind"] in ("P", "T", "S", "R") and f["origin"] == "new":
             f["source_url"] = real_url(f["source_url"], pages)
+    repeats = [f for f in facts if f["origin"] == "new" and f["kind"] in KIND and isinstance(f["row"], dict)
+               and row_hash(KIND[f["kind"]], f["row"], f["source_url"], f["archive_id"]) in known]
+    for f in repeats:
+        f["status"] = "dossier_repeat"
     for f in facts:
-        if f["status"] not in ("ok", "news"):
+        if f["status"] not in ("ok", "news", "dossier_repeat"):
             dropped[f["status"]] = dropped.get(f["status"], 0) + 1
     return facts, dropped
 
@@ -327,32 +371,51 @@ def documents(research, facts, pages, terms, out_dir):
 
 # --- run ---------------------------------------------------------------------------------------
 
-def research_event(model, cur, group, event_items, doctrine_records, schema_mode):
+def prepare(cur, group, event_items, doctrine_records, store):
+    """Everything the research step needs: archive hits, doctrine, the programme's dossier."""
     before = event_items[0]["published"]
     terms = [group.get("programme") or ""] + (group.get("organisations") or []) + (group.get("terms") or [])
     terms = [t.strip() for t in terms if t and t.strip()]
-    archive = archive_hits(cur, terms, before) if cur is not None else []
-    topic = event_items[0]["topic"]
-    doctrine = doctrine_for(topic, doctrine_records, group.get("countries"))
+    topic = event_items[0]["topic"] or group.get("topic")
+    programme = store.find(group.get("programme")) if store else None
+    dossier = store.load(programme["id"]) if programme else []
+    return {"items": event_items, "group": group, "terms": terms, "topic": topic, "programme": programme,
+            "dossier": dossier, "archive": archive_hits(cur, terms, before) if cur is not None else [],
+            "doctrine": doctrine_for(topic, doctrine_records, group.get("countries"))}
+
+
+def research_request(model, ev):
+    items, group, dossier = ev["items"], ev["group"], ev["dossier"]
+    chron = [e for e in dossier if e["kind"] == "chronology"]
+    last = max((e["row"].get("date") or "" for e in chron), default="")
+    has_chain = any(e["kind"] != "chronology" for e in dossier)
     packet = {"news": [{"title": it["title"], "outlet": it["outlet"], "date": it["published"][:10], "text": it["text"]}
-                       for it in event_items],
-              "programme_hint": group.get("programme"), "topic": topic,
+                       for it in items],
+              "programme_hint": group.get("programme"), "topic": ev["topic"],
               "our_archive": [{"archive_id": a["archive_id"], "date": a["date"], "title": a["title"],
-                               "url": a["url"], "text": a["text"][:600]} for a in archive],
+                               "url": a["url"], "text": a["text"][:600]} for a in ev["archive"]],
               "doctrine_known": [{"title": d["title"], "jurisdiction": d["jurisdiction"], "date": d["document_date"]}
-                                 for d in doctrine]}
-    task = ("Search the web with Google Search. Event: %s (%s). Research the announcement itself, the history of %s, "
-            "and the supply chain of the product, then write the research note."
-            % (event_items[0]["title"], event_items[0]["published"][:10], group.get("programme") or "the programme"))
-    note, meta = model(RESEARCH_SYSTEM, packet, RESEARCH_SCHEMA, grounded=True, max_output=10000,
-                       schema_mode="plain", thinking=RESEARCH_THINKING, task=task)
-    sources = [{"n": k + 1, "uri": c.get("uri"), "title": c.get("title")} for k, c in enumerate(meta["grounding_chunks"])]
-    structured, smeta = model(STRUCTURE_SYSTEM, {"note": mark_sources(note, meta["supports"]), "sources": sources,
-                                                 "archive_ids": [a["archive_id"] for a in archive]},
-                              RESEARCH_SCHEMA, max_output=8000)
-    meta["cost_micro_usd"] += smeta["cost_micro_usd"]
-    meta["note_chars"] = len(note)
-    return structured, meta, archive, doctrine, terms
+                                 for d in ev["doctrine"]],
+              "dossier_known": [{"date": e["row"].get("date"), "what": e["row"].get("what") or e["row"].get("lower")}
+                                for e in dossier]}
+    head = "Search the web with Google Search. Event: %s (%s). " % (items[0]["title"], items[0]["published"][:10])
+    if len(chron) >= MIN_CHRONOLOGY:
+        task = head + ("Our dossier already holds %d verified steps of %s up to %s (dossier_known): do not repeat them. "
+                       "Research the announcement itself and only steps after %s%s, then write the research note."
+                       % (len(chron), group.get("programme") or "the programme", last, last,
+                          "" if has_chain else ", and the supply chain of the product"))
+    else:
+        task = head + ("Research the announcement itself, the history of %s, and the supply chain of the product, "
+                       "then write the research note." % (group.get("programme") or "the programme"))
+    return model.request(RESEARCH_SYSTEM, packet, RESEARCH_SCHEMA, grounded=True, max_output=10000,
+                         schema_mode="plain", thinking=RESEARCH_THINKING, task=task, step="research")
+
+
+def structure_request(model, ev, note, info):
+    sources = [{"n": k + 1, "uri": c.get("uri"), "title": c.get("title")} for k, c in enumerate(info["grounding_chunks"])]
+    return model.request(STRUCTURE_SYSTEM, {"note": mark_sources(note, info["supports"]), "sources": sources,
+                                            "archive_ids": [a["archive_id"] for a in ev["archive"]]},
+                         RESEARCH_SCHEMA, max_output=8000, step="structure")
 
 
 def mark_sources(note, supports):
@@ -373,49 +436,100 @@ def cited_urls(research):
     return [u for u in urls if u][:MAX_URLS_PER_EVENT]
 
 
-def run(cur, model, items, companies_by_event, doctrine_records, out_dir, schema_mode="schema", fetcher=fetch_all):
+def topic_slugs():
+    try:
+        return [t["slug"] for t in json.loads(TOPICS.read_text(encoding="utf-8"))["topics"]]
+    except OSError:
+        return []
+
+
+def run(cur, model, items, companies_by_event, doctrine_records, out_dir, fetcher=fetch_all, store=None,
+        run_ref=None, save=None):
+    """Phases over all events: grouping → research → structure → pages and facts → writer → checks → dossier.
+
+    Each model phase is one call per event, or one Batch request for all events when the model is in batch mode.
+    save(ev, record, facts, cards) commits the event's verified rows to the dossier.
+    """
     if not items:
         return {"version": PILOT_VERSION, "items": 0, "groups": 0, "events": [], "stop": "NO_EVENTS_IN_WINDOW"}
-    groups, gmeta = group_items(model, items)
+    store = store if store is not None else MemoryStore()
+    groups, gmeta = group_items(model, items, store.known_names(), topic_slugs())
     result = {"version": PILOT_VERSION, "model": MODEL, "price_version": PRICE_VERSION, "items": len(items),
               "groups": len(groups), "grouping": {"cost_micro_usd": gmeta["cost_micro_usd"],
                                                   "fallback": gmeta.get("fallback")}, "events": []}
+    evs = []
     for g in groups:
         ev_items = [items[n - 1] for n in g["items"]]
-        record = {"titles": [it["title"] for it in ev_items], "item_ids": [it["item_id"] for it in ev_items],
-                  "old_event_ids": [it["event_id"] for it in ev_items], "topic": ev_items[0]["topic"],
-                  "type": ev_items[0]["type"], "date": ev_items[0]["published"][:10], "place": g.get("place"),
-                  "programme": g.get("programme"), "countries": g.get("countries"), "news": [{"title": it["title"], "url": it["url"], "outlet": it["outlet"],
-                                                             "date": it["published"][:10]} for it in ev_items]}
-        result["events"].append(record)
-        try:
-            research, rmeta, archive, doctrine, terms = research_event(model, cur, g, ev_items, doctrine_records,
-                                                                       schema_mode)
-            grounded = [c["uri"] for c in rmeta["grounding_chunks"] if c.get("uri")][:15]
-            pages = fetcher(cited_urls(research) + grounded)
-            facts, dropped = build_facts(ev_items, research, pages, archive, doctrine,
-                                         {u: pages.get(u) for u in grounded})
-            cards = documents(research, facts, pages, terms, out_dir)
-            output, wmeta = model(WRITER_SYSTEM, writer_packet(ev_items, facts), WRITER_SCHEMA, max_output=6000)
-            strip_refs(output)
-            codes, sentences = check_text(output, facts)
-            decision, reasons, analysis = admit(facts, output, codes)
-        except BudgetStop as stop:  # the run stops here; finished events are kept for review
-            record["outcome"] = "stopped"
-            result["stop"] = str(stop)
-            break
-        except Exception as exc:  # one event fails alone; the run goes on
-            record.update(outcome="error", error=type(exc).__name__ + ":" + str(exc)[:120])
-            continue
-        record.update(outcome=decision, reasons=reasons, analysis=analysis, parent=research.get("parent"),
-                      primary_source=research.get("primary_source"), archive_hits=len(archive),
-                      search_queries=rmeta["search_queries"], grounding_chunks=rmeta["grounding_chunks"][:30],
-                      tool_tokens=rmeta.get("tool_tokens"), grounding_keys=rmeta.get("grounding_keys"),
-                      cost_micro_usd=rmeta["cost_micro_usd"] + wmeta["cost_micro_usd"], sentences=sentences,
-                      facts=[{k: f[k] for k in ("id", "kind", "text", "status", "source_url", "archive_id", "anchor",
-                                                "document_id")} for f in facts],
-                      dropped=dropped, documents=cards, synthesis=output,
-                      companies_confirmed=[c for e in record["old_event_ids"] for c in companies_by_event.get(e, [])])
+        ev = prepare(cur, g, ev_items, doctrine_records, store)
+        ev["record"] = {"titles": [it["title"] for it in ev_items], "item_ids": [it["item_id"] for it in ev_items],
+                        "old_event_ids": [it["event_id"] for it in ev_items if it["event_id"]], "topic": ev["topic"],
+                        "type": ev_items[0]["type"], "date": ev_items[0]["published"][:10], "place": g.get("place"),
+                        "programme": g.get("programme"), "countries": g.get("countries"),
+                        "dossier_rows_before": len(ev["dossier"]), "known_programme": bool(ev["programme"]),
+                        "news": [{"title": it["title"], "url": it["url"], "outlet": it["outlet"],
+                                  "date": it["published"][:10]} for it in ev_items]}
+        result["events"].append(ev["record"])
+        evs.append(ev)
+
+    def fail(ev, exc):
+        ev["record"].update(outcome="error", error=type(exc).__name__ + ":" + str(exc)[:120])
+
+    def phase(live, make, apply):
+        answers = model.many([make(ev) for ev in live])
+        nxt = []
+        for ev, a in zip(live, answers):
+            if a[0] == "error":
+                fail(ev, a[1]); continue
+            try:
+                apply(ev, a[1], a[2]); nxt.append(ev)
+            except Exception as exc:
+                fail(ev, exc)
+        return nxt
+
+    try:
+        live = phase(evs, lambda ev: research_request(model, ev),
+                     lambda ev, note, info: ev.update(note=note, rinfo=info))
+        live = phase(live, lambda ev: structure_request(model, ev, ev["note"], ev["rinfo"]),
+                     lambda ev, research, info: ev.update(research=research, sinfo=info))
+        for ev in list(live):
+            try:
+                research, rinfo = ev["research"], ev["rinfo"]
+                grounded = [c["uri"] for c in rinfo["grounding_chunks"] if c.get("uri")][:15]
+                pages = fetcher(cited_urls(research) + grounded)
+                facts, dropped = build_facts(ev["items"], research, pages, ev["archive"], ev["doctrine"],
+                                             {u: pages.get(u) for u in grounded}, ev["dossier"])
+                ev.update(facts=facts, dropped=dropped, cards=documents(research, facts, pages, ev["terms"], out_dir))
+            except Exception as exc:
+                fail(ev, exc); live.remove(ev)
+        live = phase(live, lambda ev: model.request(WRITER_SYSTEM, writer_packet(ev["items"], ev["facts"]),
+                                                    WRITER_SCHEMA, max_output=6000, step="writer"),
+                     lambda ev, output, info: ev.update(output=output, winfo=info))
+    except BudgetStop as stop:  # finished events are kept; unfinished ones are marked
+        result["stop"] = str(stop)
+        live = [ev for ev in evs if "output" in ev]
+        for ev in evs:
+            if "output" not in ev and not ev["record"].get("outcome"):
+                ev["record"]["outcome"] = "stopped"
+    for ev in live:
+        output, facts, rinfo = ev["output"], ev["facts"], ev["rinfo"]
+        strip_refs(output)
+        codes, sentences = check_text(output, facts)
+        decision, reasons, analysis = admit(facts, output, codes)
+        rec = ev["record"]
+        rec.update(outcome=decision, reasons=reasons, analysis=analysis, parent=ev["research"].get("parent"),
+                   primary_source=ev["research"].get("primary_source"), archive_hits=len(ev["archive"]),
+                   search_queries=rinfo["search_queries"], grounding_chunks=rinfo["grounding_chunks"][:30],
+                   cost_micro_usd=rinfo["cost_micro_usd"] + ev["sinfo"]["cost_micro_usd"] + ev["winfo"]["cost_micro_usd"],
+                   sentences=sentences, dropped=ev["dropped"], documents=ev["cards"], synthesis=output,
+                   facts=[{k: f.get(k) for k in ("id", "kind", "text", "status", "source_url", "archive_id", "anchor",
+                                                 "document_id", "origin")} for f in facts],
+                   companies_confirmed=[c for e in rec["old_event_ids"] for c in companies_by_event.get(e, [])])
+        if save:
+            try:
+                rec["dossier"] = save(ev, rec, facts, ev["cards"])
+            except Exception as exc:  # the synthesis stays; only the dossier write of this event failed
+                rec["dossier"] = {"error": type(exc).__name__ + ":" + str(exc)[:160]}
+    result["batches"] = getattr(model, "batches", [])
     return result
 
 
@@ -426,13 +540,19 @@ def summary(result, ledger):
         outcomes[e.get("outcome")] = outcomes.get(e.get("outcome"), 0) + 1
         for r in e.get("reasons") or []:
             reasons[r] = reasons.get(r, 0) + 1
+    facts = [f for e in result["events"] for f in e.get("facts") or []]
     return {"version": result["version"], "items": result["items"], "groups": result["groups"],
             "outcomes": outcomes, "reasons": reasons, "spent_micro_usd": ledger.spent, "model_calls": ledger.calls,
-            "search_queries": ledger.search_queries,
+            "spent_by_step": ledger.steps, "search_queries": ledger.search_queries,
+            "batches": [{k: b.get(k) for k in ("step", "requests", "state", "waited_seconds", "estimated")}
+                        for b in result.get("batches") or []],
+            "known_programmes": sum(1 for e in result["events"] if e.get("known_programme")),
+            "chronology_from_dossier": sum(1 for f in facts if f["kind"] == "T" and f.get("origin") == "dossier"),
+            "chronology_new_ok": sum(1 for f in facts if f["kind"] == "T" and f.get("origin") == "new" and f["status"] == "ok"),
+            "dossier_rows_added": sum((e.get("dossier") or {}).get("added", 0) for e in result["events"]),
+            "dossier_errors": sum(1 for e in result["events"] if (e.get("dossier") or {}).get("error")),
             "documents_markdown": sum(1 for e in result["events"] for d in e.get("documents") or [] if d["storage"] == "markdown"),
             "documents_total": sum(len(e.get("documents") or []) for e in result["events"]),
-            "chronology_rows_ok": sum(1 for e in result["events"] for f in e.get("facts") or []
-                                      if f["kind"] == "T" and f["status"] == "ok"),
             "stop": result.get("stop")}
 
 
@@ -442,26 +562,49 @@ def main(argv=None):
     parser.add_argument("--day-from", required=True)
     parser.add_argument("--day-to", required=True)
     parser.add_argument("--limit", type=int, default=0, help="first N items only (0 = all)")
-    parser.add_argument("--schema-mode", choices=["schema", "text"], default="schema")
+    parser.add_argument("--source", choices=["events", "items"], default="events",
+                        help="events = items that reached the old writer; items = every item with a body")
+    parser.add_argument("--batch", action="store_true", help="each model phase as one Batch request (-50%%)")
+    parser.add_argument("--no-dossier-write", action="store_true")
+    parser.add_argument("--run-ref", default=os.environ.get("GITHUB_RUN_ID"))
+    parser.add_argument("--schema-mode", choices=["schema", "text"], default="text")  # kept for the workflow input
     parser.add_argument("--out", required=True)
     args = parser.parse_args(argv)
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     doctrine_records = json.loads(DOCTRINE.read_text(encoding="utf-8"))["records"]
     ledger = Ledger()
-    model = Gemini(os.environ.get("GEMINI_API_KEY"), ledger)
+    model = Gemini(os.environ.get("GEMINI_API_KEY"), ledger, batch=args.batch)
     with connect() as conn:
         with conn.cursor() as cur:
-            items = load_events(cur, args.day_from, args.day_to)
+            items = (load_events if args.source == "events" else load_items)(cur, args.day_from, args.day_to)
             if args.limit:
                 items = items[:args.limit]
-            by_event = {it["event_id"]: confirmed_companies(cur, [it["event_id"]]) for it in items}
+            by_event = {it["event_id"]: confirmed_companies(cur, [it["event_id"]]) for it in items if it["event_id"]}
+            conn.commit()
+            store = DbStore(cur)
+
+            def save(ev, rec, facts, cards):
+                if args.no_dossier_write or not ev["group"].get("programme"):
+                    return {"added": 0, "skipped": True}
+                try:
+                    out = store.save(ev["group"]["programme"], [ev["group"]["programme"]], ev["topic"],
+                                     (ev["research"].get("parent") or {}).get("summary"), facts, cards,
+                                     args.run_ref, PILOT_VERSION)
+                    conn.commit()
+                    return out
+                except Exception:
+                    conn.rollback()
+                    raise
+
             try:
-                result = run(cur, model, items, by_event, doctrine_records, out_dir, args.schema_mode)
+                result = run(cur, model, items, by_event, doctrine_records, out_dir, store=store,
+                             run_ref=args.run_ref, save=save)
             except BudgetStop as stop:
+                conn.rollback()
                 result = {"version": PILOT_VERSION, "items": len(items), "groups": 0, "events": [], "stop": str(stop)}
-            conn.rollback()  # read-only: nothing to keep
     result["spent_micro_usd"], result["search_queries"] = ledger.spent, ledger.search_queries
+    result["spent_by_step"] = ledger.steps
     (out_dir / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
     print("KB_PILOT_RESULT " + canonical(summary(result, ledger)))
     return 1 if result.get("stop") else 0
