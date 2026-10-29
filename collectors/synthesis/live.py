@@ -24,8 +24,9 @@ LIVE_VERSION = PIPELINE_VERSION.replace("offline", "live")
 
 MODEL = "gemini-3.5-flash-lite"
 PRICE_VERSION = "gemini35fl-standard-input26-v1"
-MAX_OUTPUT_TOKENS = 4000  # answer plus low thinking; a cut answer is billed and held
-CAP_MICRO_USD = 1_000_000
+MAX_OUTPUT_TOKENS = 8000  # answer plus medium thinking; a cut answer is billed and held
+CAP_MICRO_USD = 600_000  # tuning loop: what is left of its $1 (D-20261029-A07-TUNING-LOOP)
+THINKING_LEVEL = "medium"  # low copied long source runs; medium follows the writer rules better
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent"
 
 
@@ -99,7 +100,7 @@ class GeminiWriter:
                 "generationConfig": {"temperature": req["temperature"], "maxOutputTokens": MAX_OUTPUT_TOKENS,
                                      "candidateCount": 1, "responseMimeType": "application/json",
                                      "responseJsonSchema": response_schema(req["schema"]),
-                                     "thinkingConfig": {"thinkingLevel": "low"}}}
+                                     "thinkingConfig": {"thinkingLevel": THINKING_LEVEL}}}
 
     def __call__(self, req):
         body = self.body(req)
