@@ -7,19 +7,21 @@ GROUP_SYSTEM = """You prepare defence-industry news for analysis. You receive nu
 1. Group items that report the same real-world event (same programme, same parties, same decision), even if they
    come from different outlets or languages. Every item number appears in exactly one group.
 2. For each group give search keys: the programme or product name, the main organisations, 3-6 distinctive
-   search terms (English, no generic words like "defence" or "contract"), and the place of the event
-   (city or country with latitude and longitude) for a map.
+   search terms (English, no generic words like "defence" or "contract"), the countries involved (ISO 3166
+   alpha-2 codes: buyer, supplier, host) and the place of the event (city or country with latitude and
+   longitude) for a map.
 Use only the given text; do not add facts."""
 
 GROUP_SCHEMA = {
     "type": "object", "required": ["groups"],
     "properties": {"groups": {"type": "array", "items": {
-        "type": "object", "required": ["items", "programme", "organisations", "terms", "place"],
+        "type": "object", "required": ["items", "programme", "organisations", "terms", "countries", "place"],
         "properties": {
             "items": {"type": "array", "items": {"type": "integer"}},
             "programme": {"type": "string"},
             "organisations": {"type": "array", "items": {"type": "string"}},
             "terms": {"type": "array", "items": {"type": "string"}},
+            "countries": {"type": "array", "items": {"type": "string"}},
             "place": {"type": "object", "required": ["label", "lat", "lon"], "properties": {
                 "label": {"type": "string"}, "lat": {"type": "number"}, "lon": {"type": "number"}}}}}}}}
 
@@ -27,7 +29,9 @@ RESEARCH_SYSTEM = """You are the research desk of a defence-industry analysis se
 readers). For one news event you build the background an analyst needs, as in this standard: an event is placed in
 its programme, its topic chronology with the status of money, the policy behind it, and the supply chain under it.
 
-Use Google Search. Prefer primary sources: governments, parliaments, the EU, NATO, procurement and export notices
+You MUST run Google Search queries before answering (several: the event, the programme history, the supply chain);
+do not answer from memory. Cite the specific article or document page found by search, never a home page or a
+news listing. Prefer primary sources: governments, parliaments, the EU, NATO, procurement and export notices
 (DSCA, TED, SAM.gov), company press releases. Use media only when no primary source exists.
 You also receive items from our own news archive: use them where relevant and cite them by archive id.
 

@@ -148,7 +148,7 @@ class LedgerTest(unittest.TestCase):
 class RouteTest(unittest.TestCase):
     def run_pilot(self, writer=WRITER, research=RESEARCH):
         groups = {"groups": [{"items": [1, 2], "programme": "PAC-3", "organisations": ["Lockheed Martin"],
-                              "terms": ["PAC-3", "Wisla"], "place": {"label": "Poland", "lat": 52.2, "lon": 21.0}}]}
+                              "terms": ["PAC-3", "Wisla"], "countries": ["US", "PL"], "place": {"label": "Poland", "lat": 52.2, "lon": 21.0}}]}
         t = Scripted([reply(groups), reply(research, queries=4, tool=5000), reply(writer)])
         model = Gemini("k", Ledger(), t)
         with tempfile.TemporaryDirectory() as d:
@@ -211,3 +211,11 @@ class RouteTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DoctrineTest(unittest.TestCase):
+    def test_doctrine_needs_topic_and_country(self):
+        recs = [{"jurisdiction": "US", "topics": ["naval-shipbuilding"]}, {"jurisdiction": "GB", "topics": ["naval-shipbuilding"]},
+                {"jurisdiction": "EU", "topics": ["naval-shipbuilding"]}]
+        self.assertEqual([r["jurisdiction"] for r in pilot.doctrine_for("naval-shipbuilding", recs, ["ES", "SA"])], ["EU"])
+        self.assertEqual(pilot.doctrine_for("naval-shipbuilding", recs, ["SA"]), [])
