@@ -147,6 +147,12 @@ def rescue(row, status, url, grounded_pages):
     return status, url, None
 
 
+def real_url(url, pages):
+    """Search sources are Google redirect links; keep the address the redirect led to."""
+    page = pages.get(url) if url else None
+    return (page or {}).get("final_url") or url
+
+
 def build_facts(event_items, research, pages, archive, doctrine, grounded_pages=None):
     grounded_pages = grounded_pages or {}
     """Numbered facts for the writer; each keeps its source, verification status and anchor."""
@@ -193,6 +199,9 @@ def build_facts(event_items, research, pages, archive, doctrine, grounded_pages=
     for d in doctrine:
         add("D", d, "%s, %s (%s): %s" % (d["jurisdiction"], d["title"], d["document_date"], d["direction"]),
             "ok" if d.get("verified") else "check", url=d.get("source_url"))
+    for f in facts:
+        if f["source_url"] and f["kind"] in ("P", "T", "S", "R"):
+            f["source_url"] = real_url(f["source_url"], pages)
     for f in facts:
         if f["status"] not in ("ok", "news"):
             dropped[f["status"]] = dropped.get(f["status"], 0) + 1
@@ -274,11 +283,13 @@ def admit(facts, output, codes):
 def documents(research, facts, pages, terms, out_dir):
     """Cards for every cited source; official HTML → Markdown full text and anchored fragments."""
     urls = {}
+    final = {(p or {}).get("final_url"): p for p in pages.values() if p and p.get("final_url")}
+    pages = {**pages, **final}
     for d in research.get("documents") or []:
-        urls[d.get("url")] = {"title": d.get("title"), "doc_type": d.get("doc_type"), "issuer": d.get("issuer"),
+        urls[real_url(d.get("url"), pages)] = {"title": d.get("title"), "doc_type": d.get("doc_type"), "issuer": d.get("issuer"),
                               "date": d.get("date")}
     ps = research.get("primary_source") or {}
-    urls.setdefault(ps.get("url"), {"title": ps.get("title"), "doc_type": "primary_source",
+    urls.setdefault(real_url(ps.get("url"), pages), {"title": ps.get("title"), "doc_type": "primary_source",
                                     "issuer": ps.get("publisher"), "date": ps.get("date")})
     for f in facts:
         if f["source_url"] and f["kind"] in ("T", "S", "R", "D"):
