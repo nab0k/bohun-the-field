@@ -37,7 +37,7 @@ on:
       mode:
         description: pilot = the run; probe = one neutral grounded question, structure only
         type: choice
-        options: [pilot, probe]
+        options: [pilot, probe, probe-cloudflare]
         default: pilot
       research_thinking:
         description: Thinking level of the research (search) step
