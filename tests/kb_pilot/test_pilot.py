@@ -489,3 +489,23 @@ class RouterTest(unittest.TestCase):
                   for i in range(1, 140)]
         packet = pilot.short_writer_packet([ITEMS[0]], facts, {"context": [{"text": "x", "refs": ["T1"]}]})
         self.assertLessEqual(len(packet["facts"]), pilot.MAX_WRITER_FACTS)
+
+
+class EmbedTest(unittest.TestCase):
+    def test_origin_prefers_earliest_same_text_then_near_duplicate(self):
+        from collectors.kb_pilot.embed import origin_of
+        from datetime import datetime
+        it = {"item_id": 5, "text_sha256": "a", "published": datetime(2026, 10, 28)}
+        nb = [{"item_id": 3, "text_sha256": "b", "origin_item_id": None, "published": datetime(2026, 10, 27), "distance": 0.03},
+              {"item_id": 2, "text_sha256": "a", "origin_item_id": None, "published": datetime(2026, 10, 27), "distance": 0.0}]
+        self.assertEqual(origin_of(it, nb), (2, "same_text"))
+        self.assertEqual(origin_of(it, nb[:1]), (3, "near_duplicate"))
+        far = [dict(nb[0], distance=0.3)]
+        self.assertEqual(origin_of(it, far), (5, "self"))
+
+    def test_embed_response_shape_is_checked(self):
+        from collectors.kb_pilot.embed import embed_texts
+        ok = lambda req: {"result": {"shape": [1, 1024], "data": [[0.0] * 1024]}}
+        self.assertEqual(len(embed_texts(["x"], "a", "t", ok)[0]), 1024)
+        with self.assertRaises(RuntimeError):
+            embed_texts(["x", "y"], "a", "t", ok)

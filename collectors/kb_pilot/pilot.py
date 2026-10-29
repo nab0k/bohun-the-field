@@ -101,6 +101,22 @@ def archive_hits(cur, terms, before, limit=15):
             for i, t, u, p, b in cur.fetchall()]
 
 
+def archive_search(cur, terms, before, item_ids):
+    """Meaning first (embeddings, one item per origin), then keywords; v2 step 1."""
+    if cur is None:
+        return []
+    hits = []
+    try:
+        from .embed import similar_items
+        hits = similar_items(cur, item_ids, before)
+    except Exception:  # no embeddings yet for these items, or the extension is absent: keywords only
+        if hasattr(cur, "connection"):
+            cur.connection.rollback()
+    seen = {h["archive_id"] for h in hits}
+    hits += [h for h in archive_hits(cur, terms, before) if h["archive_id"] not in seen]
+    return hits[:20]
+
+
 EU = {"AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IE", "IT", "LV", "LT", "LU",
       "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE"}
 NATO = (EU - {"AT", "CY", "IE", "MT"}) | {"US", "CA", "GB", "NO", "IS", "TR", "AL", "ME", "MK"}
@@ -485,7 +501,7 @@ def prepare(cur, group, event_items, doctrine_records, store):
     programme = store.find(group.get("programme")) if store else None
     dossier = store.load(programme["id"]) if programme else []
     return {"items": event_items, "group": group, "terms": terms, "topic": topic, "programme": programme,
-            "dossier": dossier, "archive": archive_hits(cur, terms, before) if cur is not None else [],
+            "dossier": dossier, "archive": archive_search(cur, terms, before, [it["item_id"] for it in event_items]),
             "doctrine": doctrine_for(topic, doctrine_records, group.get("countries"))}
 
 
