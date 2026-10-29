@@ -176,7 +176,7 @@ class NormalizerTests(NoNetworkTest):
         self.assertEqual(result["raw_data"]["content_capture"]["provider_field"], "summary.content")
         self.assertEqual(result["external_id"], "item-1")
 
-    def run_main(self, records_by_folder, *, dry_run=True, budget=None):
+    def run_main(self, records_by_folder, *, dry_run=True):
         subscriptions = [{"categories": [{"label": folder}]} for folder in records_by_folder]
         stdout, stored = io.StringIO(), []
 
@@ -190,8 +190,6 @@ class NormalizerTests(NoNetworkTest):
             stack.enter_context(patch.object(sync, "api", return_value={"subscriptions": subscriptions}))
             stack.enter_context(patch.object(sync, "stream_items", side_effect=lambda folder, *_: iter(records_by_folder[folder])))
             writer = stack.enter_context(patch.object(sync, "import_items", side_effect=fake_import))
-            if budget is not None:
-                stack.enter_context(patch.object(sync, "CaptureBudget", return_value=budget))
             stack.enter_context(contextlib.redirect_stdout(stdout))
             sync.main()
         return stdout.getvalue(), stored, writer
@@ -206,37 +204,21 @@ class NormalizerTests(NoNetworkTest):
 
     def test_duplicates_across_folders_keep_first_origin_and_do_not_consume_budget_twice(self):
         item = source_item()
-        budget = content.CaptureBudget()
         output, stored, writer = self.run_main({"BOHUN_A": [item], "BOHUN_B": [item]},
-                                               dry_run=False, budget=budget)
+                                               dry_run=False)
         writer.assert_called_once()
         self.assertEqual(len(stored), 1)
         self.assertEqual(stored[0]["raw_data"]["folder"], "BOHUN_A")
-        self.assertEqual(budget.bytes_used, content.capture_size(stored[0]["raw_data"]["content_capture"]))
         self.assertIn("VALIDATED unique_items=1", output)
 
-    def test_global_budget_applies_to_the_batch_received_by_mock_writer(self):
-        raw = source_item(html="<p>" + "x" * 1000 + "</p>")
-        budget = content.CaptureBudget(content.capture_size(capture(raw)) + 600)
-        _, stored, _ = self.run_main({"BOHUN_MEDIA": [raw, source_item("item-2", raw["summary"]["content"])]},
-                                      dry_run=False, budget=budget)
-        captures = [item["raw_data"]["content_capture"] for item in stored]
-        self.assertEqual({c["status"] for c in captures},
-                         {"BODY_PRESENT_COMPLETENESS_UNVERIFIED", "CAPTURE_BUDGET_EXHAUSTED"})
-        self.assertLessEqual(sum(content.capture_size(c) for c in captures), budget.limit)
-
-    def test_budget_failure_stops_before_any_database_write(self):
-        with (patch.object(sys, "argv", ["sync.py"]),
-              patch.object(sync, "access_token", return_value="FAKE_TOKEN"),
-              patch.object(sync, "api", return_value={"subscriptions": []}),
-              patch.object(sync, "folders_from_subscriptions", return_value=(["BOHUN_MEDIA"], 1)),
-              patch.object(sync, "stream_items", return_value=iter([source_item()])),
-              patch.object(sync, "CaptureBudget", return_value=content.CaptureBudget(1)),
-              patch.object(sync, "import_items") as writer,
-              contextlib.redirect_stdout(io.StringIO())):
-            with self.assertRaisesRegex(RuntimeError, "CAPTURE_METADATA_BUDGET_EXHAUSTED"):
-                sync.main()
-            writer.assert_not_called()
+    def test_cli_retains_all_received_bodies_without_whole_run_eviction(self):
+        html = "<!--" + "x" * 750000 + "--><p>" + "text " * 130 + "</p>"
+        records = [source_item(str(i), html) for i in range(12)]
+        output, stored, writer = self.run_main({"BOHUN_MEDIA": records}, dry_run=False)
+        self.assertGreater(writer.call_count, 1)
+        self.assertEqual(len(stored), 12)
+        self.assertTrue(all(x["raw_data"]["content_capture"]["raw_html"] == html for x in stored))
+        self.assertNotIn("CAPTURE_BUDGET_EXHAUSTED", output)
 
 
 if __name__ == "__main__":
