@@ -82,6 +82,17 @@ jobs:
         run: |
           python -m venv "$RUNNER_TEMP/bohun-kb"
           "$RUNNER_TEMP/bohun-kb/bin/python" -m pip install --only-binary=:all: --disable-pip-version-check 'psycopg[binary]==3.3.6'
+      - name: Spare embedding model (bge-m3 on CPU, embed mode only)
+        if: inputs.mode == 'embed'
+        run: |
+          "$RUNNER_TEMP/bohun-kb/bin/python" -m pip install --disable-pip-version-check --index-url https://download.pytorch.org/whl/cpu 'torch==2.6.0'
+          "$RUNNER_TEMP/bohun-kb/bin/python" -m pip install --disable-pip-version-check 'sentence-transformers==3.4.1'
+      - name: Cache the spare embedding model
+        if: inputs.mode == 'embed'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-bge-m3-v1
       - name: Run the pilot (writes only the dossier tables; cap $2 per run)
         env:
           DAY_FROM: ${{ inputs.day_from }}
