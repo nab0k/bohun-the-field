@@ -261,3 +261,10 @@ class RobustnessTest(unittest.TestCase):
         body = Gemini("k", Ledger(), None).body("s", {"p": 1}, {"type": "object"}, True, 100, "text", "medium", "Search now")
         self.assertEqual(body["contents"][0]["parts"][0]["text"], "Search now")
         self.assertEqual(body["generationConfig"]["thinkingConfig"]["thinkingLevel"], "medium")
+
+
+class RedirectTest(unittest.TestCase):
+    def test_redirect_is_replaced_by_final_url(self):
+        pages = {"https://vertexaisearch.cloud.google.com/r/1": {"final_url": "https://real.example/a"}}
+        self.assertEqual(pilot.real_url("https://vertexaisearch.cloud.google.com/r/1", pages), "https://real.example/a")
+        self.assertEqual(pilot.real_url("https://x.example", pages), "https://x.example")
