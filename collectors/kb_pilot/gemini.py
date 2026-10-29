@@ -107,5 +107,8 @@ class Gemini:
         text = "".join(p.get("text", "") for p in parts if not p.get("thought"))
         chunks = [{"uri": (c.get("web") or {}).get("uri"), "title": (c.get("web") or {}).get("title")}
                   for c in grounding.get("groundingChunks") or []]
+        usage = reply.get("usageMetadata") or {}
         return parse_json_text(text), {"cost_micro_usd": cost, "search_queries": len(queries),
+                                       "tool_tokens": usage.get("toolUsePromptTokenCount", 0),
+                                       "grounding_keys": sorted(grounding),
                                        "grounding_chunks": chunks}

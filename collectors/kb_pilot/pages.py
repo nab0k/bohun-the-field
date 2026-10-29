@@ -147,8 +147,21 @@ def amount_forms(amount):
     return [f for f in forms if f and f != "0"]
 
 
-def check_row(row, text):
-    """ok / date_absent / amount_absent against the text of the row's own source."""
+STOP = {"which", "their", "about", "after", "under", "first", "second", "third", "between", "against", "would",
+        "could", "being", "other", "there", "these", "those", "within", "through", "following", "announced", "signed",
+        "contract", "agreement", "programme", "program", "defence", "defense", "million", "billion", "ministry"}
+
+
+def content_words(text):
+    return {w for w in re.findall(r"[a-z][a-z0-9\-]{4,}", norm(text)) if w not in STOP}
+
+
+def check_row(row, text, min_share=0.4):
+    """ok / date_absent / amount_absent / claim_absent against the text of the row's own source.
+
+    The year and the amount must be on the page, and at least min_share of the distinctive words of the
+    claim: a year alone on a long page does not confirm a step.
+    """
     t = norm(text)
     if not t:
         return "source_unread"
@@ -158,4 +171,7 @@ def check_row(row, text):
     forms = amount_forms(row.get("amount"))
     if forms and not any(f.lower() in t for f in forms):
         return "amount_absent"
+    words = content_words(row.get("what") or "")
+    if words and len([w for w in words if w in t]) < min_share * len(words):
+        return "claim_absent"
     return "ok"

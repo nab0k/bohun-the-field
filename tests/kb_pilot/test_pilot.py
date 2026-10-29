@@ -36,11 +36,11 @@ RESEARCH = {
                        "date": "2026-10-27"},
     "parent": {"name": "PAC-3 MSE ramp-up", "summary": "US triples output."},
     "timeline": [
-        {"date": "2026-07-29", "precision": "day", "what": "Multiyear award.", "commitment": "ceiling",
+        {"date": "2026-07-29", "precision": "day", "what": "Multiyear award for PAC-3 MSE.", "commitment": "ceiling",
          "amount": 58620000000, "currency": "USD", "source_url": "https://www.defense.gov/award"},
-        {"date": "2026-08-03", "precision": "day", "what": "Second motor source.", "commitment": "framework",
+        {"date": "2026-08-03", "precision": "day", "what": "Northrop Grumman second source of rocket motors.", "commitment": "framework",
          "source_url": "https://www.defense.gov/award"},
-        {"date": "2018-03-01", "precision": "month", "what": "Wisla phase I.", "commitment": "contract", "archive_id": 900},
+        {"date": "2018-03-01", "precision": "month", "what": "Poland signed Wisla phase I.", "commitment": "contract", "archive_id": 900},
         {"date": "2025-10-14", "precision": "day", "what": "Diehl MoU.", "commitment": "framework",
          "source_url": "https://dead.example/x"},
     ],
@@ -110,6 +110,13 @@ class PagesTest(unittest.TestCase):
         self.assertEqual(check_row({"date": "2019-07-29"}, text), "date_absent")
         self.assertEqual(check_row({"date": "2026-07-29", "amount": 12000000}, text), "amount_absent")
         self.assertIn("58.62", amount_forms(58620000000))
+        self.assertEqual(check_row({"date": "2026-01-01", "what": "Frigate keel laid at Gdansk shipyard"}, text),
+                         "claim_absent")
+
+    def test_ref_marks_are_removed(self):
+        out = {"context": [{"text": "Award made [T1, T2].", "refs": ["T1"]}]}
+        pilot.strip_refs(out)
+        self.assertEqual(out["context"][0]["text"], "Award made.")
 
     def test_official_hosts(self):
         self.assertTrue(is_official("https://www.defense.gov/News/x"))
