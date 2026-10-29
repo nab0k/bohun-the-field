@@ -1,0 +1,642 @@
+{
+  "synthetic": true,
+  "run_id": "synthetic-local-v0",
+  "baseline": {
+    "completeness": {
+      "registry": true,
+      "notion": true,
+      "aliases": true,
+      "identifiers": true
+    },
+    "checked_at": {
+      "registry": "2026-10-29T09:00:00+00:00",
+      "notion": "2026-10-29T09:00:00+00:00",
+      "aliases": "2026-10-29T09:00:00+00:00",
+      "identifiers": "2026-10-29T09:00:00+00:00"
+    },
+    "companies": [
+      {
+        "id": "alpha",
+        "registry_id": "synthetic-alpha",
+        "notion_id": "synthetic-notion-alpha",
+        "aliases": [],
+        "identifiers": [
+          {
+            "scheme": "synthetic-register",
+            "jurisdiction": "DE",
+            "value": "SYN-A"
+          }
+        ],
+        "entity_kind": "company",
+        "fields": {},
+        "manual_fields": [],
+        "last_applied": {},
+        "qa_status": "DRAFT",
+        "flags": [],
+        "excluded": false,
+        "public_release": false
+      },
+      {
+        "id": "beta",
+        "registry_id": "synthetic-beta",
+        "notion_id": "synthetic-notion-beta",
+        "aliases": [],
+        "identifiers": [
+          {
+            "scheme": "synthetic-register",
+            "jurisdiction": "DE",
+            "value": "SYN-B"
+          }
+        ],
+        "entity_kind": "company",
+        "fields": {
+          "identity": {
+            "legal_name": "Synthetic Beta"
+          }
+        },
+        "manual_fields": [],
+        "last_applied": {},
+        "qa_status": "HOLD",
+        "flags": [],
+        "excluded": false,
+        "public_release": false
+      },
+      {
+        "id": "gamma",
+        "registry_id": "synthetic-gamma",
+        "notion_id": "synthetic-notion-gamma",
+        "aliases": [],
+        "identifiers": [
+          {
+            "scheme": "synthetic-register",
+            "jurisdiction": "UA",
+            "value": "SYN-C"
+          }
+        ],
+        "entity_kind": "company",
+        "fields": {
+          "geography": {
+            "country": "UA"
+          }
+        },
+        "manual_fields": [],
+        "last_applied": {},
+        "qa_status": "DRAFT",
+        "flags": [],
+        "excluded": false,
+        "public_release": false
+      }
+    ]
+  },
+  "fixed_existing": [
+    "alpha",
+    "beta",
+    "gamma"
+  ],
+  "candidates": [
+    {
+      "candidate_id": "alpha",
+      "name": "Synthetic alpha",
+      "identifiers": [
+        {
+          "scheme": "synthetic-register",
+          "jurisdiction": "DE",
+          "value": "SYN-A"
+        }
+      ],
+      "entity_kind": "company"
+    },
+    {
+      "candidate_id": "beta",
+      "name": "Synthetic beta",
+      "identifiers": [
+        {
+          "scheme": "synthetic-register",
+          "jurisdiction": "DE",
+          "value": "SYN-B"
+        }
+      ],
+      "entity_kind": "company"
+    },
+    {
+      "candidate_id": "gamma",
+      "name": "Synthetic gamma",
+      "identifiers": [
+        {
+          "scheme": "synthetic-register",
+          "jurisdiction": "UA",
+          "value": "SYN-C"
+        }
+      ],
+      "entity_kind": "company"
+    },
+    {
+      "candidate_id": "new-grant",
+      "name": "Synthetic GrantCo",
+      "identifiers": [
+        {
+          "scheme": "synthetic-register",
+          "jurisdiction": "FR",
+          "value": "SYN-D"
+        }
+      ],
+      "entity_kind": "company",
+      "queue": "grants_tenders"
+    },
+    {
+      "candidate_id": "new-news",
+      "name": "Synthetic NewsCo",
+      "identifiers": [
+        {
+          "scheme": "synthetic-register",
+          "jurisdiction": "GB",
+          "value": "SYN-E"
+        }
+      ],
+      "entity_kind": "company",
+      "queue": "news"
+    },
+    {
+      "candidate_id": "name-only",
+      "name": "Synthetic Alpha",
+      "identifiers": [],
+      "entity_kind": "company",
+      "queue": "news"
+    }
+  ],
+  "source_allowances": [
+    "self-product",
+    "registry",
+    "held-self",
+    "ua-city",
+    "grant",
+    "news",
+    "name-match",
+    "wrong-path"
+  ],
+  "trusted_bindings": {
+    "self-product": [
+      {
+        "scheme": "synthetic-register",
+        "jurisdiction": "DE",
+        "value": "SYN-A"
+      }
+    ],
+    "registry": [
+      {
+        "scheme": "synthetic-register",
+        "jurisdiction": "DE",
+        "value": "SYN-A"
+      }
+    ],
+    "held-self": [
+      {
+        "scheme": "synthetic-register",
+        "jurisdiction": "DE",
+        "value": "SYN-B"
+      }
+    ],
+    "ua-city": [
+      {
+        "scheme": "synthetic-register",
+        "jurisdiction": "UA",
+        "value": "SYN-C"
+      }
+    ],
+    "grant": [
+      {
+        "scheme": "synthetic-register",
+        "jurisdiction": "FR",
+        "value": "SYN-D"
+      }
+    ],
+    "news": [
+      {
+        "scheme": "synthetic-register",
+        "jurisdiction": "GB",
+        "value": "SYN-E"
+      }
+    ],
+    "name-match": [],
+    "wrong-path": [
+      {
+        "scheme": "synthetic-register",
+        "jurisdiction": "DE",
+        "value": "SYN-A"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "synthetic": true,
+      "source_id": "self-product",
+      "candidate_id": "alpha",
+      "url": "https://self-product.example/record",
+      "publisher": "Synthetic publisher self-product",
+      "dataset": "synthetic_only",
+      "received_at": "2026-10-29T10:00:00+00:00",
+      "effective_at": "2026-10-28T00:00:00+00:00",
+      "rights_reference": "SYNTHETIC_CREATED_FOR_TEST",
+      "format": "json",
+      "version": "fixture-v1",
+      "source_type": "company_self_claim",
+      "raw": {
+        "identifiers": [
+          {
+            "scheme": "synthetic-register",
+            "jurisdiction": "DE",
+            "value": "SYN-A"
+          }
+        ],
+        "fields": {
+          "products": {
+            "product": "Synthetic optical sensor"
+          }
+        }
+      },
+      "claims": [
+        {
+          "section": "products",
+          "field": "product",
+          "value": "Synthetic optical sensor",
+          "source_type": "company_self_claim",
+          "subject_identifiers": [
+            {
+              "scheme": "synthetic-register",
+              "jurisdiction": "DE",
+              "value": "SYN-A"
+            }
+          ],
+          "locator": {
+            "path": "$.fields.products.product"
+          }
+        }
+      ]
+    },
+    {
+      "synthetic": true,
+      "source_id": "registry",
+      "candidate_id": "alpha",
+      "url": "https://registry.example/record",
+      "publisher": "Synthetic publisher registry",
+      "dataset": "synthetic_only",
+      "received_at": "2026-10-29T10:00:00+00:00",
+      "effective_at": "2026-10-28T00:00:00+00:00",
+      "rights_reference": "SYNTHETIC_CREATED_FOR_TEST",
+      "format": "json",
+      "version": "fixture-v1",
+      "source_type": "registry_record",
+      "raw": {
+        "identifiers": [
+          {
+            "scheme": "synthetic-register",
+            "jurisdiction": "DE",
+            "value": "SYN-A"
+          }
+        ],
+        "fields": {
+          "geography": {
+            "country": "DE"
+          }
+        }
+      },
+      "claims": [
+        {
+          "section": "geography",
+          "field": "country",
+          "value": "DE",
+          "source_type": "registry_record",
+          "subject_identifiers": [
+            {
+              "scheme": "synthetic-register",
+              "jurisdiction": "DE",
+              "value": "SYN-A"
+            }
+          ],
+          "locator": {
+            "path": "$.fields.geography.country"
+          }
+        }
+      ]
+    },
+    {
+      "synthetic": true,
+      "source_id": "held-self",
+      "candidate_id": "beta",
+      "url": "https://held-self.example/record",
+      "publisher": "Synthetic publisher held-self",
+      "dataset": "synthetic_only",
+      "received_at": "2026-10-29T10:00:00+00:00",
+      "effective_at": "2026-10-28T00:00:00+00:00",
+      "rights_reference": "SYNTHETIC_CREATED_FOR_TEST",
+      "format": "json",
+      "version": "fixture-v1",
+      "source_type": "company_self_claim",
+      "raw": {
+        "identifiers": [
+          {
+            "scheme": "synthetic-register",
+            "jurisdiction": "DE",
+            "value": "SYN-B"
+          }
+        ],
+        "fields": {
+          "technologies": {
+            "technology": "Synthetic laser"
+          }
+        }
+      },
+      "claims": [
+        {
+          "section": "technologies",
+          "field": "technology",
+          "value": "Synthetic laser",
+          "source_type": "company_self_claim",
+          "subject_identifiers": [
+            {
+              "scheme": "synthetic-register",
+              "jurisdiction": "DE",
+              "value": "SYN-B"
+            }
+          ],
+          "locator": {
+            "path": "$.fields.technologies.technology"
+          }
+        }
+      ]
+    },
+    {
+      "synthetic": true,
+      "source_id": "ua-city",
+      "candidate_id": "gamma",
+      "url": "https://ua-city.example/record",
+      "publisher": "Synthetic publisher ua-city",
+      "dataset": "synthetic_only",
+      "received_at": "2026-10-29T10:00:00+00:00",
+      "effective_at": "2026-10-28T00:00:00+00:00",
+      "rights_reference": "SYNTHETIC_CREATED_FOR_TEST",
+      "format": "json",
+      "version": "fixture-v1",
+      "source_type": "registry_record",
+      "raw": {
+        "identifiers": [
+          {
+            "scheme": "synthetic-register",
+            "jurisdiction": "UA",
+            "value": "SYN-C"
+          }
+        ],
+        "fields": {
+          "geography": {
+            "city": "SYNTHETIC_UA_CITY_PRIVATE"
+          }
+        }
+      },
+      "claims": [
+        {
+          "section": "geography",
+          "field": "city",
+          "value": "SYNTHETIC_UA_CITY_PRIVATE",
+          "source_type": "registry_record",
+          "subject_identifiers": [
+            {
+              "scheme": "synthetic-register",
+              "jurisdiction": "UA",
+              "value": "SYN-C"
+            }
+          ],
+          "locator": {
+            "path": "$.fields.geography.city"
+          }
+        }
+      ]
+    },
+    {
+      "synthetic": true,
+      "source_id": "grant",
+      "candidate_id": "new-grant",
+      "url": "https://grant.example/record",
+      "publisher": "Synthetic publisher grant",
+      "dataset": "synthetic_only",
+      "received_at": "2026-10-29T10:00:00+00:00",
+      "effective_at": "2026-10-28T00:00:00+00:00",
+      "rights_reference": "SYNTHETIC_CREATED_FOR_TEST",
+      "format": "json",
+      "version": "fixture-v1",
+      "source_type": "official_programme_record",
+      "raw": {
+        "identifiers": [
+          {
+            "scheme": "synthetic-register",
+            "jurisdiction": "FR",
+            "value": "SYN-D"
+          }
+        ],
+        "fields": {
+          "programmes_contracts": {
+            "participation": "Synthetic EDF research grant"
+          }
+        },
+        "qualifiers": {
+          "programmes_contracts": {
+            "participation": {
+              "modality": "planned"
+            }
+          }
+        }
+      },
+      "claims": [
+        {
+          "section": "programmes_contracts",
+          "field": "participation",
+          "value": "Synthetic EDF research grant",
+          "source_type": "official_programme_record",
+          "subject_identifiers": [
+            {
+              "scheme": "synthetic-register",
+              "jurisdiction": "FR",
+              "value": "SYN-D"
+            }
+          ],
+          "locator": {
+            "path": "$.fields.programmes_contracts.participation"
+          },
+          "modality": "planned"
+        }
+      ]
+    },
+    {
+      "synthetic": true,
+      "source_id": "news",
+      "candidate_id": "new-news",
+      "url": "https://news.example/record",
+      "publisher": "Synthetic publisher news",
+      "dataset": "synthetic_only",
+      "received_at": "2026-10-29T10:00:00+00:00",
+      "effective_at": "2026-10-28T00:00:00+00:00",
+      "rights_reference": "SYNTHETIC_CREATED_FOR_TEST",
+      "format": "json",
+      "version": "fixture-v1",
+      "source_type": "third_party_report",
+      "raw": {
+        "identifiers": [
+          {
+            "scheme": "synthetic-register",
+            "jurisdiction": "GB",
+            "value": "SYN-E"
+          }
+        ],
+        "fields": {
+          "events": {
+            "event": "Synthetic factory announced"
+          }
+        },
+        "qualifiers": {
+          "events": {
+            "event": {
+              "modality": "announced"
+            }
+          }
+        }
+      },
+      "claims": [
+        {
+          "section": "events",
+          "field": "event",
+          "value": "Synthetic factory announced",
+          "source_type": "third_party_report",
+          "subject_identifiers": [
+            {
+              "scheme": "synthetic-register",
+              "jurisdiction": "GB",
+              "value": "SYN-E"
+            }
+          ],
+          "locator": {
+            "path": "$.fields.events.event"
+          },
+          "modality": "announced"
+        }
+      ]
+    },
+    {
+      "synthetic": true,
+      "source_id": "name-match",
+      "candidate_id": "name-only",
+      "url": "https://name-match.example/record",
+      "publisher": "Synthetic publisher name-match",
+      "dataset": "synthetic_only",
+      "received_at": "2026-10-29T10:00:00+00:00",
+      "effective_at": "2026-10-28T00:00:00+00:00",
+      "rights_reference": "SYNTHETIC_CREATED_FOR_TEST",
+      "format": "json",
+      "version": "fixture-v1",
+      "source_type": "third_party_report",
+      "raw": {
+        "identifiers": [],
+        "fields": {
+          "products": {
+            "product": "Must not merge by name"
+          }
+        }
+      },
+      "claims": [
+        {
+          "section": "products",
+          "field": "product",
+          "value": "Must not merge by name",
+          "source_type": "third_party_report",
+          "subject_identifiers": [],
+          "locator": {
+            "path": "$.fields.products.product"
+          }
+        }
+      ]
+    },
+    {
+      "synthetic": true,
+      "source_id": "wrong-path",
+      "candidate_id": "alpha",
+      "url": "https://wrong-path.example/record",
+      "publisher": "Synthetic publisher wrong-path",
+      "dataset": "synthetic_only",
+      "received_at": "2026-10-29T10:00:00+00:00",
+      "effective_at": "2026-10-28T00:00:00+00:00",
+      "rights_reference": "SYNTHETIC_CREATED_FOR_TEST",
+      "format": "json",
+      "version": "fixture-v1",
+      "source_type": "company_self_claim",
+      "raw": {
+        "identifiers": [
+          {
+            "scheme": "synthetic-register",
+            "jurisdiction": "DE",
+            "value": "SYN-A"
+          }
+        ],
+        "fields": {
+          "technologies": {
+            "technology": "actual different source value"
+          }
+        }
+      },
+      "claims": [
+        {
+          "section": "technologies",
+          "field": "technology",
+          "value": "fabricated",
+          "source_type": "company_self_claim",
+          "subject_identifiers": [
+            {
+              "scheme": "synthetic-register",
+              "jurisdiction": "DE",
+              "value": "SYN-A"
+            }
+          ],
+          "locator": {
+            "path": "$.fields.technologies.technology"
+          }
+        }
+      ]
+    }
+  ],
+  "native_text": "Synthetic Alpha does not manufacture missiles. Synthetic Beta plans a sensor factory.",
+  "native_outputs": [
+    {
+      "claim": "Synthetic Alpha does not manufacture missiles.",
+      "claim_attributes": {
+        "subject": "Synthetic Alpha",
+        "polarity": "negative"
+      }
+    },
+    {
+      "claim": "Synthetic Beta plans a sensor factory.",
+      "claim_attributes": {
+        "subject": "Synthetic Beta",
+        "modality": "planned"
+      }
+    },
+    {
+      "claim": "Synthetic Alpha makes tanks.",
+      "claim_attributes": {
+        "subject": "Synthetic Alpha",
+        "polarity": "positive"
+      }
+    }
+  ],
+  "native_html": "<html><head><title>Synthetic Alpha optical research</title></head><body><article><h1>Synthetic Alpha</h1><p>Synthetic Alpha develops optical sensors in a synthetic research programme. This paragraph is a deliberately invented source for a local library API test. It describes no real company or facility.</p><p>Synthetic Alpha develops optical sensors in a synthetic research programme. This paragraph is a deliberately invented source for a local library API test. It describes no real company or facility.</p><p>Synthetic Alpha develops optical sensors in a synthetic research programme. This paragraph is a deliberately invented source for a local library API test. It describes no real company or facility.</p><p>Synthetic Alpha develops optical sensors in a synthetic research programme. This paragraph is a deliberately invented source for a local library API test. It describes no real company or facility.</p><p>Synthetic Alpha develops optical sensors in a synthetic research programme. This paragraph is a deliberately invented source for a local library API test. It describes no real company or facility.</p></article><footer>Legal register: SYN-123456</footer></body></html>",
+  "edf_metadata": {
+    "programAbbreviation": [
+      "EDF"
+    ],
+    "language": [
+      "en"
+    ],
+    "projectId": [
+      "SYN-PROJECT"
+    ],
+    "participants": [
+      "[{\"legalName\": \"Synthetic Alpha\", \"pic\": \"000000001\", \"role\": \"participant\", \"type\": \"PRC\", \"postalAddress\": {\"countryCode\": {\"abbreviation\": \"DE\"}}}]"
+    ]
+  }
+}
