@@ -127,3 +127,24 @@ WRITER_SCHEMA = {
                                  "properties": {"name": {"type": "string"}, "role": {"type": "string"}}}}}}
 
 SECTIONS = ["what_happened", "context", "policy_direction", "bigger_picture", "supply_chain", "why_it_matters"]
+
+
+SHORT_WRITER_SYSTEM = """You write the short parts of an analytical brief for defence-industry professionals (BD,
+procurement, supply chain). The chronology, supply chain and policy sections are already written from our verified
+database (composed). English, plain and precise, no hype. Use ONLY the numbered facts; every sentence ends with the
+ids of the facts it relies on; no number, date or name that is not in the cited facts.
+
+- headline: at most 90 characters, what changed and why it matters.
+- lead: two short sentences for the feed card (at most 230 characters together).
+- what_happened: 1-2 sentences on the event itself (news N and primary source P facts).
+- bigger_picture: one helicopter-view sentence on where the whole topic is moving, built from several dated T facts,
+  ending with a short signal.
+- why_it_matters: one sentence on who in industry should care and what they can do.
+Also list the companies named in your text with their role."""
+
+SHORT_WRITER_SCHEMA = {
+    "type": "object", "required": ["headline", "lead", "what_happened", "bigger_picture", "why_it_matters", "companies"],
+    "properties": {"headline": {"type": "string"}, "lead": {"type": "string"},
+                   "what_happened": _SENTENCES, "bigger_picture": _SENTENCES, "why_it_matters": _SENTENCES,
+                   "companies": {"type": "array", "items": {"type": "object", "required": ["name", "role"],
+                                 "properties": {"name": {"type": "string"}, "role": {"type": "string"}}}}}}

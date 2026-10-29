@@ -1,4 +1,5 @@
 import json
+import urllib.error
 import tempfile
 import unittest
 from pathlib import Path
@@ -169,7 +170,7 @@ class RouteTest(unittest.TestCase):
         model = Gemini("k", Ledger(), t)
         with tempfile.TemporaryDirectory() as d:
             result = pilot.run(FakeCursor(), model, ITEMS, {1: [{"name": "Lockheed Martin", "company_id": "c1"}]},
-                               DOCTRINE, Path(d), fetcher=fake_pages)
+                               DOCTRINE, Path(d), fetcher=fake_pages, template=False)
             files = sorted(str(p.relative_to(d)) for p in Path(d).rglob("*.md"))
         return result, files, t
 
@@ -371,3 +372,59 @@ class UnwrapTest(unittest.TestCase):
         self.assertNotIn("responseJsonSchema", t["body"]["generationConfig"])
         self.assertIn("Return only one JSON object", t["body"]["systemInstruction"]["parts"][0]["text"])
         self.assertIn("responseJsonSchema", r["body"]["generationConfig"])   # original untouched
+
+
+from collectors.kb_pilot.free import FreeModel
+
+SHORT = {"headline": "Poland to host Europe's only PAC-3 centre", "lead": "Europe gets sustainment first.",
+         "what_happened": [{"text": "Poland will host the centre.", "refs": ["N1"]}],
+         "bigger_picture": [{"text": "Supply becomes transatlantic.", "refs": ["T1", "T2"]}],
+         "why_it_matters": [{"text": "European suppliers gain an entry point.", "refs": ["N1"]}],
+         "companies": [{"name": "Lockheed Martin", "role": "supplier"}]}
+
+
+def openai_reply(obj):
+    return {"choices": [{"message": {"content": json.dumps(obj)}}], "usage": {"prompt_tokens": 900, "completion_tokens": 300}}
+
+
+class TemplateTest(unittest.TestCase):
+    def test_sections_written_by_code(self):
+        facts = [{"id": "T1", "kind": "T", "status": "ok", "row": {"date": "2026-07-29", "precision": "day",
+                  "what": "Multiyear award for PAC-3 MSE.", "commitment": "ceiling", "amount": 58620000000, "currency": "USD"}},
+                 {"id": "T2", "kind": "T", "status": "source_unreachable", "row": {"date": "2025-01-01", "what": "x"}},
+                 {"id": "S1", "kind": "S", "status": "ok", "row": {"upper": "PAC-3 MSE", "lower": "rocket motors", "note": "sole source."}},
+                 {"id": "D1", "kind": "D", "status": "ok", "row": DOCTRINE[0]}]
+        c = pilot.compose_sections(facts)
+        self.assertEqual(c["context"], [{"text": "29 Jul 2026: Multiyear award for PAC-3 MSE (ceiling, USD 58.62 billion).",
+                                         "refs": ["T1"]}])
+        self.assertEqual(c["supply_chain"][0]["text"], "PAC-3 MSE depends on rocket motors — sole source.")
+        self.assertTrue(c["policy_direction"][0]["text"].startswith("US — FY2027 budget"))
+
+    def test_template_run_uses_short_writer_and_free_model(self):
+        gem_t = Scripted([note_reply(), reply(RESEARCH)])          # Gemini: only the search step and its fallback
+        gem = Gemini("k", Ledger(), gem_t)
+        free_t = Scripted([openai_reply(one_group()), openai_reply(RESEARCH), openai_reply(SHORT)])
+        cheap = FreeModel(gem, account="a", token="t", transport=free_t)
+        with tempfile.TemporaryDirectory() as d:
+            result = pilot.run(FakeCursor(), gem, ITEMS, {}, DOCTRINE, Path(d), fetcher=fake_pages, cheap=cheap)
+        ev = result["events"][0]
+        self.assertEqual(ev["outcome"], "CANDIDATE", ev.get("reasons"))
+        self.assertTrue(ev["synthesis"]["context"])                  # composed by code
+        self.assertIn("short parts", free_t.bodies[2]["messages"][0]["content"])
+        self.assertEqual(result["free"]["free_ok"], 3)
+        self.assertNotIn("writer", gem.ledger.steps)                 # Gemini paid only for search
+
+    def test_free_failure_falls_back_to_gemini(self):
+        def broken(url, headers, body):
+            raise urllib.error.HTTPError(url, 429, "busy", {}, None)
+        gem = Gemini("k", Ledger(), Scripted([reply({"a": 1})]))
+        cheap = FreeModel(gem, account="a", token="t", transport=broken)
+        out, _ = cheap("s", {}, {"type": "object"}, step="structure")
+        self.assertEqual(out, {"a": 1})
+        self.assertEqual(cheap.stats["fallback"], {"free_http_429": 1})
+
+    def test_without_keys_everything_goes_to_gemini(self):
+        gem = Gemini("k", Ledger(), Scripted([reply({"a": 1})]))
+        cheap = FreeModel(gem, account="", token="")
+        self.assertEqual(cheap("s", {}, {"type": "object"})[0], {"a": 1})
+        self.assertEqual(cheap.stats["fallback"], {"free_disabled": 1})

@@ -95,6 +95,9 @@ jobs:
           NO_DOSSIER: ${{ (!inputs.dossier_write) && '--no-dossier-write' || '' }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # Free model (Workers AI); absent secrets = every step on Gemini.
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_WORKERS_AI_TOKEN: ${{ secrets.CLOUDFLARE_WORKERS_AI_TOKEN }}
         run: '"$RUNNER_TEMP/bohun-kb/bin/python" -B -m collectors.kb_pilot --day-from "$DAY_FROM" --day-to "$DAY_TO" --limit "${LIMIT:-0}" --schema-mode "$SCHEMA_MODE" --source "$SOURCE" $BATCH $NO_DOSSIER --out "$RUNNER_TEMP/kb-pilot-out"'
       - name: Keep the result for review
         if: always()
