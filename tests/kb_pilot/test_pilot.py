@@ -355,3 +355,16 @@ class WriterShapeTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             result = pilot.run(FakeCursor(), Gemini("k", Ledger(), t), ITEMS, {}, DOCTRINE, Path(d), fetcher=fake_pages)
         self.assertEqual(result["events"][0]["outcome"], "error")
+
+
+class UnwrapTest(unittest.TestCase):
+    def test_single_object_in_list(self):
+        from collectors.kb_pilot.gemini import unwrap
+        self.assertEqual(unwrap([{"a": 1}]), {"a": 1})
+        self.assertEqual(unwrap([{"timeline": [1]}, {"timeline": [2], "parent": {}}]), {"timeline": [1, 2], "parent": {}})
+
+    def test_batch_requests_put_schema_in_prompt(self):
+        m = Gemini("k", Ledger(), None, batch=True)
+        r = m.request("s", {}, {"type": "object"})
+        self.assertNotIn("responseJsonSchema", r["body"]["generationConfig"])
+        self.assertIn("Return only one JSON object", r["body"]["systemInstruction"]["parts"][0]["text"])
