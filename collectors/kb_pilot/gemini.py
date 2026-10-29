@@ -204,7 +204,7 @@ class Gemini:
         config = body["generationConfig"]
         config.pop("responseMimeType", None); config.pop("responseJsonSchema", None)
         body["systemInstruction"]["parts"][0]["text"] += (
-            "\n\nReturn only one JSON object matching this schema, no prose:\n" + canonical(req["schema"]))
+            "\n\nReturn only the JSON object itself (not the schema, no prose), matching:\n" + canonical(req["schema"]))
         return dict(req, body=body, schema_mode="text")
 
     def _retry(self, req):
