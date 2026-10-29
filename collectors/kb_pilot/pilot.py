@@ -17,8 +17,8 @@ import sys
 from . import PILOT_VERSION
 from .gemini import Gemini, Ledger
 from .pages import amount_forms, check_row, fetch_all, host, is_official, norm, sections
-from .prompts import (GROUP_SCHEMA, GROUP_SYSTEM, RESEARCH_SCHEMA, RESEARCH_SYSTEM, SECTIONS, WRITER_SCHEMA,
-                      WRITER_SYSTEM)
+from .prompts import (GROUP_SCHEMA, GROUP_SYSTEM, RESEARCH_SCHEMA, RESEARCH_SYSTEM, SECTIONS, STRUCTURE_SYSTEM,
+                      WRITER_SCHEMA, WRITER_SYSTEM)
 from ..synthesis.contracts import canonical, sha
 from ..synthesis.live import BudgetStop, MODEL, PRICE_VERSION
 
@@ -330,12 +330,28 @@ def research_event(model, cur, group, event_items, doctrine_records, schema_mode
                                "url": a["url"], "text": a["text"][:600]} for a in archive],
               "doctrine_known": [{"title": d["title"], "jurisdiction": d["jurisdiction"], "date": d["document_date"]}
                                  for d in doctrine]}
-    task = ("Search the web with Google Search now. Event: %s (%s). Run several searches: the announcement itself, "
-            "the history of %s, and the supply chain of the product. Then answer only with the JSON object."
+    task = ("Search the web with Google Search. Event: %s (%s). Research the announcement itself, the history of %s, "
+            "and the supply chain of the product, then write the research note."
             % (event_items[0]["title"], event_items[0]["published"][:10], group.get("programme") or "the programme"))
-    research, meta = model(RESEARCH_SYSTEM, packet, RESEARCH_SCHEMA, grounded=True, max_output=10000,
-                           schema_mode=schema_mode, thinking=RESEARCH_THINKING, task=task)
-    return research, meta, archive, doctrine, terms
+    note, meta = model(RESEARCH_SYSTEM, packet, RESEARCH_SCHEMA, grounded=True, max_output=10000,
+                       schema_mode="plain", thinking=RESEARCH_THINKING, task=task)
+    sources = [{"n": k + 1, "uri": c.get("uri"), "title": c.get("title")} for k, c in enumerate(meta["grounding_chunks"])]
+    structured, smeta = model(STRUCTURE_SYSTEM, {"note": mark_sources(note, meta["supports"]), "sources": sources,
+                                                 "archive_ids": [a["archive_id"] for a in archive]},
+                              RESEARCH_SCHEMA, max_output=8000)
+    meta["cost_micro_usd"] += smeta["cost_micro_usd"]
+    meta["note_chars"] = len(note)
+    return structured, meta, archive, doctrine, terms
+
+
+def mark_sources(note, supports):
+    """Append [n] (1-based source numbers) after each grounded segment of the note."""
+    for sup in supports:
+        seg = sup["text"]
+        if seg and sup["chunks"] and seg in note:
+            mark = "".join("[%d]" % (i + 1) for i in sup["chunks"])
+            note = note.replace(seg, seg + " " + mark, 1)
+    return note
 
 
 def cited_urls(research):

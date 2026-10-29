@@ -24,6 +24,15 @@ def reply(obj, queries=0, **u):
     return {"candidates": [cand], "usageMetadata": usage(**u)}
 
 
+def note_reply(i=100):
+    cand = {"finishReason": "STOP", "content": {"parts": [{"text": "TIMELINE\n2026-07-29 multiyear award."}]},
+            "groundingMetadata": {"webSearchQueries": ["q1", "q2"],
+                                  "groundingChunks": [{"web": {"uri": "https://www.defense.gov/award", "title": "award"}}],
+                                  "groundingSupports": [{"segment": {"text": "2026-07-29 multiyear award."},
+                                                         "groundingChunkIndices": [0]}]}}
+    return {"candidates": [cand], "usageMetadata": usage(i=i)}
+
+
 ITEMS = [
     {"event_id": 1, "type": "contract", "topic": "us-munitions-ramp-up", "item_id": 11, "title": "Poland to host PAC-3 centre",
      "url": "https://news.example/a", "published": "2026-10-27T10:00:00+00:00", "outlet": "EDR", "text": "Poland PAC-3 centre."},
@@ -156,7 +165,7 @@ class RouteTest(unittest.TestCase):
     def run_pilot(self, writer=WRITER, research=RESEARCH):
         groups = {"groups": [{"items": [1, 2], "programme": "PAC-3", "organisations": ["Lockheed Martin"],
                               "terms": ["PAC-3", "Wisla"], "countries": ["US", "PL"], "place": {"label": "Poland", "lat": 52.2, "lon": 21.0}}]}
-        t = Scripted([reply(groups), reply(research, queries=4, tool=5000), reply(writer)])
+        t = Scripted([reply(groups), note_reply(), reply(research), reply(writer)])
         model = Gemini("k", Ledger(), t)
         with tempfile.TemporaryDirectory() as d:
             result = pilot.run(FakeCursor(), model, ITEMS, {1: [{"name": "Lockheed Martin", "company_id": "c1"}]},
@@ -179,7 +188,10 @@ class RouteTest(unittest.TestCase):
         official = [d for d in ev["documents"] if d["official"]]
         self.assertTrue(official and official[0]["storage"] == "markdown")
         self.assertTrue(any(f.endswith("full.md") for f in files))
-        writer_facts = {f["id"] for f in json.loads(t.bodies[2]["contents"][0]["parts"][0]["text"])["facts"]}
+        self.assertNotIn("responseMimeType", t.bodies[1]["generationConfig"])   # search step is free text
+        self.assertEqual(t.bodies[1]["tools"], [{"google_search": {}}])
+        self.assertIn("[1]", json.loads(t.bodies[2]["contents"][0]["parts"][0]["text"])["note"])
+        writer_facts = {f["id"] for f in json.loads(t.bodies[3]["contents"][0]["parts"][0]["text"])["facts"]}
         self.assertNotIn("T4", writer_facts)            # unverified rows never reach the writer
 
     def test_retelling_is_held(self):
@@ -204,7 +216,7 @@ class RouteTest(unittest.TestCase):
     def test_budget_stop_keeps_finished_events(self):
         groups = {"groups": [{"items": [1], "programme": "a", "organisations": [], "terms": [], "place": None},
                              {"items": [2], "programme": "b", "organisations": [], "terms": [], "place": None}]}
-        t = Scripted([reply(groups), reply(RESEARCH), reply(WRITER), reply(RESEARCH, i=10**7)])
+        t = Scripted([reply(groups), note_reply(), reply(RESEARCH), reply(WRITER), note_reply(i=10**7)])
         model = Gemini("k", Ledger(cap=2_000_000), t)
         with tempfile.TemporaryDirectory() as d:
             result = pilot.run(FakeCursor(), model, ITEMS, {}, DOCTRINE, Path(d), fetcher=fake_pages)

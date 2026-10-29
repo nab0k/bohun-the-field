@@ -74,9 +74,11 @@ class Gemini:
         if schema_mode == "schema":
             config["responseMimeType"] = "application/json"
             config["responseJsonSchema"] = response_schema(schema)
+        elif schema_mode == "plain":
+            pass  # free text: a JSON demand makes the model skip Google Search (probe run 40904136518)
         else:
             instruction += "\n\nReturn only one JSON object matching this schema, no prose:\n" + canonical(schema)
-        body = {"serviceTier": "standard", "systemInstruction": {"parts": [{"text": instruction}]},
+        body = {"systemInstruction": {"parts": [{"text": instruction}]},
                 "contents": [{"role": "user", "parts": ([{"text": task}] if task else []) + [{"text": canonical(packet)}]}],
                 "generationConfig": config}
         if grounded:
@@ -88,13 +90,13 @@ class Gemini:
         body = self.body(system, packet, schema, grounded, max_output, schema_mode, thinking, task)
         for attempt in range(retries + 1):
             try:
-                return self._send(body, max_output, grounded)
+                return self._send(body, max_output, grounded, schema_mode == "plain")
             except json.JSONDecodeError:
                 # Malformed JSON is billed and charged; one more attempt, then the event fails alone.
                 if attempt == retries:
                     raise
 
-    def _send(self, body, max_output, grounded):
+    def _send(self, body, max_output, grounded, plain=False):
         self.ledger.reserve(len(canonical(body).encode()), max_output, grounded)
         try:
             reply = self.transport(GEMINI_URL.format(MODEL), {"x-goog-api-key": self.key}, body)
@@ -119,7 +121,10 @@ class Gemini:
         chunks = [{"uri": (c.get("web") or {}).get("uri"), "title": (c.get("web") or {}).get("title")}
                   for c in grounding.get("groundingChunks") or []]
         usage = reply.get("usageMetadata") or {}
-        return parse_json_text(text), {"cost_micro_usd": cost, "search_queries": len(queries),
+        supports = [{"text": (g.get("segment") or {}).get("text", ""), "chunks": g.get("groundingChunkIndices") or []}
+                    for g in grounding.get("groundingSupports") or []]
+        answer = text if plain else parse_json_text(text)
+        return answer, {"cost_micro_usd": cost, "search_queries": len(queries), "supports": supports,
                                        "tool_tokens": usage.get("toolUsePromptTokenCount", 0),
                                        "grounding_keys": sorted(grounding),
                                        "grounding_chunks": chunks}
