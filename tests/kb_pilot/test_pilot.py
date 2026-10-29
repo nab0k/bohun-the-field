@@ -439,3 +439,22 @@ class ChunkTest(unittest.TestCase):
         reqs = [model.request("s", {}, {"type": "object"}) for _ in range(g.BATCH_CHUNK * 2 + 3)]
         self.assertEqual(len(model.many(reqs)), len(reqs))
         self.assertEqual(sent, [g.BATCH_CHUNK, g.BATCH_CHUNK, 3])
+
+
+class IncompleteTest(unittest.TestCase):
+    def test_empty_free_writer_falls_back(self):
+        from collectors.kb_pilot.prompts import SHORT_WRITER_SCHEMA
+        gem = Gemini("k", Ledger(), Scripted([reply({"headline": "h", "lead": "l", "what_happened": [{"text": "x", "refs": ["N1"]}],
+                                                     "bigger_picture": [], "why_it_matters": [], "companies": []})]))
+        empty = {"headline": "", "lead": "", "what_happened": [], "bigger_picture": [], "why_it_matters": [], "companies": []}
+        cheap = FreeModel(gem, account="a", token="t", transport=Scripted([openai_reply(empty)]))
+        out, _ = cheap("s", {}, SHORT_WRITER_SCHEMA, step="writer")
+        self.assertEqual(out["headline"], "h")
+        self.assertEqual(cheap.stats["fallback"], {"free_incomplete": 1})
+
+    def test_admission_holds_empty_writer(self):
+        facts = [{"id": "T%d" % i, "kind": "T", "status": "ok", "row": {"date": "2026-0%d-01" % i}} for i in range(1, 4)]
+        facts.append({"id": "S1", "kind": "S", "status": "ok", "row": {}})
+        decision, reasons, _ = pilot.admit(facts, {"headline": "", "supply_chain": [{"text": "x", "refs": ["S1"]}]}, [])
+        self.assertEqual(decision, "HOLD")
+        self.assertIn("writer_incomplete", reasons)

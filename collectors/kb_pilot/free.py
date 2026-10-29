@@ -21,6 +21,7 @@ FREE_MODEL = os.environ.get("KB_FREE_MODEL", "@cf/google/gemma-4-26b-a4b-it")
 NEURONS_PER_M_IN, NEURONS_PER_M_OUT = 9_091, 27_273
 FREE_NEURONS_PER_RUN = 9_000      # stay under the 10 000 free neurons per day
 WORKERS = 3
+REQUIRED_NONEMPTY = {"what_happened", "groups"}
 MIN_OUTPUT_TOKENS = 8000  # free models reason before answering; a small cap cuts the JSON (run 40934038923)
 
 
@@ -59,7 +60,7 @@ class FreeModel:
                 "messages": [{"role": "system", "content": system + "\n\nReturn only one JSON object matching this "
                                                                     "schema, no prose:\n" + canonical(schema)},
                              {"role": "user", "content": user}]}
-        return {"free_body": body, "gemini": gem, "step": step, "chars": len(user) + len(system)}
+        return {"free_body": body, "gemini": gem, "step": step, "chars": len(user) + len(system), "schema": schema}
 
     def __call__(self, *args, **kwargs):
         out = self.many([self.request(*args, **kwargs)])[0]
@@ -93,6 +94,11 @@ class FreeModel:
             raise RuntimeError("free_bad_json_len%d" % min(len(text) // 1000, 9)) from None
         if not isinstance(answer, dict):
             raise RuntimeError("free_not_object")
+        missing = [k for k in (req.get("schema") or {}).get("required", [])
+                   if k not in answer or (isinstance(answer[k], str) and not answer[k].strip())
+                   or (k in REQUIRED_NONEMPTY and not answer[k])]
+        if missing:  # run 40938142142: the free writer returned an empty headline and sections
+            raise RuntimeError("free_incomplete")
         self.ledger.steps["free_" + req["step"]] = self.ledger.steps.get("free_" + req["step"], 0)
         return answer, {"cost_micro_usd": 0, "search_queries": 0, "supports": [], "grounding_chunks": [],
                         "model": self.model, "free_tokens": usage}
