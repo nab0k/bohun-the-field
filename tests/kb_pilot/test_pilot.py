@@ -370,7 +370,7 @@ class UnwrapTest(unittest.TestCase):
         self.assertIn("responseJsonSchema", r["body"]["generationConfig"])   # direct call keeps the schema
         t = m.as_text_mode(r)
         self.assertNotIn("responseJsonSchema", t["body"]["generationConfig"])
-        self.assertIn("Return only one JSON object", t["body"]["systemInstruction"]["parts"][0]["text"])
+        self.assertIn("Return only the JSON object itself", t["body"]["systemInstruction"]["parts"][0]["text"])
         self.assertIn("responseJsonSchema", r["body"]["generationConfig"])   # original untouched
 
 
@@ -421,13 +421,13 @@ class TemplateTest(unittest.TestCase):
         cheap = FreeModel(gem, account="a", token="t", transport=broken)
         out, _ = cheap("s", {}, {"type": "object"}, step="structure")
         self.assertEqual(out, {"a": 1})
-        self.assertEqual(cheap.stats["fallback"], {"free_http_429": 1})
+        self.assertEqual(cheap.stats["fallback"], {"cloudflare_http_429": 1, "paid_gemini": 1})
 
     def test_without_keys_everything_goes_to_gemini(self):
         gem = Gemini("k", Ledger(), Scripted([reply({"a": 1})]))
         cheap = FreeModel(gem, account="", token="")
         self.assertEqual(cheap("s", {}, {"type": "object"})[0], {"a": 1})
-        self.assertEqual(cheap.stats["fallback"], {"free_disabled": 1})
+        self.assertEqual(cheap.stats["fallback"], {"free_disabled": 1, "paid_gemini": 1})
 
 
 class ChunkTest(unittest.TestCase):
@@ -450,7 +450,7 @@ class IncompleteTest(unittest.TestCase):
         cheap = FreeModel(gem, account="a", token="t", transport=Scripted([openai_reply(empty)]))
         out, _ = cheap("s", {}, SHORT_WRITER_SCHEMA, step="writer")
         self.assertEqual(out["headline"], "h")
-        self.assertEqual(cheap.stats["fallback"], {"free_incomplete": 1})
+        self.assertEqual(cheap.stats["fallback"], {"cloudflare_incomplete": 1, "paid_gemini": 1})
 
     def test_admission_holds_empty_writer(self):
         facts = [{"id": "T%d" % i, "kind": "T", "status": "ok", "row": {"date": "2026-0%d-01" % i}} for i in range(1, 4)]
@@ -458,3 +458,34 @@ class IncompleteTest(unittest.TestCase):
         decision, reasons, _ = pilot.admit(facts, {"headline": "", "supply_chain": [{"text": "x", "refs": ["S1"]}]}, [])
         self.assertEqual(decision, "HOLD")
         self.assertIn("writer_incomplete", reasons)
+
+
+class RouterTest(unittest.TestCase):
+    def test_providers_in_order_and_off_on_403(self):
+        from collectors.kb_pilot.free import OpenAICompatible
+        calls = []
+
+        def transport(url, headers, body):
+            calls.append(url)
+            if "groq" in url:
+                raise urllib.error.HTTPError(url, 403, "forbidden", {}, None)
+            return openai_reply({"a": 1})
+        gem = Gemini("k", Ledger(), None)
+        provs = [OpenAICompatible("groq", "https://groq/x", "k", "m"), OpenAICompatible("mistral", "https://mistral/x", "k", "m")]
+        cheap = FreeModel(gem, transport=transport, providers=provs)
+        for _ in range(2):
+            self.assertEqual(cheap("s", {}, {"type": "object", "required": ["a"]})[0], {"a": 1})
+        self.assertEqual(calls, ["https://groq/x", "https://mistral/x", "https://mistral/x"])   # groq off after 403
+        self.assertEqual(cheap.stats["by_provider"], {"mistral": 2})
+
+    def test_schema_echo_is_unwrapped(self):
+        from collectors.kb_pilot.free import check_answer
+        schema = {"required": ["headline", "what_happened"]}
+        self.assertEqual(check_answer({"properties": {"headline": "h", "what_happened": [1]}}, schema)["headline"], "h")
+
+    def test_writer_packet_is_capped(self):
+        facts = [{"id": "N1", "kind": "N", "status": "news", "text": "n", "row": None}]
+        facts += [{"id": "T%d" % i, "kind": "T", "status": "ok", "text": "t", "row": {"date": "2020-01-%02d" % (i % 28 + 1)}}
+                  for i in range(1, 140)]
+        packet = pilot.short_writer_packet([ITEMS[0]], facts, {"context": [{"text": "x", "refs": ["T1"]}]})
+        self.assertLessEqual(len(packet["facts"]), pilot.MAX_WRITER_FACTS)

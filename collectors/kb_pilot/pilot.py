@@ -307,8 +307,18 @@ def compose_sections(facts):
     return {"context": context, "supply_chain": supply, "policy_direction": policy}
 
 
+MAX_WRITER_FACTS = 30
+
+
 def short_writer_packet(event_items, facts, composed):
-    base = writer_packet(event_items, facts)
+    """News, primary source, the facts the composed sections cite and the newest chronology — not the whole
+    dossier (run 40939444092: up to 139 facts per event overloaded the writer)."""
+    cited = {r for sec in composed.values() for s in sec for r in s["refs"]}
+    keep = [f for f in facts if f["kind"] in ("N", "P") or f["id"] in cited]
+    rest = sorted([f for f in facts if f not in keep and f["status"] in ("ok", "check") and f["kind"] == "T"],
+                  key=lambda f: (f.get("row") or {}).get("date") or "", reverse=True)
+    keep += rest[:max(0, MAX_WRITER_FACTS - len(keep))]
+    base = writer_packet(event_items, keep)
     base["composed"] = composed
     return base
 
