@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 import threading
+import time
 import urllib.error
 import urllib.request
 
@@ -27,11 +28,17 @@ WORKERS = 3
 MIN_OUTPUT_TOKENS = 8000          # free models may reason before answering; a small cap cuts the JSON
 REQUIRED_NONEMPTY = {"what_happened", "groups"}
 OFF_AFTER_RATE_LIMITS = 5         # consecutive 429s that switch a provider off for the run
+# Minimum seconds between calls per provider (free tiers count requests per minute; run 40947456510: Gemini free
+# answered 20 requests, then 429 with three parallel callers).
+MIN_INTERVAL = {"gemini_free": float(os.environ.get("KB_GEMINI_FREE_INTERVAL", "4.5")), "groq": 2.0}
+
+
+USER_AGENT = "bohun-kb-pilot/1.0 (+https://bohundefence.com)"  # Groq answers 403 to the default Python agent
 
 
 def http_post_json(url, headers, body, timeout=300):
     req = urllib.request.Request(url, data=json.dumps(body).encode(), method="POST",
-                                 headers={**headers, "Content-Type": "application/json"})
+                                 headers={**headers, "Content-Type": "application/json", "User-Agent": USER_AGENT})
     with urllib.request.urlopen(req, timeout=timeout) as reply:
         return json.load(reply)
 
@@ -136,7 +143,7 @@ class FreeModel:
         self.providers = providers
         self.ledger = fallback.ledger
         self.batches = fallback.batches
-        self.off, self.rate_limited = set(), {}
+        self.off, self.rate_limited, self.next_slot = set(), {}, {}
         self.lock = threading.Lock()
         self.stats = {"free_ok": 0, "by_provider": {}, "fallback": {}}
 
@@ -165,10 +172,22 @@ class FreeModel:
         with self.lock:
             self.stats["fallback"][key] = self.stats["fallback"].get(key, 0) + n
 
+    def _pace(self, name):
+        gap = MIN_INTERVAL.get(name)
+        if not gap:
+            return
+        with self.lock:
+            now = time.monotonic()
+            start = max(now, self.next_slot.get(name, 0.0))
+            self.next_slot[name] = start + gap
+        if start > now:
+            time.sleep(start - now)
+
     def _free(self, req):
         for p in self.providers:
             if p.name in self.off:
                 continue
+            self._pace(p.name)
             try:
                 answer, usage = p.call(req, self.transport)
                 answer = check_answer(answer, req["schema"])
