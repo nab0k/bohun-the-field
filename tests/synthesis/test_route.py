@@ -228,6 +228,14 @@ class WriterTests(unittest.TestCase):
         o = output(); o['what_happened'] = [{'text': 'According to Defence Industry Europe, Aster Labs was awarded a radar contract.', 'fact_ids': ['F1']}]
         o['why_it_matters'] = [{'text': 'Radar budgets rise.', 'fact_ids': ['D1']}]
         self.assertEqual(validate(o, p, resources().dictionaries)['codes'], [])
+    def test_layer_sentence_without_layer_fact_is_dropped(self):
+        from collectors.synthesis.route import drop_unsupported_layers
+        p = packet(); p['facts'].append({'id': 'C1', 'block': 'context', 'text': 'Earlier award.'})
+        o = output(); o['context'] = [{'text': 'Background from the news.', 'fact_ids': ['F1']},
+                                      {'text': 'Earlier award.', 'fact_ids': ['C1']}]
+        kept = drop_unsupported_layers(o, p)
+        self.assertEqual([x['text'] for x in kept['context']], ['Earlier award.'])
+        self.assertEqual(kept['what_happened'], o['what_happened'])
     def test_missing_writer_blocks(self):self.assertFalse(validate({},packet(),resources().dictionaries)['ok'])
 
 

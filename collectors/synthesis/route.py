@@ -9,6 +9,23 @@ from .context import context_packet
 from .writer import request, validate
 
 
+LAYERS = ("context", "policy_direction", "bigger_picture", "supply_chain")
+
+
+def drop_unsupported_layers(output, packet):
+    """A layer sentence that cites no fact of its own layer is removed, not checked: the layer comes
+    from the knowledge base only (ADR-017 §2); prose is never added or reworded here."""
+    if not isinstance(output, dict):
+        return output
+    blocks = {f["id"]: f.get("block") for f in packet["facts"]}
+    out = dict(output)
+    for layer in LAYERS:
+        if isinstance(out.get(layer), list):
+            out[layer] = [s for s in out[layer] if isinstance(s, dict) and
+                          any(blocks.get(i) == layer for i in s.get("fact_ids", []))]
+    return out
+
+
 def run(documents, resources, *, catalog=(), context=None, writer=None, store=None, ner_predictions=None):
     docs = list(documents)
     if len({d.id for d in docs}) != len(docs):
@@ -86,7 +103,7 @@ def run(documents, resources, *, catalog=(), context=None, writer=None, store=No
                 reasons.append("writer_not_run")
             else:
                 try:
-                    writer_output = writer(request(packet, resources))
+                    writer_output = drop_unsupported_layers(writer(request(packet, resources)), packet)
                     checks = validate(writer_output, packet, resources.dictionaries)
                     if not checks["ok"]:
                         reasons.append("text_mismatch")
