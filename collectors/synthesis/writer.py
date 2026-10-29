@@ -72,8 +72,9 @@ def validate(output, packet, dictionaries):
                 or any(not isinstance(i, str) or i not in facts for i in row["fact_ids"])):
             codes.append("writer_schema_or_fact_id"); continue
         refs = [facts[i] for i in row["fact_ids"]]
-        allowed = "what_happened" if block in {"headline", "why_it_matters"} else block
-        if any(f["block"] != allowed for f in refs):
+        # The implication may rest on any supplied layer (rules v2.0 §8: "Why it matters" from blocks 2-6).
+        allowed = {"what_happened"} if block == "headline" else set(BLOCKS) if block == "why_it_matters" else {block}
+        if any(f["block"] not in allowed for f in refs):
             reasons.append("wrong_fact_block")
         text = row["text"]
         support = " ".join(f["text"] for f in refs)
@@ -85,8 +86,10 @@ def validate(output, packet, dictionaries):
                 reasons.append("unsupported_currency")
         # Proper-name-like phrases and product identifiers must be literal in
         # cited evidence. This is a necessary check, not semantic entailment.
+        # Attribution "according to <outlet>" is required by the rules, so source outlets count as support.
+        outlets = " ".join(s.get("outlet", "") for s in packet.get("sources", []))
         for name in re.findall(r"\b[A-Z][A-Za-z0-9]*(?:[-][A-Za-z0-9]+)+(?:\s+[A-Z][\w-]+)*|\b[A-Z][\w-]+\s+[A-Z][\w-]+", text):
-            if normalize(name) not in normalize(support):
+            if normalize(name) not in normalize(support) and normalize(name) not in normalize(outlets):
                 reasons.append("unsupported_name")
         reported_mode = modality(text, dictionaries)[0]
         modes = {f.get("modality", "unknown") for f in refs}

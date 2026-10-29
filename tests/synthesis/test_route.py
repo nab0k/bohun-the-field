@@ -222,6 +222,12 @@ class WriterTests(unittest.TestCase):
         w=FixtureWriter({sha(canonical(packet())):output()});self.assertEqual(w(request(packet(),resources())),output())
         p=packet();p['facts'][0]['text']='Different'
         with self.assertRaises(ValueError):w(request(p,resources()))
+    def test_attribution_and_why_from_context_pass(self):
+        p = packet(); p['sources'] = [{'outlet': 'Defence Industry Europe'}]
+        p['facts'].append({'id': 'D1', 'block': 'policy_direction', 'text': 'Radar budgets rise.', 'quote': 'Radar budgets rise.', 'modality': 'announced'})
+        o = output(); o['what_happened'] = [{'text': 'According to Defence Industry Europe, Aster Labs was awarded a radar contract.', 'fact_ids': ['F1']}]
+        o['why_it_matters'] = [{'text': 'Radar budgets rise.', 'fact_ids': ['D1']}]
+        self.assertEqual(validate(o, p, resources().dictionaries)['codes'], [])
     def test_missing_writer_blocks(self):self.assertFalse(validate({},packet(),resources().dictionaries)['ok'])
 
 
