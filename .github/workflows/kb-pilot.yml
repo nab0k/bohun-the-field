@@ -20,7 +20,7 @@ on:
         description: schema = JSON schema with search; text = JSON asked in the prompt
         type: choice
         options: [schema, text]
-        default: schema
+        default: text
       expected_sha:
         description: Exact reviewed main commit
         type: string

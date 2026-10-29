@@ -206,6 +206,16 @@ def numbers_in(text):
     return out
 
 
+REF_MARK = re.compile(r"\s*\[(?:[A-Z]\d+(?:,\s*)?)+\]")
+
+
+def strip_refs(output):
+    """References live in refs; bracketed ids the model repeats inside the text are removed."""
+    for sec in SECTIONS:
+        for s in output.get(sec) or []:
+            s["text"] = REF_MARK.sub("", s.get("text") or "").strip()
+
+
 def check_text(output, facts):
     by_id = {f["id"]: f for f in facts}
     codes, sentences = set(), 0
@@ -342,6 +352,7 @@ def run(cur, model, items, companies_by_event, doctrine_records, out_dir, schema
             facts, dropped = build_facts(ev_items, research, pages, archive, doctrine)
             cards = documents(research, facts, pages, terms, out_dir)
             output, wmeta = model(WRITER_SYSTEM, writer_packet(ev_items, facts), WRITER_SCHEMA, max_output=6000)
+            strip_refs(output)
             codes, sentences = check_text(output, facts)
             decision, reasons, analysis = admit(facts, output, codes)
         except BudgetStop as stop:  # the run stops here; finished events are kept for review
@@ -354,6 +365,7 @@ def run(cur, model, items, companies_by_event, doctrine_records, out_dir, schema
         record.update(outcome=decision, reasons=reasons, analysis=analysis, parent=research.get("parent"),
                       primary_source=research.get("primary_source"), archive_hits=len(archive),
                       search_queries=rmeta["search_queries"], grounding_chunks=rmeta["grounding_chunks"][:30],
+                      tool_tokens=rmeta.get("tool_tokens"), grounding_keys=rmeta.get("grounding_keys"),
                       cost_micro_usd=rmeta["cost_micro_usd"] + wmeta["cost_micro_usd"], sentences=sentences,
                       facts=[{k: f[k] for k in ("id", "kind", "text", "status", "source_url", "archive_id", "anchor",
                                                 "document_id")} for f in facts],
