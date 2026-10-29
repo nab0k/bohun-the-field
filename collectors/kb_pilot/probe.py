@@ -90,4 +90,41 @@ def cloudflare():
     call("account_token_verify", "https://api.cloudflare.com/client/v4/accounts/%s/tokens/verify" % acc)
     call("ai_chat", "https://api.cloudflare.com/client/v4/accounts/%s/ai/v1/chat/completions" % acc,
          {"model": "@cf/google/gemma-4-26b-a4b-it", "max_tokens": 5, "messages": [{"role": "user", "content": "Say OK"}]})
+    # How each free model returns JSON: message keys, finish reason, content length/prefix, parse result, time.
+    import time
+    task = [{"role": "system", "content": "Return only one JSON object: {\"items\": [{\"name\": string, \"year\": integer}]} "
+                                          "listing three NATO members with their joining year. No prose."},
+            {"role": "user", "content": "Go."}]
+    for model in ("@cf/google/gemma-4-26b-a4b-it", "@cf/zai-org/glm-4.7-flash", "@cf/nvidia/nemotron-3-120b-a12b"):
+        for fmt in (None, {"type": "json_object"}):
+            body = {"model": model, "max_tokens": 600, "temperature": 0.2, "messages": task}
+            if fmt:
+                body["response_format"] = fmt
+            req = urllib.request.Request("https://api.cloudflare.com/client/v4/accounts/%s/ai/v1/chat/completions" % acc,
+                                         data=json.dumps(body).encode(), method="POST",
+                                         headers={**head, "Content-Type": "application/json"})
+            t0 = time.time()
+            try:
+                with urllib.request.urlopen(req, timeout=120) as r:
+                    data = json.load(r); code = r.status
+            except urllib.error.HTTPError as exc:
+                code, data = exc.code, {}
+                try:
+                    data = json.loads(exc.read().decode())
+                except Exception:
+                    pass
+            except Exception as exc:
+                print("KB_CF_MODEL %s fmt=%s transport=%s secs=%.0f" % (model, bool(fmt), type(exc).__name__, time.time() - t0))
+                continue
+            msg = ((data.get("choices") or [{}])[0].get("message") or {})
+            content = msg.get("content") or ""
+            try:
+                from .gemini import parse_json_text
+                parsed = type(parse_json_text(content)).__name__
+            except Exception as exc:
+                parsed = "fail:" + type(exc).__name__
+            print("KB_CF_MODEL %s fmt=%s http=%s secs=%.0f keys=%s finish=%s content_len=%d prefix=%s parsed=%s usage=%s errors=%s" % (
+                model, bool(fmt), code, time.time() - t0, sorted(msg), (data.get("choices") or [{}])[0].get("finish_reason"),
+                len(content), json.dumps(content[:60]), parsed, json.dumps(data.get("usage")),
+                json.dumps([e.get("message") for e in data.get("errors") or []])[:200]))
     return 0
