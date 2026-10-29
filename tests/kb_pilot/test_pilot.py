@@ -340,3 +340,18 @@ class BatchTest(unittest.TestCase):
     def test_inlined_paths(self):
         self.assertEqual(find_inlined({"dest": {"inlinedResponses": [1]}}), [1])
         self.assertEqual(find_inlined({"response": {"inlinedResponses": {"inlinedResponses": [2]}}}), [2])
+
+
+class WriterShapeTest(unittest.TestCase):
+    def test_string_sentences_keep_their_refs(self):
+        out = pilot.normalize_output({"headline": "h", "lead": "l", "context": ["Award made [T1, T2].", {"text": "x", "refs": ["N1"]}],
+                                      "what_happened": "Poland hosts it [N1]."})
+        self.assertEqual(out["context"][0]["refs"], ["T1", "T2"])
+        self.assertEqual(out["what_happened"][0]["refs"], ["N1"])
+        self.assertEqual(out["supply_chain"], [])
+
+    def test_bad_writer_answer_fails_one_event(self):
+        t = Scripted([reply(one_group()), note_reply(), reply(RESEARCH), reply(["not", "an", "object"])])
+        with tempfile.TemporaryDirectory() as d:
+            result = pilot.run(FakeCursor(), Gemini("k", Ledger(), t), ITEMS, {}, DOCTRINE, Path(d), fetcher=fake_pages)
+        self.assertEqual(result["events"][0]["outcome"], "error")
