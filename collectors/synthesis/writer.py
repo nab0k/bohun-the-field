@@ -98,7 +98,7 @@ def validate(output, packet, dictionaries):
         # Proper-name-like phrases and product identifiers must be literal in
         # cited evidence. This is a necessary check, not semantic entailment.
         # Fact IDs belong in fact_ids, never in the published prose.
-        if re.search(r"\[[FD][0-9a-f]{2,}", text):
+        if re.search(r"\[[FD][0-9a-f]{1,}", text):
             reasons.append("fact_id_in_text")
         # A name passes when each of its words occurs in the cited facts or the source outlets
         # ("according to <outlet>" is required). Hyphens count as spaces (PAC 3 = PAC-3); headline

@@ -251,6 +251,10 @@ class WriterTests(unittest.TestCase):
         p = packet(); p['facts'][0]['text'] = p['facts'][0]['quote'] = 'ESA awarded Aster Labs a radar contract.'
         o = output(); o['what_happened'] = [{'text': 'The European Space Agency awarded Aster Labs a radar contract.', 'fact_ids': ['F1']}]
         self.assertNotIn('unsupported_name', validate(o, p, resources().dictionaries)['codes'])
+    def test_short_doctrine_id_is_removed(self):
+        from collectors.synthesis.route import drop_unsupported_layers
+        o = output(); o['what_happened'] = [{'text': 'Aster Labs was awarded a radar contract [D3].', 'fact_ids': ['F1']}]
+        self.assertEqual(drop_unsupported_layers(o, packet())['what_happened'][0]['text'], 'Aster Labs was awarded a radar contract.')
     def test_missing_writer_blocks(self):self.assertFalse(validate({},packet(),resources().dictionaries)['ok'])
 
 
