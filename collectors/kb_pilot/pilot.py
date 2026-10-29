@@ -20,8 +20,9 @@ from . import PILOT_VERSION
 from .dossier import DbStore, KIND, MemoryStore, PREFIX, row_hash
 from .gemini import Gemini, Ledger
 from .pages import amount_forms, check_row, fetch_all, host, is_official, norm, sections
-from .prompts import (GROUP_SCHEMA, GROUP_SYSTEM, RESEARCH_SCHEMA, RESEARCH_SYSTEM, SECTIONS, STRUCTURE_SYSTEM,
-                      WRITER_SCHEMA, WRITER_SYSTEM)
+from .free import FreeModel
+from .prompts import (GROUP_SCHEMA, GROUP_SYSTEM, RESEARCH_SCHEMA, RESEARCH_SYSTEM, SECTIONS, SHORT_WRITER_SCHEMA,
+                      SHORT_WRITER_SYSTEM, STRUCTURE_SYSTEM, WRITER_SCHEMA, WRITER_SYSTEM)
 from ..synthesis.contracts import canonical, sha
 from ..synthesis.live import BudgetStop, MODEL, PRICE_VERSION
 
@@ -252,6 +253,70 @@ def build_facts(event_items, research, pages, archive, doctrine, grounded_pages=
     return facts, dropped
 
 
+MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+MAX_CHRONOLOGY_LINES = 7
+
+
+def human_date(day, precision):
+    if not day or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", day):
+        return day or ""
+    y, m, d = day.split("-")
+    if precision == "year":
+        return y
+    if precision == "month":
+        return "%s %s" % (MONTHS[int(m) - 1], y)
+    return "%d %s %s" % (int(d), MONTHS[int(m) - 1], y)
+
+
+def compose_sections(facts):
+    """Context, supply chain and policy sentences written by code from verified rows (no model, no invention)."""
+    ok = [f for f in facts if f["status"] == "ok" and isinstance(f.get("row"), dict)]
+    chron = sorted([f for f in ok if f["kind"] == "T"], key=lambda f: f["row"].get("date") or "")
+    seen, unique = set(), []
+    for f in chron:  # one line per date
+        if f["row"].get("date") not in seen:
+            seen.add(f["row"].get("date")); unique.append(f)
+    if len(unique) > MAX_CHRONOLOGY_LINES:  # the earliest step for depth, then the latest ones
+        unique = unique[:1] + unique[-(MAX_CHRONOLOGY_LINES - 1):]
+    context = []
+    for f in unique:
+        r = f["row"]
+        money = ", ".join(x for x in (r.get("commitment") if r.get("commitment") not in (None, "other") else None,
+                                      human_amount(r.get("amount"), r.get("currency")).strip() or None) if x)
+        what = (r.get("what") or "").strip().rstrip(".")
+        context.append({"text": "%s: %s%s." % (human_date(r.get("date"), r.get("precision")), what,
+                                               " (%s)" % money if money else ""), "refs": [f["id"]]})
+    supply = []
+    for f in [f for f in ok if f["kind"] == "S"][:3]:
+        r = f["row"]
+        note = (r.get("note") or "").strip().rstrip(".")
+        supply.append({"text": "%s depends on %s%s." % (r.get("upper"), r.get("lower"), " — " + note if note else ""),
+                       "refs": [f["id"]]})
+    for f in [f for f in ok if f["kind"] == "R"][:2]:
+        r = f["row"]
+        span = " ".join(x for x in ("from " + r["starts_on"] if r.get("starts_on") else "",
+                                    "until " + r["ends_on"] if r.get("ends_on") else "") if x)
+        supply.append({"text": "%s: %s on %s%s (%s)." % (r.get("issuer"), (r.get("kind") or "").replace("_", " "),
+                                                        r.get("subject"), " " + span if span else "", r.get("status")),
+                       "refs": [f["id"]]})
+    policy = [{"text": "%s — %s (%s): %s" % (f["row"]["jurisdiction"], f["row"]["title"], f["row"]["document_date"],
+                                             f["row"]["direction"]), "refs": [f["id"]]}
+              for f in facts if f["kind"] == "D" and f["status"] in ("ok", "check")][:2]
+    return {"context": context, "supply_chain": supply, "policy_direction": policy}
+
+
+def short_writer_packet(event_items, facts, composed):
+    base = writer_packet(event_items, facts)
+    base["composed"] = composed
+    return base
+
+
+def merge_writer(short, composed):
+    out = dict(short)
+    out.update(composed)
+    return out
+
+
 def writer_packet(event_items, facts):
     usable = [f for f in facts if f["status"] in ("ok", "news", "check")]
     return {"event": {"titles": [it["title"] for it in event_items], "date": event_items[0]["published"][:10]},
@@ -470,7 +535,7 @@ def topic_slugs():
 
 
 def run(cur, model, items, companies_by_event, doctrine_records, out_dir, fetcher=fetch_all, store=None,
-        run_ref=None, save=None):
+        run_ref=None, save=None, cheap=None, template=True):
     """Phases over all events: grouping → research → structure → pages and facts → writer → checks → dossier.
 
     Each model phase is one call per event, or one Batch request for all events when the model is in batch mode.
@@ -479,7 +544,8 @@ def run(cur, model, items, companies_by_event, doctrine_records, out_dir, fetche
     if not items:
         return {"version": PILOT_VERSION, "items": 0, "groups": 0, "events": [], "stop": "NO_EVENTS_IN_WINDOW"}
     store = store if store is not None else MemoryStore()
-    groups, gmeta = group_items(model, items, store.known_names(), topic_slugs())
+    cheap = cheap or model  # steps without search: free model with Gemini fallback when configured
+    groups, gmeta = group_items(cheap, items, store.known_names(), topic_slugs())
     result = {"version": PILOT_VERSION, "model": MODEL, "price_version": PRICE_VERSION, "items": len(items),
               "groups": len(groups), "grouping": {"cost_micro_usd": gmeta["cost_micro_usd"],
                                                   "fallback": gmeta.get("fallback")}, "events": []}
@@ -500,8 +566,8 @@ def run(cur, model, items, companies_by_event, doctrine_records, out_dir, fetche
     def fail(ev, exc):
         ev["record"].update(outcome="error", error=type(exc).__name__ + ":" + str(exc)[:120])
 
-    def phase(live, make, apply):
-        answers = model.many([make(ev) for ev in live])
+    def phase(live, make, apply, m=model):
+        answers = m.many([make(ev) for ev in live])
         nxt = []
         for ev, a in zip(live, answers):
             if a[0] == "error":
@@ -515,8 +581,8 @@ def run(cur, model, items, companies_by_event, doctrine_records, out_dir, fetche
     try:
         live = phase(evs, lambda ev: research_request(model, ev),
                      lambda ev, note, info: ev.update(note=note, rinfo=info))
-        live = phase(live, lambda ev: structure_request(model, ev, ev["note"], ev["rinfo"]),
-                     lambda ev, research, info: ev.update(research=research, sinfo=info))
+        live = phase(live, lambda ev: structure_request(cheap, ev, ev["note"], ev["rinfo"]),
+                     lambda ev, research, info: ev.update(research=research, sinfo=info), cheap)
         for ev in list(live):
             try:
                 research, rinfo = ev["research"], ev["rinfo"]
@@ -527,9 +593,18 @@ def run(cur, model, items, companies_by_event, doctrine_records, out_dir, fetche
                 ev.update(facts=facts, dropped=dropped, cards=documents(research, facts, pages, ev["terms"], out_dir))
             except Exception as exc:
                 fail(ev, exc); live.remove(ev)
-        live = phase(live, lambda ev: model.request(WRITER_SYSTEM, writer_packet(ev["items"], ev["facts"]),
-                                                    WRITER_SCHEMA, max_output=6000, step="writer"),
-                     lambda ev, output, info: ev.update(output=output, winfo=info))
+        if template:  # code writes context / supply chain / policy; the model writes the short parts
+            for ev in live:
+                ev["composed"] = compose_sections(ev["facts"])
+            live = phase(live, lambda ev: cheap.request(SHORT_WRITER_SYSTEM,
+                                                        short_writer_packet(ev["items"], ev["facts"], ev["composed"]),
+                                                        SHORT_WRITER_SCHEMA, max_output=2000, step="writer"),
+                         lambda ev, output, info: ev.update(output=merge_writer(output, ev["composed"]), winfo=info),
+                         cheap)
+        else:
+            live = phase(live, lambda ev: model.request(WRITER_SYSTEM, writer_packet(ev["items"], ev["facts"]),
+                                                        WRITER_SCHEMA, max_output=6000, step="writer"),
+                         lambda ev, output, info: ev.update(output=output, winfo=info))
     except BudgetStop as stop:  # finished events are kept; unfinished ones are marked
         result["stop"] = str(stop)
         live = [ev for ev in evs if "output" in ev]
@@ -561,6 +636,7 @@ def run(cur, model, items, companies_by_event, doctrine_records, out_dir, fetche
             except Exception as exc:  # the synthesis stays; only the dossier write of this event failed
                 rec["dossier"] = {"error": type(exc).__name__ + ":" + str(exc)[:160]}
     result["batches"] = getattr(model, "batches", [])
+    result["free"] = getattr(cheap, "stats", None)
     return result
 
 
@@ -574,7 +650,7 @@ def summary(result, ledger):
     facts = [f for e in result["events"] for f in e.get("facts") or []]
     return {"version": result["version"], "items": result["items"], "groups": result["groups"],
             "outcomes": outcomes, "reasons": reasons, "spent_micro_usd": ledger.spent, "model_calls": ledger.calls,
-            "spent_by_step": ledger.steps, "search_queries": ledger.search_queries,
+            "spent_by_step": ledger.steps, "search_queries": ledger.search_queries, "free": result.get("free"),
             "batches": [{k: b.get(k) for k in ("step", "requests", "state", "waited_seconds", "estimated")}
                         for b in result.get("batches") or []],
             "known_programmes": sum(1 for e in result["events"] if e.get("known_programme")),
@@ -606,6 +682,7 @@ def main(argv=None):
     doctrine_records = json.loads(DOCTRINE.read_text(encoding="utf-8"))["records"]
     ledger = Ledger()
     model = Gemini(os.environ.get("GEMINI_API_KEY"), ledger, batch=args.batch)
+    cheap = FreeModel(model)  # free model when CLOUDFLARE_* secrets exist, Gemini otherwise
     with connect() as conn:
         with conn.cursor() as cur:
             items = (load_events if args.source == "events" else load_items)(cur, args.day_from, args.day_to)
@@ -630,7 +707,8 @@ def main(argv=None):
 
             try:
                 result = run(cur, model, items, by_event, doctrine_records, out_dir, store=store,
-                             run_ref=args.run_ref, save=save)
+                             run_ref=args.run_ref, save=save, cheap=cheap,
+                             template=os.environ.get("KB_TEMPLATE", "1") != "0")
             except BudgetStop as stop:
                 conn.rollback()
                 result = {"version": PILOT_VERSION, "items": len(items), "groups": 0, "events": [], "stop": str(stop)}
