@@ -144,7 +144,7 @@ class LedgerTest(unittest.TestCase):
     def test_cap_stops_before_call(self):
         ledger = Ledger(cap=10)
         with self.assertRaises(BudgetStop):
-            ledger.reserve(1000, 100, grounded=True)
+            ledger.reserve(ledger.worst(1000, 100, True), grounded=True)
 
     def test_grounded_body_and_query_count(self):
         ledger = Ledger()
@@ -216,13 +216,13 @@ class RouteTest(unittest.TestCase):
     def test_budget_stop_keeps_finished_events(self):
         groups = {"groups": [{"items": [1], "programme": "a", "organisations": [], "terms": [], "place": None},
                              {"items": [2], "programme": "b", "organisations": [], "terms": [], "place": None}]}
-        t = Scripted([reply(groups), note_reply(), reply(RESEARCH), reply(WRITER), note_reply(i=10**7)])
+        t = Scripted([reply(groups), note_reply(), note_reply(i=10**7)])
         model = Gemini("k", Ledger(cap=2_000_000), t)
         with tempfile.TemporaryDirectory() as d:
             result = pilot.run(FakeCursor(), model, ITEMS, {}, DOCTRINE, Path(d), fetcher=fake_pages)
         self.assertEqual(result["stop"], "BUDGET_CAP_REACHED")
-        self.assertIn(result["events"][0]["outcome"], ("CANDIDATE", "HOLD"))
-        self.assertEqual(result["events"][1]["outcome"], "stopped")
+        self.assertEqual([e["outcome"] for e in result["events"]], ["stopped", "stopped"])
+        self.assertGreater(model.ledger.steps["research"], 0)
 
     def test_bad_grouping_falls_back_to_one_item_per_event(self):
         self.assertIsNone(pilot.valid_groups({"groups": [{"items": [1]}]}, 2))
@@ -268,3 +268,75 @@ class RedirectTest(unittest.TestCase):
         pages = {"https://vertexaisearch.cloud.google.com/r/1": {"final_url": "https://real.example/a"}}
         self.assertEqual(pilot.real_url("https://vertexaisearch.cloud.google.com/r/1", pages), "https://real.example/a")
         self.assertEqual(pilot.real_url("https://x.example", pages), "https://x.example")
+
+
+from collectors.kb_pilot.dossier import MemoryStore, programme_key
+from collectors.kb_pilot.gemini import find_inlined
+
+
+def one_group(name="PAC-3 MSE"):
+    return {"groups": [{"items": [1, 2], "programme": name, "organisations": ["Lockheed Martin"], "terms": ["PAC-3"],
+                        "countries": ["US", "PL"], "topic": "us-munitions-ramp-up",
+                        "place": {"label": "Poland", "lat": 52.2, "lon": 21.0}}]}
+
+
+class DossierTest(unittest.TestCase):
+    def run_with(self, store, t):
+        model = Gemini("k", Ledger(), t)
+
+        def save(ev, rec, facts, cards):
+            return store.save(ev["group"]["programme"], [ev["group"]["programme"]], ev["topic"], None, facts, cards,
+                              "run", "v")
+        with tempfile.TemporaryDirectory() as d:
+            return pilot.run(FakeCursor(), model, ITEMS, {}, DOCTRINE, Path(d), fetcher=fake_pages, store=store,
+                             save=save)
+
+    def test_second_run_reuses_the_dossier(self):
+        store = MemoryStore()
+        first = self.run_with(store, Scripted([reply(one_group()), note_reply(), reply(RESEARCH), reply(WRITER)]))
+        added = first["events"][0]["dossier"]["added"]
+        self.assertGreaterEqual(added, 3)
+        t = Scripted([reply(one_group("PAC-3 MSE")), note_reply(), reply(RESEARCH), reply(WRITER)])
+        second = self.run_with(store, t)
+        ev = second["events"][0]
+        self.assertTrue(ev["known_programme"])
+        self.assertEqual(ev["dossier_rows_before"], added)
+        self.assertIn("do not repeat them", t.bodies[1]["contents"][0]["parts"][0]["text"])
+        self.assertIn("PAC-3 MSE", json.loads(t.bodies[0]["contents"][0]["parts"][0]["text"])["known_programmes"])
+        origins = [f["origin"] for f in ev["facts"] if f["kind"] == "T"]
+        self.assertIn("dossier", origins)
+        self.assertTrue(any(f["status"] == "dossier_repeat" for f in ev["facts"]))
+        self.assertEqual(ev["dossier"]["added"], 0)     # nothing new to add
+
+    def test_programme_key(self):
+        self.assertEqual(programme_key("PAC-3 MSE (Patriot)"), "pac-3 mse patriot")
+        self.assertIsNone(programme_key("!"))
+
+
+class BatchTest(unittest.TestCase):
+    def test_batch_answers_in_order_at_half_price(self):
+        created = {"name": "batches/1", "metadata": {"state": "BATCH_STATE_PENDING"}}
+        done = {"name": "batches/1", "metadata": {"state": "BATCH_STATE_SUCCEEDED"},
+                "response": {"inlinedResponses": {"inlinedResponses": [
+                    {"response": reply({"b": 2}), "metadata": {"key": "r1"}},
+                    {"response": reply({"a": 1}), "metadata": {"key": "r0"}}]}}}
+        polls = [done]
+        ledger = Ledger()
+        model = Gemini("k", ledger, Scripted([created]), getter=lambda url, h: polls.pop(0), sleep=lambda s: None,
+                       batch=True)
+        reqs = [model.request("s", {"i": i}, {"type": "object"}, step="writer") for i in range(2)]
+        out = model.many(reqs)
+        self.assertEqual([o[1] for o in out], [{"a": 1}, {"b": 2}])
+        self.assertEqual(ledger.steps["writer"], 2 * int(ledger.cost_of(usage()) * 0.5))
+        self.assertEqual(model.batches[0]["state"], "BATCH_STATE_SUCCEEDED")
+
+    def test_failed_batch_stops(self):
+        model = Gemini("k", Ledger(), Scripted([{"name": "batches/2", "state": "JOB_STATE_FAILED"}]),
+                       sleep=lambda s: None, batch=True)
+        reqs = [model.request("s", {}, {"type": "object"}) for _ in range(2)]
+        with self.assertRaises(BudgetStop):
+            model.many(reqs)
+
+    def test_inlined_paths(self):
+        self.assertEqual(find_inlined({"dest": {"inlinedResponses": [1]}}), [1])
+        self.assertEqual(find_inlined({"response": {"inlinedResponses": {"inlinedResponses": [2]}}}), [2])

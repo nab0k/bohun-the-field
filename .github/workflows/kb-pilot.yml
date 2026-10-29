@@ -21,6 +21,19 @@ on:
         type: choice
         options: [schema, text]
         default: text
+      source:
+        description: events = items that reached the old writer; items = every item with a body
+        type: choice
+        options: [events, items]
+        default: events
+      batch:
+        description: Each model phase as one Gemini Batch request (half price, may wait)
+        type: boolean
+        default: false
+      dossier_write:
+        description: Save verified rows to the programme dossier (knowledge v16)
+        type: boolean
+        default: true
       mode:
         description: pilot = the run; probe = one neutral grounded question, structure only
         type: choice
@@ -44,7 +57,7 @@ jobs:
   pilot:
     if: github.repository == 'nab0k/bohun-the-field' && github.actor == 'nab0k' && github.run_attempt == 1
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 180
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
@@ -69,7 +82,7 @@ jobs:
         run: |
           python -m venv "$RUNNER_TEMP/bohun-kb"
           "$RUNNER_TEMP/bohun-kb/bin/python" -m pip install --only-binary=:all: --disable-pip-version-check 'psycopg[binary]==3.3.6'
-      - name: Run the pilot (reads the database, writes nothing to it; cap $2)
+      - name: Run the pilot (writes only the dossier tables; cap $2 per run)
         env:
           DAY_FROM: ${{ inputs.day_from }}
           DAY_TO: ${{ inputs.day_to }}
@@ -77,9 +90,12 @@ jobs:
           SCHEMA_MODE: ${{ inputs.schema_mode }}
           KB_RESEARCH_THINKING: ${{ inputs.research_thinking }}
           KB_MODE: ${{ inputs.mode }}
+          SOURCE: ${{ inputs.source }}
+          BATCH: ${{ inputs.batch && '--batch' || '' }}
+          NO_DOSSIER: ${{ (!inputs.dossier_write) && '--no-dossier-write' || '' }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: '"$RUNNER_TEMP/bohun-kb/bin/python" -B -m collectors.kb_pilot --day-from "$DAY_FROM" --day-to "$DAY_TO" --limit "${LIMIT:-0}" --schema-mode "$SCHEMA_MODE" --out "$RUNNER_TEMP/kb-pilot-out"'
+        run: '"$RUNNER_TEMP/bohun-kb/bin/python" -B -m collectors.kb_pilot --day-from "$DAY_FROM" --day-to "$DAY_TO" --limit "${LIMIT:-0}" --schema-mode "$SCHEMA_MODE" --source "$SOURCE" $BATCH $NO_DOSSIER --out "$RUNNER_TEMP/kb-pilot-out"'
       - name: Keep the result for review
         if: always()
         uses: actions/upload-artifact@v4.6.2
