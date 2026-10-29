@@ -109,8 +109,20 @@ def run(conn, account, token, limit=8000, day_from=None, transport=None):
             continue
         try:
             vectors = embed_texts([it["text"] for it in chunk], account, token, transport)
-        except (urllib.error.URLError, RuntimeError):
+        except urllib.error.HTTPError as exc:
             stats["errors"] += 1
+            try:
+                detail = [e.get("message", "")[:100] for e in json.loads(exc.read().decode()).get("errors") or []]
+            except Exception:
+                detail = []
+            stats.setdefault("error_codes", {}).setdefault(str(exc.code), detail)
+            if exc.code == 429:  # daily free allocation used: stop, the next run continues
+                stats["stop"] = "FREE_ALLOCATION_429"
+                break
+            continue
+        except (urllib.error.URLError, RuntimeError) as exc:
+            stats["errors"] += 1
+            stats.setdefault("error_codes", {})[type(exc).__name__ + ":" + str(exc)[:60]] = []
             continue
         stats["batches"] += 1
         with conn.cursor() as cur:
