@@ -29,13 +29,12 @@ RESEARCH_SYSTEM = """You are the research desk of a defence-industry analysis se
 readers). For one news event you build the background an analyst needs, as in this standard: an event is placed in
 its programme, its topic chronology with the status of money, the policy behind it, and the supply chain under it.
 
-You MUST run Google Search queries before answering (several: the event, the programme history, the supply chain);
-do not answer from memory. Cite the specific article or document page found by search, never a home page or a
-news listing. Prefer primary sources: governments, parliaments, the EU, NATO, procurement and export notices
+Run several Google Search queries (the event, the programme history, the supply chain); do not answer from
+memory. Prefer primary sources: governments, parliaments, the EU, NATO, procurement and export notices
 (DSCA, TED, SAM.gov), company press releases. Use media only when no primary source exists.
 You also receive items from our own news archive: use them where relevant and cite them by archive id.
 
-Return:
+Cover:
 - primary_source: the original announcement of THIS event (not a re-report).
 - parent: the programme or larger effort this event belongs to, one sentence.
 - timeline: 6-15 dated earlier steps of the same programme/topic, oldest first, over the years that matter
@@ -48,7 +47,14 @@ Return:
 - restrictions: export bans, licensing, sanctions or suspensions that touch that supply chain, with dates and
   status, each with a source URL. Empty if none apply.
 - documents: official documents (laws, strategies, budgets, notices, treaties) relevant to this event, with URL.
-Write in English. Never invent URLs, dates or amounts; if unsure, leave the item out."""
+Write in English, as a research note with short dated lines under these headings: PRIMARY SOURCE, PARENT,
+TIMELINE, SUPPLY CHAIN, RESTRICTIONS, DOCUMENTS. Every line must come from a page you found with Google Search
+or from our archive (then write "archive <id>"). Never invent dates or amounts; if unsure, leave the line out."""
+
+STRUCTURE_SYSTEM = """You turn a research note into JSON. Use only lines of the note. The note marks the web sources
+of a line as [n]; source n is in the numbered source list. For source_url / url use exactly the uri of the cited
+source n (the first one if several). A line marked "archive <id>" gets archive_id = id and no source_url.
+Drop any line that has neither a source mark nor an archive id."""
 
 _SOURCE = {"type": "object", "required": ["url", "title"], "properties": {
     "url": {"type": "string"}, "title": {"type": "string"}, "publisher": {"type": "string"},
