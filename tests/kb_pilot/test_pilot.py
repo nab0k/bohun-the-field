@@ -363,8 +363,11 @@ class UnwrapTest(unittest.TestCase):
         self.assertEqual(unwrap([{"a": 1}]), {"a": 1})
         self.assertEqual(unwrap([{"timeline": [1]}, {"timeline": [2], "parent": {}}]), {"timeline": [1, 2], "parent": {}})
 
-    def test_batch_requests_put_schema_in_prompt(self):
+    def test_only_batched_requests_put_schema_in_prompt(self):
         m = Gemini("k", Ledger(), None, batch=True)
         r = m.request("s", {}, {"type": "object"})
-        self.assertNotIn("responseJsonSchema", r["body"]["generationConfig"])
-        self.assertIn("Return only one JSON object", r["body"]["systemInstruction"]["parts"][0]["text"])
+        self.assertIn("responseJsonSchema", r["body"]["generationConfig"])   # direct call keeps the schema
+        t = m.as_text_mode(r)
+        self.assertNotIn("responseJsonSchema", t["body"]["generationConfig"])
+        self.assertIn("Return only one JSON object", t["body"]["systemInstruction"]["parts"][0]["text"])
+        self.assertIn("responseJsonSchema", r["body"]["generationConfig"])   # original untouched
