@@ -1,0 +1,48 @@
+{
+  "direct_pins": {
+    "followthemoney": "4.11.2",
+    "nomenklatura": "4.17.3",
+    "trafilatura": "2.3.1",
+    "langextract": "1.7.1"
+  },
+  "upstream": {
+    "followthemoney": {
+      "repository": "https://github.com/opensanctions/followthemoney",
+      "ref": "v4.11.2",
+      "license": "MIT"
+    },
+    "nomenklatura": {
+      "repository": "https://github.com/opensanctions/nomenklatura",
+      "ref": "4.17.3",
+      "license": "MIT"
+    },
+    "trafilatura": {
+      "repository": "https://github.com/adbar/trafilatura",
+      "ref": "v2.3.1",
+      "license": "Apache-2.0"
+    },
+    "langextract": {
+      "repository": "https://github.com/google/langextract",
+      "ref": "v1.7.1",
+      "license": "Apache-2.0"
+    }
+  },
+  "platform_checked": "TARGET_ONLY Ubuntu24.04 x86_64 CPython3.13.17; NOT_RUN",
+  "installation_status": "CLOUD_NOT_RUN",
+  "failure": null,
+  "full_resolved_lock": null,
+  "native_proof": "NOT_RUN",
+  "linux_compatibility": "NOT_RUN",
+  "model_transport": "NOT_IMPLEMENTED_NOT_ADMITTED",
+  "source_manifest": "results/cloud-native/project-sources.json",
+  "cloud_build": {
+    "pyicu_version": "2.17",
+    "pyicu_source_sha256": "6138b95ac9592fa3983bf489e0c625e8fcfffd0c562a36a08269cecc4ffb48be",
+    "setuptools_version": "80.9.0",
+    "setuptools_wheel_sha256": "062d34222ad13e0cc312a4c02d73f059e86a4acbfbdea8f8f76b28c99f306922",
+    "source_build_exception": [
+      "pyicu"
+    ],
+    "mac_installation_allowed": false
+  }
+}

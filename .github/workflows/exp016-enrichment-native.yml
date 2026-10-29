@@ -1,0 +1,72 @@
+name: EXP-016 original Python libraries — synthetic native proof
+
+"on":
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact approved full commit SHA (40 lowercase hex characters)
+        required: true
+        type: string
+      confirmation:
+        description: Type SYNTHETIC_NATIVE_ONLY for this separately approved run
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: exp016-native-proof
+  cancel-in-progress: false
+
+jobs:
+  native-proof:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.repository == 'nab0k/bohun-the-field' &&
+      github.event.repository.private == false &&
+      github.ref == 'refs/heads/main' &&
+      inputs.confirmation == 'SYNTHETIC_NATIVE_ONLY'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      EXPECTED_SHA: ${{ inputs.expected_sha }}
+      NATIVE_CONFIRMATION: ${{ inputs.confirmation }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Validate the approved SHA before checkout
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$GITHUB_WORKFLOW_SHA" == "$EXPECTED_SHA" ]]
+      - name: Read exactly the reviewed source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ inputs.expected_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Select the proposed Linux CPython
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13.17'
+          check-latest: false
+      - name: Build only PyICU and install the checked Linux lock
+        run: |
+          set -euo pipefail
+          umask 077
+          python experiments/exp016_enrichment/cloud_environment.py prepare
+      - name: Four original APIs, no skipped tests, and zero repeat changes
+        run: |
+          set -euo pipefail
+          umask 077
+          python experiments/exp016_enrichment/cloud_environment.py verify
+      - name: Technical proof or failure summary (synthetic data only)
+        if: always()
+        run: |
+          set -euo pipefail
+          if [[ -f experiments/exp016_enrichment/cloud_environment.py ]]; then
+            python experiments/exp016_enrichment/cloud_environment.py summary
+          fi
