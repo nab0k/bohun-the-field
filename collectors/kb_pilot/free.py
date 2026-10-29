@@ -33,8 +33,8 @@ def http_post_json(url, headers, body, timeout=120):
 class FreeModel:
     def __init__(self, fallback, account=None, token=None, transport=http_post_json, model=FREE_MODEL):
         self.fallback, self.transport, self.model = fallback, transport, model
-        self.account = account if account is not None else os.environ.get("CLOUDFLARE_ACCOUNT_ID")
-        self.token = token if token is not None else os.environ.get("CLOUDFLARE_WORKERS_AI_TOKEN")
+        self.account = (account if account is not None else os.environ.get("CLOUDFLARE_ACCOUNT_ID") or "").strip()
+        self.token = (token if token is not None else os.environ.get("CLOUDFLARE_WORKERS_AI_TOKEN") or "").strip()
         self.ledger = fallback.ledger
         self.batches = fallback.batches
         self.neurons = 0

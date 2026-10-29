@@ -54,3 +54,40 @@ def main():
         reply = post(url, key, body)
         print("KB_PROBE " + name + " " + json.dumps(shape(reply), ensure_ascii=False)[:6000])
     return 0
+
+
+def cloudflare():
+    """Status codes and Cloudflare error codes only — never the token or account id."""
+    import re
+    acc = (os.environ.get("CLOUDFLARE_ACCOUNT_ID") or "")
+    tok = (os.environ.get("CLOUDFLARE_WORKERS_AI_TOKEN") or "")
+    facts = {"account_len": len(acc), "account_hex32": bool(re.fullmatch(r"[0-9a-f]{32}", acc.strip())),
+             "account_has_space": acc != acc.strip(), "token_len": len(tok), "token_has_space": tok != tok.strip()}
+    print("KB_CF_SHAPE " + json.dumps(facts))
+    acc, tok = acc.strip(), tok.strip()
+    head = {"Authorization": "Bearer " + tok}
+
+    def call(name, url, body=None):
+        req = urllib.request.Request(url, data=json.dumps(body).encode() if body else None,
+                                     method="POST" if body else "GET",
+                                     headers={**head, "Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=60) as r:
+                data = json.load(r); code = r.status
+        except urllib.error.HTTPError as exc:
+            code = exc.code
+            try:
+                data = json.loads(exc.read().decode())
+            except Exception:
+                data = {}
+        except Exception as exc:
+            print("KB_CF %s transport %s" % (name, type(exc).__name__)); return
+        errs = [{"code": e.get("code"), "message": str(e.get("message"))[:120]} for e in data.get("errors") or []]
+        status = (data.get("result") or {}).get("status") if isinstance(data.get("result"), dict) else None
+        print("KB_CF %s http=%s success=%s status=%s errors=%s" % (name, code, data.get("success"), status, json.dumps(errs)))
+
+    call("user_token_verify", "https://api.cloudflare.com/client/v4/user/tokens/verify")
+    call("account_token_verify", "https://api.cloudflare.com/client/v4/accounts/%s/tokens/verify" % acc)
+    call("ai_chat", "https://api.cloudflare.com/client/v4/accounts/%s/ai/v1/chat/completions" % acc,
+         {"model": "@cf/google/gemma-4-26b-a4b-it", "max_tokens": 5, "messages": [{"role": "user", "content": "Say OK"}]})
+    return 0
