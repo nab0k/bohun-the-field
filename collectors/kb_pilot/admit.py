@@ -19,7 +19,7 @@ import re
 import sys
 
 from ..synthesis.contracts import canonical, sha
-from .extract import verifier_excludes
+from .extract import WEAK_JUDGES, verifier_excludes
 from .pilot import numbers_in
 from .publish import clean_sources, headline_of
 from .prompts import REVIEW_SCHEMA, REVIEW_SYSTEM
@@ -115,8 +115,8 @@ def review(cheap, sources_text, version, items):
     exclude = verifier_excludes(cheap, None)
     first = cheap.free_many([cheap.request(REVIEW_SYSTEM, review_packet(sources_text, version, items), REVIEW_SCHEMA,
                                            max_output=4000, step="review")], exclude=[exclude])[0]
-    if first[0] != "ok":
-        return None
+    if first[0] != "ok" or first[2].get("model") in WEAK_JUDGES:
+        return None  # a weak judge never publishes (run 41132169743: gemma admitted a thin brief); retried later
     relevant = (first[1] or {}).get("defence_relevant") is True
     keep, fixes, dropped = corrected(items, verdicts_of(first[1]), source_numbers)
     fixed = 0
