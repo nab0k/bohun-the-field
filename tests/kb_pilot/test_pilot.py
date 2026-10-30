@@ -868,7 +868,7 @@ class AdmitTest(unittest.TestCase):
         items = admit.review_items(self.V)
         self.assertEqual([sec for _, sec, _ in items],
                          ["headline", "what_happened", "what_happened", "bigger_picture", "why_it_matters"])
-        first = {"verdicts": [{"n": 0, "ok": True}, {"n": 1, "ok": True},
+        first = {"defence_relevant": True, "verdicts": [{"n": 0, "ok": True}, {"n": 1, "ok": True},
                               {"n": 2, "ok": False, "why": "no amount", "fix": "The value was not disclosed in the source."},
                               {"n": 3, "ok": True}, {"n": 4, "ok": True}]}
         second = {"verdicts": [{"n": 2, "ok": True}]}
@@ -899,3 +899,16 @@ class AdmitTest(unittest.TestCase):
                                        items))
         texts = {n: t for n, _, t in items}
         self.assertEqual(admit.decide(dict(self.V), items, texts, False, 10, 10), ("HOLD", ["run_limit"]))
+
+
+    def test_off_topic_brief_is_held(self):
+        from collectors.kb_pilot import admit
+        items = admit.review_items(AdmitTest.V)
+        first = {"defence_relevant": False, "relevance_why": "fintech",
+                 "verdicts": [{"n": n, "ok": True} for n, _, _ in items]}
+        texts, _, st = admit.review(AdmitTest.Cheap([("ok", first, {"model": "groq"})]), AdmitTest.SRC, AdmitTest.V,
+                                    items)
+        self.assertFalse(st["relevant"])
+        new = admit.rebuild(AdmitTest.V, items, texts)
+        self.assertEqual(admit.decide(new, items, texts, False, 0, relevant=st["relevant"]),
+                         ("HOLD", ["not_defence_relevant"]))
