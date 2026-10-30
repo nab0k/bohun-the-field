@@ -636,7 +636,7 @@ class ExtractTest(unittest.TestCase):
                                             quote="The programme was delayed by a year"), self.TEXT)
         row = edge_row(kept[0], ents, self.ITEM)
         self.assertEqual((row["rel"], row["dst"], row["occurred_on"], row["polarity"]),
-                         ("milestone", None, "2026-10-29", "negative"))
+                         ("milestone", None, None, "negative"))  # undated fact: never the article date
         again = edge_row(kept[0], ents, dict(self.ITEM, item_id=8))  # a reprint with the same first source
         self.assertEqual(row["row_hash"], again["row_hash"])
         self.assertEqual(context_of(ents, [row]), ("programme", "Proteus"))
@@ -682,14 +682,20 @@ class ExtractTest(unittest.TestCase):
         class Cheap:
             enabled = True
 
-            def request(self, *a, **k):
-                return {"r": 1}
+            def request(self, system, packet, schema, **k):
+                return {"step": k.get("step")}
 
-            def free_many(self, reqs):
+            providers, off = [], set()
+
+            def free_many(self, reqs, exclude=None):
+                if reqs and reqs[0]["step"] == "verify":
+                    assert exclude == [{"gemini_free"}] * len(reqs)
+                    return [("ok", {"verdicts": [{"n": 0, "ok": True}]}, {"model": "groq"}) for _ in reqs]
                 return [("ok", ExtractTest.answer(ExtractTest()), {"model": "gemini_free"}) for _ in reqs]
 
         stats = extract.run(Conn(), Cheap(), "2026-10-29", "2026-10-29")
-        self.assertEqual((stats["items"], stats["reprints"], stats["done"], stats["kept"]), (2, 1, 1, 1))
+        self.assertEqual((stats["items"], stats["reprints"], stats["done"], stats["kept"], stats["verified"]),
+                         (2, 1, 1, 1, 1))
         logs = [a for s, a in cur.calls if s.startswith("INSERT INTO knowledge.item_extraction")]
         self.assertEqual(sorted((a[0], a[2]) for a in logs), [(1, "done"), (2, "skipped_reprint")])
 
@@ -697,3 +703,72 @@ class ExtractTest(unittest.TestCase):
             enabled = False
         cur.calls.clear()
         self.assertEqual(extract.run(Conn(), Spent(), "2026-10-29", "2026-10-29")["stop"], "FREE_PROVIDERS_SPENT")
+
+
+class ExtractV2Test(unittest.TestCase):
+    TEXT = ("Interceptors\n\nThe three-year first phase established the interceptor concept in August 2025. "
+            "GM Defense was awarded a $697.7 million contract modification for the ISV-U.")
+    ENTS = [{"name": "HYDEF", "kind": "programme"}, {"name": "GM Defense", "kind": "company"},
+            {"name": "ISV-U", "kind": "product"}, {"name": "US Army", "kind": "org"}]
+
+    def check(self, **rel):
+        from collectors.kb_pilot.extract import checked
+        return checked({"entities": self.ENTS, "relations": [rel]}, self.TEXT, "2026-10-29T08:00:00+00:00")
+
+    def test_date_must_match_the_year_in_the_quote(self):
+        q = "The three-year first phase established the interceptor concept in August 2025"
+        _, kept, dropped = self.check(src="HYDEF", rel="milestone", date="2026-10-29", quote=q)
+        self.assertEqual(dict(dropped), {"date_not_in_quote": 1})
+        _, kept, _ = self.check(src="HYDEF", rel="milestone", date="2025-08-01", precision="month", quote=q)
+        self.assertEqual(len(kept), 1)
+
+    def test_amount_scale_and_undated_year_from_quote(self):
+        from collectors.kb_pilot.extract import edge_row
+        q = "GM Defense was awarded a $697.7 million contract modification for the ISV-U"
+        _, _, dropped = self.check(src="GM Defense", rel="supplies", dst="ISV-U", amount=697.7, quote=q)
+        self.assertEqual(dict(dropped), {"amount_scale": 1})
+        ents, kept, _ = self.check(src="GM Defense", rel="supplies", dst="ISV-U", amount=697700000, quote=q)
+        self.assertEqual(len(kept), 1)
+        ents, kept, _ = self.check(src="HYDEF", rel="milestone",
+                                   quote="The three-year first phase established the interceptor concept in August 2025")
+        row = edge_row(kept[0], ents, {"published": "2026-10-29T08:00:00+00:00", "origin": 1})
+        self.assertEqual((row["occurred_on"], row["date_precision"]), ("2025-01-01", "year"))
+
+    def test_verdicts_keep_only_agreed_rows(self):
+        from collectors.kb_pilot.extract import apply_verdicts, verify_packet
+        rows = [{"src": ("company", "A"), "rel": "orders", "dst": ("product", "B"), "occurred_on": None, "amount": None,
+                 "currency": None, "quantity": None, "quote": "q%d" % n} for n in range(3)]
+        self.assertEqual([r["n"] for r in verify_packet(rows)["relations"]], [0, 1, 2])
+        kept, rejected, silent = apply_verdicts(rows, {"verdicts": [{"n": 0, "ok": True}, {"n": 1, "ok": False}]})
+        self.assertEqual((len(kept), rejected, silent), (1, 1, 1))
+
+    def test_free_many_excludes_the_extracting_provider(self):
+        from collectors.kb_pilot.free import FreeModel
+
+        class P:
+            def __init__(self, name):
+                self.name = name
+
+            def call(self, req, transport):
+                return {"verdicts": [{"n": 0, "ok": True}]}, {}
+
+        class Fallback:
+            ledger, batches = Ledger(), []
+
+        fm = FreeModel(Fallback(), providers=[P("gemini_free"), P("groq")])
+        out = fm.free_many([{"schema": {"required": ["verdicts"]}, "step": "verify"}], exclude=[{"gemini_free"}])
+        self.assertEqual(out[0][2]["model"], "groq")
+
+    def test_weak_judges_only_when_nothing_stronger_is_left(self):
+        from collectors.kb_pilot.extract import verifier_excludes
+
+        class P:
+            def __init__(self, name):
+                self.name = name
+
+        class Cheap:
+            providers = [P("gemini_free"), P("cloudflare"), P("mistral"), P("groq")]
+            off = set()
+        self.assertEqual(verifier_excludes(Cheap, "gemini_free"), {"gemini_free", "cloudflare", "mistral"})
+        Cheap.off = {"groq"}
+        self.assertEqual(verifier_excludes(Cheap, "gemini_free"), {"gemini_free"})

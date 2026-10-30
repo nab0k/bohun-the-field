@@ -154,33 +154,51 @@ RELS = ["milestone", "supplies", "orders", "funds", "produces", "depends_on", "r
         "competes", "exports_to", "price"]
 
 EXTRACT_SYSTEM = """You read one defence-industry news item and write down what it states about the market, as a
-small graph. Use only this text; never add background knowledge.
+small graph. Use only this text; never add background knowledge. Fewer correct relations beat many doubtful ones.
 
 entities: every programme, product (weapon, platform, system), company, org (country, ministry, armed service, EU,
 NATO, agency), technology, material, regulation (law, sanction, export rule), procurement (tender, grant, contract
 notice) or place the relations below need. name exactly as in the text (English if the text gives it), kind from:
 programme, product, company, org, technology, material, regulation, procurement, place.
 
-relations: facts the text states, each as src - rel - dst:
-- supplies: src (supplier) delivers to dst (buyer, prime contractor or programme)
-- orders: src (buyer) orders or contracts dst (product, programme or company)
-- funds: src finances dst (grant, loan, budget line)
-- produces: src (company) makes dst (product)
-- depends_on: src needs dst (component, material, technology)
-- restricts: src (regulation or authority) bans, limits or suspends dst
-- regulates: src (law, rule) governs dst
-- part_of: src is part of dst
-- competes: src competes with dst
-- exports_to: src exports to dst (country)
-- price: src (product or programme) has the stated amount; dst empty
-- milestone: a step in the life of src (programme or product): test, delivery, first flight, launch, selection,
-  approval, delay, cancellation; dst empty
-For each relation give date (YYYY-MM-DD of the fact, not of the article, with precision day/month/year; empty if the
-text gives none), amount and ISO currency, quantity and unit when stated, commitment (plan, framework, approval,
-ceiling, contract, funded, delivered, site_selection, other), negative = true for cancellations, delays, cuts,
-suspensions and bans, and quote: the exact words of the text (one sentence or part of it, max 300 characters, copied
-character for character in the original language) that state the fact. No quote, no relation.
+relations: facts the text states, each as src - rel - dst. Get the direction right:
+- orders: src is the BUYER (government, armed service, agency, or a company that buys); dst is what is bought or the
+  company that sells. "X was awarded a contract by Y", "Y selected X", "Y signed with X" -> src Y orders dst X.
+  A company that receives a contract is never the src of orders.
+- supplies: src is the SUPPLIER; dst is the buyer, prime contractor or programme it delivers to. "X builds ships for
+  the Navy" -> X supplies Navy. "X provides the radar for Y" -> X supplies Y.
+- produces: src (company) makes dst (product) - only when the text says it makes, builds or manufactures it.
+- depends_on: src needs or is built on dst (component, material, technology, platform). "compatible with",
+  "based on", "integrated with" are depends_on, never supplies or produces.
+- funds: src gives money to dst (grant, loan, investment, funding round).
+- restricts: src (regulation or authority) bans, limits or suspends dst. regulates: src (law, rule) governs dst.
+- part_of: src is part of dst. competes: src competes with dst. exports_to: src exports to dst (country).
+- price: the price or contract value of src (product or programme); dst empty. Not for company valuations.
+- milestone: a step in the life of src (programme or product): test, delivery, first flight, launch, unveiling,
+  selection, approval, delay, cancellation; dst empty. src is the programme or product, not its maker.
+Dates: date is when the fact happened or will happen, as the text says it ("in 2014" -> 2014-01-01, precision year;
+"August 2025" -> 2025-08-01, precision month; "ready in 2027" -> 2027-01-01, precision year). Only when the text
+reports it as happening now (today, this week, announced) use the article date. Never use the article date for a past
+or future fact; leave date empty if the text does not say when.
+Amounts in full units: "$697.7 million" -> 697700000, "EUR1.2bn" -> 1200000000, with ISO currency.
+Also give quantity and unit when stated, commitment (plan, framework, approval, ceiling, contract, funded, delivered,
+site_selection, other), negative = true for cancellations, delays, cuts, suspensions and bans, and quote: the exact
+words of the text (one sentence or part of it, max 300 characters, copied character for character in the original
+language) that state the whole fact, including both ends. No quote, no relation.
 Return {"entities": [], "relations": []} when the text states no such facts."""
+
+VERIFY_SYSTEM = """You check relations another reader extracted from defence-industry news. For each relation you
+get the quote it was taken from. Answer ok = true only if the quote by itself states exactly this relation:
+- the direction is right (orders: src is the buyer; supplies: src is the supplier; produces: src makes dst;
+  depends_on: src needs or is built on dst; funds: src gives money to dst; milestone: src is the programme or product);
+- the relation type fits the words (compatibility is not supplies; a contract win is not orders by the winner);
+- the date, amount and quantity, when given, match the quote (amount in full units).
+Otherwise ok = false and why in a few words. Judge only from the quote; do not use outside knowledge."""
+
+VERIFY_SCHEMA = {
+    "type": "object", "required": ["verdicts"],
+    "properties": {"verdicts": {"type": "array", "items": {"type": "object", "required": ["n", "ok"], "properties": {
+        "n": {"type": "integer"}, "ok": {"type": "boolean"}, "why": {"type": "string"}}}}}}
 
 EXTRACT_SCHEMA = {
     "type": "object", "required": ["entities", "relations"],
