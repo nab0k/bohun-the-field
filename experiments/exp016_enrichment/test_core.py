@@ -239,6 +239,63 @@ from unittest.mock import patch
                      'CLOUD_HELPER_NOT_EXECUTED_ON_MAC')
 class CloudContracts(unittest.TestCase):
     """Future cloud-only adversarial helper tests, without build/download/install."""
+    def _build_archive(self, directory, declaration):
+        import io
+        import tarfile
+        source = Path(directory) / 'synthetic-pyicu.tar.gz'
+        raw = declaration.encode('utf-8')
+        with tarfile.open(source, 'w:gz') as archive:
+            member = tarfile.TarInfo('pyicu-2.17/pyproject.toml')
+            member.size = len(raw)
+            archive.addfile(member, io.BytesIO(raw))
+        return source
+
+    def test_declared_upstream_build_requirements_saved_and_accepted(self):
+        from cloud_environment import inspect_build_requirements, read_json
+        from runner import RESULTS
+        RESULTS.mkdir(parents=True, exist_ok=True, mode=0o700)
+        with tempfile.TemporaryDirectory(prefix='build-metadata-', dir=RESULTS) as temp:
+            source = self._build_archive(temp, '\n[build-system]\nrequires = [\n'
+                '    "setuptools",\n    "wheel",\n]\nbuild-backend = "setuptools.build_meta"\n')
+            observed = Path(temp) / 'observed-build-requirements.json'
+            build = inspect_build_requirements(source, observed)
+            self.assertEqual(build, {'requires': ['setuptools', 'wheel'],
+                                    'build-backend': 'setuptools.build_meta'})
+            self.assertEqual(read_json(observed), build)
+
+    def test_unapproved_requirements_rejected_but_metadata_preserved(self):
+        from cloud_environment import inspect_build_requirements, read_json
+        from runner import RESULTS
+        RESULTS.mkdir(parents=True, exist_ok=True, mode=0o700)
+        for requires in (['setuptools', 'wheel', 'Cython'], ['setuptools'],
+                         ['setuptools', 'wheel', 'wheel'], ['setuptools', 'wheel[test]']):
+            with self.subTest(requires=requires), tempfile.TemporaryDirectory(
+                    prefix='build-metadata-', dir=RESULTS) as temp:
+                source = self._build_archive(temp, '[build-system]\nrequires = '
+                    + json.dumps(requires) + '\nbuild-backend = "setuptools.build_meta"\n')
+                observed = Path(temp) / 'observed-build-requirements.json'
+                with self.assertRaisesRegex(ValueError, 'UNAPPROVED_ADDITIONAL_BUILD_REQUIREMENTS'):
+                    inspect_build_requirements(source, observed)
+                self.assertEqual(read_json(observed)['requires'], requires)
+
+    def test_unapproved_backend_rejected_but_metadata_preserved(self):
+        from cloud_environment import inspect_build_requirements, read_json
+        from runner import RESULTS
+        RESULTS.mkdir(parents=True, exist_ok=True, mode=0o700)
+        for backend, extra in (('hatchling.build', ''),
+                               ('setuptools.build_meta:__legacy__', ''),
+                               ('setuptools.build_meta', 'backend-path = []\n')):
+            with self.subTest(backend=backend, extra=extra), tempfile.TemporaryDirectory(
+                    prefix='build-metadata-', dir=RESULTS) as temp:
+                source = self._build_archive(temp, '[build-system]\nrequires = ["setuptools", "wheel"]\n'
+                    + 'build-backend = ' + json.dumps(backend) + '\n' + extra)
+                observed = Path(temp) / 'observed-build-requirements.json'
+                with self.assertRaisesRegex(ValueError, 'UNAPPROVED_BUILD_BACKEND'):
+                    inspect_build_requirements(source, observed)
+                metadata = read_json(observed)
+                self.assertEqual(metadata['build-backend'], backend)
+                self.assertEqual('backend-path' in metadata, bool(extra))
+
     def test_rejects_unapproved_runtime_before_subprocess(self):
         from cloud_environment import context
         with patch.dict(os.environ, {'GITHUB_ACTIONS': 'false'}), patch('subprocess.run') as command:
