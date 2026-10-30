@@ -18,7 +18,7 @@ import sys
 
 from . import PILOT_VERSION
 from .dossier import DbStore, KIND, MemoryStore, PREFIX, row_hash
-from .gemini import Gemini, Ledger
+from .gemini import CAP_MICRO_USD, Gemini, Ledger
 from .pages import amount_forms, check_row, fetch_all, host, is_official, norm, sections
 from .free import FreeModel
 from .prompts import (GROUP_SCHEMA, GROUP_SYSTEM, RESEARCH_SCHEMA, RESEARCH_SYSTEM, SECTIONS, SHORT_WRITER_SCHEMA,
@@ -71,13 +71,21 @@ def load_events(cur, day_from, day_to):
     return items
 
 
-def load_items(cur, day_from, day_to, min_body=300):
-    """All news items of the window with a captured body; no relevance or importance filter (D-…-COST)."""
+def load_items(cur, day_from, day_to, min_body=300, new_only=False):
+    """All news items of the window with a captured body; no relevance or importance filter (D-…-COST).
+
+    new_only (the daily chain, D-20261030-DAILY-CHAIN): skip items this pilot already processed and reprints whose
+    first source it already processed, so two runs a day over overlapping windows never write a story twice."""
     end = (date.fromisoformat(day_to) + timedelta(days=1)).isoformat()
     cur.execute("""SELECT i.id, i.title, i.url, i.published_at, i.raw_data FROM intelligence.items i
                     WHERE i.published_at >= %s::date AND i.published_at < %s::date
                       AND length(i.raw_data->'content_capture'->>'text') >= %s
-                 ORDER BY i.published_at, i.id""", (day_from, end, min_body))
+                      AND (NOT %s OR NOT EXISTS (
+                            SELECT 1 FROM knowledge.item_processing p
+                             WHERE p.pipeline_version = %s
+                               AND p.item_id IN (i.id, (SELECT e.origin_item_id FROM knowledge.item_embedding e
+                                                         WHERE e.item_id = i.id))))
+                 ORDER BY i.published_at, i.id""", (day_from, end, min_body, new_only, PILOT_VERSION))
     out = []
     for iid, title, url, published, raw in cur.fetchall():
         body = raw["content_capture"]["text"]
@@ -85,6 +93,25 @@ def load_items(cur, day_from, day_to, min_body=300):
                     "published": published.isoformat(), "outlet": (raw or {}).get("origin_title") or host(url or ""),
                     "text": (title + "\n" + body)[:MAX_EVENT_CHARS]})
     return out
+
+
+def mark_processed(cur, events):
+    """item_processing rows for the items of finished events (the next daily run skips them); stopped or failed
+    events are not marked, so they are tried again."""
+    outcome = {"CANDIDATE": "event", "HOLD": "hold", "REJECT": "reject"}
+    n = 0
+    for rec in events:
+        if rec.get("outcome") not in outcome:
+            continue
+        for k, item_id in enumerate(rec["item_ids"]):
+            cur.execute("""INSERT INTO knowledge.item_processing (item_id, pipeline_version, outcome, reason_codes,
+                                   cost_micro_usd) VALUES (%s, %s, %s, %s, %s)
+                           ON CONFLICT (item_id, pipeline_version) DO UPDATE SET outcome = EXCLUDED.outcome,
+                             reason_codes = EXCLUDED.reason_codes, processed_at = now()""",
+                        (item_id, PILOT_VERSION, outcome[rec["outcome"]], rec.get("reasons") or [],
+                         (rec.get("cost_micro_usd") or 0) if k == 0 else 0))
+            n += 1
+    return n
 
 
 def confirmed_companies(cur, event_ids):
@@ -756,6 +783,7 @@ def summary(result, ledger):
             "documents_markdown": sum(1 for e in result["events"] for d in e.get("documents") or [] if d["storage"] == "markdown"),
             "documents_total": sum(len(e.get("documents") or []) for e in result["events"]),
             "held_for_owner": len(result.get("held_for_owner") or []),
+            "items_marked": result.get("items_marked"), "mark_error": result.get("mark_error"),
             "publish_errors": sum(1 for e in result["events"] if e.get("publish_error")),
             "stop": result.get("stop")}
 
@@ -770,6 +798,8 @@ def main(argv=None):
                         help="events = items that reached the old writer; items = every item with a body")
     parser.add_argument("--batch", action="store_true", help="each model phase as one Batch request (-50%%)")
     parser.add_argument("--no-dossier-write", action="store_true")
+    parser.add_argument("--new-only", action="store_true",
+                        help="daily chain: only items this pilot has not processed yet; mark the processed ones")
     parser.add_argument("--publish-hold", action="store_true",
                         help="write CANDIDATEs to the feed tables as HOLD owner_review (not public)")
     parser.add_argument("--run-ref", default=os.environ.get("GITHUB_RUN_ID"))
@@ -779,12 +809,15 @@ def main(argv=None):
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     doctrine_records = json.loads(DOCTRINE.read_text(encoding="utf-8"))["records"]
-    ledger = Ledger()
+    ledger = Ledger(cap=int(os.environ.get("KB_CAP_MICRO_USD") or CAP_MICRO_USD))
     model = Gemini(os.environ.get("GEMINI_API_KEY"), ledger, batch=args.batch)
     cheap = FreeModel(model)  # free model when CLOUDFLARE_* secrets exist, Gemini otherwise
     with connect() as conn:
         with conn.cursor() as cur:
-            items = (load_events if args.source == "events" else load_items)(cur, args.day_from, args.day_to)
+            if args.source == "events":
+                items = load_events(cur, args.day_from, args.day_to)
+            else:
+                items = load_items(cur, args.day_from, args.day_to, new_only=args.new_only)
             if args.limit:
                 items = items[:args.limit]
             by_event = {it["event_id"]: confirmed_companies(cur, [it["event_id"]]) for it in items if it["event_id"]}
@@ -827,6 +860,13 @@ def main(argv=None):
                         conn.rollback()
                         rec["publish_error"] = type(exc).__name__ + ":" + str(exc)[:160]
                 result["held_for_owner"] = [r["synthesis_id"] for r in result["events"] if r.get("synthesis_id")]
+            if args.new_only:
+                try:
+                    result["items_marked"] = mark_processed(cur, result["events"])
+                    conn.commit()
+                except Exception as exc:
+                    conn.rollback()
+                    result["mark_error"] = type(exc).__name__ + ":" + str(exc)[:160]
     result["spent_micro_usd"], result["search_queries"] = ledger.spent, ledger.search_queries
     result["spent_by_step"] = ledger.steps
     (out_dir / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")

@@ -988,3 +988,37 @@ class ValidGroupsTest(unittest.TestCase):
                            else DOCTRINE, MemoryStore())
         self.assertEqual(ev["terms"], ["Saab", "radar"])
         self.assertIsNone(group["programme"])
+
+
+class DailyChainTest(unittest.TestCase):
+    class Cur:
+        def __init__(self, columns=None, fn=True):
+            self.calls, self.columns, self.fn, self.last = [], columns, fn, None
+
+        def execute(self, sql, args=()):
+            self.calls.append((" ".join(sql.split())[:50], args))
+            self.last = (sql, args)
+
+        def fetchall(self):
+            table = self.last[1][1]
+            return [(c,) for c in (self.columns or {}).get(table, [])]
+
+        def fetchone(self):
+            return (self.fn,)
+
+    def test_only_finished_events_are_marked(self):
+        cur = self.Cur()
+        events = [{"outcome": "CANDIDATE", "item_ids": [1, 2], "cost_micro_usd": 50},
+                  {"outcome": "HOLD", "item_ids": [3], "reasons": ["no_chronology"]},
+                  {"outcome": "error", "item_ids": [4]}, {"outcome": "stopped", "item_ids": [5]}]
+        self.assertEqual(pilot.mark_processed(cur, events), 3)
+        marks = [a for s, a in cur.calls]
+        self.assertEqual([(a[0], a[2], a[4]) for a in marks], [(1, "event", 50), (2, "event", 0), (3, "hold", 0)])
+
+    def test_contract_reports_missing_columns_and_functions(self):
+        from collectors.kb_pilot import contract
+        full = {name.split(".")[1]: cols for name, cols in contract.COLUMNS.items()}
+        self.assertEqual(contract.missing(self.Cur(full)), [])
+        broken = dict(full, items=["id", "title", "url", "published_at"])
+        self.assertEqual(contract.missing(self.Cur(broken, fn=False)),
+                         ["intelligence.items.raw_data", "public.export_synthesis_feed()"])
