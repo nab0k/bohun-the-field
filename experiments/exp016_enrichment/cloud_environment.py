@@ -31,6 +31,7 @@ PINS = {'followthemoney': '4.11.2', 'nomenklatura': '4.17.3',
         'trafilatura': '2.3.1', 'langextract': '1.7.1', 'pyicu': '2.17'}
 PYICU_HASH = '6138b95ac9592fa3983bf489e0c625e8fcfffd0c562a36a08269cecc4ffb48be'
 SETUPTOOLS_HASH = '062d34222ad13e0cc312a4c02d73f059e86a4acbfbdea8f8f76b28c99f306922'
+WHEEL_HASH = '708e7481cc80179af0e556bbf0cc00b8444c7321e2700b8d8580231d13017248'
 MAX_REPORT = 5 * 1024**2
 DENIED_KEYS = ('SUPABASE_DB_PASSWORD', 'SUPABASE_SERVICE_ROLE_KEY', 'NOTION_TOKEN',
                'GEMINI_API_KEY', 'GOOGLE_API_KEY', 'OPENAI_API_KEY', 'CLOUDFLARE_API_TOKEN')
@@ -136,7 +137,7 @@ def checked_file_metadata(project, version, filename, expected_hash, package_typ
     return matches[0]['url']
 
 
-def inspect_build_requirements(source):
+def read_build_requirements(source):
     """Read a hash-verified archive without extracting or executing it."""
     with tarfile.open(source, 'r:gz') as archive:
         members = archive.getmembers()
@@ -153,16 +154,27 @@ def inspect_build_requirements(source):
         if len(projects) != 1 or projects[0].size > 128 * 1024:
             raise ValueError('BUILD_METADATA_LIMIT')
         data = tomllib.loads(archive.extractfile(projects[0]).read().decode())
-    build = data.get('build-system', {})
-    if build.get('build-backend') not in {'setuptools.build_meta', 'setuptools.build_meta:__legacy__'} or build.get('backend-path'):
+    return data.get('build-system', {})
+
+
+def validate_build_requirements(build):
+    """Admit only the literal build declaration reviewed for upstream v2.17."""
+    if (not isinstance(build, dict) or build.get('build-backend') != 'setuptools.build_meta'
+            or 'backend-path' in build):
         raise ValueError('UNAPPROVED_BUILD_BACKEND')
-    # Intentionally narrow: unfamiliar requirements require review, not installation.
-    allowed = {'setuptools', 'setuptools>=40.8.0', 'setuptools>=61',
-               'setuptools>=61.0', 'setuptools>=61.0.0'}
     requires = build.get('requires', [])
-    if not requires or any(r.replace(' ', '') not in allowed for r in requires):
+    if (not isinstance(requires, list) or len(requires) != 2
+            or any(not isinstance(r, str) for r in requires)
+            or set(requires) != {'setuptools', 'wheel'}):
         raise ValueError('UNAPPROVED_ADDITIONAL_BUILD_REQUIREMENTS')
     return build
+
+
+def inspect_build_requirements(source, observed_path):
+    build = read_build_requirements(source)
+    # Preserve what upstream actually declared even when admission rejects it.
+    write_json(observed_path, build)
+    return validate_build_requirements(build)
 
 
 def command(args, directory, label, timeout=300, *, offline_build=False):
@@ -250,12 +262,14 @@ def prepare(ctx):
     install_options = ['--no-cache-dir', '--index-url', 'https://pypi.org/simple',
                        '--only-binary=:all:', '--no-deps', '--require-hashes']
     backend_lock = work / 'backend.lock'
-    backend_lock.write_text('setuptools==80.9.0 --hash=sha256:' + SETUPTOOLS_HASH + '\n')
+    backend_lock.write_text('setuptools==80.9.0 --hash=sha256:' + SETUPTOOLS_HASH + '\n'
+                            'wheel==0.45.1 --hash=sha256:' + WHEEL_HASH + '\n')
     command(pip + ['install', *install_options, '-r', str(backend_lock)], work, 'install-backend')
     url = checked_file_metadata('pyicu', '2.17', 'pyicu-2.17.tar.gz', PYICU_HASH, 'sdist')
     source = work / 'pyicu-2.17.tar.gz'
     source.write_bytes(download(url, 1024**2, PYICU_HASH))
-    write_json(work / 'build-requirements.json', inspect_build_requirements(source))
+    write_json(work / 'build-requirements.json', inspect_build_requirements(
+        source, work / 'observed-build-requirements.json'))
     wheelhouse = work / 'wheels'
     wheelhouse.mkdir(mode=0o700)
     command(pip + ['wheel', '--no-deps', '--no-build-isolation', '--no-index', '--no-cache-dir',
@@ -305,7 +319,7 @@ def summary(ctx):
     work = ctx['work']
     data = read_json(work / 'status.json') if (work / 'status.json').exists() else {'status': 'NOT_RUN'}
     parts = ['## EXP-016 synthetic native smoke', '```json', json.dumps(data, indent=2), '```']
-    for name in ('image.json', 'built-wheel.json', 'failure.json'):
+    for name in ('image.json', 'built-wheel.json', 'observed-build-requirements.json', 'failure.json'):
         if (work / name).exists():
             parts += ['### ' + name, '```json', json.dumps(read_json(work / name), indent=2), '```']
     if (work / 'resolved.lock').exists():

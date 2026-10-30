@@ -1,6 +1,12 @@
 # EXP-016 — original Python APIs, cloud native smoke
 
-Prepared package only. **Cloud execution: NOT_RUN.** This is an isolated synthetic
+Prepared build-fix candidate. **This revision's cloud execution: NOT_RUN.**
+The preceding revision's [Run01](https://github.com/nab0k/bohun-the-field/actions/runs/40944597133)
+failed during build-requirement admission, before native compilation or tests:
+PyICU v2.17 declares both setuptools and wheel; the original guard allowed only
+setuptools. This revision adds wheel0.45.1 and preserves observed metadata before
+validation. It has not demonstrated native compatibility.
+This is an isolated synthetic
 test bench, not a production company collector, registry or enrichment service.
 No installation or native/build-helper execution on the owner's Mac is permitted.
 
@@ -28,15 +34,18 @@ does not authorize push, merge or dispatch.
 context before creating files or starting processes. Its future actions:
 
 1. `prepare`: check exact checkout/runtime, image compiler and ICU; create a new
-   ephemeral venv; install setuptools80.9.0 from its pinned wheel/hash; download
-   and verify PyICU2.17 source; check backend requirements; build only its wheel
+   ephemeral venv; install setuptools80.9.0 and wheel0.45.1 from pinned wheels/hashes,
+   without extras or dependencies; download and verify PyICU2.17 source; save
+   observed build metadata, then admit only the declared setuptools.build_meta
+   backend and exact setuptools+wheel requirements; build only its wheel
    without build isolation/index; resolve other packages as wheels; validate the
    complete lock and install exactly its versions/hashes; `pip check`/freeze.
 2. `verify`: use that venv for strict core/replay/native tests. All four native
    test cases must run and pass with zero skips. Then compare an actual repeated
    synthetic run and perform a separate four-component native smoke.
 3. `summary`: publish technical results, versions, lock/hash and bounded failure
-   logs to the job log/summary. Synthetic HTML/SQLite stay on the temporary runner.
+   logs, including observed build metadata even after admission failure, to the
+   job log/summary. Synthetic HTML/SQLite stay on the temporary runner.
 
 Pins are followthemoney4.11.2, nomenklatura4.17.3, trafilatura2.3.1,
 langextract1.7.1. Only PyICU2.17 may be built from source. Missing compiler/ICU,

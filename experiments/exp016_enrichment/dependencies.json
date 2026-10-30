@@ -40,6 +40,10 @@
     "pyicu_source_sha256": "6138b95ac9592fa3983bf489e0c625e8fcfffd0c562a36a08269cecc4ffb48be",
     "setuptools_version": "80.9.0",
     "setuptools_wheel_sha256": "062d34222ad13e0cc312a4c02d73f059e86a4acbfbdea8f8f76b28c99f306922",
+    "wheel_version": "0.45.1",
+    "wheel_sha256": "708e7481cc80179af0e556bbf0cc00b8444c7321e2700b8d8580231d13017248",
+    "wheel_metadata_source": "https://pypi.org/pypi/wheel/0.45.1/json",
+    "wheel_source": "https://files.pythonhosted.org/packages/0b/2c/87f3254fd8ffd29e4c02732eee68a83a1d3c346ae39bc6822dcbcb697f2b/wheel-0.45.1-py3-none-any.whl",
     "source_build_exception": [
       "pyicu"
     ],
