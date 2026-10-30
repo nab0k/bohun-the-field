@@ -35,9 +35,9 @@ on:
         type: boolean
         default: true
       mode:
-        description: pilot = the run; extract = relations from every item (free models only); probe = one neutral grounded question
+        description: pilot = the run; pilot-publish = the run + CANDIDATEs held for the owner in the feed tables; extract = relations from every item (free models only); probe = one neutral grounded question
         type: choice
-        options: [pilot, embed, extract, probe, probe-cloudflare, probe-free]
+        options: [pilot, pilot-publish, embed, extract, probe, probe-cloudflare, probe-free]
         default: pilot
       research_thinking:
         description: Thinking level of the research (search) step
@@ -104,6 +104,7 @@ jobs:
           SOURCE: ${{ inputs.source }}
           BATCH: ${{ inputs.batch && '--batch' || '' }}
           NO_DOSSIER: ${{ (!inputs.dossier_write) && '--no-dossier-write' || '' }}
+          PUBLISH_HOLD: ${{ inputs.mode == 'pilot-publish' && '--publish-hold' || '' }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           # Free model (Workers AI); absent secrets = every step on Gemini.
@@ -113,7 +114,7 @@ jobs:
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GEMINI_FREE_API_KEY: ${{ secrets.GEMINI_FREE_API_KEY }}
-        run: '"$RUNNER_TEMP/bohun-kb/bin/python" -B -m collectors.kb_pilot --day-from "$DAY_FROM" --day-to "$DAY_TO" --limit "${LIMIT:-0}" --schema-mode "$SCHEMA_MODE" --source "$SOURCE" $BATCH $NO_DOSSIER --out "$RUNNER_TEMP/kb-pilot-out"'
+        run: '"$RUNNER_TEMP/bohun-kb/bin/python" -B -m collectors.kb_pilot --day-from "$DAY_FROM" --day-to "$DAY_TO" --limit "${LIMIT:-0}" --schema-mode "$SCHEMA_MODE" --source "$SOURCE" $BATCH $NO_DOSSIER $PUBLISH_HOLD --out "$RUNNER_TEMP/kb-pilot-out"'
       - name: Keep the result for review
         if: always()
         uses: actions/upload-artifact@v4.6.2
