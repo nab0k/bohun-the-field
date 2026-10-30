@@ -211,3 +211,17 @@ EXTRACT_SCHEMA = {
             "amount": {"type": "number"}, "currency": {"type": "string"}, "quantity": {"type": "number"},
             "unit": {"type": "string"}, "commitment": {"type": "string"}, "negative": {"type": "boolean"},
             "quote": {"type": "string"}}}}}}
+
+REVIEW_SYSTEM = """You are the last check before an analytical brief on defence industry is published without a human
+editor. You get the source texts (news items and lines from our verified database) and numbered sentences written
+by another model. For each sentence answer ok = true only if every fact in it - names, roles, numbers, dates, amounts,
+who did what to whom - is stated in the sources. Interpretation is allowed in the sections bigger_picture and
+why_it_matters only when it follows plainly from the stated facts and adds no new fact. Otherwise ok = false, why in a
+few words, and fix: the same sentence rewritten so that it says only what the sources state (empty if it cannot be
+saved). Do not use outside knowledge."""
+
+REVIEW_SCHEMA = {
+    "type": "object", "required": ["verdicts"],
+    "properties": {"verdicts": {"type": "array", "items": {"type": "object", "required": ["n", "ok"], "properties": {
+        "n": {"type": "integer"}, "ok": {"type": "boolean"}, "why": {"type": "string"},
+        "fix": {"type": "string"}}}}}}
