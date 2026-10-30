@@ -1,0 +1,90 @@
+name: BOHUN daily syntheses (EXP-028, autonomous)
+# D-20261030-DAILY-CHAIN: twice a day, new items -> embeddings -> pilot (CANDIDATEs held) -> automatic admission ->
+# relation extraction on the free quota left. The contract check stops the chain before any write when a column the
+# chain reads is gone; then the feed simply stays as it is. Adding sources or companies does not touch the chain.
+on:
+  schedule:
+    - cron: '20 6 * * *'
+    - cron: '20 15 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: bohun-kb-pilot
+  cancel-in-progress: false
+jobs:
+  daily:
+    if: github.repository == 'nab0k/bohun-the-field' && (github.event_name == 'schedule' || github.actor == 'nab0k')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_WORKERS_AI_TOKEN: ${{ secrets.CLOUDFLARE_WORKERS_AI_TOKEN }}
+      MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      GEMINI_FREE_API_KEY: ${{ secrets.GEMINI_FREE_API_KEY }}
+      KB_RESEARCH_THINKING: low
+      KB_CAP_MICRO_USD: '500000'   # $0.50 per run for the paid steps (two runs a day)
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13'
+      - name: Offline pilot tests
+        run: python -B -m unittest tests/kb_pilot/test_pilot.py
+      - name: Temporary pinned PostgreSQL driver
+        run: |
+          python -m venv "$RUNNER_TEMP/bohun-kb"
+          "$RUNNER_TEMP/bohun-kb/bin/python" -m pip install --only-binary=:all: --disable-pip-version-check 'psycopg[binary]==3.3.6'
+          mkdir -p "$RUNNER_TEMP/kb-daily"
+          echo "DAY_FROM=$(date -u -d yesterday +%F)" >> "$GITHUB_ENV"
+          echo "DAY_TO=$(date -u +%F)" >> "$GITHUB_ENV"
+      - name: Contract check (stops the chain before any write)
+        env:
+          KB_MODE: contract
+        run: '"$RUNNER_TEMP/bohun-kb/bin/python" -B -m collectors.kb_pilot | tee "$RUNNER_TEMP/kb-daily/contract.log"'
+      - name: Embeddings of new items (Cloudflare; without them search falls back to words)
+        continue-on-error: true
+        env:
+          KB_MODE: embed
+          KB_EMBED_BACKEND: cloudflare
+          LIMIT: '400'
+        run: '"$RUNNER_TEMP/bohun-kb/bin/python" -B -m collectors.kb_pilot | tee "$RUNNER_TEMP/kb-daily/embed.log"'
+      - name: Pilot on new items, CANDIDATEs held for admission
+        continue-on-error: true
+        env:
+          KB_MODE: pilot-publish
+        run: '"$RUNNER_TEMP/bohun-kb/bin/python" -B -m collectors.kb_pilot --day-from "$DAY_FROM" --day-to "$DAY_TO" --limit 80 --source items --new-only --publish-hold --batch --out "$RUNNER_TEMP/kb-daily/pilot" | tee "$RUNNER_TEMP/kb-daily/pilot.log"'
+      - name: Automatic admission (checks, second model, self-correction)
+        continue-on-error: true
+        env:
+          KB_MODE: admit
+        run: '"$RUNNER_TEMP/bohun-kb/bin/python" -B -m collectors.kb_pilot --limit 10 | tee "$RUNNER_TEMP/kb-daily/admit.log"'
+      - name: Relation extraction on the free quota left
+        continue-on-error: true
+        env:
+          KB_MODE: extract
+        run: '"$RUNNER_TEMP/bohun-kb/bin/python" -B -m collectors.kb_pilot --day-from "$DAY_FROM" --day-to "$DAY_TO" --limit 120 | tee "$RUNNER_TEMP/kb-daily/extract.log"'
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### BOHUN daily syntheses $DAY_FROM..$DAY_TO"
+            for f in contract embed pilot admit extract; do
+              echo "- **$f**: \`$(grep -ho 'KB_[A-Z_]* .*' "$RUNNER_TEMP/kb-daily/$f.log" 2>/dev/null | tail -1 | cut -c1-600)\`"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Keep the result for review
+        if: always()
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: kb-daily-result
+          path: ${{ runner.temp }}/kb-daily
+          retention-days: 14
+          if-no-files-found: warn
