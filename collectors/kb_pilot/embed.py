@@ -59,11 +59,15 @@ def embed_local(texts):
 
 
 def origin_of(item, neighbours):
-    """Earliest earlier item with the same text or a near-identical vector; otherwise the item itself."""
-    same = [n for n in neighbours if n["text_sha256"] == item["text_sha256"] and n["published"] <= item["published"]]
-    near = [n for n in neighbours if n["distance"] < NEAR_DUPLICATE and n["published"] <= item["published"]]
+    """Earliest earlier item with the same text or a near-identical vector; otherwise the item itself.
+
+    "Earlier" is strict (published, item_id) order, so two copies published at the same second never
+    point at each other: the lower id is the origin."""
+    key = (item["published"], item["item_id"])
+    earlier = [n for n in neighbours if (n["published"], n["item_id"]) < key]
+    same = [n for n in earlier if n["text_sha256"] == item["text_sha256"]]
+    near = [n for n in earlier if n["distance"] < NEAR_DUPLICATE]
     for method, pool in (("same_text", same), ("near_duplicate", near)):
-        pool = [n for n in pool if n["item_id"] != item["item_id"]]
         if pool:
             first = min(pool, key=lambda n: (n["published"], n["item_id"]))
             return first.get("origin_item_id") or first["item_id"], method
