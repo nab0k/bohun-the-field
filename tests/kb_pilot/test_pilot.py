@@ -973,3 +973,18 @@ class EnoughKnowledgeTest(unittest.TestCase):
         self.assertEqual(ev["known_node"], "PAC-3 MSE")
         self.assertEqual(ev["search_queries"], 0)
         self.assertNotEqual(ev["outcome"], "error")
+
+
+class ValidGroupsTest(unittest.TestCase):
+    def test_malformed_answers_fall_back_instead_of_crashing(self):
+        for answer in ({"groups": ["1,2", {"items": [3]}]}, {"groups": [{"items": ["1", 2]}]}, {"groups": "x"},
+                       ["not", "a", "dict"], None, {"groups": [{"items": [1]}, {"items": [True]}]}):
+            self.assertIsNone(pilot.valid_groups(answer, 2), answer)
+        self.assertEqual(pilot.valid_groups({"groups": [{"items": [2, 1]}]}, 2), [{"items": [2, 1]}])
+
+    def test_prepare_tolerates_odd_field_types(self):
+        group = {"items": [1], "programme": 5, "organisations": "Saab", "terms": [None, "radar"], "countries": None}
+        ev = pilot.prepare(None, group, [dict(ITEMS[0], topic=None)], DOCTRINE["records"] if isinstance(DOCTRINE, dict)
+                           else DOCTRINE, MemoryStore())
+        self.assertEqual(ev["terms"], ["Saab", "radar"])
+        self.assertIsNone(group["programme"])
