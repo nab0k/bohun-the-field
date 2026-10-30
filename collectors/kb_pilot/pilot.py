@@ -32,6 +32,16 @@ MAX_EVENT_CHARS = 5000
 MAX_URLS_PER_EVENT = 30
 MAX_FULL_MD = 200_000
 MIN_CHRONOLOGY = 3
+# "Enough knowledge" (D-20261030-STAGE-B-COST): with this much verified background the event needs no web search
+# and no structure step; the synthesis is built from the market model and the news itself.
+ENOUGH_CHRONOLOGY = 5
+ENOUGH_CHAIN = 1
+
+
+def enough_knowledge(dossier):
+    chron = sum(1 for e in dossier if e["kind"] == "chronology")
+    chain = sum(1 for e in dossier if e["kind"] in ("supply_chain", "restriction"))
+    return chron >= ENOUGH_CHRONOLOGY and chain >= ENOUGH_CHAIN
 RESEARCH_THINKING = os.environ.get("KB_RESEARCH_THINKING", "low")
 TOPICS = ROOT.parent / "synthesis" / "resources" / "topics_v3.json"
 
@@ -522,9 +532,20 @@ def prepare(cur, group, event_items, doctrine_records, store):
     terms = [t.strip() for t in terms if t and t.strip()]
     topic = event_items[0]["topic"] or group.get("topic")
     programme = store.find(group.get("programme")) if store else None
-    dossier = store.load(programme["id"]) if programme else []
+    node = None
+    if store and hasattr(store, "find_node"):
+        # the market model knows more than programme names: any programme or product node with verified edges
+        node = store.find_node([group.get("programme") or ""] + (group.get("terms") or []))
+    if programme and node and node["id"] == programme["id"]:
+        dossier = store.load_node(node["id"])
+    elif programme:
+        dossier = store.load(programme["id"])
+    elif node:
+        dossier = store.load_node(node["id"])
+    else:
+        dossier = []
     return {"items": event_items, "group": group, "terms": terms, "topic": topic, "programme": programme,
-            "dossier": dossier, "archive": archive_search(cur, terms, before, [it["item_id"] for it in event_items]),
+            "node": node, "dossier": dossier, "enough": enough_knowledge(dossier), "archive": archive_search(cur, terms, before, [it["item_id"] for it in event_items]),
             "doctrine": doctrine_for(topic, doctrine_records, group.get("countries"))}
 
 
@@ -611,6 +632,7 @@ def run(cur, model, items, companies_by_event, doctrine_records, out_dir, fetche
                         "type": ev_items[0]["type"], "date": ev_items[0]["published"][:10], "place": g.get("place"),
                         "programme": g.get("programme"), "countries": g.get("countries"),
                         "dossier_rows_before": len(ev["dossier"]), "known_programme": bool(ev["programme"]),
+                        "known_node": (ev.get("node") or {}).get("name"), "enough_knowledge": ev["enough"],
                         "news": [{"title": it["title"], "url": it["url"], "outlet": it["outlet"],
                                   "date": it["published"][:10]} for it in ev_items]}
         result["events"].append(ev["record"])
@@ -632,10 +654,18 @@ def run(cur, model, items, companies_by_event, doctrine_records, out_dir, fetche
         return nxt
 
     try:
-        live = phase(evs, lambda ev: research_request(model, ev),
+        known = [ev for ev in evs if ev.get("enough")]
+        for ev in known:  # no search, no structure: background from the market model, news from the items
+            ev.update(research={"primary_source": {}, "parent": {"summary": (ev.get("node") or ev.get("programme")
+                                                                           or {}).get("name") or ""},
+                                "timeline": [], "supply_chain": [], "restrictions": [], "documents": []},
+                      rinfo={"search_queries": 0, "grounding_chunks": [], "supports": [], "cost_micro_usd": 0},
+                      sinfo={"cost_micro_usd": 0})
+        live = phase([ev for ev in evs if not ev.get("enough")], lambda ev: research_request(model, ev),
                      lambda ev, note, info: ev.update(note=note, rinfo=info))
         live = phase(live, lambda ev: structure_request(cheap, ev, ev["note"], ev["rinfo"]),
                      lambda ev, research, info: ev.update(research=research, sinfo=info), cheap)
+        live = known + live
         for ev in list(live):
             try:
                 research, rinfo = ev["research"], ev["rinfo"]
@@ -707,6 +737,8 @@ def summary(result, ledger):
             "batches": [{k: b.get(k) for k in ("step", "requests", "state", "waited_seconds", "estimated")}
                         for b in result.get("batches") or []],
             "known_programmes": sum(1 for e in result["events"] if e.get("known_programme")),
+            "known_nodes": sum(1 for e in result["events"] if e.get("known_node")),
+            "enough_knowledge": sum(1 for e in result["events"] if e.get("enough_knowledge")),
             "chronology_from_dossier": sum(1 for f in facts if f["kind"] == "T" and f.get("origin") == "dossier"),
             "chronology_new_ok": sum(1 for f in facts if f["kind"] == "T" and f.get("origin") == "new" and f["status"] == "ok"),
             "dossier_rows_added": sum((e.get("dossier") or {}).get("added", 0) for e in result["events"]),

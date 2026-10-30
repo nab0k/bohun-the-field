@@ -71,6 +71,28 @@ def valid_date(text):
     return text if text and re.fullmatch(r"\d{4}-\d{2}-\d{2}", text) else None
 
 
+CHRONO_RELS = {"milestone", "orders", "funds", "price"}
+
+
+def edge_as_row(rel, day, precision, amount, currency, commitment, what, src, dst, unit, polarity):
+    """A market-model edge from per-item extraction as a dossier row (kind, row) for the synthesis facts."""
+    if rel in CHRONO_RELS:
+        if not day:
+            return None  # an undated step cannot sit in a chronology
+        text = what if rel == "milestone" else "%s %s %s: %s" % (src, rel, dst or "", what)
+        return "chronology", {"date": day, "precision": precision or "day", "what": " ".join(text.split()),
+                              "commitment": ("cancelled/delayed: " if polarity == "negative" else "") + (commitment or rel),
+                              "amount": float(amount) if amount is not None else None, "currency": currency}
+    if rel == "supplies":
+        return "supply_chain", {"upper": dst or "", "lower": src, "level": unit or "component", "note": what}
+    if rel == "depends_on":
+        return "supply_chain", {"upper": src, "lower": dst or "", "level": unit or "component", "note": what}
+    if rel == "restricts":
+        return "restriction", {"issuer": src, "kind": "restriction", "subject": dst or "", "status": "in_force",
+                               "starts_on": day, "ends_on": None}
+    return None
+
+
 class MemoryStore:
     """Same interface as DbStore, for tests and dry runs."""
 
@@ -89,6 +111,12 @@ class MemoryStore:
 
     def load(self, programme_id):
         return [e for e in self.entries.values() if e["programme_id"] == programme_id]
+
+    def find_node(self, names):
+        return None
+
+    def load_node(self, node_id):
+        return []
 
     def save(self, name, aliases, topic, summary, facts, cards, run_ref, version):
         key = programme_key(name)
@@ -148,6 +176,49 @@ class DbStore:
         return [{"kind": KIND_OF_REL[rel], "row": data, "source_url": url, "archive_id": arch, "anchor": anchor,
                  "date": day.isoformat() if day else None}
                 for rel, day, url, anchor, arch, data in self.cur.fetchall()]
+
+    def find_node(self, names):
+        """The programme or product node the event is about: matched by key or alias, most verified edges first."""
+        keys = sorted({k for k in map(programme_key, names) if k and not is_generic(k)})
+        if not keys:
+            return None
+        self.cur.execute("""SELECT n.id, n.key, n.name, n.aliases,
+                                   (SELECT count(*) FROM knowledge.edge e
+                                     WHERE n.id IN (e.src_node_id, e.dst_node_id, e.context_node_id)
+                                       AND e.status IN ('verified', 'confirmed') AND e.superseded_by IS NULL) AS edges
+                              FROM knowledge.node n
+                             WHERE n.kind IN ('programme', 'product') AND n.status <> 'suspect'
+                               AND (n.key = ANY(%s) OR n.aliases && %s::text[])
+                          ORDER BY edges DESC, n.id LIMIT 1""", (keys, keys))
+        r = self.cur.fetchone()
+        return {"id": r[0], "key": r[1], "name": r[2], "aliases": r[3], "edges": r[4]} if r and r[4] else None
+
+    def load_node(self, node_id):
+        """Every verified edge touching the node, as dossier rows: v16/pilot rows keep their row, extracted ones are
+        converted (edge_as_row)."""
+        self.cur.execute("""SELECT e.rel, e.occurred_on, e.date_precision, e.amount, e.currency, e.commitment, e.what,
+                                   s.name, d.name, e.unit, e.polarity, e.source_url, e.anchor, e.item_id, e.row_data,
+                                   e.extractor
+                              FROM knowledge.edge e
+                              JOIN knowledge.node s ON s.id = e.src_node_id
+                         LEFT JOIN knowledge.node d ON d.id = e.dst_node_id
+                             WHERE %s IN (e.src_node_id, e.dst_node_id, e.context_node_id)
+                               AND e.status IN ('verified', 'confirmed') AND e.superseded_by IS NULL
+                          ORDER BY e.occurred_on NULLS LAST, e.id LIMIT 300""", (node_id,))
+        out = []
+        for rel, day, prec, amount, cur_, commit, what, src, dst, unit, pol, url, anchor, item, data, extractor in \
+                self.cur.fetchall():
+            if extractor.startswith(("v16:", "kb-pilot")) and rel in KIND_OF_REL:
+                kind, row = KIND_OF_REL[rel], data
+            else:
+                conv = edge_as_row(rel, day.isoformat() if day else None, prec, amount, cur_, commit, what, src, dst,
+                                   unit, pol)
+                if not conv:
+                    continue
+                kind, row = conv
+            out.append({"kind": kind, "row": row, "source_url": url, "archive_id": item, "anchor": anchor,
+                        "date": day.isoformat() if day else None})
+        return out
 
     def node(self, kind, name):
         self.cur.execute("""INSERT INTO knowledge.node (kind, key, name) VALUES (%s, %s, %s)

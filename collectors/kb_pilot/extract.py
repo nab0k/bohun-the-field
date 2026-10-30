@@ -25,6 +25,7 @@ MAX_TEXT = 8000
 MIN_TEXT = 300
 MIN_QUOTE = 15
 CHUNK = 9
+EXTRACT_LIMIT = 120
 NO_DST = {"milestone", "price"}
 SAME_FAMILY = {"programme": ("programme", "product"), "product": ("programme", "product")}
 YEAR = re.compile(r"\b(19[5-9]\d|20\d\d)\b")
@@ -295,7 +296,9 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--day-from", required=True)
     parser.add_argument("--day-to", required=True)
-    parser.add_argument("--limit", type=int, default=1000)
+    # Free quotas are shared with the pilot (run 41091231587: extraction spent them, the pilot fell back to paid
+    # Gemini): extraction runs after the pilot and admission and takes at most EXTRACT_LIMIT items per run.
+    parser.add_argument("--limit", type=int, default=EXTRACT_LIMIT)
     parser.add_argument("--run-ref", default=os.environ.get("GITHUB_RUN_ID"))
     args, _ = parser.parse_known_args(argv)  # the workflow passes the pilot's flags too
     # Gemini only builds the request body for the free Gemini tier; paid Gemini is never called here.
@@ -304,7 +307,7 @@ def main(argv=None):
         print("KB_EXTRACT_RESULT " + canonical({"stop": "NO_FREE_PROVIDER"}))
         return 1
     with connect() as conn:
-        stats = run(conn, cheap, args.day_from, args.day_to, args.limit or 1000, args.run_ref)
+        stats = run(conn, cheap, args.day_from, args.day_to, args.limit or EXTRACT_LIMIT, args.run_ref)
     stats["free"] = cheap.stats
     print("KB_EXTRACT_RESULT " + canonical({k: (dict(v) if isinstance(v, Counter) else v) for k, v in stats.items()}))
     return 1 if stats["stop"] and stats["done"] + stats["no_relations"] == 0 else 0
