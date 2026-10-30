@@ -218,10 +218,15 @@ by another model. For each sentence answer ok = true only if every fact in it - 
 who did what to whom - is stated in the sources. Interpretation is allowed in the sections bigger_picture and
 why_it_matters only when it follows plainly from the stated facts and adds no new fact. Otherwise ok = false, why in a
 few words, and fix: the same sentence rewritten so that it says only what the sources state (empty if it cannot be
-saved). Do not use outside knowledge."""
+saved). Do not use outside knowledge.
+Also answer defence_relevant: true only if the brief is about the defence industry, military procurement, armed
+forces capabilities, defence or security policy, or dual-use industry (space, aerospace, critical materials,
+electronics, shipbuilding) in a way that matters to people who sell to, buy for or invest in defence. General
+business, consumer, fintech, healthcare, biology, travel or local news without such a link is false; give why."""
 
 REVIEW_SCHEMA = {
-    "type": "object", "required": ["verdicts"],
-    "properties": {"verdicts": {"type": "array", "items": {"type": "object", "required": ["n", "ok"], "properties": {
+    "type": "object", "required": ["verdicts", "defence_relevant"],
+    "properties": {"defence_relevant": {"type": "boolean"}, "relevance_why": {"type": "string"},
+                   "verdicts": {"type": "array", "items": {"type": "object", "required": ["n", "ok"], "properties": {
         "n": {"type": "integer"}, "ok": {"type": "boolean"}, "why": {"type": "string"},
         "fix": {"type": "string"}}}}}}

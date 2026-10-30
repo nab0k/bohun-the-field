@@ -6,7 +6,8 @@ For each held pilot synthesis (HOLD owner_review, generator kb-pilot|…):
 2. a second free model of another provider reads every model-written sentence against the sources;
 3. self-correction: a rejected sentence is replaced by the reviewer's fix when the fix passes the number check and a
    second review; otherwise the sentence is dropped;
-4. decision: PUBLISH when the headline stands, "what happened" and "why it matters" keep text, at most half of the
+4. decision: PUBLISH when the reviewer finds the brief relevant to the defence or dual-use industry (the pilot does
+   not filter news before research, D-20261029-EXP028-COST; the feed does), the headline stands, "what happened" and "why it matters" keep text, at most half of the
    sentences were dropped, the story is not already in the feed and the run's limit is not reached; otherwise HOLD
    with the reasons. A changed text becomes version 2; nothing is edited in place.
 Free providers only; when none answers, the synthesis stays held and the next run retries it.
@@ -86,8 +87,8 @@ def rebuild(version, items, texts):
     return out
 
 
-def decide(version, items, texts, already_in_feed, published_so_far, max_publish=MAX_PUBLISH):
-    reasons = []
+def decide(version, items, texts, already_in_feed, published_so_far, max_publish=MAX_PUBLISH, relevant=True):
+    reasons = [] if relevant else ["not_defence_relevant"]
     if not texts.get(0):
         reasons.append("headline_unsupported")
     if not version.get("what_happened"):
@@ -113,6 +114,7 @@ def review(cheap, sources_text, version, items):
                                            max_output=4000, step="review")], exclude=[exclude])[0]
     if first[0] != "ok":
         return None
+    relevant = (first[1] or {}).get("defence_relevant") is True
     keep, fixes, dropped = corrected(items, verdicts_of(first[1]), source_numbers)
     fixed = 0
     if fixes:
@@ -129,7 +131,8 @@ def review(cheap, sources_text, version, items):
                     dropped.append(n)
         else:
             dropped += list(fixes)
-    return keep, first[2].get("model"), {"sentences": len(items), "fixed": fixed, "dropped": len(set(dropped))}
+    return keep, first[2].get("model"), {"sentences": len(items), "fixed": fixed, "dropped": len(set(dropped)),
+                                         "relevant": relevant}
 
 
 def held(cur, limit):
@@ -213,7 +216,7 @@ def run(conn, cheap, limit=60, max_publish=MAX_PUBLISH, run_ref=None, dry_run=Fa
             stats["dropped"] += rs["dropped"]
             new = rebuild(row["v"], items, texts)
             decision, reasons = decide(new, items, texts, in_feed(cur, row["event_id"]), stats["published"],
-                                       max_publish)
+                                       max_publish, rs["relevant"])
             for r in reasons:
                 stats["reasons"][r] = stats["reasons"].get(r, 0) + 1
             if not dry_run:
