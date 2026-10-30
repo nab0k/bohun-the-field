@@ -192,10 +192,24 @@ class Gemini:
                 except Exception as exc:
                     out.append(("error", exc))
             return out
-        out = []
-        for i in range(0, len(reqs), BATCH_CHUNK):  # the worst-case reserve is checked per chunk
-            out += self._batch(reqs[i:i + BATCH_CHUNK])
+        out, i = [], 0
+        while i < len(reqs):  # the worst-case reserve is checked per chunk
+            n = self.chunk_size(reqs[i:i + BATCH_CHUNK])
+            out += self._batch(reqs[i:i + n])
+            i += n
         return out
+
+    def chunk_size(self, reqs):
+        """As many requests as the remaining cap covers in the worst case (a $0.50 daily cap could not reserve 20
+        grounded requests at once: run 41132169743); at least one, whose reserve then decides."""
+        room, n = self.ledger.cap - self.ledger.spent, 0
+        for r in reqs:
+            room -= self.ledger.worst(len(canonical(self.as_text_mode(r)["body"]).encode()), r["max_output"],
+                                      r["grounded"]) // 2
+            if room < 0:
+                break
+            n += 1
+        return max(1, n)
 
     def as_text_mode(self, req):
         if req.get("schema_mode") != "schema":

@@ -1041,3 +1041,23 @@ class FindTest(unittest.TestCase):
         self.assertEqual(Cur.sql, [])  # a generic name never reaches the database
         store.find("PAC-3 MSE")
         self.assertIn("status <> 'suspect'", Cur.sql[-1])
+
+
+class CapAndJudgeTest(unittest.TestCase):
+    def test_batch_chunk_shrinks_to_the_remaining_cap(self):
+        g = Gemini("k", Ledger(cap=10**9), lambda *a: None, batch=True)
+        reqs = [g.request("s", {"x": "y" * 2000}, {"type": "object"}, grounded=True, max_output=10000, step="research")
+                for _ in range(20)]
+        self.assertEqual(g.chunk_size(reqs), 20)
+        one = g.ledger.worst(len(__import__("json").dumps(reqs[0]["body"])), 10000, True) // 2
+        g.ledger.cap = int(one * 3.5)
+        self.assertIn(g.chunk_size(reqs), (2, 3))
+        g.ledger.cap = 1
+        self.assertEqual(g.chunk_size(reqs), 1)
+
+    def test_weak_judge_does_not_decide(self):
+        from collectors.kb_pilot import admit
+        items = admit.review_items(AdmitTest.V)
+        ok = {"defence_relevant": True, "verdicts": [{"n": n, "ok": True} for n, _, _ in items]}
+        cheap = AdmitTest.Cheap([("ok", ok, {"model": "cloudflare"})])
+        self.assertIsNone(admit.review(cheap, AdmitTest.SRC, AdmitTest.V, items))
