@@ -5,6 +5,10 @@ if os.environ.get("KB_MODE") == "embed":
     from .embed import main
     sys.exit(main())
 
+if os.environ.get("KB_MODE") == "admit":
+    from .admit import main
+    sys.exit(main())
+
 if os.environ.get("KB_MODE") == "extract":
     from .extract import main
     sys.exit(main())

@@ -35,9 +35,9 @@ on:
         type: boolean
         default: true
       mode:
-        description: pilot = the run; pilot-publish = the run + CANDIDATEs held for the owner in the feed tables; extract = relations from every item (free models only); probe = one neutral grounded question
+        description: pilot = the run; pilot-publish = the run + CANDIDATEs held in the feed tables; admit = automatic admission of held syntheses (limit = max published, dossier_write off = dry run); extract = relations from every item (free models only); probe = one neutral grounded question
         type: choice
-        options: [pilot, pilot-publish, embed, extract, probe, probe-cloudflare, probe-free]
+        options: [pilot, pilot-publish, admit, embed, extract, probe, probe-cloudflare, probe-free]
         default: pilot
       research_thinking:
         description: Thinking level of the research (search) step

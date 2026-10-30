@@ -822,3 +822,80 @@ class PublishTest(unittest.TestCase):
         self.assertEqual(docs, [(101, 11), (101, 12)])
         with self.assertRaises(ValueError):
             publish_hold(Cur(), dict(self.REC, synthesis=dict(self.REC["synthesis"], what_happened=[])), "run")
+
+
+class GroupChunkTest(unittest.TestCase):
+    def test_large_windows_are_grouped_in_chunks_with_global_numbers(self):
+        calls = []
+
+        def model(system, packet, schema, **k):
+            n = len(packet["items"])
+            calls.append(n)
+            if len(calls) == 2:
+                raise ValueError("MODEL_INCOMPLETE_OUTPUT")
+            return {"groups": [{"items": list(range(1, n + 1)), "programme": "X"}]}, {"cost_micro_usd": 5}
+        items = [{"title": "t%d" % i, "outlet": "o", "published": "2026-10-29T00:00:00", "text": "x"} for i in range(90)]
+        groups, meta = pilot.group_items(model, items)
+        self.assertEqual(calls, [40, 40, 10])
+        self.assertEqual(sorted(n for g in groups for n in g["items"]), list(range(1, 91)))
+        self.assertEqual(groups[0]["items"], list(range(1, 41)))
+        self.assertEqual(len(groups), 1 + 40 + 1)  # the failed chunk falls back to one group per item
+        self.assertEqual((meta["cost_micro_usd"], meta["fallback"]), (10, "invalid_grouping"))
+
+
+class AdmitTest(unittest.TestCase):
+    V = {"headline": "Leonardo picks Shield AI Hivemind for Proteus",
+         "what_happened": "Leonardo selected Shield AI to integrate Hivemind into Proteus. The deal is worth $50 million.",
+         "context": "2024-01 — Proteus starts.", "policy_direction": None, "supply_chain": None,
+         "bigger_picture": "Autonomy moves to rotary platforms.", "why_it_matters": "Suppliers of autonomy gain a "
+         "new prime customer.", "sources": [{"url": "https://a.example"}]}
+    SRC = "Leonardo has selected Shield AI to integrate its Hivemind software into the Proteus demonstrator."
+
+    class Cheap:
+        providers, off = [], set()
+
+        def __init__(self, answers):
+            self.answers = list(answers)
+
+        def request(self, *a, **k):
+            return {}
+
+        def free_many(self, reqs, exclude=None):
+            return [self.answers.pop(0) for _ in reqs]
+
+    def test_unsupported_number_is_fixed_or_dropped_then_published(self):
+        from collectors.kb_pilot import admit
+        items = admit.review_items(self.V)
+        self.assertEqual([sec for _, sec, _ in items],
+                         ["headline", "what_happened", "what_happened", "bigger_picture", "why_it_matters"])
+        first = {"verdicts": [{"n": 0, "ok": True}, {"n": 1, "ok": True},
+                              {"n": 2, "ok": False, "why": "no amount", "fix": "The value was not disclosed in the source."},
+                              {"n": 3, "ok": True}, {"n": 4, "ok": True}]}
+        second = {"verdicts": [{"n": 2, "ok": True}]}
+        cheap = self.Cheap([("ok", first, {"model": "groq"}), ("ok", second, {"model": "groq"})])
+        texts, provider, st = admit.review(cheap, self.SRC, self.V, items)
+        self.assertEqual((provider, st["fixed"], st["dropped"]), ("groq", 1, 0))
+        new = admit.rebuild(self.V, items, texts)
+        self.assertNotIn("$50 million", new["what_happened"])
+        self.assertEqual(admit.decide(new, items, texts, False, 0), ("PUBLISH", []))
+
+    def test_fix_with_a_new_number_is_dropped_and_rules_hold(self):
+        from collectors.kb_pilot import admit
+        items = admit.review_items(self.V)
+        first = {"verdicts": [{"n": 0, "ok": False, "fix": "Leonardo pays $70 million for Shield AI autonomy"},
+                              {"n": 1, "ok": True}, {"n": 2, "ok": False}, {"n": 3, "ok": True}, {"n": 4, "ok": False}]}
+        texts, _, st = admit.review(self.Cheap([("ok", first, {"model": "groq"})]), self.SRC, self.V, items)
+        self.assertEqual(st["dropped"], 3)
+        new = admit.rebuild(self.V, items, texts)
+        decision, reasons = admit.decide(new, items, texts, True, 0)
+        self.assertEqual(decision, "HOLD")
+        self.assertEqual(set(reasons), {"headline_unsupported", "why_it_matters_empty", "too_many_unsupported",
+                                        "story_already_in_feed"})
+
+    def test_no_reviewer_means_no_decision_and_limit_holds(self):
+        from collectors.kb_pilot import admit
+        items = admit.review_items(self.V)
+        self.assertIsNone(admit.review(self.Cheap([("error", RuntimeError("no_free_provider"))]), self.SRC, self.V,
+                                       items))
+        texts = {n: t for n, _, t in items}
+        self.assertEqual(admit.decide(dict(self.V), items, texts, False, 10, 10), ("HOLD", ["run_limit"]))
