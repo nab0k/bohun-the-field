@@ -62,15 +62,26 @@ def sources_of(rec):
     return out[:MAX_SOURCES]
 
 
+def place_of(rec):
+    """(label, lat, lon) of the event for the map (v20), or Nones when the grouping gave no valid point."""
+    p = rec.get("place") if isinstance(rec.get("place"), dict) else {}
+    lat, lon = p.get("lat"), p.get("lon")
+    if isinstance(lat, (int, float)) and isinstance(lon, (int, float)) and -90 <= lat <= 90 and -180 <= lon <= 180 \
+            and not isinstance(lat, bool) and not isinstance(lon, bool) and (lat, lon) != (0, 0):
+        return (str(p.get("label") or "")[:200] or None), float(lat), float(lon)
+    return None, None, None
+
+
 def publish_hold(cur, rec, run_ref):
     """Write one CANDIDATE as a held synthesis; returns the synthesis id."""
     version, sources = version_of(rec), sources_of(rec)
     if not version["what_happened"] or not sources:
         raise ValueError("NOT_PUBLISHABLE")
     link = "single_document" if len(rec["item_ids"]) == 1 else "hard_features"
-    cur.execute("""INSERT INTO knowledge.event (event_type, title, link_method, first_published_at)
-                   VALUES (%s, %s, %s, %s::date) RETURNING id""",
-                (rec.get("type") or "event", version["headline"][:500], link, rec["date"]))
+    cur.execute("""INSERT INTO knowledge.event (event_type, title, link_method, first_published_at, place_label,
+                                                place_lat, place_lon)
+                   VALUES (%s, %s, %s, %s::date, %s, %s, %s) RETURNING id""",
+                (rec.get("type") or "event", version["headline"][:500], link, rec["date"]) + place_of(rec))
     event_id = cur.fetchone()[0]
     if rec.get("topic"):
         cur.execute("""INSERT INTO knowledge.event_topic (event_id, topic_id, is_main)

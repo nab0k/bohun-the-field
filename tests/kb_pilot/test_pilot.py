@@ -1021,7 +1021,8 @@ class DailyChainTest(unittest.TestCase):
         self.assertEqual(contract.missing(self.Cur(full)), [])
         broken = dict(full, items=["id", "title", "url", "published_at"])
         self.assertEqual(contract.missing(self.Cur(broken, fn=False)),
-                         ["intelligence.items.raw_data", "public.export_synthesis_feed()"])
+                         ["intelligence.items.raw_data", "public.export_synthesis_feed()",
+                          "public.export_synthesis_feed_v2()"])
 
 
 class FindTest(unittest.TestCase):
@@ -1061,3 +1062,29 @@ class CapAndJudgeTest(unittest.TestCase):
         ok = {"defence_relevant": True, "verdicts": [{"n": n, "ok": True} for n, _, _ in items]}
         cheap = AdmitTest.Cheap([("ok", ok, {"model": "cloudflare"})])
         self.assertIsNone(admit.review(cheap, AdmitTest.SRC, AdmitTest.V, items))
+
+
+class PlaceTest(unittest.TestCase):
+    def test_place_is_validated(self):
+        from collectors.kb_pilot.publish import place_of
+        self.assertEqual(place_of({"place": {"label": "Kyiv", "lat": 50.45, "lon": 30.52}}), ("Kyiv", 50.45, 30.52))
+        for bad in ({"place": {"lat": 0, "lon": 0}}, {"place": {"lat": 120, "lon": 1}}, {"place": "Kyiv"}, {},
+                    {"place": {"lat": "50", "lon": 30}}, {"place": {"lat": True, "lon": 30}}):
+            self.assertEqual(place_of(bad), (None, None, None), bad)
+
+    def test_publish_writes_the_place(self):
+        from collectors.kb_pilot.publish import publish_hold
+
+        class Cur:
+            calls, n = [], 0
+
+            def execute(self, sql, args=()):
+                self.calls.append((" ".join(sql.split())[:40], args))
+
+            def fetchone(self):
+                Cur.n += 1
+                return (Cur.n,)
+        cur = Cur()
+        publish_hold(cur, dict(PublishTest.REC, place={"label": "Rome", "lat": 41.9, "lon": 12.5}), "r")
+        event = [a for s, a in cur.calls if s.startswith("INSERT INTO knowledge.event (")][0]
+        self.assertEqual(event[-3:], ("Rome", 41.9, 12.5))
