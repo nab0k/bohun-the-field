@@ -772,3 +772,53 @@ class ExtractV2Test(unittest.TestCase):
         self.assertEqual(verifier_excludes(Cheap, "gemini_free"), {"gemini_free", "cloudflare", "mistral"})
         Cheap.off = {"groq"}
         self.assertEqual(verifier_excludes(Cheap, "gemini_free"), {"gemini_free"})
+
+
+class PublishTest(unittest.TestCase):
+    REC = {"titles": ["Leonardo selects Shield AI"], "item_ids": [11, 12], "type": None, "topic": "uncrewed-systems",
+           "date": "2026-10-29", "primary_source": {"url": "https://shield.ai/news/x", "title": "Shield AI"},
+           "news": [{"url": "https://a.example/1", "outlet": "A", "date": "2026-10-29"},
+                    {"url": "https://shield.ai/news/x", "outlet": "Shield", "date": "2026-10-29"}],
+           "synthesis": {"headline": "Leonardo picks Shield AI Hivemind to give the Proteus uncrewed rotorcraft its "
+                                     "autonomy brain for trials",
+                         "what_happened": [{"text": "Leonardo selected Shield AI.", "refs": ["N1"]}],
+                         "context": [{"text": "2024-01 — Proteus starts.", "refs": ["T1"]},
+                                     {"text": "2026-10 — Hivemind picked.", "refs": ["T2"]}],
+                         "policy_direction": [], "bigger_picture": [], "supply_chain": [],
+                         "why_it_matters": [{"text": "Autonomy goes rotary.", "refs": ["N1"]}]}}
+
+    def test_version_and_sources_fit_the_feed_tables(self):
+        from collectors.kb_pilot.publish import sources_of, version_of
+        v = version_of(self.REC)
+        self.assertLessEqual(len(v["headline"]), 90)
+        self.assertTrue(v["headline"].endswith("…"))
+        self.assertEqual(v["context"], "2024-01 — Proteus starts.\n2026-10 — Hivemind picked.")
+        self.assertIsNone(v["supply_chain"])
+        src = sources_of(self.REC)
+        self.assertEqual([s["role"] for s in src], ["primary", "report"])  # the primary is not repeated
+
+    def test_publish_hold_writes_a_hidden_held_synthesis(self):
+        from collectors.kb_pilot.publish import publish_hold
+
+        class Cur:
+            def __init__(self):
+                self.calls, self.n = [], 0
+
+            def execute(self, sql, args=()):
+                self.calls.append((" ".join(sql.split()), args))
+
+            def fetchone(self):
+                self.n += 1
+                return (100 + self.n,)
+
+        cur = Cur()
+        self.assertEqual(publish_hold(cur, self.REC, "run"), 102)
+        adm = [a for s, a in cur.calls if s.startswith("INSERT INTO knowledge.synthesis_admission")][0]
+        self.assertEqual(adm, (102, ["owner_review"]))
+        sql = [s for s, _ in cur.calls if s.startswith("INSERT INTO knowledge.synthesis_admission")][0]
+        self.assertIn("'HOLD'", sql)
+        self.assertIn("false)", sql)
+        docs = [a for s, a in cur.calls if s.startswith("INSERT INTO knowledge.event_document")]
+        self.assertEqual(docs, [(101, 11), (101, 12)])
+        with self.assertRaises(ValueError):
+            publish_hold(Cur(), dict(self.REC, synthesis=dict(self.REC["synthesis"], what_happened=[])), "run")

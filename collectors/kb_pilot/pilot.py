@@ -690,6 +690,8 @@ def summary(result, ledger):
             "dossier_errors": sum(1 for e in result["events"] if (e.get("dossier") or {}).get("error")),
             "documents_markdown": sum(1 for e in result["events"] for d in e.get("documents") or [] if d["storage"] == "markdown"),
             "documents_total": sum(len(e.get("documents") or []) for e in result["events"]),
+            "held_for_owner": len(result.get("held_for_owner") or []),
+            "publish_errors": sum(1 for e in result["events"] if e.get("publish_error")),
             "stop": result.get("stop")}
 
 
@@ -703,6 +705,8 @@ def main(argv=None):
                         help="events = items that reached the old writer; items = every item with a body")
     parser.add_argument("--batch", action="store_true", help="each model phase as one Batch request (-50%%)")
     parser.add_argument("--no-dossier-write", action="store_true")
+    parser.add_argument("--publish-hold", action="store_true",
+                        help="write CANDIDATEs to the feed tables as HOLD owner_review (not public)")
     parser.add_argument("--run-ref", default=os.environ.get("GITHUB_RUN_ID"))
     parser.add_argument("--schema-mode", choices=["schema", "text"], default="text")  # kept for the workflow input
     parser.add_argument("--out", required=True)
@@ -746,6 +750,18 @@ def main(argv=None):
                 conn.rollback()
                 result = {"version": PILOT_VERSION, "items": len(items), "groups": 0, "events": [],
                           "stop": "CRASH " + type(exc).__name__ + ":" + str(exc)[:160], "batches": model.batches}
+            if args.publish_hold:
+                from .publish import publish_hold
+                for rec in result["events"]:
+                    if rec.get("outcome") != "CANDIDATE":
+                        continue
+                    try:
+                        rec["synthesis_id"] = publish_hold(cur, rec, args.run_ref)
+                        conn.commit()
+                    except Exception as exc:  # one event's write fails alone
+                        conn.rollback()
+                        rec["publish_error"] = type(exc).__name__ + ":" + str(exc)[:160]
+                result["held_for_owner"] = [r["synthesis_id"] for r in result["events"] if r.get("synthesis_id")]
     result["spent_micro_usd"], result["search_queries"] = ledger.spent, ledger.search_queries
     result["spent_by_step"] = ledger.steps
     (out_dir / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
