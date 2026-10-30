@@ -1022,3 +1022,22 @@ class DailyChainTest(unittest.TestCase):
         broken = dict(full, items=["id", "title", "url", "published_at"])
         self.assertEqual(contract.missing(self.Cur(broken, fn=False)),
                          ["intelligence.items.raw_data", "public.export_synthesis_feed()"])
+
+
+class FindTest(unittest.TestCase):
+    def test_generic_and_suspect_programmes_are_not_found(self):
+        from collectors.kb_pilot.dossier import DbStore
+
+        class Cur:
+            sql = []
+
+            def execute(self, sql, args=()):
+                self.sql.append(" ".join(sql.split()))
+
+            def fetchone(self):
+                return None
+        store = DbStore(Cur())
+        self.assertIsNone(store.find("Other"))
+        self.assertEqual(Cur.sql, [])  # a generic name never reaches the database
+        store.find("PAC-3 MSE")
+        self.assertIn("status <> 'suspect'", Cur.sql[-1])

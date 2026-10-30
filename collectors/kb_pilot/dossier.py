@@ -160,10 +160,12 @@ class DbStore:
 
     def find(self, name):
         key = programme_key(name)
-        if not key:
+        if not key or is_generic(name):
             return None
+        # a suspect node (headline or "other", run 41128628184: 166 foreign rows) is never a programme to reuse
         self.cur.execute("""SELECT id, key, name, aliases FROM knowledge.node
-                             WHERE kind = 'programme' AND (key = %s OR %s = ANY(aliases)) LIMIT 1""", (key, key))
+                             WHERE kind = 'programme' AND status <> 'suspect' AND (key = %s OR %s = ANY(aliases))
+                             LIMIT 1""", (key, key))
         r = self.cur.fetchone()
         return {"id": r[0], "key": r[1], "name": r[2], "aliases": r[3]} if r else None
 
