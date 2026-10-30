@@ -933,3 +933,43 @@ class AdmitTest(unittest.TestCase):
         row = {"synthesis_id": 1, "version": 1, "v": v}
         admit.write(Cur(), row, dict(new, what_happened=None), "HOLD", ["what_happened_empty"], "groq", "r")
         self.assertEqual(Cur.calls, ["UPDATE knowledge.synthesis_admission SET"])
+
+
+class EnoughKnowledgeTest(unittest.TestCase):
+    def test_extracted_edges_become_dossier_rows(self):
+        from collectors.kb_pilot.dossier import edge_as_row
+        self.assertEqual(edge_as_row("orders", "2026-10-29", "day", 269000000, "USD", "contract", "TOTE selected Hanwha",
+                                     "US Navy", "LSM", None, "positive")[1]["what"], "US Navy orders LSM: TOTE selected Hanwha")
+        self.assertIsNone(edge_as_row("milestone", None, None, None, None, None, "x", "P", None, None, "positive"))
+        kind, row = edge_as_row("supplies", None, None, None, None, None, "q", "MTU", "Navantia", "component", "positive")
+        self.assertEqual((kind, row["upper"], row["lower"]), ("supply_chain", "Navantia", "MTU"))
+        self.assertTrue(edge_as_row("milestone", "2026-01-01", "year", None, None, None, "delay", "P", None, None,
+                                    "negative")[1]["commitment"].startswith("cancelled/delayed"))
+
+    def test_rule(self):
+        rows = [{"kind": "chronology"}] * 5 + [{"kind": "supply_chain"}]
+        self.assertTrue(pilot.enough_knowledge(rows))
+        self.assertFalse(pilot.enough_knowledge(rows[:4] + rows[5:]))
+        self.assertFalse(pilot.enough_knowledge(rows[:5]))
+
+    def test_known_node_skips_search_and_structure(self):
+        dossier = [{"kind": "chronology", "row": {"date": "2020-0%d-01" % m, "precision": "month", "what": "step %d" % m,
+                                                  "commitment": "contract"}, "source_url": "https://s.example/%d" % m,
+                    "archive_id": None, "anchor": None} for m in range(1, 7)]
+        dossier.append({"kind": "supply_chain", "row": {"upper": "Lockheed Martin", "lower": "Aerojet", "level":
+                        "component", "note": "motors"}, "source_url": "https://s.example/sc", "archive_id": None})
+
+        class Store(MemoryStore):
+            def find_node(self, names):
+                return {"id": 7, "name": "PAC-3 MSE", "key": "pac-3 mse", "aliases": [], "edges": 7}
+
+            def load_node(self, node_id):
+                return dossier
+        model = Gemini("k", Ledger(), Scripted([reply(one_group()), reply(WRITER)]))
+        with tempfile.TemporaryDirectory() as d:
+            res = pilot.run(FakeCursor(), model, ITEMS, {}, DOCTRINE, Path(d), fetcher=fake_pages, store=Store())
+        ev = res["events"][0]
+        self.assertTrue(ev["enough_knowledge"])
+        self.assertEqual(ev["known_node"], "PAC-3 MSE")
+        self.assertEqual(ev["search_queries"], 0)
+        self.assertNotEqual(ev["outcome"], "error")
