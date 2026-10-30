@@ -148,3 +148,48 @@ SHORT_WRITER_SCHEMA = {
                    "what_happened": _SENTENCES, "bigger_picture": _SENTENCES, "why_it_matters": _SENTENCES,
                    "companies": {"type": "array", "items": {"type": "object", "required": ["name", "role"],
                                  "properties": {"name": {"type": "string"}, "role": {"type": "string"}}}}}}
+
+NODE_KINDS = ["programme", "product", "company", "org", "technology", "material", "regulation", "procurement", "place"]
+RELS = ["milestone", "supplies", "orders", "funds", "produces", "depends_on", "restricts", "regulates", "part_of",
+        "competes", "exports_to", "price"]
+
+EXTRACT_SYSTEM = """You read one defence-industry news item and write down what it states about the market, as a
+small graph. Use only this text; never add background knowledge.
+
+entities: every programme, product (weapon, platform, system), company, org (country, ministry, armed service, EU,
+NATO, agency), technology, material, regulation (law, sanction, export rule), procurement (tender, grant, contract
+notice) or place the relations below need. name exactly as in the text (English if the text gives it), kind from:
+programme, product, company, org, technology, material, regulation, procurement, place.
+
+relations: facts the text states, each as src - rel - dst:
+- supplies: src (supplier) delivers to dst (buyer, prime contractor or programme)
+- orders: src (buyer) orders or contracts dst (product, programme or company)
+- funds: src finances dst (grant, loan, budget line)
+- produces: src (company) makes dst (product)
+- depends_on: src needs dst (component, material, technology)
+- restricts: src (regulation or authority) bans, limits or suspends dst
+- regulates: src (law, rule) governs dst
+- part_of: src is part of dst
+- competes: src competes with dst
+- exports_to: src exports to dst (country)
+- price: src (product or programme) has the stated amount; dst empty
+- milestone: a step in the life of src (programme or product): test, delivery, first flight, launch, selection,
+  approval, delay, cancellation; dst empty
+For each relation give date (YYYY-MM-DD of the fact, not of the article, with precision day/month/year; empty if the
+text gives none), amount and ISO currency, quantity and unit when stated, commitment (plan, framework, approval,
+ceiling, contract, funded, delivered, site_selection, other), negative = true for cancellations, delays, cuts,
+suspensions and bans, and quote: the exact words of the text (one sentence or part of it, max 300 characters, copied
+character for character in the original language) that state the fact. No quote, no relation.
+Return {"entities": [], "relations": []} when the text states no such facts."""
+
+EXTRACT_SCHEMA = {
+    "type": "object", "required": ["entities", "relations"],
+    "properties": {
+        "entities": {"type": "array", "items": {"type": "object", "required": ["name", "kind"], "properties": {
+            "name": {"type": "string"}, "kind": {"type": "string", "enum": NODE_KINDS}}}},
+        "relations": {"type": "array", "items": {"type": "object", "required": ["src", "rel", "quote"], "properties": {
+            "src": {"type": "string"}, "rel": {"type": "string", "enum": RELS}, "dst": {"type": "string"},
+            "date": {"type": "string"}, "precision": {"type": "string", "enum": ["day", "month", "year"]},
+            "amount": {"type": "number"}, "currency": {"type": "string"}, "quantity": {"type": "number"},
+            "unit": {"type": "string"}, "commitment": {"type": "string"}, "negative": {"type": "boolean"},
+            "quote": {"type": "string"}}}}}}

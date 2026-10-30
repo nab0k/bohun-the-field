@@ -35,9 +35,9 @@ on:
         type: boolean
         default: true
       mode:
-        description: pilot = the run; probe = one neutral grounded question, structure only
+        description: pilot = the run; extract = relations from every item (free models only); probe = one neutral grounded question
         type: choice
-        options: [pilot, embed, probe, probe-cloudflare, probe-free]
+        options: [pilot, embed, extract, probe, probe-cloudflare, probe-free]
         default: pilot
       research_thinking:
         description: Thinking level of the research (search) step
