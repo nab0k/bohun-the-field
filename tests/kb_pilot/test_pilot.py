@@ -505,6 +505,17 @@ class EmbedTest(unittest.TestCase):
         far = [dict(nb[0], distance=0.3)]
         self.assertEqual(origin_of(it, far), (5, "self"))
 
+    def test_origin_same_second_copies_root_at_lower_id(self):
+        from collectors.kb_pilot.embed import origin_of
+        from datetime import datetime
+        t = datetime(2026, 10, 28, 9, 0)
+        a = {"item_id": 10, "text_sha256": "x", "published": t}
+        b = {"item_id": 11, "text_sha256": "x", "published": t}
+        nb_a = [{"item_id": 11, "text_sha256": "x", "origin_item_id": None, "published": t, "distance": 0.0}]
+        nb_b = [{"item_id": 10, "text_sha256": "x", "origin_item_id": 10, "published": t, "distance": 0.0}]
+        self.assertEqual(origin_of(a, nb_a), (10, "self"))
+        self.assertEqual(origin_of(b, nb_b), (10, "same_text"))
+
     def test_embed_response_shape_is_checked(self):
         from collectors.kb_pilot.embed import embed_texts
         ok = lambda req: {"result": {"shape": [1, 1024], "data": [[0.0] * 1024]}}
