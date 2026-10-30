@@ -142,9 +142,14 @@ def doctrine_for(topic, records, countries):
 # --- grouping ----------------------------------------------------------------------------------
 
 def valid_groups(answer, n):
-    """Every item in exactly one group; otherwise each item is its own group."""
-    groups = (answer or {}).get("groups") or []
-    seen = [i for g in groups for i in g.get("items", [])]
+    """Every item in exactly one group; otherwise each item is its own group. A malformed answer (a group as a string,
+    item numbers as strings: run 41128229054) is invalid, never a crash."""
+    groups = (answer or {}).get("groups") if isinstance(answer, dict) else None
+    if not isinstance(groups, list) or not all(isinstance(g, dict) and isinstance(g.get("items"), list) for g in groups):
+        return None
+    if not all(isinstance(i, int) and not isinstance(i, bool) for g in groups for i in g["items"]):
+        return None
+    seen = [i for g in groups for i in g["items"]]
     if sorted(seen) != list(range(1, n + 1)):
         return None
     return groups
@@ -528,8 +533,13 @@ def documents(research, facts, pages, terms, out_dir):
 def prepare(cur, group, event_items, doctrine_records, store):
     """Everything the research step needs: archive hits, doctrine, the programme's dossier."""
     before = event_items[0]["published"]
-    terms = [group.get("programme") or ""] + (group.get("organisations") or []) + (group.get("terms") or [])
-    terms = [t.strip() for t in terms if t and t.strip()]
+    for key in ("organisations", "terms", "countries"):  # free models sometimes answer a list as a string
+        if not isinstance(group.get(key), list):
+            group[key] = [group[key]] if isinstance(group.get(key), str) else []
+    if not isinstance(group.get("programme"), str):
+        group["programme"] = None
+    terms = [group.get("programme") or ""] + group["organisations"] + group["terms"]
+    terms = [t.strip() for t in terms if isinstance(t, str) and t.strip()]
     topic = event_items[0]["topic"] or group.get("topic")
     programme = store.find(group.get("programme")) if store else None
     node = None
