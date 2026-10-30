@@ -822,3 +822,22 @@ class PublishTest(unittest.TestCase):
         self.assertEqual(docs, [(101, 11), (101, 12)])
         with self.assertRaises(ValueError):
             publish_hold(Cur(), dict(self.REC, synthesis=dict(self.REC["synthesis"], what_happened=[])), "run")
+
+
+class GroupChunkTest(unittest.TestCase):
+    def test_large_windows_are_grouped_in_chunks_with_global_numbers(self):
+        calls = []
+
+        def model(system, packet, schema, **k):
+            n = len(packet["items"])
+            calls.append(n)
+            if len(calls) == 2:
+                raise ValueError("MODEL_INCOMPLETE_OUTPUT")
+            return {"groups": [{"items": list(range(1, n + 1)), "programme": "X"}]}, {"cost_micro_usd": 5}
+        items = [{"title": "t%d" % i, "outlet": "o", "published": "2026-10-29T00:00:00", "text": "x"} for i in range(90)]
+        groups, meta = pilot.group_items(model, items)
+        self.assertEqual(calls, [40, 40, 10])
+        self.assertEqual(sorted(n for g in groups for n in g["items"]), list(range(1, 91)))
+        self.assertEqual(groups[0]["items"], list(range(1, 41)))
+        self.assertEqual(len(groups), 1 + 40 + 1)  # the failed chunk falls back to one group per item
+        self.assertEqual((meta["cost_micro_usd"], meta["fallback"]), (10, "invalid_grouping"))

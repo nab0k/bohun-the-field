@@ -140,16 +140,39 @@ def valid_groups(answer, n):
     return groups
 
 
-def group_items(model, items, known_programmes=(), topics=()):
+GROUP_CHUNK = 40  # 158 items in one grouping call cut the answer (run 41090801240: MODEL_INCOMPLETE_OUTPUT)
+
+
+def group_chunk(model, items, known_programmes, topics):
     packet = {"items": [{"n": k + 1, "title": it["title"], "outlet": it["outlet"], "date": it["published"][:10],
                          "text": it["text"][:700]} for k, it in enumerate(items)],
               "known_programmes": list(known_programmes), "topics": list(topics)}
-    answer, meta = model(GROUP_SYSTEM, packet, GROUP_SCHEMA, max_output=16000, step="grouping")
+    try:
+        answer, meta = model(GROUP_SYSTEM, packet, GROUP_SCHEMA, max_output=16000, step="grouping")
+    except BudgetStop:
+        raise
+    except Exception as exc:  # one failed chunk falls back to one group per item, the run goes on
+        answer, meta = None, {"cost_micro_usd": 0, "error": type(exc).__name__ + ":" + str(exc)[:80]}
     groups = valid_groups(answer, len(items))
     if groups is None:
         groups = [{"items": [k + 1], "programme": None, "organisations": [], "terms": [it["title"]],
                    "place": None} for k, it in enumerate(items)]  # no programme: a headline is not a programme name
         meta["fallback"] = "invalid_grouping"
+    return groups, meta
+
+
+def group_items(model, items, known_programmes=(), topics=()):
+    """Group in chunks of GROUP_CHUNK items (in time order); item numbers stay global."""
+    groups, meta = [], {"cost_micro_usd": 0}
+    for start in range(0, len(items), GROUP_CHUNK):
+        part, m = group_chunk(model, items[start:start + GROUP_CHUNK], known_programmes, topics)
+        for g in part:
+            g["items"] = [n + start for n in g["items"]]
+        groups += part
+        meta["cost_micro_usd"] += m.get("cost_micro_usd") or 0
+        for key in ("fallback", "error"):
+            if m.get(key):
+                meta.setdefault(key, m[key])
     return groups, meta
 
 
