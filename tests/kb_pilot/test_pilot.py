@@ -594,3 +594,106 @@ class MarketModelTest(unittest.TestCase):
         self.assertEqual(supply[:4], (102, "supplies", 103, 101))   # MTU → Navantia in the programme
         self.assertEqual(milestone[:5], (101, "milestone", None, 101, "negative"))
         self.assertFalse(any("dossier_entry" in s or "knowledge.programme " in s for s, _ in cur.calls))
+
+
+class ExtractTest(unittest.TestCase):
+    TEXT = ("Leonardo selects Shield AI for rotary-wing autonomy\n\nLeonardo has selected Shield AI’s Hivemind to "
+            "develop autonomy for the Proteus demonstrator. The UK Ministry of Defence awarded a £60 million contract "
+            "in 2022. The programme was delayed by a year.")
+    ITEM = {"item_id": 7, "url": "https://x.example/a", "published": "2026-10-29T08:00:00+00:00", "origin": 7}
+
+    def answer(self, **rel):
+        base = {"src": "Shield AI", "rel": "supplies", "dst": "Proteus",
+                "quote": "Leonardo has selected Shield AI's Hivemind to develop autonomy for the Proteus demonstrator"}
+        return {"entities": [{"name": "Shield AI", "kind": "company"}, {"name": "Proteus", "kind": "programme"},
+                             {"name": "UK Ministry of Defence", "kind": "org"}, {"name": "other", "kind": "programme"}],
+                "relations": [dict(base, **rel)]}
+
+    def test_quote_must_be_in_the_text(self):
+        from collectors.kb_pilot.extract import checked
+        ents, kept, dropped = checked(self.answer(), self.TEXT)  # curly apostrophe in the text, straight in the quote
+        self.assertEqual(len(kept), 1)
+        _, kept, dropped = checked(self.answer(quote="Leonardo picked Shield AI for the Proteus demonstrator now"),
+                                   self.TEXT)
+        self.assertEqual((kept, dict(dropped)), ([], {"quote_not_in_text": 1}))
+
+    def test_amount_unknown_end_and_generic_names_are_dropped(self):
+        from collectors.kb_pilot.extract import checked
+        q = "The UK Ministry of Defence awarded a £60 million contract in 2022"
+        _, kept, _ = checked(self.answer(src="UK Ministry of Defence", rel="orders", dst="Proteus", amount=60000000,
+                                         currency="GBP", quote=q), self.TEXT)
+        self.assertEqual(len(kept), 1)
+        for rel, reason in ((dict(amount=75000000, src="UK Ministry of Defence", rel="orders", quote=q),
+                             "amount_not_in_quote"),
+                            (dict(dst="Leonardo"), "unknown_end"),
+                            (dict(dst="other"), "generic_name")):
+            _, kept, dropped = checked(self.answer(**rel), self.TEXT)
+            self.assertEqual(dict(dropped), {reason: 1}, rel)
+
+    def test_edge_row_dates_hash_and_context(self):
+        from collectors.kb_pilot.extract import checked, context_of, edge_row
+        ents, kept, _ = checked(self.answer(rel="milestone", dst="", negative=True, src="Proteus",
+                                            quote="The programme was delayed by a year"), self.TEXT)
+        row = edge_row(kept[0], ents, self.ITEM)
+        self.assertEqual((row["rel"], row["dst"], row["occurred_on"], row["polarity"]),
+                         ("milestone", None, "2026-10-29", "negative"))
+        again = edge_row(kept[0], ents, dict(self.ITEM, item_id=8))  # a reprint with the same first source
+        self.assertEqual(row["row_hash"], again["row_hash"])
+        self.assertEqual(context_of(ents, [row]), ("programme", "Proteus"))
+
+    def test_generic_programme_is_not_saved_to_the_dossier(self):
+        store = MemoryStore()
+        self.assertEqual(store.save("Other", ["Other"], "x", None, [], [], "r", "v"), {"programme": None, "added": 0})
+
+    def test_run_skips_reprints_and_stops_without_paid_fallback(self):
+        from collectors.kb_pilot import extract
+
+        class Cur:
+            def __init__(self, rows):
+                self.rows, self.calls, self.rowcount = rows, [], 1
+
+            def execute(self, sql, args=()):
+                self.calls.append((" ".join(sql.split())[:40], args))
+
+            def fetchall(self):
+                return self.rows
+
+            def fetchone(self):
+                return None if self.calls[-1][0].startswith("SELECT id, status") else (len(self.calls),)
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+        from datetime import datetime, timezone
+        t = datetime(2026, 10, 29, tzinfo=timezone.utc)
+        rows = [(1, "A", "u1", self.TEXT, t, 1, "self"), (2, "A", "u2", self.TEXT, t, 1, "same_text")]
+        cur = Cur(rows)
+
+        class Conn:
+            def cursor(self):
+                return cur
+
+            def commit(self):
+                pass
+
+        class Cheap:
+            enabled = True
+
+            def request(self, *a, **k):
+                return {"r": 1}
+
+            def free_many(self, reqs):
+                return [("ok", ExtractTest.answer(ExtractTest()), {"model": "gemini_free"}) for _ in reqs]
+
+        stats = extract.run(Conn(), Cheap(), "2026-10-29", "2026-10-29")
+        self.assertEqual((stats["items"], stats["reprints"], stats["done"], stats["kept"]), (2, 1, 1, 1))
+        logs = [a for s, a in cur.calls if s.startswith("INSERT INTO knowledge.item_extraction")]
+        self.assertEqual(sorted((a[0], a[2]) for a in logs), [(1, "done"), (2, "skipped_reprint")])
+
+        class Spent(Cheap):
+            enabled = False
+        cur.calls.clear()
+        self.assertEqual(extract.run(Conn(), Spent(), "2026-10-29", "2026-10-29")["stop"], "FREE_PROVIDERS_SPENT")

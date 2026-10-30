@@ -219,6 +219,20 @@ class FreeModel:
                             "model": p.name, "free_tokens": usage}
         raise RuntimeError("no_free_provider")
 
+    def free_many(self, reqs):
+        """Free providers only, never paid Gemini (extraction, D-20261030-EXP028-V2-STEP3): ("ok", answer, info) or
+        ("error", exception) per request."""
+        out = [None] * len(reqs)
+
+        def attempt(i):
+            try:
+                out[i] = ("ok",) + self._free(reqs[i])
+            except Exception as exc:
+                out[i] = ("error", exc)
+        with ThreadPoolExecutor(max_workers=WORKERS) as pool:
+            list(pool.map(attempt, range(len(reqs))))
+        return out
+
     def many(self, reqs):
         """Free providers first (in parallel); what none answered goes to paid Gemini together (batch if on)."""
         if not reqs:

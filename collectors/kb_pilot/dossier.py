@@ -24,6 +24,18 @@ def node_key(name):
     return programme_key(name) or "x-" + hashlib.md5(name.encode()).hexdigest()[:10]
 
 
+# Names that are a role, not a thing: never a node (run 41041653349 kept 166 rows under "other").
+GENERIC = {"other", "others", "unknown", "none", "n a", "na", "programme", "program", "contract", "company",
+           "companies", "government", "the government", "ministry of defence", "ministry of defense", "mod", "dod",
+           "army", "navy", "air force", "military", "armed forces", "industry", "partners", "customer", "customers",
+           "the company", "it", "they", "we", "supplier", "suppliers", "manufacturer", "country", "countries"}
+
+
+def is_generic(name):
+    key = programme_key(name)
+    return not key or key in GENERIC
+
+
 MAX_NAME_KEY = 60
 REL = {"chronology": "milestone", "supply_chain": "supplies", "restriction": "restricts"}
 KIND_OF_REL = {v: k for k, v in REL.items()}
@@ -80,7 +92,7 @@ class MemoryStore:
 
     def save(self, name, aliases, topic, summary, facts, cards, run_ref, version):
         key = programme_key(name)
-        if not key:
+        if not key or is_generic(name):
             return {"programme": None, "added": 0}
         p = self.find(name) or self.programmes.setdefault(key, {"id": len(self.programmes) + 1, "key": key, "name": name,
                                                                  "aliases": [], "topic": topic})
@@ -145,7 +157,7 @@ class DbStore:
 
     def save(self, name, aliases, topic, summary, facts, cards, run_ref, version):
         key = programme_key(name)
-        if not key or len(key) > MAX_NAME_KEY:
+        if not key or len(key) > MAX_NAME_KEY or is_generic(name):
             return {"programme": None, "added": 0, "skipped": "no_programme_name"}
         alias_keys = sorted({k for k in map(programme_key, aliases) if k and k != key})
         existing = self.find(name)
