@@ -912,3 +912,24 @@ class AdmitTest(unittest.TestCase):
         new = admit.rebuild(AdmitTest.V, items, texts)
         self.assertEqual(admit.decide(new, items, texts, False, 0, relevant=st["relevant"]),
                          ("HOLD", ["not_defence_relevant"]))
+
+
+    def test_redirect_sources_are_removed_and_held_text_is_not_stored(self):
+        from collectors.kb_pilot import admit
+        v = dict(AdmitTest.V, sources=[{"url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/x"},
+                                       {"url": "https://a.example/news"}])
+        items = admit.review_items(v)
+        texts = {n: t for n, _, t in items}
+        new = admit.rebuild(v, items, texts)
+        self.assertEqual(new["sources"], [{"url": "https://a.example/news"}])
+        only_redirect = admit.rebuild(dict(v, sources=v["sources"][:1]), items, texts)
+        self.assertEqual(admit.decide(only_redirect, items, texts, False, 0)[1], ["no_real_source"])
+
+        class Cur:
+            calls = []
+
+            def execute(self, sql, args=()):
+                self.calls.append(" ".join(sql.split())[:40])
+        row = {"synthesis_id": 1, "version": 1, "v": v}
+        admit.write(Cur(), row, dict(new, what_happened=None), "HOLD", ["what_happened_empty"], "groq", "r")
+        self.assertEqual(Cur.calls, ["UPDATE knowledge.synthesis_admission SET"])

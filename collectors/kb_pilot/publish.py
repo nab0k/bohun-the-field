@@ -13,6 +13,17 @@ MAX_HEADLINE = 90  # knowledge.synthesis_version CHECK
 MAX_SOURCES = 5
 
 
+REDIRECT_HOSTS = ("vertexaisearch.cloud.google.com",)  # search grounding redirects expire: never a feed source
+
+
+def real_source(url):
+    return isinstance(url, str) and url.startswith("https://") and not any(h in url for h in REDIRECT_HOSTS)
+
+
+def clean_sources(sources):
+    return [s for s in sources or [] if isinstance(s, dict) and real_source(s.get("url"))]
+
+
 def headline_of(text):
     text = " ".join((text or "").split())
     if len(text) <= MAX_HEADLINE:
@@ -39,12 +50,12 @@ def sources_of(rec):
     """Primary source first, then the news items; 1..5 entries."""
     out, seen = [], set()
     primary = rec.get("primary_source") or {}
-    if isinstance(primary, dict) and (primary.get("url") or "").startswith(("http://", "https://")):
+    if isinstance(primary, dict) and real_source(primary.get("url")):
         out.append({"url": primary["url"], "outlet": primary.get("title") or primary.get("issuer") or "",
                     "date": primary.get("date") or "", "role": "primary", "class": "P1"})
         seen.add(primary["url"])
     for n in rec["news"]:
-        if n.get("url") and n["url"] not in seen:
+        if real_source(n.get("url")) and n["url"] not in seen:
             out.append({"url": n["url"], "outlet": n.get("outlet") or "", "date": n.get("date") or "",
                         "role": "report", "class": "P2"})
             seen.add(n["url"])

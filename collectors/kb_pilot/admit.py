@@ -21,7 +21,7 @@ import sys
 from ..synthesis.contracts import canonical, sha
 from .extract import verifier_excludes
 from .pilot import numbers_in
-from .publish import headline_of
+from .publish import clean_sources, headline_of
 from .prompts import REVIEW_SCHEMA, REVIEW_SYSTEM
 
 RULES = "auto-admission-v1"
@@ -84,11 +84,14 @@ def rebuild(version, items, texts):
     for section in MODEL_SECTIONS:
         out[section] = " ".join(texts[n] for n, sec, _ in items if sec == section and n in texts) or None
     out["why_it_matters"] = out["why_it_matters"] or ""
+    out["sources"] = clean_sources(version.get("sources"))
     return out
 
 
 def decide(version, items, texts, already_in_feed, published_so_far, max_publish=MAX_PUBLISH, relevant=True):
     reasons = [] if relevant else ["not_defence_relevant"]
+    if not version.get("sources"):
+        reasons.append("no_real_source")
     if not texts.get(0):
         reasons.append("headline_unsupported")
     if not version.get("what_happened"):
@@ -172,17 +175,17 @@ def in_feed(cur, event_id):
 
 def write(cur, row, new, decision, reasons, provider, run_ref):
     sid, old = row["synthesis_id"], row["version"]
-    changed = any((new.get(k) or None) != (row["v"].get(k) or None) for k in ("headline",) + MODEL_SECTIONS)
+    changed = any((new.get(k) or None) != (row["v"].get(k) or None) for k in ("headline", "sources") + MODEL_SECTIONS)
     version = old
-    if changed:
+    if changed and decision == "PUBLISH":  # a held text is not stored: only the decision and its reasons
+
         version = old + 1
         cur.execute("""INSERT INTO knowledge.synthesis_version (synthesis_id, version, headline, what_happened, context,
                          policy_direction, bigger_picture, supply_chain, why_it_matters, sources, content_hash, origin,
                          generator) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s,'machine',%s)""",
                     (sid, version, new["headline"], new["what_happened"], new["context"], new["policy_direction"],
                      new["bigger_picture"], new["supply_chain"], new["why_it_matters"],
-                     json.dumps(row["v"]["sources"], ensure_ascii=False),
-                     sha(canonical({k: new.get(k) for k in new if k != "sources"})),
+                     json.dumps(new["sources"], ensure_ascii=False), sha(canonical(new)),
                      RULES + "|" + (provider or "") + "|" + (run_ref or "local")))
         cur.execute("""INSERT INTO knowledge.synthesis_admission (synthesis_id, version, decision, reason_codes,
                          rules_version, checker, public_release, published_at)
