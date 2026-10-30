@@ -1,8 +1,10 @@
-"""Programme dossiers kept between runs (knowledge.programme / document / dossier_entry, migration v16).
+"""Programme dossiers kept between runs: the market model (knowledge.node / edge / node_document, migration v18;
+v16 programme / dossier_entry stay for comparison and are no longer written).
 
 An event of a known programme gets its verified chronology, supply chain and restrictions from here, and
 the research step asks only for what is new. Rows are added only after the code verified them on their page.
 """
+import hashlib
 import json
 import re
 
@@ -16,7 +18,16 @@ def programme_key(name):
     return key if len(key) >= 2 and key[0].isalnum() else None
 
 
+def node_key(name):
+    """programme_key, or a stable hash key for names without Latin letters (same as the v18 transfer SQL)."""
+    name = (name or "").strip()
+    return programme_key(name) or "x-" + hashlib.md5(name.encode()).hexdigest()[:10]
+
+
 MAX_NAME_KEY = 60
+REL = {"chronology": "milestone", "supply_chain": "supplies", "restriction": "restricts"}
+KIND_OF_REL = {v: k for k, v in REL.items()}
+LOWER_KIND = {"material": "material", "raw_material": "material", "technology": "technology"}
 KIND = {"T": "chronology", "S": "supply_chain", "R": "restriction"}
 PREFIX = {v: k for k, v in KIND.items()}
 
@@ -30,6 +41,18 @@ def row_hash(kind, row, source_url, archive_id):
     else:
         basis = [norm(row.get("issuer")), norm(row.get("subject")), row.get("starts_on")]
     return sha(kind + "|" + json.dumps(basis, ensure_ascii=False))
+
+
+def edge_ends(kind, row):
+    """(src, dst) node specs (kind, name) of a dossier row; None means the programme itself."""
+    if kind == "supply_chain":
+        lower, upper = (row.get("lower") or "").strip(), (row.get("upper") or "").strip()
+        return ((LOWER_KIND.get(row.get("level"), "company"), lower) if lower else None,
+                ("company", upper) if upper else None)
+    if kind == "restriction":
+        name = (row.get("subject") or "").strip() or ("%s %s" % (row.get("issuer") or "", row.get("kind") or "")).strip()
+        return (("regulation", name) if name else None), None
+    return None, None
 
 
 def valid_date(text):
@@ -89,8 +112,9 @@ class DbStore:
         self.cur = cur
 
     def known_names(self, limit=400):
-        # Programme names are short; long keys are headlines saved by a failed grouping (run 40923499569).
-        self.cur.execute("""SELECT name FROM knowledge.programme WHERE length(key) <= %s
+        # Programme names are short; headlines saved by a failed grouping (run 40923499569) are 'suspect'.
+        self.cur.execute("""SELECT name FROM knowledge.node
+                             WHERE kind = 'programme' AND status <> 'suspect' AND length(key) <= %s
                              ORDER BY updated_at DESC LIMIT %s""", (MAX_NAME_KEY, limit))
         return [r[0] for r in self.cur.fetchall()]
 
@@ -98,21 +122,26 @@ class DbStore:
         key = programme_key(name)
         if not key:
             return None
-        self.cur.execute("""SELECT id, key, name, aliases FROM knowledge.programme
-                             WHERE key = %s OR %s = ANY(aliases) LIMIT 1""", (key, key))
+        self.cur.execute("""SELECT id, key, name, aliases FROM knowledge.node
+                             WHERE kind = 'programme' AND (key = %s OR %s = ANY(aliases)) LIMIT 1""", (key, key))
         r = self.cur.fetchone()
         return {"id": r[0], "key": r[1], "name": r[2], "aliases": r[3]} if r else None
 
     def load(self, programme_id):
-        self.cur.execute("""SELECT kind, entry_date, date_precision, what, commitment, amount, currency, source_url,
-                                   anchor, archive_item_id, row_data
-                              FROM knowledge.dossier_entry WHERE programme_id = %s AND verify_status = 'ok'
-                          ORDER BY entry_date NULLS LAST, id""", (programme_id,))
-        out = []
-        for kind, day, prec, what, commit, amount, cur_, url, anchor, arch, data in self.cur.fetchall():
-            out.append({"kind": kind, "row": data, "source_url": url, "archive_id": arch, "anchor": anchor,
-                        "date": day.isoformat() if day else None})
-        return out
+        self.cur.execute("""SELECT rel, occurred_on, source_url, anchor, item_id, row_data
+                              FROM knowledge.edge
+                             WHERE context_node_id = %s AND status IN ('verified', 'confirmed') AND superseded_by IS NULL
+                               AND rel IN ('milestone', 'supplies', 'restricts')
+                          ORDER BY occurred_on NULLS LAST, id""", (programme_id,))
+        return [{"kind": KIND_OF_REL[rel], "row": data, "source_url": url, "archive_id": arch, "anchor": anchor,
+                 "date": day.isoformat() if day else None}
+                for rel, day, url, anchor, arch, data in self.cur.fetchall()]
+
+    def node(self, kind, name):
+        self.cur.execute("""INSERT INTO knowledge.node (kind, key, name) VALUES (%s, %s, %s)
+                            ON CONFLICT (kind, key) DO UPDATE SET updated_at = now() RETURNING id""",
+                         (kind, node_key(name), name[:300]))
+        return self.cur.fetchone()[0]
 
     def save(self, name, aliases, topic, summary, facts, cards, run_ref, version):
         key = programme_key(name)
@@ -122,13 +151,13 @@ class DbStore:
         existing = self.find(name)
         if existing:
             pid = existing["id"]
-            self.cur.execute("""UPDATE knowledge.programme
+            self.cur.execute("""UPDATE knowledge.node
                                    SET aliases = ARRAY(SELECT DISTINCT unnest(aliases || %s::text[])), updated_at = now()
                                  WHERE id = %s""", (alias_keys, pid))
         else:
-            self.cur.execute("""INSERT INTO knowledge.programme (key, name, aliases, topic_id, summary)
-                                VALUES (%s, %s, %s, (SELECT id FROM knowledge.topic WHERE slug = %s), %s)
-                                ON CONFLICT (key) DO UPDATE SET updated_at = now() RETURNING id""",
+            self.cur.execute("""INSERT INTO knowledge.node (kind, key, name, aliases, topic_id, summary)
+                                VALUES ('programme', %s, %s, %s, (SELECT id FROM knowledge.topic WHERE slug = %s), %s)
+                                ON CONFLICT (kind, key) DO UPDATE SET updated_at = now() RETURNING id""",
                              (key, name[:300], alias_keys, topic, (summary or "")[:1000] or None))
             pid = self.cur.fetchone()[0]
         doc_ids = {}
@@ -151,22 +180,32 @@ class DbStore:
                               c.get("storage", "link_only"), c.get("text_sha256"), c.get("size"),
                               json.dumps(c.get("anchors") or []), c.get("format") == "html"))
             doc_ids[c["url"]] = self.cur.fetchone()[0]
-            self.cur.execute("""INSERT INTO knowledge.programme_document VALUES (%s, %s) ON CONFLICT DO NOTHING""",
+            self.cur.execute("""INSERT INTO knowledge.node_document VALUES (%s, %s) ON CONFLICT DO NOTHING""",
                              (pid, doc_ids[c["url"]]))
         added = 0
         for r in dossier_rows(facts):
-            row = r["row"]
-            h = row_hash(r["kind"], row, r["source_url"], r["archive_id"])
+            row, kind = r["row"], r["kind"]
+            src, dst = edge_ends(kind, row)
+            src_id = self.node(*src) if src else pid
+            dst_id = self.node(*dst) if dst else (pid if kind == "restriction" else None)
+            h = row_hash(kind, row, r["source_url"], r["archive_id"])
             amount = row.get("amount") if isinstance(row.get("amount"), (int, float)) else None
-            self.cur.execute("""INSERT INTO knowledge.dossier_entry (programme_id, kind, entry_date, date_precision, what,
-                                       commitment, amount, currency, document_id, source_url, anchor, archive_item_id,
-                                       verify_status, row_data, row_hash, pilot_version, run_ref)
-                                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'ok',%s,%s,%s,%s)
-                                ON CONFLICT (programme_id, row_hash) DO NOTHING""",
-                             (pid, r["kind"], valid_date(row.get("date") or row.get("starts_on")),
+            ends = row.get("ends_on") if kind == "restriction" else None
+            self.cur.execute("""INSERT INTO knowledge.edge (src_node_id, rel, dst_node_id, context_node_id, polarity,
+                                       occurred_on, date_precision, valid_to, amount, currency, unit, commitment, what,
+                                       source_url, document_id, anchor, item_id, origin_item_id, status, row_data,
+                                       row_hash, extractor, run_ref)
+                                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,
+                                        (SELECT origin_item_id FROM knowledge.item_embedding WHERE item_id = %s),
+                                        'verified',%s,%s,%s,%s)
+                                ON CONFLICT (context_node_id, row_hash) DO NOTHING""",
+                             (src_id, REL[kind], dst_id, pid,
+                              "negative" if row.get("commitment") == "suspension" else "positive",
+                              valid_date(row.get("date") or row.get("starts_on")),
                               row.get("precision") if row.get("precision") in ("day", "month", "year") else None,
-                              r["text"][:2000], row.get("commitment"), amount, (row.get("currency") or None),
-                              doc_ids.get(r["source_url"]), r["source_url"], r["anchor"], r["archive_id"],
-                              json.dumps(row, ensure_ascii=False), h, version, run_ref))
+                              valid_date(ends), amount, (row.get("currency") or None),
+                              row.get("level") if kind == "supply_chain" else None, row.get("commitment"),
+                              r["text"][:2000], r["source_url"], doc_ids.get(r["source_url"]), r["anchor"],
+                              r["archive_id"], r["archive_id"], json.dumps(row, ensure_ascii=False), h, version, run_ref))
             added += self.cur.rowcount
         return {"programme": pid, "added": added}

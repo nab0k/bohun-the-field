@@ -547,3 +547,50 @@ class EmbedFallbackTest(unittest.TestCase):
         stats = embed.run(Conn(), "a", "t", transport=refuse, local=lambda texts: [[0.0] * 1024 for _ in texts])
         self.assertEqual(stats["by_backend"], {embed.LOCAL_MODEL: 1})
         self.assertEqual(stats["error_codes"]["429"], ["daily"])
+
+
+class MarketModelTest(unittest.TestCase):
+    def test_node_key_matches_transfer_sql(self):
+        from collectors.kb_pilot.dossier import node_key
+        self.assertEqual(node_key(" MTU and Wärtsilä "), "mtu and w rtsil")
+        self.assertEqual(node_key("Укроборонпром"), "x-" + __import__("hashlib").md5("Укроборонпром".encode()).hexdigest()[:10])
+
+    def test_edge_ends_by_row_kind(self):
+        from collectors.kb_pilot.dossier import edge_ends
+        self.assertEqual(edge_ends("supply_chain", {"upper": "Navantia", "lower": "Titanium", "level": "raw_material"}),
+                         (("material", "Titanium"), ("company", "Navantia")))
+        self.assertEqual(edge_ends("supply_chain", {"upper": "", "lower": "MTU", "level": "component"}),
+                         (("company", "MTU"), None))
+        self.assertEqual(edge_ends("restriction", {"issuer": "U.S. DoS", "kind": "export_licensing", "subject": ""}),
+                         (("regulation", "U.S. DoS export_licensing"), None))
+        self.assertEqual(edge_ends("chronology", {"date": "2026-01-01"}), (None, None))
+
+    def test_db_store_writes_edges_in_programme_context(self):
+        from collectors.kb_pilot.dossier import DbStore
+
+        class Cur:
+            def __init__(self):
+                self.calls, self.next_id, self.rowcount, self.last = [], 100, 1, None
+
+            def execute(self, sql, args=()):
+                self.calls.append((" ".join(sql.split()), args))
+                self.last = sql
+
+            def fetchone(self):
+                if "SELECT id, key" in self.last:
+                    return None
+                self.next_id += 1
+                return (self.next_id,)
+
+        cur = Cur()
+        facts = [{"kind": "S", "status": "ok", "text": "MTU supplies engines", "source_url": "https://a.example/x",
+                  "row": {"upper": "Navantia", "lower": "MTU", "level": "component"}},
+                 {"kind": "T", "status": "ok", "text": "Contract", "source_url": "https://a.example/y",
+                  "row": {"date": "2026-10-01", "precision": "day", "commitment": "suspension"}}]
+        out = DbStore(cur).save("Avante 2200", ["Avante 2200"], "naval", None, facts, [], "run", "v18")
+        edges = [a for s, a in cur.calls if s.startswith("INSERT INTO knowledge.edge")]
+        self.assertEqual(out, {"programme": 101, "added": 2})
+        supply, milestone = edges
+        self.assertEqual(supply[:4], (102, "supplies", 103, 101))   # MTU → Navantia in the programme
+        self.assertEqual(milestone[:5], (101, "milestone", None, 101, "negative"))
+        self.assertFalse(any("dossier_entry" in s or "knowledge.programme " in s for s, _ in cur.calls))
