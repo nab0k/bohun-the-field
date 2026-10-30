@@ -183,9 +183,9 @@ class FreeModel:
         if start > now:
             time.sleep(start - now)
 
-    def _free(self, req):
+    def _free(self, req, exclude=()):
         for p in self.providers:
-            if p.name in self.off:
+            if p.name in self.off or p.name in exclude:
                 continue
             self._pace(p.name)
             try:
@@ -219,14 +219,14 @@ class FreeModel:
                             "model": p.name, "free_tokens": usage}
         raise RuntimeError("no_free_provider")
 
-    def free_many(self, reqs):
+    def free_many(self, reqs, exclude=None):
         """Free providers only, never paid Gemini (extraction, D-20261030-EXP028-V2-STEP3): ("ok", answer, info) or
-        ("error", exception) per request."""
+        ("error", exception) per request. exclude[i]: provider names request i must not go to (a second opinion)."""
         out = [None] * len(reqs)
 
         def attempt(i):
             try:
-                out[i] = ("ok",) + self._free(reqs[i])
+                out[i] = ("ok",) + self._free(reqs[i], exclude[i] if exclude else ())
             except Exception as exc:
                 out[i] = ("error", exc)
         with ThreadPoolExecutor(max_workers=WORKERS) as pool:

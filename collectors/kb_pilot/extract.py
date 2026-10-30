@@ -1,29 +1,35 @@
 """Every news item into the market model (EXP-028 DESIGN_v2_STEP3, D-20261030-EXP028-V2-STEP3).
 
 A free model reads one first-source item and returns entities and relations, each relation with a verbatim quote.
-The code keeps a relation only when the quote is in the text, its amount is in the quote and its ends are known
-entities; ends become knowledge.node rows (existing ones by key or alias), relations become verified knowledge.edge
-rows with the item and its first source. Reprints are not read again. Free providers only: when they are spent, the
-run stops and the next run continues from knowledge.item_extraction.
+The code keeps a relation only when the quote is in the text, its amount (with its scale) and date are in the quote
+and its ends are known entities. A second free model of another provider then judges every kept relation against its
+quote (v2, D-20261030-EXP028-EXTRACT-V2: v1 was right in 18 of 30 sampled relations): agreed relations become verified
+knowledge.edge rows, rejected ones are dropped, unchecked ones (no second provider left) are written as candidates.
+Ends become knowledge.node rows (existing ones by key or alias). Reprints are not read again. Free providers only:
+when they are spent, the run stops and the next run continues from knowledge.item_extraction.
 """
 import argparse
 from collections import Counter
 import json
 import os
+import re
 import sys
 
 from ..synthesis.contracts import canonical, sha
 from .dossier import is_generic, node_key, valid_date
 from .pages import amount_forms, norm
-from .prompts import EXTRACT_SCHEMA, EXTRACT_SYSTEM, NODE_KINDS, RELS
+from .prompts import EXTRACT_SCHEMA, EXTRACT_SYSTEM, NODE_KINDS, RELS, VERIFY_SCHEMA, VERIFY_SYSTEM
 
-EXTRACTOR = "kb-extract-v1"
+EXTRACTOR = "kb-extract-v2"
 MAX_TEXT = 8000
 MIN_TEXT = 300
 MIN_QUOTE = 15
 CHUNK = 9
 NO_DST = {"milestone", "price"}
 SAME_FAMILY = {"programme": ("programme", "product"), "product": ("programme", "product")}
+YEAR = re.compile(r"\b(19[5-9]\d|20\d\d)\b")
+BILLION = re.compile(r"\d\s*(?:billion|bn|bln|mrd|milliarde|mld)", re.I)
+MILLION = re.compile(r"\d\s*(?:million|mn|mln|mio|millionen|m\b)", re.I)
 QUOTE_FOLD = str.maketrans({"‘": "'", "’": "'", "‚": "'", "‛": "'", "“": '"', "”": '"',
                             "„": '"', "«": '"', "»": '"', "–": "-", "—": "-", "‑": "-",
                             "­": ""})
@@ -33,7 +39,7 @@ def fold(text):
     return norm((text or "").translate(QUOTE_FOLD)).strip(" .,;:")
 
 
-def check_relation(rel, entities, text_folded):
+def check_relation(rel, entities, text_folded, published=None):
     """None when the relation may be written, otherwise the reason it is dropped."""
     if rel.get("rel") not in RELS:
         return "bad_rel"
@@ -50,8 +56,20 @@ def check_relation(rel, entities, text_folded):
             return "unknown_end"
         if is_generic(name):
             return "generic_name"
-    if rel.get("amount") not in (None, "", 0) and not any(f in quote for f in amount_forms(rel["amount"])):
-        return "amount_not_in_quote"
+    if rel.get("amount") not in (None, "", 0):
+        if not any(f in quote for f in amount_forms(rel["amount"])):
+            return "amount_not_in_quote"
+        if isinstance(rel["amount"], (int, float)) and (
+                (BILLION.search(quote) and not MILLION.search(quote) and rel["amount"] < 1e8)
+                or (MILLION.search(quote) and rel["amount"] < 1e5)):
+            return "amount_scale"  # "$697.7 million" written as 697.7 (v1 sample)
+    day = valid_date(rel.get("date"))
+    if day:
+        years = set(YEAR.findall(quote))
+        if years and day[:4] not in years:
+            return "date_not_in_quote"  # the article date for an "August 2025" fact (v1 sample)
+        if not years and published and abs(int(day[:4]) - int(published[:4])) > 1:
+            return "date_not_in_quote"
     if isinstance(rel.get("quantity"), (int, float)) and rel["quantity"] >= 10:
         q = rel["quantity"]
         forms = {str(int(q)), "{:,}".format(int(q)), "{:,}".format(int(q)).replace(",", ".")} if q == int(q) else {str(q)}
@@ -60,7 +78,7 @@ def check_relation(rel, entities, text_folded):
     return None
 
 
-def checked(answer, text):
+def checked(answer, text, published=None):
     """Entities by folded name → kind, kept relations, Counter of drop reasons."""
     entities = {}
     for e in answer.get("entities") or []:
@@ -72,7 +90,7 @@ def checked(answer, text):
         if not isinstance(rel, dict):
             dropped["not_object"] += 1
             continue
-        reason = check_relation(rel, entities, text_folded)
+        reason = check_relation(rel, entities, text_folded, published)
         if reason:
             dropped[reason] += 1
         else:
@@ -87,9 +105,12 @@ def edge_row(rel, entities, item):
     day = valid_date(rel.get("date"))
     precision = rel.get("precision") if rel.get("precision") in ("day", "month", "year") else None
     if not day:
-        day, precision = item["published"][:10], "day"
+        years = sorted(set(YEAR.findall(rel["quote"])))
+        # one year in the quote dates the fact; otherwise it stays undated, never the article date (v1 sample)
+        day, precision = (years[0] + "-01-01", "year") if len(years) == 1 else (None, None)
     amount = rel.get("amount") if isinstance(rel.get("amount"), (int, float)) and rel["amount"] else None
-    basis = [rel["rel"], src[0], node_key(src[1]), dst and dst[0], dst and node_key(dst[1]), day, item["origin"]]
+    basis = [EXTRACTOR, rel["rel"], src[0], node_key(src[1]), dst and dst[0], dst and node_key(dst[1]), day,
+             item["origin"]]
     return {"src": src, "dst": dst, "rel": rel["rel"], "occurred_on": day, "date_precision": precision,
             "amount": amount, "currency": (rel.get("currency") or "").upper()[:3] or None if amount else None,
             "quantity": rel.get("quantity") if isinstance(rel.get("quantity"), (int, float)) else None,
@@ -97,6 +118,30 @@ def edge_row(rel, entities, item):
             "polarity": "negative" if rel.get("negative") is True else "positive",
             "what": rel["quote"].strip()[:2000], "quote": rel["quote"].strip()[:1000],
             "row_hash": sha("x|" + json.dumps(basis, ensure_ascii=False)), "row_data": rel}
+
+
+WEAK_JUDGES = {"cloudflare", "mistral"}  # gemma-4 (reasoning off) and PAYG-only Mistral: last resort as judges
+
+
+def verifier_excludes(cheap, extractor_provider):
+    """Never the provider that extracted; the weaker free models only when no stronger one is left."""
+    names = {p.name for p in cheap.providers if p.name not in cheap.off} - {extractor_provider}
+    return {extractor_provider} | (WEAK_JUDGES if names - WEAK_JUDGES else set())
+
+
+def verify_packet(rows):
+    return {"relations": [{"n": n, "src": r["src"][1], "rel": r["rel"], "dst": r["dst"][1] if r["dst"] else "",
+                           "date": r["occurred_on"] or "", "amount": r["amount"], "currency": r["currency"],
+                           "quantity": r["quantity"], "quote": r["quote"]} for n, r in enumerate(rows)]}
+
+
+def apply_verdicts(rows, answer):
+    """Rows the second model agreed with, and how many it rejected or left without a verdict."""
+    ok = {v.get("n") for v in (answer or {}).get("verdicts") or [] if isinstance(v, dict) and v.get("ok") is True}
+    said = {v.get("n") for v in (answer or {}).get("verdicts") or [] if isinstance(v, dict)}
+    kept = [r for n, r in enumerate(rows) if n in ok]
+    return kept, sum(1 for n in range(len(rows)) if n in said and n not in ok), \
+        sum(1 for n in range(len(rows)) if n not in said)
 
 
 def context_of(entities, rows):
@@ -135,7 +180,7 @@ class Store:
         self.cache[(kind, key)] = node_id
         return node_id
 
-    def write(self, item, rows, context, run_ref):
+    def write(self, item, rows, context, run_ref, status="verified"):
         ctx = self.node(*context) if context else None
         written = 0
         for r in rows:
@@ -147,11 +192,11 @@ class Store:
                                        occurred_on, date_precision, amount, currency, quantity, unit, commitment, what,
                                        quote, quote_verified, source_url, item_id, origin_item_id, status, row_data,
                                        row_hash, extractor, run_ref)
-                                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,true,%s,%s,%s,'verified',%s,%s,%s,%s)
+                                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,true,%s,%s,%s,%s,%s,%s,%s,%s)
                                 ON CONFLICT (context_node_id, row_hash) DO NOTHING""",
                              (src, r["rel"], dst, ctx, r["polarity"], r["occurred_on"], r["date_precision"], r["amount"],
                               r["currency"], r["quantity"], r["unit"], r["commitment"], r["what"], r["quote"],
-                              item["url"], item["item_id"], item["origin"],
+                              item["url"], item["item_id"], item["origin"], status,
                               json.dumps(r["row_data"], ensure_ascii=False), r["row_hash"], EXTRACTOR, run_ref))
             written += self.cur.rowcount
         return written
@@ -181,7 +226,8 @@ def pending(cur, day_from, day_to, limit):
 
 def run(conn, cheap, day_from, day_to, limit=1000, run_ref=None):
     stats = {"extractor": EXTRACTOR, "items": 0, "reprints": 0, "done": 0, "no_relations": 0, "errors": Counter(),
-             "written": 0, "kept": 0, "dropped": Counter(), "by_provider": Counter(), "stop": None}
+             "written": 0, "kept": 0, "verified": 0, "unchecked": 0, "dropped": Counter(), "by_provider": Counter(),
+             "verifier": Counter(), "stop": None}
     with conn.cursor() as cur:
         todo = pending(cur, day_from, day_to, limit)
     stats["items"] = len(todo)
@@ -194,6 +240,16 @@ def run(conn, cheap, day_from, day_to, limit=1000, run_ref=None):
         firsts = [it for it in chunk if it["origin_method"] == "self"]
         answers = cheap.free_many([cheap.request(EXTRACT_SYSTEM, {"date": it["published"][:10], "text": it["text"]},
                                                  EXTRACT_SCHEMA, max_output=4000, step="extract") for it in firsts])
+        work = []  # (item, extractor provider, entities, rows, dropped)
+        for it, a in zip(firsts, answers):
+            if a[0] == "ok":
+                entities, kept, dropped = checked(a[1], it["text"], it["published"])
+                work.append((it, a[2].get("model"), entities, [edge_row(r, entities, it) for r in kept], dropped))
+        to_check = [w for w in work if w[3]]
+        verdicts = cheap.free_many([cheap.request(VERIFY_SYSTEM, verify_packet(w[3]), VERIFY_SCHEMA, max_output=2000,
+                                                  step="verify") for w in to_check],
+                                   exclude=[verifier_excludes(cheap, w[1]) for w in to_check])
+        verdict_of = {id(w): v for w, v in zip(to_check, verdicts)}
         with conn.cursor() as cur:
             store.cur = cur
             for it in chunk:
@@ -206,18 +262,28 @@ def run(conn, cheap, day_from, day_to, limit=1000, run_ref=None):
                         continue  # not logged: the next run retries it
                     store.log(it["item_id"], "error", error=type(a[1]).__name__ + ":" + str(a[1]), run_ref=run_ref)
                     stats["errors"][str(a[1])[:40]] += 1
-                    continue
-                answer, info = a[1], a[2]
-                entities, kept, dropped = checked(answer, it["text"])
-                rows = [edge_row(r, entities, it) for r in kept]
-                written = store.write(it, rows, context_of(entities, rows), run_ref) if rows else 0
+            for w in work:
+                it, provider, entities, rows, dropped = w
+                written, status = 0, "verified"
+                v = verdict_of.get(id(w))
+                if v and v[0] == "ok":
+                    stats["verifier"][v[2].get("model")] += 1
+                    rows, rejected, silent = apply_verdicts(rows, v[1])
+                    dropped.update({"verifier_rejected": rejected, "verifier_silent": silent})
+                elif v:
+                    status = "candidate"  # no second provider answered: written, but not read by the pilot
+                    stats["unchecked"] += len(rows)
+                dropped = Counter({k: n for k, n in dropped.items() if n})
+                if rows:
+                    written = store.write(it, rows, context_of(entities, rows), run_ref, status)
                 outcome = "done" if rows else "no_relations"
-                store.log(it["item_id"], outcome, info.get("model"), written, dropped, run_ref=run_ref)
+                store.log(it["item_id"], outcome, provider, written, dropped, run_ref=run_ref)
                 stats[outcome] += 1
                 stats["kept"] += len(rows)
+                stats["verified"] += len(rows) if status == "verified" else 0
                 stats["written"] += written
                 stats["dropped"].update(dropped)
-                stats["by_provider"][info.get("model")] += 1
+                stats["by_provider"][provider] += 1
         conn.commit()
     return stats
 
