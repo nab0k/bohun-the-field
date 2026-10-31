@@ -5,6 +5,10 @@ if os.environ.get("KB_MODE") == "embed":
     from .embed import main
     sys.exit(main())
 
+if os.environ.get("KB_MODE") == "fulltext":
+    from .fulltext import main
+    sys.exit(main())
+
 if os.environ.get("KB_MODE") == "contract":
     from .contract import main
     sys.exit(main())
