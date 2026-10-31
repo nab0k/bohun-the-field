@@ -37,7 +37,7 @@ jobs:
         with:
           python-version: '3.13'
       - name: Offline pilot tests
-        run: python -B -m unittest tests/kb_pilot/test_pilot.py
+        run: python -B -m unittest tests/kb_pilot/test_pilot.py tests/kb_pilot/test_transport.py
       - name: Temporary pinned PostgreSQL driver
         run: |
           python -m venv "$RUNNER_TEMP/bohun-kb"

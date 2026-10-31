@@ -1088,3 +1088,83 @@ class PlaceTest(unittest.TestCase):
         publish_hold(cur, dict(PublishTest.REC, place={"label": "Rome", "lat": 41.9, "lon": 12.5}), "r")
         event = [a for s, a in cur.calls if s.startswith("INSERT INTO knowledge.event (")][0]
         self.assertEqual(event[-3:], ("Rome", 41.9, 12.5))
+
+
+class FulltextTest(unittest.TestCase):
+    ARTICLE = "Finland orders heavy anti-tank weapons from Dynamit Nobel Defence. " * 10
+
+    def fetcher(self, pages):
+        from collectors.kb_pilot import transport
+        calls = []
+
+        def fetch(url, allowed, limit=0, timeout=20, html=True):
+            calls.append(url)
+            assert url in allowed
+            v = pages.get(url)
+            if isinstance(v, str) and v.startswith("ERR:"):
+                raise transport.FetchError(v[4:])
+            return {"status": 200, "url": url, "body": (v or "").encode()}
+        return fetch, calls
+
+    def test_robots_rules_and_outcomes(self):
+        from collectors.kb_pilot import fulltext
+        pages = {"https://a.example/robots.txt": "User-agent: *\nDisallow: /private/\n",
+                 "https://a.example/news/1": "<html>article</html>",
+                 "https://b.example/robots.txt": "ERR:HTTP_404",
+                 "https://b.example/x": "ERR:HTTP_301",
+                 "https://c.example/robots.txt": "ERR:HTTP_503"}
+        fetch, calls = self.fetcher(pages)
+        robots = fulltext.Robots(fetch)
+        extract = lambda body, url: self.ARTICLE
+        pace = lambda host: None
+        item = lambda u, n=0: {"item_id": 1, "url": u, "provider_chars": n}
+        reason, cap = fulltext.read_one(item("https://a.example/news/1", 120), robots, fetch, extract, pace)
+        self.assertEqual(reason, "ok")
+        self.assertEqual((cap["source_kind"], cap["characters"]), ("publisher_article", len(self.ARTICLE)))
+        self.assertEqual(fulltext.read_one(item("https://a.example/private/2"), robots, fetch, extract, pace)[0],
+                         "robots_denied")
+        self.assertEqual(fulltext.read_one(item("https://b.example/x"), robots, fetch, extract, pace)[0], "http_301")
+        self.assertEqual(fulltext.read_one(item("https://c.example/y"), robots, fetch, extract, pace)[0],
+                         "robots_http_503")
+        self.assertEqual(calls.count("https://a.example/robots.txt"), 1)  # robots read once per origin
+        short = fulltext.read_one(item("https://a.example/news/1"), robots, fetch, lambda b, u: "too short", pace)
+        self.assertEqual(short[0], "text_too_short")
+        self.assertEqual(fulltext.read_one(item("http://a.example/n"), robots, fetch, extract, pace)[0], "url_invalid")
+
+    def test_measure_writes_nothing_and_reports_by_host(self):
+        from collectors.kb_pilot import fulltext
+        fetch, _ = self.fetcher({"https://a.example/robots.txt": "ERR:HTTP_404", "https://a.example/n/1": "<p>x</p>"})
+
+        class Cur:
+            sql = []
+
+            def execute(self, sql, args=()):
+                self.sql.append(" ".join(sql.split())[:30])
+
+            def fetchall(self):
+                return [(1, "https://a.example/n/1", 50), (2, "https://a.example/n/1?x", 0)]
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+        class Conn:
+            def cursor(self):
+                return Cur()
+
+            def commit(self):
+                pass
+        stats = fulltext.run(Conn(), "2026-10-30", "2026-10-31", fetch=fetch,
+                             extract=lambda b, u: self.ARTICLE if u.endswith("/1") else "", pace=lambda h: None)
+        self.assertEqual((stats["mode"], stats["ok"], stats["written"]), ("measure", 1, 0))
+        self.assertEqual(stats["by_host"], {"a.example": {"ok": 1, "text_too_short": 1}})
+        self.assertFalse(any(s.startswith("UPDATE") for s in Cur.sql))
+
+    def test_pacer_waits_between_requests_to_one_host(self):
+        from collectors.kb_pilot import fulltext
+        now, slept = [0.0], []
+        pacer = fulltext.Pacer(clock=lambda: now[0], sleep=lambda s: (slept.append(s), now.__setitem__(0, now[0] + s)))
+        pacer("a.example"); pacer("b.example"); pacer("a.example")
+        self.assertEqual([round(s, 1) for s in slept], [2.0])

@@ -35,9 +35,9 @@ on:
         type: boolean
         default: true
       mode:
-        description: pilot = the run; pilot-publish = the run + CANDIDATEs held in the feed tables; admit = automatic admission of held syntheses (limit = max published, dossier_write off = dry run); extract = relations from every item (free models only); probe = one neutral grounded question
+        description: pilot = the run; pilot-publish = the run + CANDIDATEs held in the feed tables; admit = automatic admission of held syntheses (limit = max published, dossier_write off = dry run); extract = relations from every item (free models only); fulltext = publisher pages for items without text (measurement, no write); probe = one neutral grounded question
         type: choice
-        options: [pilot, pilot-publish, admit, embed, extract, probe, probe-cloudflare, probe-free]
+        options: [pilot, pilot-publish, admit, embed, extract, fulltext, probe, probe-cloudflare, probe-free]
         default: pilot
       research_thinking:
         description: Thinking level of the research (search) step
@@ -77,11 +77,15 @@ jobs:
         with:
           python-version: '3.13'
       - name: Offline pilot tests
-        run: python -B -m unittest tests/kb_pilot/test_pilot.py
+        run: python -B -m unittest tests/kb_pilot/test_pilot.py tests/kb_pilot/test_transport.py
       - name: Temporary pinned PostgreSQL driver
         run: |
           python -m venv "$RUNNER_TEMP/bohun-kb"
           "$RUNNER_TEMP/bohun-kb/bin/python" -m pip install --only-binary=:all: --disable-pip-version-check 'psycopg[binary]==3.3.6'
+      - name: Article extractor (fulltext mode only; pinned, never on the owner's Mac)
+        if: inputs.mode == 'fulltext'
+        run: |
+          "$RUNNER_TEMP/bohun-kb/bin/python" -m pip install --disable-pip-version-check 'trafilatura==2.3.1'
       - name: Spare embedding model (bge-m3 on CPU, embed mode only)
         if: inputs.mode == 'embed'
         run: |
