@@ -12,14 +12,15 @@ COLUMNS = {
     "knowledge.item_processing": ["item_id", "pipeline_version", "outcome", "reason_codes", "cost_micro_usd"],
     "knowledge.node": ["id", "kind", "key", "name", "aliases", "status"],
     "knowledge.edge": ["src_node_id", "rel", "dst_node_id", "context_node_id", "status", "superseded_by", "row_hash"],
-    "knowledge.event": ["id", "event_type", "title", "link_method", "first_published_at"],
+    "knowledge.event": ["id", "event_type", "title", "link_method", "first_published_at", "place_label", "place_lat",
+                        "place_lon"],
     "knowledge.synthesis": ["id", "event_id", "active_version", "is_hidden"],
     "knowledge.synthesis_version": ["synthesis_id", "version", "headline", "what_happened", "sources", "generator"],
     "knowledge.synthesis_admission": ["synthesis_id", "version", "decision", "reason_codes", "public_release"],
     "knowledge.topic": ["id", "slug"],
     "companies.company": ["id", "name"],  # read only for links at export time; never needed to write a synthesis
 }
-FUNCTIONS = ["public.export_synthesis_feed"]
+FUNCTIONS = ["public.export_synthesis_feed", "public.export_synthesis_feed_v2"]
 
 
 def missing(cur):
