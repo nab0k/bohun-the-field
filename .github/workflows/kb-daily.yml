@@ -3,6 +3,13 @@ name: BOHUN daily syntheses (EXP-028, autonomous)
 # relation extraction on the free quota left. The contract check stops the chain before any write when a column the
 # chain reads is gone; then the feed simply stays as it is. Adding sources or companies does not touch the chain.
 on:
+  # GitHub thins scheduled runs in this repository (Inoreader Cloud: every 30 min planned, every 3-6 h actual; the
+  # 06:20 run of 31.10 never started). The chain therefore runs after each successful Inoreader ingest; the two
+  # cron times stay as a fallback. Each run takes only items not processed yet, so extra runs cost nothing extra.
+  workflow_run:
+    workflows: ['Bohundefence Inoreader Cloud']
+    types: [completed]
+    branches: [main]
   schedule:
     - cron: '20 6 * * *'
     - cron: '20 15 * * *'
@@ -14,7 +21,9 @@ concurrency:
   cancel-in-progress: false
 jobs:
   daily:
-    if: github.repository == 'nab0k/bohun-the-field' && (github.event_name == 'schedule' || github.actor == 'nab0k')
+    if: >-
+      github.repository == 'nab0k/bohun-the-field' && (github.event_name == 'schedule' || github.actor == 'nab0k'
+      || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'))
     runs-on: ubuntu-24.04
     timeout-minutes: 240
     env:
