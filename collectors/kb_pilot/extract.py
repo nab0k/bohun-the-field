@@ -16,6 +16,7 @@ import re
 import sys
 
 from ..synthesis.contracts import canonical, sha
+from .body_selection import ready_body
 from .dossier import is_generic, node_key, valid_date
 from .pages import amount_forms, norm
 from .prompts import EXTRACT_SCHEMA, EXTRACT_SYSTEM, NODE_KINDS, RELS, VERIFY_SCHEMA, VERIFY_SYSTEM
@@ -213,16 +214,28 @@ class Store:
 
 
 def pending(cur, day_from, day_to, limit):
-    cur.execute("""SELECT i.id, i.title, i.url, i.raw_data->'content_capture'->>'text', i.published_at,
-                          coalesce(e.origin_item_id, i.id), coalesce(e.origin_method, 'self')
+    cur.execute("""SELECT i.id,i.title,i.url,i.raw_data,i.published_at,
+                          e.origin_item_id,e.origin_method,e.text_sha256
                      FROM intelligence.items i
-                LEFT JOIN knowledge.item_embedding e ON e.item_id = i.id
-                LEFT JOIN knowledge.item_extraction x ON x.item_id = i.id AND x.extractor = %s
+                LEFT JOIN knowledge.item_embedding e ON e.item_id=i.id
+                LEFT JOIN knowledge.item_extraction x ON x.item_id=i.id AND x.extractor=%s
                     WHERE x.item_id IS NULL AND i.published_at >= %s::date AND i.published_at < %s::date + 1
-                      AND length(i.raw_data->'content_capture'->>'text') >= %s
-                 ORDER BY i.published_at, i.id LIMIT %s""", (EXTRACTOR, day_from, day_to, MIN_TEXT, limit))
-    return [{"item_id": a, "title": t or "", "url": u, "text": ((t or "") + "\n\n" + (b or ""))[:MAX_TEXT],
-             "published": p.isoformat(), "origin": o, "origin_method": m} for a, t, u, b, p, o, m in cur.fetchall()]
+                      AND (length(i.raw_data->'content_capture'->>'text') >= %s
+                           OR i.raw_data->'publisher_capture' IS NOT NULL)
+                 ORDER BY i.published_at,i.id LIMIT %s""", (EXTRACTOR,day_from,day_to,MIN_TEXT,limit))
+    out, skipped = [], {}
+    for iid, title, url, raw, published, origin, method, emb_hash in cur.fetchall():
+        body = ready_body(raw, url, title, emb_hash, method)
+        if body.text is None or method not in ('self','same_text','near_duplicate') or origin is None:
+            reason = body.reason if body.text is None else 'ORIGIN_UNCHECKED'
+            skipped[reason] = skipped.get(reason, 0) + 1
+            continue
+        out.append({'item_id': iid, 'title': title or '', 'url': url,
+                    'text': ((title or '') + '\n\n' + body.text)[:MAX_TEXT],
+                    'published': published.isoformat(), 'origin': origin, 'origin_method': method,
+                    'body_source_kind': body.source_kind, 'body_text_sha256': body.text_sha256})
+    print('KB_BODY_SELECTION ' + json.dumps({'consumer': 'extract', 'skipped': skipped}, sort_keys=True))
+    return out
 
 
 def run(conn, cheap, day_from, day_to, limit=1000, run_ref=None):
@@ -239,7 +252,8 @@ def run(conn, cheap, day_from, day_to, limit=1000, run_ref=None):
             break
         chunk = todo[i:i + CHUNK]
         firsts = [it for it in chunk if it["origin_method"] == "self"]
-        answers = cheap.free_many([cheap.request(EXTRACT_SYSTEM, {"date": it["published"][:10], "text": it["text"]},
+        answers = cheap.free_many([cheap.request(EXTRACT_SYSTEM, {"date": it["published"][:10], "text": it["text"],
+                                                  "source_url": it["url"], "source_kind": it.get("body_source_kind")},
                                                  EXTRACT_SCHEMA, max_output=4000, step="extract") for it in firsts])
         work = []  # (item, extractor provider, entities, rows, dropped)
         for it, a in zip(firsts, answers):

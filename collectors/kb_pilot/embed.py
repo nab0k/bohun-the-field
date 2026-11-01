@@ -11,6 +11,7 @@ import urllib.request
 
 from ..synthesis.contracts import sha
 from .free import USER_AGENT
+from .body_selection import select_body, ready_body, embedding_text
 
 MODEL = "@cf/baai/bge-m3"
 LOCAL_MODEL = "BAAI/bge-m3"   # the same open weights on the runner CPU: compatible vectors, no account, no daily limit
@@ -22,7 +23,7 @@ ORIGIN_WINDOW_DAYS = 4
 
 
 def item_text(title, body):
-    return ((title or "").strip() + "\n" + (body or "").strip())[:MAX_CHARS].strip()
+    return embedding_text(title, body)
 
 
 def vector_literal(vec):
@@ -75,18 +76,30 @@ def origin_of(item, neighbours):
 
 
 def pending(cur, limit, day_from=None):
-    cur.execute("""SELECT i.id, i.title, i.raw_data->'content_capture'->>'text', i.published_at
+    cur.execute("""SELECT i.id,i.title,i.url,i.raw_data,i.published_at
                      FROM intelligence.items i
                 LEFT JOIN knowledge.item_embedding e ON e.item_id = i.id
                     WHERE e.item_id IS NULL AND i.published_at IS NOT NULL
                       AND (%s::date IS NULL OR i.published_at >= %s::date)
                  ORDER BY i.published_at, i.id LIMIT %s""", (day_from, day_from, limit))
-    return [{"item_id": i, "text": item_text(t, b), "published": p} for i, t, b, p in cur.fetchall()]
+    items = []
+    for iid, title, url, raw, published in cur.fetchall():
+        body = select_body(raw, url)
+        embedding_body = body.text
+        if embedding_body is None:
+            # Preserve the prior short-provider index input without calling it a usable article.
+            provider_only = {'content_capture': raw.get('content_capture')} if isinstance(raw, dict) else {}
+            short = select_body(provider_only, url, min_chars=1)
+            if short.source_kind == 'inoreader_provider':
+                embedding_body = short.text
+        items.append({'item_id': iid, 'text': item_text(title, embedding_body), 'published': published,
+                      'body_source_kind': body.source_kind, 'body_text_sha256': body.text_sha256})
+    return items
 
 
 def neighbours(cur, item_id, k=8):
     cur.execute("""SELECT e2.item_id, e2.text_sha256, e2.origin_item_id, i2.published_at,
-                          e2.embedding OPERATOR(extensions.<=>) e1.embedding AS distance
+                          e2.embedding OPERATOR(extensions.<=>) e1.embedding AS distance,e2.text_sha256,e2.origin_method
                      FROM knowledge.item_embedding e1
                      JOIN knowledge.item_embedding e2 ON e2.item_id <> e1.item_id
                      JOIN intelligence.items i1 ON i1.id = e1.item_id
@@ -102,8 +115,8 @@ def neighbours(cur, item_id, k=8):
 def similar_items(cur, item_ids, before, k=15, max_distance=0.45, years=6):
     """Earlier items closest in meaning to the given items, one per origin (reprints collapse)."""
     cur.execute("""SELECT DISTINCT ON (COALESCE(e2.origin_item_id, e2.item_id)) i2.id, i2.title, i2.url, i2.published_at,
-                          left(i2.raw_data->'content_capture'->>'text', 1500),
-                          e2.embedding OPERATOR(extensions.<=>) e1.embedding AS distance
+                          i2.raw_data,
+                          e2.embedding OPERATOR(extensions.<=>) e1.embedding AS distance,e2.text_sha256,e2.origin_method
                      FROM knowledge.item_embedding e1
                      JOIN knowledge.item_embedding e2 ON e2.item_id <> ALL(%s)
                      JOIN intelligence.items i2 ON i2.id = e2.item_id
@@ -113,8 +126,15 @@ def similar_items(cur, item_ids, before, k=15, max_distance=0.45, years=6):
                  ORDER BY COALESCE(e2.origin_item_id, e2.item_id), distance""",
                 (list(item_ids), list(item_ids), before[:10], before[:10], years, max_distance))
     rows = sorted(cur.fetchall(), key=lambda r: r[5])[:k]
-    return [{"archive_id": i, "title": t, "url": u, "date": p.date().isoformat(), "text": (t or "") + "\n" + (b or ""),
-             "distance": round(float(d), 3)} for i, t, u, p, b, d in rows]
+    out = []
+    for iid, title, url, published, raw, distance, emb_hash, origin in rows:
+        body = ready_body(raw, url, title, emb_hash, origin)
+        if body.text is None:
+            continue
+        out.append({'archive_id': iid, 'title': title, 'url': url, 'date': published.date().isoformat(),
+                    'text': (title or '') + '\n' + body.text[:1500], 'distance': round(float(distance), 3),
+                    'body_source_kind': body.source_kind, 'body_text_sha256': body.text_sha256})
+    return out
 
 
 def run(conn, account, token, limit=8000, day_from=None, transport=None, backend="auto", local=embed_local):
