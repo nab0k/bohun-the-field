@@ -1,0 +1,131 @@
+# Manual cloud runner. Schedule remains disabled until live pilots are approved.
+name: BOHUN Source Discovery
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact reviewed Discovery code commit
+        required: true
+        type: string
+      mode:
+        description: Observe, approved manual pilot, or approved continuous apply
+        required: true
+        type: choice
+        default: observe
+        options: [observe, pilot, apply]
+      approved_policy_sha256:
+        description: Reviewed policy hash required for pilot/apply
+        type: string
+        default: ''
+      approved_manifest_sha256:
+        description: Reviewed private manifest hash required for pilot
+        type: string
+        default: ''
+  # Enable only after platform/radar/pilot approval; no schedule is active here.
+  # schedule:
+  #   - cron: '23 * * * *'
+permissions:
+  contents: read
+concurrency:
+  group: bohun-source-discovery-cloud
+  cancel-in-progress: false
+jobs:
+  discover:
+    if: ${{ vars.SOURCE_DISCOVERY_ENABLED == 'true' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      MODE: ${{ github.event_name == 'schedule' && vars.SOURCE_DISCOVERY_MODE || inputs.mode }}
+      APPROVED_POLICY: ${{ github.event_name == 'schedule' && vars.SOURCE_DISCOVERY_APPROVED_POLICY || inputs.approved_policy_sha256 }}
+      APPROVED_MANIFEST: ${{ inputs.approved_manifest_sha256 }}
+    steps:
+      - name: Check immutable code pin before checkout or secrets
+        env:
+          CODE_SHA: ${{ vars.SOURCE_DISCOVERY_CODE_SHA }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          EVENT: ${{ github.event_name }}
+          APPLY_ENABLED: ${{ vars.SOURCE_DISCOVERY_APPLY_ENABLED }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$CODE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          if [ "$EVENT" = workflow_dispatch ]; then test "$EXPECTED_SHA" = "$CODE_SHA"; fi
+          case "$MODE" in
+            observe) ;;
+            pilot) test "$EVENT" = workflow_dispatch; [[ "$APPROVED_MANIFEST" =~ ^[0-9a-f]{64}$ ]] ;;
+            apply) test "$APPLY_ENABLED" = true ;;
+            *) exit 1 ;;
+          esac
+          if [ "$MODE" != observe ]; then [[ "$APPROVED_POLICY" =~ ^[0-9a-f]{64}$ ]]; fi
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ vars.SOURCE_DISCOVERY_CODE_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13'
+      - name: Prepare private config (no public output)
+        env:
+          SOURCE_DISCOVERY_CONFIG: ${{ secrets.SOURCE_DISCOVERY_CONFIG }}
+          SOURCE_DISCOVERY_PILOT_MANIFEST: ${{ secrets.SOURCE_DISCOVERY_PILOT_MANIFEST }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +x
+          python -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          try:
+              root = Path(os.environ['RUNNER_TEMP']) / ('source-discovery-' + os.environ['GITHUB_RUN_ID'] + '-' + os.environ['GITHUB_RUN_ATTEMPT'])
+              root.mkdir(mode=0o700)
+              value = json.loads(os.environ['SOURCE_DISCOVERY_CONFIG'])
+              value['runtime']['runtime_root'] = str(root)
+              value['runtime']['state_path'] = str(root / 'sandbox' / 'service')
+              value['policy_path'] = str(Path.cwd() / 'collectors/source_registry/discovery/policy.proposed.json')
+              if os.environ['MODE'] == 'observe':
+                  value['runtime']['writer_enabled'] = False
+              elif value['runtime'].get('writer_enabled') is not True:
+                  raise ValueError('writer must be explicitly enabled in reviewed config')
+              if value['runtime'].get('manager'):
+                  value['runtime']['manager']['field_root'] = str(Path.cwd())
+              target = Path(os.environ['RUNNER_TEMP']) / 'source-discovery-config.json'
+              with target.open('x') as out:
+                  os.chmod(target, 0o600)
+                  json.dump(value, out)
+              if os.environ['MODE'] == 'pilot':
+                  manifest = json.loads(os.environ['SOURCE_DISCOVERY_PILOT_MANIFEST'])
+                  with (Path(os.environ['RUNNER_TEMP']) / 'source-discovery-pilot.json').open('x') as out:
+                      os.chmod(out.name, 0o600)
+                      json.dump(manifest, out, sort_keys=True, separators=(',', ':'), ensure_ascii=False)
+          except BaseException:
+              raise SystemExit('PRIVATE_CONFIG_HOLD') from None
+          PY
+      - name: Reuse existing collector PostgreSQL driver for optional delivery readback
+        if: env.MODE != 'observe'
+        run: |
+          python -m venv "$RUNNER_TEMP/discovery-python"
+          "$RUNNER_TEMP/discovery-python/bin/python" -m pip install --only-binary=:all: 'psycopg[binary]==3.3.6'
+      - name: Validate, then run one bounded invocation
+        env:
+          SOURCE_DISCOVERY_STATE_TOKEN: ${{ secrets.SOURCE_DISCOVERY_STATE_TOKEN }}
+          PGSSLROOTCERT: /etc/ssl/certs/ca-certificates.crt
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +x
+          PYTHON=python
+          if [ "$MODE" != observe ]; then
+            test -r "$PGSSLROOTCERT"
+            PYTHON="$RUNNER_TEMP/discovery-python/bin/python"
+          fi
+          args=(--config "$RUNNER_TEMP/source-discovery-config.json")
+          if [ "$MODE" != observe ]; then args+=(--approved-policy-sha256 "$APPROVED_POLICY"); fi
+          if [ "$MODE" = pilot ]; then
+            args+=(--pilot-manifest "$RUNNER_TEMP/source-discovery-pilot.json" --approved-manifest-sha256 "$APPROVED_MANIFEST")
+          elif [ "$MODE" = apply ]; then args+=(--apply); fi
+          "$PYTHON" -B -m collectors.source_registry.discovery.cloud.run validate "${args[@]}"
+          if [ "$MODE" = pilot ]; then command=pilot; else command=once; fi
+          "$PYTHON" -B -m collectors.source_registry.discovery.cloud.run "$command" --allow-live "${args[@]}"
+      # OAuth stays in the coordinator; runtime.oauth_mode must be coordinator for Inoreader.
+      # Pilot manifest hash covers the exact UTF-8 sorted compact JSON written above.
+      # No shared collector OAuth, artifacts/cache, DB writes, dispatch or site deployment.
