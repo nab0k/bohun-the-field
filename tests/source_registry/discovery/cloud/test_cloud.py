@@ -23,7 +23,7 @@ FIELD = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(FIELD))
 from collectors.source_registry.discovery.cloud import run
 from collectors.source_registry.discovery.cloud.state import CloudHold, StateClient, MAX_CALLS, MAX_TRANSFER, MAX_SNAPSHOT
-from collectors.source_registry.discovery.policy import Problem, load_policy, digest
+from collectors.source_registry.discovery.policy import Problem, load_policy, digest, stamp
 from collectors.source_registry.discovery.radars import Response
 from collectors.source_registry.discovery.store import CheckpointError, Store
 
@@ -391,6 +391,86 @@ class CloudTests(unittest.TestCase):
         text = json.dumps(value)
         self.assertNotIn(TOKEN, text); self.assertNotIn("PRIVATE_PROVIDER", text)
         self.assertEqual(value["error_count"], 2)
+
+    def pilot_config(self, stage="single"):
+        document = self.config()
+        document["runtime"].update(live_inputs=True, writer_enabled=True, collector_ready=True,
+            oauth_mode="coordinator", manager={"field_root": str(FIELD), "sha256": hashlib.sha256(
+                (FIELD / "collectors/inoreader/inoreader_source_manager.py").read_bytes()).hexdigest()},
+            delivery={"enabled": True})
+        count = 1 if stage == "single" else 3
+        manifest = {"version": 1, "stage": stage, "deployment_id": DEPLOYMENT,
+            "code_sha256": document["code_sha256"], "policy_sha256": POLICY_HASH,
+            "expires_at": stamp(time.time() + 600), "max_attempts": count,
+            "sources": [{"feed_url": f"https://publisher-{i}.example/feed", "group": "Media / intelligence"}
+                        for i in range(count)]}
+        raw = json.dumps(manifest).encode()
+        return document, raw, hashlib.sha256(raw).hexdigest()
+
+    def test_pilot_validate_no_state_credentials_or_upstream(self):
+        document, raw, approved = self.pilot_config()
+        result = run.execute(document, mode="validate", pilot_manifest=raw,
+            approved_manifest_hash=approved, approved_policy_hash=POLICY_HASH, token_provider=blocked)
+        self.assertEqual(result["status"], "VALIDATED_NO_IO")
+        self.assertFalse(Path(document["runtime"]["state_path"]).exists())
+        self.assertEqual(document["runtime"]["pilot_proofs"], {"single": False, "batch3": False})
+
+    def test_missing_expired_or_wrong_manifest_stops_before_any_token(self):
+        document, raw, approved = self.pilot_config()
+        cases = [(None, None), (raw, None), (raw, "0"*64)]
+        value = json.loads(raw); value["expires_at"] = stamp(time.time()-1)
+        expired = json.dumps(value).encode(); cases.append((expired, hashlib.sha256(expired).hexdigest()))
+        value = json.loads(raw); value["code_sha256"] = "0"*64
+        wrong = json.dumps(value).encode(); cases.append((wrong, hashlib.sha256(wrong).hexdigest()))
+        for body, approval in cases:
+            with self.subTest(approval=approval), self.assertRaises(Problem):
+                run.execute(document, mode="pilot", allow_live=True, pilot_manifest=body,
+                    approved_manifest_hash=approval, approved_policy_hash=POLICY_HASH, token_provider=blocked)
+
+    def test_pilot_still_requires_write_delivery_and_policy_gates(self):
+        document, raw, approved = self.pilot_config()
+        for key in ("collector_ready", "writer_enabled", "delivery", "manager"):
+            changed = copy.deepcopy(document)
+            changed["runtime"][key] = {"enabled": False} if key == "delivery" else None if key == "manager" else False
+            with self.subTest(key=key), self.assertRaises(Problem):
+                run.execute(changed, mode="validate", pilot_manifest=raw, approved_manifest_hash=approved,
+                            approved_policy_hash=POLICY_HASH, token_provider=blocked)
+        with self.assertRaises(Problem):
+            run.execute(document, mode="validate", pilot_manifest=raw, approved_manifest_hash=approved,
+                        approved_policy_hash="0"*64, token_provider=blocked)
+
+    def test_pilot_manifest_cannot_enable_normal_once_or_bootstrap(self):
+        document, raw, approved = self.pilot_config()
+        for mode in ("once", "bootstrap"):
+            with self.subTest(mode=mode), self.assertRaises(Problem):
+                run.execute(document, mode=mode, pilot_manifest=raw, approved_manifest_hash=approved,
+                            approved_policy_hash=POLICY_HASH, token_provider=blocked)
+
+    def test_batch_runner_uses_one_shared_budget_and_durable_pilot_event(self):
+        document, raw, approved = self.pilot_config("batch3")
+        transport = self.transport(); self.boot(transport)
+        used = []
+        class PilotProbe:
+            def __init__(self, store, policy, policy_hash, config, **options):
+                self.store, self.shared_budget = store, options["shared_budget"]
+                self.clock = time.time
+            def cycle(self, **_):
+                self.shared_budget.request(); used.append(self.shared_budget.requests)
+                return {"providers": {}, "errors": [], "connections": [{}],
+                        "result": "CYCLE_FINISHED", "new_subscriptions": 0}
+        result = self.once(document, transport, mode="pilot", pilot_manifest=raw,
+            approved_manifest_hash=approved, approved_policy_hash=POLICY_HASH, worker_factory=PilotProbe)
+        self.assertEqual(used, [1, 2, 3]); self.assertEqual(result["status"], "CYCLE_PARTIAL")
+        self.assertEqual(result["new_subscriptions"], 0)
+        with Store(Path(document["runtime"]["state_path"]), DEPLOYMENT) as store:
+            self.assertEqual(store.db.execute("SELECT count(*) FROM review_events WHERE kind='PILOT_RESULT'").fetchone()[0], 1)
+            self.assertEqual(store.summary()["connection_operations"], 0)
+
+    def test_source_error_and_health_unknown_fail_public_cycle_without_leaking(self):
+        for row in ({"validation": [{"error": TOKEN}]}, {"health": [{"state": "UNKNOWN", "reason": TOKEN}]}):
+            value = run.summary({"providers": {}, "errors": [], "new_subscriptions": 0, **row}, False)
+            self.assertEqual(value["status"], "CYCLE_PARTIAL")
+            self.assertNotIn(TOKEN, json.dumps(value))
 
 
 if __name__ == "__main__":

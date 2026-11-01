@@ -11,6 +11,7 @@ from urllib.parse import urlsplit
 
 from .policy import Problem, identity_url, parse_json, read_file, require
 from .radars import api_json
+from .pilot import PilotAdmission
 
 
 def load_manager(field_root, expected_hash):
@@ -32,11 +33,13 @@ def load_manager(field_root, expected_hash):
 
 class Bridge:
     def __init__(self, manager, http, token_provider, store, policy, run_id, clock,
-                 *, live_enabled=False, pilot_proofs=None):
+                 *, live_enabled=False, pilot_proofs=None, pilot_admission=None):
         self.manager, self.http, self.token_provider = manager, http, token_provider
         self.store, self.policy, self.run_id, self.clock = store, policy, run_id, clock
         self.live_enabled = live_enabled
         self.pilot_proofs = pilot_proofs or {}
+        require(pilot_admission is None or isinstance(pilot_admission, PilotAdmission), "PILOT_ADMISSION_TYPE")
+        self.pilot_admission = pilot_admission
         self.token_value = None
 
     def token(self):
@@ -92,8 +95,11 @@ class Bridge:
 
     def connect(self, profile):
         require(self.live_enabled, "WRITER_DISABLED")
-        require(self.pilot_proofs.get("single") is True and self.pilot_proofs.get("batch3") is True,
-                "PILOT_PROOFS_REQUIRED")
+        if self.pilot_admission is not None:
+            self.pilot_admission.admit(profile, self.store, self.clock())
+        else:
+            require(self.pilot_proofs.get("single") is True and self.pilot_proofs.get("batch3") is True,
+                    "PILOT_PROOFS_REQUIRED")
         require(profile["assessment"]["decision"] == "AUTO_ADMIT", "ADMISSION_REQUIRED")
         now = self.clock()
         require(0 <= now - profile["validated_at"] <= self.policy["limits"]["snapshot_ttl"], "VALIDATION_STALE")
@@ -131,8 +137,12 @@ class Bridge:
             require(when - now <= self.policy["limits"]["snapshot_ttl"], "WRITE_PREFLIGHT_STALE")
             if path == "subscription/quickadd":
                 require(values == {"quickadd": feed_url}, "WRITE_TARGET_MISMATCH")
+                if self.pilot_admission is not None:
+                    self.pilot_admission.reserve(profile, self.store, self.run_id, when)
                 kind, day_limit, cycle_limit = "quickadd", self.policy["limits"]["max_add_day"], 1
             elif path == "subscription/edit":
+                if self.pilot_admission is not None:
+                    self.pilot_admission.admit(profile, self.store, when)
                 require(values == {"s": "feed/" + feed_url, "a": "user/-/label/" + folder, "ac": "edit"}
                         and self.store.has_attempt(operation), "FOLDER_TARGET_MISMATCH")
                 kind, day_limit, cycle_limit = "folder_edit", self.policy["limits"]["max_folder_day"], 1

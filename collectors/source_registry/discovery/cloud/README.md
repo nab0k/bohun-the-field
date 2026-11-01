@@ -1,5 +1,40 @@
 # Cloud execution adapter
 
+## Manual first pilot
+
+`pilot` uses the existing coordinator, Store and Source Manager. It requires an
+explicit private manifest and a separately reviewed hash, live/writer/collector/
+delivery gates and the approved policy hash. It does not require or set the two
+continuous `pilot_proofs` flags. Normal `once --apply` still requires both flags.
+No pilot or schedule is enabled by these instructions.
+
+The manifest has exactly these fields: `version: 1`, `stage: single|batch3`,
+`deployment_id`, `code_sha256`, `policy_sha256`, `expires_at` (UTC, at most one day),
+`max_attempts` (1 for single, 3 for batch3), and `sources` (exactly 1 or 3 distinct
+objects containing `feed_url` and the existing manager `group`). Hashes match the
+reviewed runtime; the manifest SHA256 covers its exact UTF-8 bytes. The private
+workflow proposal writes sorted compact JSON, so its approved hash must cover that
+serialization. A changed URL, folder, revision, expiry or policy needs a new review.
+
+```sh
+python3.13 -B -m collectors.source_registry.discovery.cloud.run validate --config /private/runtime/config.json --pilot-manifest /private/runtime/pilot.json --approved-manifest-sha256 REVIEWED_MANIFEST_SHA256 --approved-policy-sha256 REVIEWED_POLICY_SHA256
+python3.13 -B -m collectors.source_registry.discovery.cloud.run pilot --allow-live --config /private/runtime/config.json --pilot-manifest /private/runtime/pilot.json --approved-manifest-sha256 REVIEWED_MANIFEST_SHA256 --approved-policy-sha256 REVIEWED_POLICY_SHA256
+```
+
+Validation performs no credential lookup, state creation, source I/O or DB access.
+One invocation uses one lease and one shared source HTTP/byte/time budget, with at
+most one attempt per normal cycle and at most three cycles. Daily limits remain
+durable. A manifest+feed reservation cannot be reused after a restart or on a later
+day. Unknown outcomes reconcile first; the remaining batch is never sent blindly.
+The persisted `PILOT_RESULT` and public count summary confirm connections only,
+never delivery or autonomous operation. A replay may confirm existing connections
+with zero additions; that does not establish a fresh-source onboarding proof.
+
+The private workflow proposal is not installed. Its Action pins reuse the reviewed
+collector pins; optional delivery uses the same pinned psycopg version as that
+collector. No dependency is installed by local tests. Deployment, dedicated OAuth,
+bootstrap, real radar contract, pilot sources and schedule remain separate actions.
+
 One existing Python discovery cycle on GitHub Actions, with a private authoritative
 checkpoint in one SQLite-backed Cloudflare Durable Object. No import-time HTTP,
 credential discovery, job dispatch, account setup or background process.
