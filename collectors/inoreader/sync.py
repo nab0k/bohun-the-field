@@ -15,6 +15,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import uuid
 
 if __package__:
     from .content_contract import capture_size, extract_inoreader_content
@@ -126,7 +127,12 @@ def stream_items(folder, token, max_pages, page_size=100):
         time.sleep(0.25)
 
 
-def normalize(item, folder, *, captured_at=None, content_budget=None):
+def normalize(item, folder, *, captured_at=None, content_budget=None, collector_cycle_id=None):
+    if collector_cycle_id is not None and (
+            not isinstance(collector_cycle_id, str) or len(collector_cycle_id) != 42 or
+            not collector_cycle_id.startswith("inoreader:") or
+            any(c not in "0123456789abcdef" for c in collector_cycle_id[10:])):
+        raise ValueError("Invalid collector cycle ID")
     links = item.get("canonical") or item.get("alternate") or []
     url = next((link.get("href") for link in links if link.get("href")), None)
     title = item.get("title") or "(untitled)"
@@ -139,6 +145,7 @@ def normalize(item, folder, *, captured_at=None, content_budget=None):
         "url": url,
         "published_at": timestamp,
         "raw_data": {
+            **({"collector_cycle_id": collector_cycle_id} if collector_cycle_id is not None else {}),
             "inoreader_id": item["id"],
             "folder": folder,
             "origin_title": origin.get("title"),
@@ -210,6 +217,7 @@ BATCH_CAPTURE_BYTES = 5 * 1024 * 1024
 
 def normalized_items(folders, token, max_pages, max_items=None):
     """Deduplicate IDs only; provider pages remain bounded by stream_items."""
+    collector_cycle_id = "inoreader:" + uuid.uuid4().hex
     seen = set()
     for folder in folders:
         if max_items is not None and len(seen) >= max_items:
@@ -223,7 +231,7 @@ def normalized_items(folders, token, max_pages, max_items=None):
             if external_id not in seen:
                 seen.add(external_id)
                 # No whole-run eviction budget: each capture is bounded individually.
-                yield normalize(raw, folder)
+                yield normalize(raw, folder, collector_cycle_id=collector_cycle_id)
             if max_items is not None and len(seen) >= max_items:
                 break
         print(f"FOLDER {folder}: fetched={count}")

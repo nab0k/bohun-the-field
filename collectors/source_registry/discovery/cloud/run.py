@@ -5,11 +5,14 @@ import json
 import os
 from pathlib import Path
 import signal
+import time
 
 from ..collectors import load_manager
 from ..discovery import Worker, runtime_paths, validate_config
 from ..health import optional_connect, read_delivery
 from ..policy import Problem, digest, load_policy, parse_json, read_file, require
+from ..pilot import PilotAdmission, run_cycles
+from ..radars import Budget
 from ..store import CheckpointError, Store
 from .state import CloudHold, ENDPOINT, HEX, NAME, StateClient, MAX_SNAPSHOT, MAX_SECONDS
 from .oauth import AccessProvider
@@ -88,7 +91,11 @@ def summary(report, apply):
     # Never print a raw Worker receipt: it can contain private provenance/cursors.
     providers, errors = report.get("providers", {}), report.get("errors", [])
     require(isinstance(providers, dict) and isinstance(errors, list), "CLOUD_REPORT")
-    failures = len(errors) + sum(isinstance(p, dict) and "error" in p for p in providers.values())
+    failures = (len(errors) + sum(isinstance(p, dict) and "error" in p for p in providers.values()) +
+                sum("error" in p for p in report.get("validation", [])) +
+                sum(p.get("state") == "UNKNOWN" for p in report.get("health", [])))
+    if report.get("result") == "PARTIAL" and not failures:
+        failures = 1
     added = report.get("new_subscriptions", 0)
     require(type(added) is int and 0 <= added <= 5, "CLOUD_REPORT")
     return {"status": "CYCLE_PARTIAL" if failures else "CYCLE_FINISHED",
@@ -97,10 +104,22 @@ def summary(report, apply):
 
 
 def execute(document, *, mode="once", allow_live=False, apply=False, approved_policy_hash=None,
-            transport=None, token_provider=None, worker_factory=Worker):
-    require(mode in ("validate", "bootstrap", "once"), "CLOUD_MODE")
+            transport=None, token_provider=None, worker_factory=Worker,
+            pilot_manifest=None, approved_manifest_hash=None):
+    require(mode in ("validate", "bootstrap", "once", "pilot"), "CLOUD_MODE")
+    pilot_requested = pilot_manifest is not None or approved_manifest_hash is not None or mode == "pilot"
+    require(not pilot_requested or (mode in ("validate", "pilot") and not apply and
+            isinstance(pilot_manifest, bytes) and isinstance(approved_manifest_hash, str)), "PILOT_ARGUMENTS")
     config, policy, policy_hash, allowed, root, manager = settings(
         document, apply=apply, approved_policy_hash=approved_policy_hash)
+    admission = None
+    if pilot_requested:
+        admission = PilotAdmission.load(pilot_manifest, approved_manifest_hash,
+            deployment=config["deployment_id"], code_hash=document["code_sha256"],
+            policy_hash=policy_hash, now=time.time())
+        require(config.get("live_inputs") is True and config.get("writer_enabled") is True and
+                config.get("collector_ready") is True and config.get("delivery", {}).get("enabled") is True and
+                manager is not None and approved_policy_hash == policy_hash, "CLOUD_PILOT_NOT_ADMITTED")
     if mode == "validate":
         return {"status": "VALIDATED_NO_IO", "mode": "VALIDATE"}
     require(document["enabled"] is True and allow_live, "CLOUD_LIVE_NOT_ALLOWED")
@@ -124,10 +143,22 @@ def execute(document, *, mode="once", allow_live=False, apply=False, approved_po
     reader = (lambda profile: read_delivery(lambda: optional_connect(delivery), delivery, profile)) \
         if delivery.get("enabled") else None
     with Store(root, config["deployment_id"], checkpoint=client.checkpoint) as store:
+        writing = apply or admission is not None
+        options = {"pilot_admission": admission, "shared_budget": Budget(policy["limits"])} if admission else {}
         worker = worker_factory(store, policy, policy_hash, config, manager=manager, delivery_reader=reader,
-            token_provider_factory=lambda http: AccessProvider(client, http, scope="read write" if apply else "read"))
-        report = worker.cycle(apply=apply, approved_policy_hash=approved_policy_hash)
-        safe = summary(report, apply)
+            token_provider_factory=lambda http: AccessProvider(client, http, scope="read write" if writing else "read"),
+            **options)
+        if admission:
+            reports, complete = run_cycles(worker, admission, policy_hash)
+            counts = [summary(r, True) for r in reports]
+            safe = {"status": "PILOT_CONNECTIONS_CONFIRMED" if complete else "CYCLE_PARTIAL",
+                    "mode": "PILOT", "stage": admission.stage, "cycles": len(reports),
+                    "error_count": sum(r["error_count"] for r in counts) + int(not complete),
+                    "new_subscriptions": sum(r["new_subscriptions"] for r in counts),
+                    "delivery_proof": "NOT_ESTABLISHED"}
+        else:
+            report = worker.cycle(apply=apply, approved_policy_hash=approved_policy_hash)
+            safe = summary(report, apply)
         store.sync_checkpoint()
     # Deliberately no finally-release on any uncertain state or interrupted write.
     client.release()
@@ -136,11 +167,13 @@ def execute(document, *, mode="once", allow_live=False, apply=False, approved_po
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=("validate", "bootstrap", "once"))
+    parser.add_argument("mode", choices=("validate", "bootstrap", "once", "pilot"))
     parser.add_argument("--config", required=True)
     parser.add_argument("--allow-live", action="store_true")
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--approved-policy-sha256")
+    parser.add_argument("--pilot-manifest")
+    parser.add_argument("--approved-manifest-sha256")
     args = parser.parse_args(argv)
     previous = None
     try:
@@ -153,7 +186,9 @@ def main(argv=None):
                 signal.signal(sig, halt)
             signal.alarm(MAX_SECONDS)
         result = execute(document, mode=args.mode, allow_live=args.allow_live, apply=args.apply,
-                         approved_policy_hash=args.approved_policy_sha256)
+                         approved_policy_hash=args.approved_policy_sha256,
+                         pilot_manifest=read_file(Path(args.pilot_manifest), limit=16384) if args.pilot_manifest else None,
+                         approved_manifest_hash=args.approved_manifest_sha256)
         print(json.dumps(result, sort_keys=True))
         return 2 if result["status"] == "CYCLE_PARTIAL" else 0
     except BaseException:

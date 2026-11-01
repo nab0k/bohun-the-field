@@ -28,18 +28,23 @@ def code_identity():
 class Worker:
     def __init__(self, store, policy, policy_hash, config, *, clock=time.time,
                  monotonic=time.monotonic, http_factory=None, token_provider=None,
-                 manager=None, delivery_reader=None, token_provider_factory=None):
+                 manager=None, delivery_reader=None, token_provider_factory=None,
+                 pilot_admission=None, shared_budget=None):
         self.store, self.policy, self.policy_hash, self.config = store, policy, policy_hash, config
         self.clock, self.monotonic = clock, monotonic
         self.http_factory, self.token_provider = http_factory, token_provider
         require(not (token_provider is not None and token_provider_factory is not None), "TOKEN_PROVIDER_CONFLICT")
         self.token_provider_factory = token_provider_factory
         self.manager, self.delivery_reader = manager, delivery_reader
+        self.pilot_admission, self.shared_budget = pilot_admission, shared_budget
         self.producer = code_identity()
         if manager is not None:
             self.producer["manager_sha256"] = hashlib.sha256(read_file(Path(manager.__file__))).hexdigest()
 
     def cycle(self, *, apply=False, approved_policy_hash=None):
+        if self.pilot_admission is not None:
+            require(apply, "PILOT_REQUIRES_APPLY")
+            self.pilot_admission.check(self.clock())
         if apply:
             require(self.config.get("writer_enabled") is True and self.config.get("live_inputs") is True
                     and approved_policy_hash == self.policy_hash, "APPLY_NOT_ADMITTED")
@@ -50,7 +55,7 @@ class Worker:
         self.store.set_meta("current_run", run)
         self.store.set_meta("policy_sha256", self.policy_hash)
         self.store.set_meta("producer", json.dumps(self.producer, sort_keys=True))
-        budget = Budget(self.policy["limits"], monotonic=self.monotonic)
+        budget = self.shared_budget or Budget(self.policy["limits"], monotonic=self.monotonic)
         def api_reservation(key):
             self.store.reserve(key, run, "discovery_api", self.clock(),
                                day_limit=self.policy["limits"]["max_api_day"],
@@ -66,7 +71,8 @@ class Worker:
                   "providers": {}, "validation": [], "connections": [], "health": [], "errors": [],
                   "supabase_writes": 0, "new_subscriptions": 0, "live_proof": "NOT_ESTABLISHED_BY_CODE"}
         bridge = Bridge(self.manager, http, token, self.store, self.policy, run, self.clock,
-                        live_enabled=apply, pilot_proofs=self.config.get("pilot_proofs")) if self.manager else None
+                        live_enabled=apply, pilot_proofs=self.config.get("pilot_proofs"),
+                        pilot_admission=self.pilot_admission) if self.manager else None
         try:
             # Artifact imports work offline; their cursors are independent of radar cursors.
             for source in self.config.get("artifacts", []):
@@ -86,7 +92,10 @@ class Worker:
                     sid = source["id"]
                     cursor = self.store.cursor(sid)
                     if cursor.get("retry_at", 0) > self.clock():
-                        report["providers"][sid] = {"state": "BACKOFF"}
+                        report["providers"][sid] = {"state": "BACKOFF", "coverage": "UNKNOWN",
+                                                    "error": cursor.get("error", "RADAR_BACKOFF")}
+                        if source["type"] == "inoreader":
+                            report["errors"].append("INOREADER_WRITER_BLOCKED")
                         continue
                     count = 0
                     try:
@@ -146,6 +155,8 @@ class Worker:
                     require(not report["errors"], "CYCLE_BUDGET_WRITER_HOLD")
                     require(bridge.reconcile(), "UNRESOLVED_WRITE_HOLD")
                     for profile in self.store.profiles():
+                        if self.pilot_admission is not None and not self.pilot_admission.selects(profile):
+                            continue
                         if profile.get("lifecycle") != "VALIDATED" or profile["assessment"]["decision"] != "AUTO_ADMIT":
                             continue
                         writer_profile = profile["profile_id"]
@@ -198,7 +209,11 @@ class Worker:
             report["http"] = {"requests": budget.requests, "bytes": budget.bytes, "trace": budget.trace}
             report["queue"] = self.store.summary()
             report["writer_pending_reconciliation"] = len(self.store.unresolved())
-            report["result"] = "PARTIAL" if report["errors"] else "CYCLE_FINISHED"
+            failed = (report["errors"] or
+                      any("error" in p for p in report["providers"].values()) or
+                      any("error" in p for p in report["validation"]) or
+                      any(p.get("state") == "UNKNOWN" for p in report["health"]))
+            report["result"] = "PARTIAL" if failed else "CYCLE_FINISHED"
             report["finished_at"] = stamp(self.clock())
             self.store.finish_run(run, self.clock(), report)
         return report

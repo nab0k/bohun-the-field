@@ -1,5 +1,28 @@
 # BOHUN Source Discovery
 
+Дополнение запуска: появился отдельный адресный cloud pilot (single/batch3) через
+тот же Worker/Source Manager, без выставления флагов пройденных пилотов. Manifest
+содержит точные feed URL/группы, deployment, code/policy hashes, срок до суток и
+лимит1или3; требуется отдельный SHA256 именно его bytes. Каждый цикл допускает
+одну попытку; общий HTTP/time budget и дневной ledger сохраняются между циклами.
+REVIEW, неизвестный результат и исчерпанная квота останавливают партию. Повтор
+сверяет состояние и не создаёт новую попытку для уже подключённого источника.
+Это локальный путь подготовки пилота, не подтверждение живого подключения.
+
+Collector сохраняет собственный `inoreader:<UUID>` в `raw_data.collector_cycle_id`.
+Разные порции одного сбора имеют один ID; body backfill и повторный INSERT не
+меняют цикл прежних записей. Health читает только такие ID, exact origin/folder и
+время после подключения. Две независимые непересекающиеся доставки дают ACTIVE;
+старые записи без ID остаются FIRST_DELIVERY_PROVEN. Ошибки provider/validation и
+UNKNOWN health дают PARTIAL; содержательный REVIEW не считается сетевой аварией.
+
+Проверка новых границ вместе с прежними тестами:
+
+```sh
+python3.13 -B -m unittest discover -s tests/source_registry/discovery -p 'test_*.py'
+python3.13 -B -m unittest tests.test_inoreader_cycle tests.test_inoreader_batches tests.test_inoreader_content tests.test_inoreader_body_backfill
+```
+
 Локально интегрированный пакет постоянного поиска новых источников. Реальные поисковые потоки, writer, БД и служба по умолчанию отключены. Перенос кода не подтверждает работу24/7 или качество отбора настоящих источников.
 
 ## Запуск и проверка

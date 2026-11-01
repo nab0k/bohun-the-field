@@ -1,6 +1,7 @@
 """Exact-origin delivery evidence. No writes and no connection on import."""
 from .policy import Problem, digest, epoch, require, stamp
 import statistics
+import re
 
 
 def evaluate(profile, receipt, now):
@@ -13,7 +14,7 @@ def evaluate(profile, receipt, now):
         return {**previous, "state": "UNKNOWN", "lifecycle": profile.get("lifecycle", "CONNECTED"),
                 "reason": "DELIVERY_NOT_CHECKED", "cycles": previous.get("cycles", []),
                 "checked_at": previous.get("checked_at")}
-    cycles = previous.get("cycles", [])
+    cycles = [dict(c) for c in previous.get("cycles", [])]
     expected = "feed/" + profile["feed_url"]
     verified = []
     if receipt is not None:
@@ -35,9 +36,13 @@ def evaluate(profile, receipt, now):
     for cycle in set(r["cycle_id"] for r in new if isinstance(r["cycle_id"], str) and r["cycle_id"]):
         rows = [r for r in new if r["cycle_id"] == cycle]
         # Re-observing a cycle never turns one delivery into two.
-        if cycle not in {c["id"] for c in cycles}:
+        existing = next((c for c in cycles if c["id"] == cycle), None)
+        if existing is None:
             cycles.append({"id": cycle, "first_saved": min(r["saved_at"] for r in rows),
                            "last_saved": max(r["saved_at"] for r in rows)})
+        else:
+            existing["first_saved"] = min(existing["first_saved"], *(r["saved_at"] for r in rows))
+            existing["last_saved"] = max(existing["last_saved"], *(r["saved_at"] for r in rows))
     cycles = sorted(cycles, key=lambda c: c["first_saved"])[-20:]
     distinct = any(b["first_saved"] > a["last_saved"] for i, a in enumerate(cycles) for b in cycles[i + 1:])
     if distinct:
@@ -75,17 +80,19 @@ def read_delivery(connect, settings, profile):
                     require(identity is not None and identity[0] == "Inoreader BOHUN" and
                             identity[1] == "https://www.inoreader.com/", "TRANSPORT_IDENTITY")
                     cur.execute("SELECT id::text, to_jsonb(i)->>'discovered_at', "
-                                "raw_data->>'origin_stream_id', raw_data->>'folder' "
+                                "raw_data->>'origin_stream_id', raw_data->>'folder', "
+                                "raw_data->>'collector_cycle_id' "
                                 "FROM intelligence.items i WHERE source_id=%s "
                                 "AND raw_data->>'origin_stream_id'=%s AND raw_data->>'folder'=%s "
                                 "AND (to_jsonb(i)->>'discovered_at')::timestamptz > %s::timestamptz "
                                 "ORDER BY discovered_at DESC LIMIT 20",
                                 (source_id, expected, connection["folder"], stamp(connection["connected_at"])))
                     rows = cur.fetchmany(20)
-                    # Current collector doesn't persist an independently proven cycle ID.
-                    # Do not invent one from this reader's own run or timestamp.
+                    # Only the collector provides cycle identity. Old rows stay unknown.
                     records = [{"id": r[0], "saved_at": r[1], "origin_stream_id": r[2],
-                                "folder": r[3], "collector_cycle_id": None} for r in rows]
+                                "folder": r[3], "collector_cycle_id": r[4] if len(r) > 4 and
+                                isinstance(r[4], str) and re.fullmatch(r"inoreader:[0-9a-f]{32}", r[4]) else None}
+                               for r in rows]
                     return {"read_only": True, "origin_stream_id": expected,
                             "folder": connection["folder"], "records": records}
     except Problem:
