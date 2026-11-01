@@ -11,6 +11,12 @@ from collectors.kb_pilot.gemini import Gemini, Ledger, parse_json_text
 from collectors.kb_pilot.pages import amount_forms, check_row, html_to_markdown, is_official, sections
 from collectors.synthesis.live import BudgetStop
 
+
+def provider_fixture(text):
+    from collectors.kb_pilot.body_selection import sha
+    return {'content_capture': {'version': 1, 'provider_field': 'summary.content',
+            'status': 'BODY_PRESENT_COMPLETENESS_UNVERIFIED', 'text': text, 'text_sha256': sha(text)}}
+
 PAGE = """<html><head><title>PAC-3 contract</title><script>x()</script></head><body><nav>menu</nav>
 <h1>Award</h1><p>On 29 July 2026 the Department awarded $58.62 billion for PAC-3 MSE.</p>
 <h2>Motors</h2><p>Northrop Grumman becomes a second source of rocket motors in 2026.</p></body></html>"""
@@ -92,7 +98,7 @@ class FakeCursor:
     def fetchall(self):
         from datetime import datetime
         return [(900, "Wisla phase I signed", "https://arch.example/w", datetime(2018, 3, 28),
-                 "In March 2018 Poland signed Wisla phase I.")]
+                 provider_fixture("In March 2018 Poland signed Wisla phase I. " * 8), None, "self")]
 
 
 class Scripted:
@@ -538,7 +544,7 @@ class EmbedFallbackTest(unittest.TestCase):
             def __exit__(self, *a): return False
 
         class Conn:
-            def __init__(self): self.cur = Cur([(1, "t", "b", datetime(2026, 10, 29))])
+            def __init__(self): self.cur = Cur([(1, "t", "https://a.example/n", provider_fixture("b"), datetime(2026, 10, 29))])
             def cursor(self): return self.cur
             def commit(self): pass
 
@@ -669,7 +675,8 @@ class ExtractTest(unittest.TestCase):
 
         from datetime import datetime, timezone
         t = datetime(2026, 10, 29, tzinfo=timezone.utc)
-        rows = [(1, "A", "u1", self.TEXT, t, 1, "self"), (2, "A", "u2", self.TEXT, t, 1, "same_text")]
+        rows = [(1, "A", "u1", provider_fixture(self.TEXT * 4), t, 1, "self", None),
+                (2, "A", "u2", provider_fixture(self.TEXT * 4), t, 1, "same_text", None)]
         cur = Cur(rows)
 
         class Conn:
@@ -1142,7 +1149,8 @@ class FulltextTest(unittest.TestCase):
                 self.sql.append(" ".join(sql.split())[:30])
 
             def fetchall(self):
-                return [(1, "https://a.example/n/1", 50), (2, "https://a.example/n/1?x", 0)]
+                return [(1, 2, "https://a.example/n/1", provider_fixture("x" * 50), True, False, False, False),
+                        (2, 2, "https://a.example/n/1?x", provider_fixture(""), True, False, False, False)]
 
             def __enter__(self):
                 return self

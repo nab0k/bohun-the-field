@@ -17,6 +17,7 @@ import re
 import sys
 
 from . import PILOT_VERSION
+from .body_selection import ready_body
 from .dossier import DbStore, KIND, MemoryStore, PREFIX, row_hash
 from .gemini import CAP_MICRO_USD, Gemini, Ledger
 from .pages import amount_forms, check_row, fetch_all, host, is_official, norm, sections
@@ -52,21 +53,25 @@ def load_events(cur, day_from, day_to):
     """Events of the window that reached the writer, one row per distinct title (latest run)."""
     end = (date.fromisoformat(day_to) + timedelta(days=1)).isoformat()
     cur.execute("""SELECT DISTINCT ON (e.title) e.id, e.title, e.event_type, t.slug,
-                          i.id, i.title, i.url, i.published_at, i.raw_data
+                          i.id, i.title, i.url, i.published_at, i.raw_data, eb.text_sha256, eb.origin_method
                      FROM knowledge.event e
                      JOIN knowledge.synthesis s ON s.event_id = e.id
                      JOIN knowledge.event_document d ON d.event_id = e.id
                      JOIN intelligence.items i ON i.id = d.item_id
+                LEFT JOIN knowledge.item_embedding eb ON eb.item_id=i.id
                 LEFT JOIN knowledge.event_topic et ON et.event_id = e.id AND et.is_main
                 LEFT JOIN knowledge.topic t ON t.id = et.topic_id
                     WHERE i.published_at >= %s::date AND i.published_at < %s::date
                  ORDER BY e.title, e.id DESC""", (day_from, end))
     items = []
-    for eid, etitle, etype, topic, iid, ititle, url, published, raw in cur.fetchall():
-        body = ((raw or {}).get("content_capture") or {}).get("text") or ""
+    for eid, etitle, etype, topic, iid, ititle, url, published, raw, emb_hash, origin in cur.fetchall():
+        selected = ready_body(raw, url, ititle, emb_hash, origin)
+        if selected.text is None:
+            continue
+        body = selected.text
         items.append({"event_id": eid, "type": etype, "topic": topic, "item_id": iid, "title": ititle,
                       "url": url, "published": published.isoformat(), "outlet": (raw or {}).get("origin_title") or host(url or ""),
-                      "text": (ititle + "\n" + body)[:MAX_EVENT_CHARS]})
+                      "text": ((ititle or "") + "\n" + body)[:MAX_EVENT_CHARS]})
     items.sort(key=lambda x: (x["published"], x["item_id"]))
     return items
 
@@ -77,21 +82,30 @@ def load_items(cur, day_from, day_to, min_body=300, new_only=False):
     new_only (the daily chain, D-20261030-DAILY-CHAIN): skip items this pilot already processed and reprints whose
     first source it already processed, so two runs a day over overlapping windows never write a story twice."""
     end = (date.fromisoformat(day_to) + timedelta(days=1)).isoformat()
-    cur.execute("""SELECT i.id, i.title, i.url, i.published_at, i.raw_data FROM intelligence.items i
+    cur.execute("""SELECT i.id, i.title, i.url, i.published_at, i.raw_data, eb.text_sha256, eb.origin_method
+                     FROM intelligence.items i
+                LEFT JOIN knowledge.item_embedding eb ON eb.item_id=i.id
                     WHERE i.published_at >= %s::date AND i.published_at < %s::date
-                      AND length(i.raw_data->'content_capture'->>'text') >= %s
+                      AND (length(i.raw_data->'content_capture'->>'text') >= %s
+                           OR i.raw_data->'publisher_capture' IS NOT NULL)
                       AND (NOT %s OR NOT EXISTS (
                             SELECT 1 FROM knowledge.item_processing p
                              WHERE p.pipeline_version = %s
                                AND p.item_id IN (i.id, (SELECT e.origin_item_id FROM knowledge.item_embedding e
                                                          WHERE e.item_id = i.id))))
                  ORDER BY i.published_at, i.id""", (day_from, end, min_body, new_only, PILOT_VERSION))
-    out = []
-    for iid, title, url, published, raw in cur.fetchall():
-        body = raw["content_capture"]["text"]
+    out, skipped = [], {}
+    for iid, title, url, published, raw, emb_hash, origin in cur.fetchall():
+        selected = ready_body(raw, url, title, emb_hash, origin, min_body)
+        if selected.text is None:
+            skipped[selected.reason] = skipped.get(selected.reason, 0) + 1
+            continue
+        body = selected.text
         out.append({"event_id": None, "type": None, "topic": None, "item_id": iid, "title": title, "url": url,
                     "published": published.isoformat(), "outlet": (raw or {}).get("origin_title") or host(url or ""),
-                    "text": (title + "\n" + body)[:MAX_EVENT_CHARS]})
+                    "text": ((title or "") + "\n" + body)[:MAX_EVENT_CHARS],
+                    "body_source_kind": selected.source_kind, "body_text_sha256": selected.text_sha256})
+    print('KB_BODY_SELECTION ' + json.dumps({'consumer': 'pilot', 'skipped': skipped}, sort_keys=True))
     return out
 
 
@@ -129,13 +143,22 @@ def archive_hits(cur, terms, before, limit=15):
     if not pats:
         return []
     start = (date.fromisoformat(before[:10]) - timedelta(days=365 * ARCHIVE_YEARS)).isoformat()
-    cur.execute("""SELECT i.id, i.title, i.url, i.published_at, left(i.raw_data->'content_capture'->>'text', 1500)
+    cur.execute("""SELECT i.id,i.title,i.url,i.published_at,i.raw_data,eb.text_sha256,eb.origin_method
                      FROM intelligence.items i
+                LEFT JOIN knowledge.item_embedding eb ON eb.item_id=i.id
                     WHERE i.published_at < %s::date AND i.published_at >= %s::date
-                      AND (i.title ILIKE ANY(%s) OR i.raw_data->'content_capture'->>'text' ILIKE ANY(%s))
-                 ORDER BY i.published_at DESC LIMIT %s""", (before[:10], start, pats, pats, limit))
-    return [{"archive_id": i, "title": t, "url": u, "date": p.date().isoformat(), "text": (t or "") + "\n" + (b or "")}
-            for i, t, u, p, b in cur.fetchall()]
+                      AND (i.title ILIKE ANY(%s) OR i.raw_data->'content_capture'->>'text' ILIKE ANY(%s)
+                           OR i.raw_data->'publisher_capture'->>'text' ILIKE ANY(%s))
+                 ORDER BY i.published_at DESC LIMIT %s""", (before[:10], start, pats, pats, pats, limit))
+    out = []
+    for iid, title, url, published, raw, emb_hash, origin in cur.fetchall():
+        body = ready_body(raw, url, title, emb_hash, origin)
+        if body.text is None:
+            continue
+        out.append({'archive_id': iid, 'title': title, 'url': url, 'date': published.date().isoformat(),
+                    'text': (title or '') + '\n' + body.text[:1500], 'body_source_kind': body.source_kind,
+                    'body_text_sha256': body.text_sha256})
+    return out
 
 
 def archive_search(cur, terms, before, item_ids):
