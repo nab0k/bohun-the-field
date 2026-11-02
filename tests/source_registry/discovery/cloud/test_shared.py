@@ -201,6 +201,15 @@ class SharedCollectorTests(unittest.TestCase):
             CollectorSession(doc, token_provider=harness.blocked)
         self.assertEqual(self.env_reads, [])
 
+    def test_manual_pilot_cap_stops_before_an_extra_api_call(self):
+        transport = self.transport()
+        with CollectorSession(self.document(), token_provider=lambda: harness.TOKEN,
+                              transport=transport, api_attempt_cap=1) as session:
+            session.before_request(API + "subscription/list", "GET"); session.observe(headers())
+            with self.assertRaisesRegex(Problem, "ATTEMPT_GUARD"):
+                session.before_request(API + "subscription/list", "GET")
+            self.assertEqual(session.quota.attempts, 1)
+
     def test_shared_request_does_not_retry_429_or_follow_redirects(self):
         import urllib.error
         transport = self.transport()

@@ -23,11 +23,13 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 
 
 class CollectorSession:
-    def __init__(self, document, *, token_provider, transport=None, clock=time.time):
+    def __init__(self, document, *, token_provider, transport=None, clock=time.time, api_attempt_cap=60):
         self.config, _, self.policy_hash, self.allowed, self.root, _ = settings(document)
         require(document["enabled"] is True and self.config.get("api_quota_mode") == "shared" and
                 self.config.get("oauth_mode") == "coordinator", "COLLECTOR_SHARED_NOT_ENABLED")
         require(not self.root.exists(), "CLOUD_LOCAL_STATE_EXISTS")
+        require(type(api_attempt_cap) is int and 1 <= api_attempt_cap <= 60, "COLLECTOR_API_CAP")
+        self.api_attempt_cap = api_attempt_cap
         self.client = StateClient(document["state_endpoint"], self.config["deployment_id"],
             document["code_sha256"], self.policy_hash, token_provider, enabled=True, transport=transport)
         self.clock, self.store, self.held = clock, None, False
@@ -37,10 +39,11 @@ class CollectorSession:
         try:
             restore(self.client.download(), self.allowed, self.root, self.config["deployment_id"])
             self.store = Store(self.root, self.config["deployment_id"], checkpoint=self.client.checkpoint)
-            self.quota = SharedQuota(self.store, "collector", clock=self.clock)
+            self.quota = SharedQuota(self.store, "collector", clock=self.clock, max_attempts=self.api_attempt_cap)
             self.run_id = self.store.start_run(self.clock())
             self.store.set_meta("collector_current_run", self.run_id)
-            self.budget = Budget({"max_seconds": 840, "max_requests": 60, "max_bytes": 64 * 1024 * 1024})
+            self.budget = Budget({"max_seconds": 840, "max_requests": self.api_attempt_cap + 1,
+                                  "max_bytes": 64 * 1024 * 1024})
             # Control RPC is not /reader/api/0 traffic and has its own durable ledger.
             self.enabled = True
             self.reserve_api = lambda key: self.store.reserve(key, self.run_id, "oauth_control", self.clock(),
@@ -102,6 +105,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", required=True)
     parser.add_argument("--allow-live", action="store_true")
+    parser.add_argument("--max-api-attempts", type=int, default=60)
     args, collector_args = parser.parse_known_args(argv)
     document = parse_json(read_file(Path(args.config)))
     # Validate configuration without credentials or live I/O unless explicitly enabled.
@@ -116,7 +120,8 @@ def main(argv=None):
         for sig in previous:
             signal.signal(sig, halt)
         signal.alarm(MAX_SECONDS)
-        with CollectorSession(document, token_provider=lambda: os.environ.get("SOURCE_DISCOVERY_STATE_TOKEN")) as session:
+        with CollectorSession(document, token_provider=lambda: os.environ.get("SOURCE_DISCOVERY_STATE_TOKEN"),
+                              api_attempt_cap=args.max_api_attempts) as session:
             sync.main(collector_args, services=session)
     finally:
         signal.alarm(0)

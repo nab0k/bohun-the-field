@@ -20,7 +20,7 @@ execution. No quota override, automatic retry or silent paid upgrade exists.
 The optional collector entry point is:
 
 ```sh
-python -B -m collectors.inoreader.shared_runtime --config /private/runtime/config.json --allow-live -- --max-pages 1 --max-items 12 --backfill-bodies
+python -B -m collectors.inoreader.shared_runtime --config /private/runtime/config.json --allow-live --max-api-attempts 2 -- --max-pages 1 --max-items 12 --backfill-bodies
 ```
 
 It restores the same journal, holds the coordinator lease throughout intake,
@@ -29,6 +29,8 @@ collector. Normalization, cycle IDs, batching, inserts and backfill SQL are unch
 The shared mode bounds API bodies to 32 MiB, total provider bytes to 64 MiB, API
 attempts to 60 and the invocation to 900 seconds. The legacy entry point retains
 its existing behavior. New shared calls do not follow redirects or retry 429.
+`--max-api-attempts` lowers the bound for a manual pilot. Empty folders still
+consume calls; the process stops before exceeding the bound.
 
 Before cutover: review the release/config pins, preserve the operational journal,
 wait for existing collector runs to finish, establish one refresh owner in the
