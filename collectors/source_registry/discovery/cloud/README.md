@@ -1,5 +1,43 @@
 # Cloud execution adapter
 
+## Existing Bohundefence application: shared OAuth and quota
+
+The account permits one API application. Both consumers use the same existing
+coordinator lease and operational Store; no second Worker or application is needed.
+`runtime.oauth_mode="coordinator"` and `runtime.api_quota_mode="shared"` are required
+for live cloud Inoreader input. This is opt-in: the existing collector workflow and
+its default `sync.py` entry point have not been switched.
+
+`shared.py` checkpoints each API reservation before sending it. Inoreader quota
+headers reconcile both zones without refunding attempts or assuming an unused
+100-call window. A missing/expired window admits one collector read probe; Discovery
+waits for it, preserves twenty requests for the collector, and has a separate
+twelve-attempt daily cap. Calls outside this coordinator cannot be prevented;
+all automatic API consumers must be moved before claiming shared ownership.
+Missing headers, unknown probe outcomes and lost checkpoint acknowledgements hold
+execution. No quota override, automatic retry or silent paid upgrade exists.
+
+The optional collector entry point is:
+
+```sh
+python -B -m collectors.inoreader.shared_runtime --config /private/runtime/config.json --allow-live --max-api-attempts 2 -- --max-pages 1 --max-items 12 --backfill-bodies
+```
+
+It restores the same journal, holds the coordinator lease throughout intake,
+reuses the existing durable OAuth cache, and injects services into the existing
+collector. Normalization, cycle IDs, batching, inserts and backfill SQL are unchanged.
+The shared mode bounds API bodies to 32 MiB, total provider bytes to 64 MiB, API
+attempts to 60 and the invocation to 900 seconds. The legacy entry point retains
+its existing behavior. New shared calls do not follow redirects or retry 429.
+`--max-api-attempts` lowers the bound for a manual pilot. Empty folders still
+consume calls; the process stops before exceeding the bound.
+
+Before cutover: review the release/config pins, preserve the operational journal,
+wait for existing collector runs to finish, establish one refresh owner in the
+coordinator and reconcile a fresh quota observation. Do not seed the same refresh
+grant while the legacy collector is still refreshing it. The local read OAuth
+session alone neither switches production nor admits write scope/pilots.
+
 ## Manual first pilot
 
 `pilot` uses the existing coordinator, Store and Source Manager. It requires an

@@ -12,7 +12,7 @@ import socket
 import ssl
 import threading
 import time
-from urllib.parse import parse_qs, quote, urlencode, urljoin, urlsplit
+from urllib.parse import parse_qs, quote, unquote, urlencode, urljoin, urlsplit
 from urllib.robotparser import RobotFileParser
 import uuid
 import xml.etree.ElementTree as ET
@@ -298,17 +298,28 @@ def publisher_observation(item, provider):
         require(not aggregator(host), "AGGREGATOR_NOT_PUBLISHER")
         result["article_url"] = article
         result["publisher_url"] = "https://" + urlsplit(article).netloc + "/"
-        origin = item.get("origin") or {}
+    except (Problem, ValueError, AttributeError, TypeError):
+        return {"item_id": result["item_id"], "title": result["title"],
+                "method": "unresolved", "error": "PUBLISHER_REVIEW"}
+    # Monitoring items have a synthetic origin and the publisher in original_origin.
+    # An unusable optional feed hint must not discard a verified article URL.
+    try:
+        original = item.get("original_origin") if provider == "inoreader" else None
+        origin = original if isinstance(original, dict) else item.get("origin") or {}
         stream = origin.get("streamId", "") if isinstance(origin, dict) else ""
-        feed = item.get("feed_url") or (stream[5:] if stream.startswith("feed/") else None)
+        feed = item.get("feed_url")
+        if not feed and isinstance(stream, str) and stream.startswith("feed/"):
+            feed = stream[5:]
+            # Decode the enclosing stream ID once, preserving URL path/query escapes.
+            if feed.lower().startswith("https%3a%2f%2f"):
+                feed = unquote(feed, errors="strict")
         if feed:
             feed = identity_url(feed)
             if not aggregator(urlsplit(feed).hostname):
                 result["feed_url"] = feed
                 result["method"] = "inoreader-origin" if provider == "inoreader" else "tool-feed-hint"
     except (Problem, ValueError, AttributeError, TypeError):
-        return {"item_id": result["item_id"], "title": result["title"],
-                "method": "unresolved", "error": "PUBLISHER_REVIEW"}
+        pass
     return result
 
 

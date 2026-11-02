@@ -291,6 +291,48 @@ class Contracts(Offline):
         self.assertNotIn("publisher_url", obs)
         self.assertEqual(obs["error"], "PUBLISHER_REVIEW")
 
+    def test_monitoring_uses_encoded_original_origin_instead_of_radar_id(self):
+        item = {"id": "monitoring-article", "alternate": [{"href": FIXTURE["entries"][0]["url"]}],
+                "origin": {"streamId": "feed/keyword-monitoring-123"},
+                "original_origin": {"streamId": "feed/https%3A%2F%2Fpublisher.example%2Ffeed%2F%3Fq%3Dnaval%2520contracts"}}
+        obs = publisher_observation(item, "inoreader")
+        self.assertEqual(obs["publisher_url"], FIXTURE["publisher"])
+        self.assertEqual(obs["feed_url"], "https://publisher.example/feed/?q=naval%20contracts")
+        self.assertEqual(obs["method"], "inoreader-origin")
+
+    def test_internal_monitoring_origin_without_hint_preserves_article_publisher(self):
+        obs = publisher_observation({"id": "a", "alternate": [{"href": FIXTURE["entries"][0]["url"]}],
+            "origin": {"streamId": "feed/keyword-monitoring-123"}}, "inoreader")
+        self.assertEqual(obs["publisher_url"], FIXTURE["publisher"])
+        self.assertNotIn("feed_url", obs)
+        self.assertNotIn("error", obs)
+
+    def test_unusable_feed_hints_do_not_discard_valid_article_publisher(self):
+        for stream in ("feed/http://publisher.example/feed", "feed/https://127.0.0.1/feed",
+                       "feed/https%3A%2F%2Fpublisher.example%2Ffeed%3Ftoken%3Dprivate",
+                       "feed/https://news.google.com/rss/search?q=defence", None):
+            with self.subTest(stream=stream):
+                obs = publisher_observation({"id": "a", "url": FIXTURE["entries"][0]["url"],
+                    "origin": {"streamId": "feed/keyword-monitoring-123"},
+                    "original_origin": {"streamId": stream}}, "inoreader")
+                self.assertEqual(obs["publisher_url"], FIXTURE["publisher"])
+                self.assertNotIn("feed_url", obs)
+
+    def test_plain_origin_url_keeps_encoded_path_and_original_origin_is_inoreader_only(self):
+        url = "https://publisher.example/en%2Ffeed/?q=naval%20contracts"
+        obs = publisher_observation({"id": "a", "url": FIXTURE["entries"][0]["url"],
+                                    "origin": {"streamId": "feed/" + url}}, "inoreader")
+        self.assertEqual(obs["feed_url"], url)
+        obs = publisher_observation({"id": "a", "url": FIXTURE["entries"][0]["url"],
+            "original_origin": {"streamId": "feed/https://other.example/feed"}}, "google_alerts")
+        self.assertNotIn("feed_url", obs)
+
+    def test_original_origin_does_not_promote_opaque_aggregator_article(self):
+        obs = publisher_observation({"id": "a", "alternate": [{"href": "https://news.google.com/rss/articles/opaque"}],
+            "original_origin": {"streamId": "feed/https%3A%2F%2Fpublisher.example%2Ffeed"}}, "inoreader")
+        self.assertEqual(obs["error"], "PUBLISHER_REVIEW")
+        self.assertNotIn("publisher_url", obs)
+
     def test_unknown_api_or_sitemap_routes_are_review(self):
         class Source:
             def __init__(self, body, ctype): self.body, self.ctype = body, ctype
