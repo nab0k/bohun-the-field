@@ -213,16 +213,23 @@ class Store:
                           (error or "")[:300] or None, run_ref))
 
 
-def pending(cur, day_from, day_to, limit):
+def pending(cur, day_from, day_to, limit, item_ids=None):
+    scope = ""
+    params = (EXTRACTOR,day_from,day_to,MIN_TEXT,limit)
+    if item_ids is not None:
+        from .cohort import checked_ids
+        item_ids = checked_ids(item_ids)
+        scope = " AND i.id = ANY(%s)"
+        params = (item_ids,) + params
     cur.execute("""SELECT i.id,i.title,i.url,i.raw_data,i.published_at,
                           e.origin_item_id,e.origin_method,e.text_sha256
                      FROM intelligence.items i
                 LEFT JOIN knowledge.item_embedding e ON e.item_id=i.id
                 LEFT JOIN knowledge.item_extraction x ON x.item_id=i.id AND x.extractor=%s
-                    WHERE x.item_id IS NULL AND i.published_at >= %s::date AND i.published_at < %s::date + 1
+                    WHERE TRUE""" + scope + """ AND x.item_id IS NULL AND i.published_at >= %s::date AND i.published_at < %s::date + 1
                       AND (length(i.raw_data->'content_capture'->>'text') >= %s
                            OR i.raw_data->'publisher_capture' IS NOT NULL)
-                 ORDER BY i.published_at,i.id LIMIT %s""", (EXTRACTOR,day_from,day_to,MIN_TEXT,limit))
+                 ORDER BY i.published_at,i.id LIMIT %s""", params)
     out, skipped = [], {}
     for iid, title, url, raw, published, origin, method, emb_hash in cur.fetchall():
         body = ready_body(raw, url, title, emb_hash, method)

@@ -7,6 +7,12 @@ on:
     - cron: '20 6 * * *'
     - cron: '20 15 * * *'
   workflow_dispatch:
+    inputs:
+      verify_fulltext_cohort:
+        description: 'One private fulltext-before-embedding cohort (at most 12); manual review remains required'
+        type: boolean
+        default: false
+        required: false
 permissions:
   contents: read
 concurrency:
@@ -49,7 +55,15 @@ jobs:
         env:
           KB_MODE: contract
         run: '"$RUNNER_TEMP/bohun-kb/bin/python" -B -m collectors.kb_pilot | tee "$RUNNER_TEMP/kb-daily/contract.log"'
+      - name: One manual fulltext cohort (private, before embedding)
+        if: github.event_name == 'workflow_dispatch' && inputs.verify_fulltext_cohort == true
+        env:
+          A11_MANUAL_COHORT: 'true'
+        run: |
+          "$RUNNER_TEMP/bohun-kb/bin/python" -m pip install --disable-pip-version-check 'trafilatura==2.3.1'
+          "$RUNNER_TEMP/bohun-kb/bin/python" -B -m collectors.kb_pilot.cohort_daily --apply
       - name: Embeddings of new items (Cloudflare; without them search falls back to words)
+        if: github.event_name != 'workflow_dispatch' || inputs.verify_fulltext_cohort != true
         continue-on-error: true
         env:
           KB_MODE: embed
@@ -57,16 +71,19 @@ jobs:
           LIMIT: '400'
         run: '"$RUNNER_TEMP/bohun-kb/bin/python" -B -m collectors.kb_pilot | tee "$RUNNER_TEMP/kb-daily/embed.log"'
       - name: Pilot on new items, CANDIDATEs held for admission
+        if: github.event_name != 'workflow_dispatch' || inputs.verify_fulltext_cohort != true
         continue-on-error: true
         env:
           KB_MODE: pilot-publish
         run: '"$RUNNER_TEMP/bohun-kb/bin/python" -B -m collectors.kb_pilot --day-from "$DAY_FROM" --day-to "$DAY_TO" --limit 80 --source items --new-only --publish-hold --batch --out "$RUNNER_TEMP/kb-daily/pilot" | tee "$RUNNER_TEMP/kb-daily/pilot.log"'
       - name: Automatic admission (checks, second model, self-correction)
+        if: github.event_name != 'workflow_dispatch' || inputs.verify_fulltext_cohort != true
         continue-on-error: true
         env:
           KB_MODE: admit
         run: '"$RUNNER_TEMP/bohun-kb/bin/python" -B -m collectors.kb_pilot --limit 10 | tee "$RUNNER_TEMP/kb-daily/admit.log"'
       - name: Relation extraction on the free quota left
+        if: github.event_name != 'workflow_dispatch' || inputs.verify_fulltext_cohort != true
         continue-on-error: true
         env:
           KB_MODE: extract

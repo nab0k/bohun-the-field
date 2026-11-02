@@ -75,13 +75,20 @@ def origin_of(item, neighbours):
     return item["item_id"], "self"
 
 
-def pending(cur, limit, day_from=None):
+def pending(cur, limit, day_from=None, item_ids=None):
+    scope = ""
+    params = (day_from, day_from, limit)
+    if item_ids is not None:
+        from .cohort import checked_ids
+        item_ids = checked_ids(item_ids)
+        scope = " AND i.id = ANY(%s)"
+        params = (item_ids,) + params
     cur.execute("""SELECT i.id,i.title,i.url,i.raw_data,i.published_at
                      FROM intelligence.items i
                 LEFT JOIN knowledge.item_embedding e ON e.item_id = i.id
-                    WHERE e.item_id IS NULL AND i.published_at IS NOT NULL
+                    WHERE TRUE""" + scope + """ AND e.item_id IS NULL AND i.published_at IS NOT NULL
                       AND (%s::date IS NULL OR i.published_at >= %s::date)
-                 ORDER BY i.published_at, i.id LIMIT %s""", (day_from, day_from, limit))
+                 ORDER BY i.published_at, i.id LIMIT %s""", params)
     items = []
     for iid, title, url, raw, published in cur.fetchall():
         body = select_body(raw, url)
@@ -137,7 +144,7 @@ def similar_items(cur, item_ids, before, k=15, max_distance=0.45, years=6):
     return out
 
 
-def run(conn, account, token, limit=8000, day_from=None, transport=None, backend="auto", local=embed_local):
+def run(conn, account, token, limit=8000, day_from=None, transport=None, backend="auto", local=embed_local, new_only=False):
     """backend: auto (Cloudflare, then the local model once Cloudflare refuses), cloudflare, local."""
     stats = {"embedded": 0, "batches": 0, "origin": {"self": 0, "same_text": 0, "near_duplicate": 0}, "errors": 0,
              "by_backend": {}}
@@ -176,20 +183,24 @@ def run(conn, account, token, limit=8000, day_from=None, transport=None, backend
         stats["by_backend"][model] = stats["by_backend"].get(model, 0) + len(chunk)
         stats["batches"] += 1
         with conn.cursor() as cur:
+            inserted = []
             for it, vec in zip(chunk, vectors):
+                conflict = "ON CONFLICT (item_id) DO NOTHING" if new_only else """ON CONFLICT (item_id) DO UPDATE SET model = EXCLUDED.model,
+                                 text_sha256 = EXCLUDED.text_sha256, embedding = EXCLUDED.embedding"""
                 cur.execute("""INSERT INTO knowledge.item_embedding (item_id, model, text_sha256, embedding)
                                VALUES (%s, %s, %s, %s::extensions.halfvec)
-                               ON CONFLICT (item_id) DO UPDATE SET model = EXCLUDED.model,
-                                 text_sha256 = EXCLUDED.text_sha256, embedding = EXCLUDED.embedding""",
+                               """ + conflict,
                             (it["item_id"], model, sha(it["text"]), vector_literal(vec)))
-            for it in chunk:  # chronological order: earlier items already have their origin
+                if not new_only or cur.rowcount == 1:
+                    inserted.append(it)
+            for it in inserted:  # chronological order: earlier items already have their origin
                 it["text_sha256"] = sha(it["text"])
                 origin, method = origin_of(it, neighbours(cur, it["item_id"]))
                 cur.execute("UPDATE knowledge.item_embedding SET origin_item_id = %s, origin_method = %s WHERE item_id = %s",
                             (origin, method, it["item_id"]))
                 stats["origin"][method] += 1
         conn.commit()
-        stats["embedded"] += len(chunk)
+        stats["embedded"] += len(inserted)
     return stats
 
 

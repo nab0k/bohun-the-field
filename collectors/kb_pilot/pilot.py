@@ -76,16 +76,23 @@ def load_events(cur, day_from, day_to):
     return items
 
 
-def load_items(cur, day_from, day_to, min_body=300, new_only=False):
+def load_items(cur, day_from, day_to, min_body=300, new_only=False, item_ids=None):
     """All news items of the window with a captured body; no relevance or importance filter (D-…-COST).
 
     new_only (the daily chain, D-20261030-DAILY-CHAIN): skip items this pilot already processed and reprints whose
     first source it already processed, so two runs a day over overlapping windows never write a story twice."""
     end = (date.fromisoformat(day_to) + timedelta(days=1)).isoformat()
+    scope = ""
+    params = (day_from, end, min_body, new_only, PILOT_VERSION)
+    if item_ids is not None:
+        from .cohort import checked_ids
+        item_ids = checked_ids(item_ids)
+        scope = " AND i.id = ANY(%s)"
+        params = (item_ids,) + params
     cur.execute("""SELECT i.id, i.title, i.url, i.published_at, i.raw_data, eb.text_sha256, eb.origin_method
                      FROM intelligence.items i
                 LEFT JOIN knowledge.item_embedding eb ON eb.item_id=i.id
-                    WHERE i.published_at >= %s::date AND i.published_at < %s::date
+                    WHERE TRUE""" + scope + """ AND i.published_at >= %s::date AND i.published_at < %s::date
                       AND (length(i.raw_data->'content_capture'->>'text') >= %s
                            OR i.raw_data->'publisher_capture' IS NOT NULL)
                       AND (NOT %s OR NOT EXISTS (
@@ -93,7 +100,7 @@ def load_items(cur, day_from, day_to, min_body=300, new_only=False):
                              WHERE p.pipeline_version = %s
                                AND p.item_id IN (i.id, (SELECT e.origin_item_id FROM knowledge.item_embedding e
                                                          WHERE e.item_id = i.id))))
-                 ORDER BY i.published_at, i.id""", (day_from, end, min_body, new_only, PILOT_VERSION))
+                 ORDER BY i.published_at, i.id""", params)
     out, skipped = [], {}
     for iid, title, url, published, raw, emb_hash, origin in cur.fetchall():
         selected = ready_body(raw, url, title, emb_hash, origin, min_body)
