@@ -4,9 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       expected_sha:
-        description: Exact reviewed commit for one bounded 12-item body-storage pilot
+        description: Exact reviewed commit for one bounded manual pilot
         required: true
         type: string
+      shared_dry_run:
+        description: Shared coordinator only; read Inoreader without accessing Supabase
+        required: true
+        type: boolean
+        default: true
   schedule:
     - cron: '7,37 * * * *'
 
@@ -19,7 +24,7 @@ concurrency:
 
 jobs:
   collect:
-    if: ${{ vars.INOREADER_CUTOVER_PAUSED != 'true' }}
+    if: ${{ vars.INOREADER_CUTOVER_PAUSED != 'true' || (github.event_name == 'workflow_dispatch' && vars.INOREADER_SHARED_ENABLED == 'true' && inputs.shared_dry_run) }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -89,8 +94,9 @@ jobs:
         if: vars.INOREADER_SHARED_ENABLED == 'true'
         env:
           SOURCE_DISCOVERY_STATE_TOKEN: ${{ secrets.SOURCE_DISCOVERY_STATE_TOKEN }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_DB_PASSWORD: ${{ (github.event_name != 'workflow_dispatch' || !inputs.shared_dry_run) && secrets.SUPABASE_DB_PASSWORD || '' }}
           EVENT_NAME: ${{ github.event_name }}
+          SHARED_DRY_RUN: ${{ inputs.shared_dry_run }}
         shell: bash
         run: |
           set -euo pipefail
@@ -99,12 +105,16 @@ jobs:
           if [ "$EVENT_NAME" = 'workflow_dispatch' ]; then API_CAP=2; fi
           command=("$RUNNER_TEMP/bohun-inoreader-body/bin/python" -B -m collectors.inoreader.shared_runtime --config "$RUNNER_TEMP/inoreader-shared-config.json" --allow-live --max-api-attempts "$API_CAP" --)
           if [ "$EVENT_NAME" = 'workflow_dispatch' ]; then
-            "${command[@]}" --max-pages 1 --max-items 12 --backfill-bodies
+            if [ "$SHARED_DRY_RUN" = 'true' ]; then
+              "${command[@]}" --dry-run --max-pages 1 --max-items 12
+            else
+              "${command[@]}" --max-pages 1 --max-items 12 --backfill-bodies
+            fi
           else
             "${command[@]}" --max-pages 2
           fi
       - name: Verify stored text hashes without logging content
-        if: github.event_name == 'workflow_dispatch'
+        if: ${{ github.event_name == 'workflow_dispatch' && !(vars.INOREADER_SHARED_ENABLED == 'true' && inputs.shared_dry_run) }}
         env:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: '"$RUNNER_TEMP/bohun-inoreader-body/bin/python" -B scripts/inoreader-body-readback.py'
