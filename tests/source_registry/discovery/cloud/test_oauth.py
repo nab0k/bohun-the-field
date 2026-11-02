@@ -143,6 +143,9 @@ class IntegratedTests(unittest.TestCase):
                         "type": "inoreader", "stream": "feed/keyword-monitoring-synthetic"}])
         with self.assertRaises(Problem): run.execute(document, mode="validate", token_provider=harness.blocked)
         document["runtime"]["oauth_mode"] = "coordinator"
+        with self.assertRaisesRegex(Problem, "CLOUD_SHARED_QUOTA_REQUIRED"):
+            run.execute(document, mode="validate")
+        document["runtime"]["api_quota_mode"] = "shared"
         self.assertEqual(run.execute(document, mode="validate")["status"], "VALIDATED_NO_IO")
         document["runtime"]["oauth_env"] = {}
         with self.assertRaises(Problem): run.execute(document, mode="validate")
@@ -167,9 +170,17 @@ class IntegratedTests(unittest.TestCase):
                 self.assertIn("collectors/inoreader/body_backfill.py", run.code_pins())
 
     def test_cloud_worker_integration_reserves_before_actual_js_oauth(self):
-        transport = self.transport(); self.boot(transport)
+        from collectors.source_registry.discovery.cloud.shared import SharedQuota
+        headers = {"x-reader-zone1-limit": "100", "x-reader-zone1-usage": "2",
+                   "x-reader-zone2-limit": "100", "x-reader-zone2-usage": "0",
+                   "x-reader-limits-reset-after": "3600"}
+        transport = self.transport()
+        with Store(self.root / "quota-seed", harness.DEPLOYMENT, bootstrap=True) as store:
+            quota = SharedQuota(store, "collector")
+            quota.reserve_attempt("1"); quota.observe(headers)
+            self.boot(transport, store.db.serialize())
         seed_client = self.client(transport); seed_client.acquire(); seed_client.oauth_bootstrap(); seed_client.release()
-        document = self.config(); document["runtime"].update(live_inputs=True, oauth_mode="coordinator",
+        document = self.config(); document["runtime"].update(live_inputs=True, oauth_mode="coordinator", api_quota_mode="shared",
             providers=[{"id": "radar", "query_id": "synthetic", "enabled": True,
                         "type": "inoreader", "stream": "feed/keyword-monitoring-synthetic"}])
         class RadarHTTP:
@@ -181,7 +192,7 @@ class IntegratedTests(unittest.TestCase):
                 self.budget.request(); self.reserve_api("synthetic-source-request")
                 if kwargs["headers"]["Authorization"] != "Bearer SYNTHETIC_ACCESS_1":
                     raise AssertionError("MISSING_AUTH")
-                return Response(200, b'{"items":[]}', url, {})
+                return Response(200, b'{"items":[]}', url, headers)
         def factory(*args, **kwargs):
             return Worker(*args, **kwargs, http_factory=lambda b, r: RadarHTTP(b, r))
         result = run.execute(document, allow_live=True, transport=transport,

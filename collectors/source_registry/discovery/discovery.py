@@ -29,7 +29,7 @@ class Worker:
     def __init__(self, store, policy, policy_hash, config, *, clock=time.time,
                  monotonic=time.monotonic, http_factory=None, token_provider=None,
                  manager=None, delivery_reader=None, token_provider_factory=None,
-                 pilot_admission=None, shared_budget=None):
+                 pilot_admission=None, shared_budget=None, http_wrapper=None):
         self.store, self.policy, self.policy_hash, self.config = store, policy, policy_hash, config
         self.clock, self.monotonic = clock, monotonic
         self.http_factory, self.token_provider = http_factory, token_provider
@@ -37,6 +37,8 @@ class Worker:
         self.token_provider_factory = token_provider_factory
         self.manager, self.delivery_reader = manager, delivery_reader
         self.pilot_admission, self.shared_budget = pilot_admission, shared_budget
+        require(http_wrapper is None or callable(http_wrapper), "HTTP_WRAPPER")
+        self.http_wrapper = http_wrapper
         self.producer = code_identity()
         if manager is not None:
             self.producer["manager_sha256"] = hashlib.sha256(read_file(Path(manager.__file__))).hexdigest()
@@ -62,6 +64,8 @@ class Worker:
                                cycle_limit=self.policy["limits"]["max_requests"])
         http = self.http_factory(budget, api_reservation) if self.http_factory else HTTP(
             budget, enabled=self.config.get("live_inputs") is True, reserve_api=api_reservation)
+        if self.http_wrapper is not None:
+            http = self.http_wrapper(http)
         token = (self.token_provider_factory(http) if self.token_provider_factory is not None else
                  self.token_provider or (lambda: oauth_token(http, self.config)))
         report = {"run_id": run, "observed_at": stamp(started), "producer": self.producer,

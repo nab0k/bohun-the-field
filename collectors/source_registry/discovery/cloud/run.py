@@ -16,6 +16,7 @@ from ..radars import Budget
 from ..store import CheckpointError, Store
 from .state import CloudHold, ENDPOINT, HEX, NAME, StateClient, MAX_SNAPSHOT, MAX_SECONDS
 from .oauth import AccessProvider
+from .shared import SharedHTTP, SharedQuota
 
 FIELD = Path(__file__).resolve().parents[4]
 PACKAGE = Path(__file__).resolve().parents[1]
@@ -31,6 +32,9 @@ def code_pins():
     body = FIELD / "collectors/inoreader/body_backfill.py"
     if body.exists():
         paths.append(body)
+    shared_collector = FIELD / "collectors/inoreader/shared_runtime.py"
+    if shared_collector.exists():
+        paths.append(shared_collector)
     return {str(p.relative_to(FIELD)): hashlib.sha256(read_file(p)).hexdigest() for p in sorted(paths)}
 
 
@@ -54,6 +58,7 @@ def settings(document, *, apply=False, approved_policy_hash=None):
             p.get("enabled") and p.get("type") == "inoreader" for p in config.get("providers", []))):
         require(config.get("oauth_mode") == "coordinator" and "oauth_env" not in config,
                 "CLOUD_COORDINATOR_OAUTH_REQUIRED")
+        require(config.get("api_quota_mode") == "shared", "CLOUD_SHARED_QUOTA_REQUIRED")
     require(isinstance(config.get("deployment_id"), str) and NAME.fullmatch(config["deployment_id"]), "DEPLOYMENT_ID")
     allowed, root = runtime_paths(config)
     manager = None
@@ -145,6 +150,9 @@ def execute(document, *, mode="once", allow_live=False, apply=False, approved_po
     with Store(root, config["deployment_id"], checkpoint=client.checkpoint) as store:
         writing = apply or admission is not None
         options = {"pilot_admission": admission, "shared_budget": Budget(policy["limits"])} if admission else {}
+        if config.get("api_quota_mode") == "shared":
+            quota = SharedQuota(store, "discovery")
+            options["http_wrapper"] = lambda http: SharedHTTP(http, quota)
         worker = worker_factory(store, policy, policy_hash, config, manager=manager, delivery_reader=reader,
             token_provider_factory=lambda http: AccessProvider(client, http, scope="read write" if writing else "read"),
             **options)

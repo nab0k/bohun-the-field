@@ -395,7 +395,7 @@ class CloudTests(unittest.TestCase):
     def pilot_config(self, stage="single"):
         document = self.config()
         document["runtime"].update(live_inputs=True, writer_enabled=True, collector_ready=True,
-            oauth_mode="coordinator", manager={"field_root": str(FIELD), "sha256": hashlib.sha256(
+            oauth_mode="coordinator", api_quota_mode="shared", manager={"field_root": str(FIELD), "sha256": hashlib.sha256(
                 (FIELD / "collectors/inoreader/inoreader_source_manager.py").read_bytes()).hexdigest()},
             delivery={"enabled": True})
         count = 1 if stage == "single" else 3

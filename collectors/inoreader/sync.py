@@ -34,7 +34,7 @@ USER_AGENT = "Bohundefence-Collector/1.0"
 PREFIX = "BOHUN_"
 
 
-def request_json(url, *, headers=None, form=None):
+def request_json(url, *, headers=None, form=None, admission=None):
     h = {"User-Agent": USER_AGENT, "Accept": "application/json"}
     if headers:
         h.update(headers)
@@ -43,12 +43,22 @@ def request_json(url, *, headers=None, form=None):
         h["Content-Type"] = "application/x-www-form-urlencoded"
     req = urllib.request.Request(url, data=body, headers=h, method="POST" if body else "GET")
     for attempt in range(4):
+        if admission is not None:
+            admission.before_request(url, req.get_method())
         try:
-            with urllib.request.urlopen(req, timeout=45) as response:
-                return json.load(response)
+            opener = urllib.request.urlopen if admission is None else admission.open_request
+            with opener(req, timeout=45) as response:
+                if admission is not None:
+                    admission.observe(response.headers)
+                return json.load(response) if admission is None else admission.read_json(response)
         except urllib.error.HTTPError as exc:
+            if admission is not None:
+                try:
+                    admission.observe(exc.headers or {})
+                finally:
+                    exc.close()
             stage = "oauth_token" if url.startswith(TOKEN) else "inoreader_api"
-            if exc.code == 429 and attempt < 3:
+            if exc.code == 429 and attempt < 3 and admission is None:
                 # Honour server Retry-After when available; otherwise exponential backoff.
                 raw_wait = exc.headers.get("Retry-After", "") if exc.headers else ""
                 try:
@@ -82,7 +92,9 @@ def access_token():
     return response["access_token"]
 
 
-def api(path, token, params=None):
+def api(path, token, params=None, *, services=None):
+    if services is not None:
+        return services.api(path, params=params)
     url = API + path
     if params:
         url += "?" + urllib.parse.urlencode(params)
@@ -104,7 +116,7 @@ def folders_from_subscriptions(subscriptions):
     return sorted(folders), source_count
 
 
-def stream_items(folder, token, max_pages, page_size=100):
+def stream_items(folder, token, max_pages, page_size=100, *, services=None):
     if type(page_size) is not int or not 1 <= page_size <= 100:
         raise ValueError("stream page_size must be 1..100")
     stream = "user/-/label/" + folder
@@ -114,7 +126,9 @@ def stream_items(folder, token, max_pages, page_size=100):
         params = {"n": page_size}
         if continuation:
             params["c"] = continuation
-        result = api("stream/contents/" + urllib.parse.quote(stream, safe="/"), token, params)
+        path = "stream/contents/" + urllib.parse.quote(stream, safe="/")
+        result = (api(path, token, params) if services is None else
+                  api(path, token, params, services=services))
         for item in result.get("items", []):
             external_id = str(item.get("id") or "").strip()
             if external_id and external_id not in seen:
@@ -215,7 +229,7 @@ BATCH_ITEMS = 50
 BATCH_CAPTURE_BYTES = 5 * 1024 * 1024
 
 
-def normalized_items(folders, token, max_pages, max_items=None):
+def normalized_items(folders, token, max_pages, max_items=None, *, services=None):
     """Deduplicate IDs only; provider pages remain bounded by stream_items."""
     collector_cycle_id = "inoreader:" + uuid.uuid4().hex
     seen = set()
@@ -223,8 +237,10 @@ def normalized_items(folders, token, max_pages, max_items=None):
         if max_items is not None and len(seen) >= max_items:
             break
         count = 0
-        stream = (stream_items(folder, token, max_pages) if max_items is None else
-                  stream_items(folder, token, max_pages, page_size=min(100, max_items - len(seen))))
+        stream_options = {} if max_items is None else {"page_size": min(100, max_items - len(seen))}
+        if services is not None:
+            stream_options["services"] = services
+        stream = stream_items(folder, token, max_pages, **stream_options)
         for raw in stream:
             external_id = str(raw["id"])
             count += 1
@@ -293,24 +309,26 @@ def process_batches(items, writer=None, *, max_items=BATCH_ITEMS,
     return stats
 
 
-def main():
+def main(argv=None, *, services=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--max-pages", type=int, default=2, help="Per BOHUN folder, max 100 items per page")
     parser.add_argument("--max-items", type=int, help="Optional bound on unique items across all folders (1..1000)")
     parser.add_argument("--backfill-bodies", action="store_true", help="Fill absent provider bodies on matching existing items; preserve stored bodies")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     if not 1 <= args.max_pages <= 20:
         parser.error("--max-pages must be 1..20")
     if args.max_items is not None and not 1 <= args.max_items <= 1000:
         parser.error("--max-items must be 1..1000")
-    token = access_token()
-    subscriptions = api("subscription/list", token).get("subscriptions", [])
+    token = access_token() if services is None else services.access_token()
+    subscriptions = (api("subscription/list", token) if services is None else
+                     api("subscription/list", token, services=services)).get("subscriptions", [])
     folders, source_count = folders_from_subscriptions(subscriptions)
     print(f"DISCOVERED subscriptions={len(subscriptions)} bohun_subscriptions={source_count} folders={len(folders)}")
     if not folders:
         raise RuntimeError("No BOHUN_ folders found; refusing empty successful run")
-    items = normalized_items(folders, token, args.max_pages, args.max_items)
+    items = (normalized_items(folders, token, args.max_pages, args.max_items) if services is None else
+             normalized_items(folders, token, args.max_pages, args.max_items, services=services))
     writer = None if args.dry_run else (
         (lambda batch: import_items(batch, backfill_bodies=True)) if args.backfill_bodies else import_items)
     stats = process_batches(items, writer)
