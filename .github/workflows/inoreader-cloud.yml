@@ -19,6 +19,7 @@ concurrency:
 
 jobs:
   collect:
+    if: ${{ vars.INOREADER_CUTOVER_PAUSED != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -44,6 +45,7 @@ jobs:
           python -m venv "$RUNNER_TEMP/bohun-inoreader-body"
           "$RUNNER_TEMP/bohun-inoreader-body/bin/python" -m pip install --only-binary=:all: 'psycopg[binary]==3.3.6'
       - name: Sync BOHUN folders with bounded provider body capture
+        if: vars.INOREADER_SHARED_ENABLED != 'true'
         env:
           INOREADER_CLIENT_ID: ${{ secrets.INOREADER_CLIENT_ID }}
           INOREADER_CLIENT_SECRET: ${{ secrets.INOREADER_CLIENT_SECRET }}
@@ -56,6 +58,50 @@ jobs:
             "$RUNNER_TEMP/bohun-inoreader-body/bin/python" -B collectors/inoreader/sync.py --max-pages 1 --max-items 12 --backfill-bodies
           else
             "$RUNNER_TEMP/bohun-inoreader-body/bin/python" -B collectors/inoreader/sync.py --max-pages 2
+          fi
+      - name: Prepare shared coordinator config
+        if: vars.INOREADER_SHARED_ENABLED == 'true'
+        env:
+          SOURCE_DISCOVERY_CONFIG: ${{ secrets.SOURCE_DISCOVERY_CONFIG }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +x
+          python -B - <<'PYCONFIG'
+          import json, os
+          from pathlib import Path
+          try:
+              root = Path(os.environ['RUNNER_TEMP']) / ('inoreader-shared-' + os.environ['GITHUB_RUN_ID'] + '-' + os.environ['GITHUB_RUN_ATTEMPT'])
+              root.mkdir(mode=0o700)
+              value = json.loads(os.environ['SOURCE_DISCOVERY_CONFIG'])
+              if value['runtime'].get('oauth_mode') != 'coordinator' or value['runtime'].get('api_quota_mode') != 'shared':
+                  raise ValueError('shared ownership must be explicit')
+              value['runtime']['runtime_root'] = str(root)
+              value['runtime']['state_path'] = str(root / 'sandbox' / 'service')
+              value['policy_path'] = str(Path.cwd() / 'collectors/source_registry/discovery/policy.proposed.json')
+              with (Path(os.environ['RUNNER_TEMP']) / 'inoreader-shared-config.json').open('x') as out:
+                  os.chmod(out.name, 0o600)
+                  json.dump(value, out)
+          except BaseException:
+              raise SystemExit('SHARED_CONFIG_HOLD') from None
+          PYCONFIG
+      - name: Sync BOHUN folders through the shared coordinator
+        if: vars.INOREADER_SHARED_ENABLED == 'true'
+        env:
+          SOURCE_DISCOVERY_STATE_TOKEN: ${{ secrets.SOURCE_DISCOVERY_STATE_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          EVENT_NAME: ${{ github.event_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +x
+          API_CAP=60
+          if [ "$EVENT_NAME" = 'workflow_dispatch' ]; then API_CAP=2; fi
+          command=("$RUNNER_TEMP/bohun-inoreader-body/bin/python" -B -m collectors.inoreader.shared_runtime --config "$RUNNER_TEMP/inoreader-shared-config.json" --allow-live --max-api-attempts "$API_CAP" --)
+          if [ "$EVENT_NAME" = 'workflow_dispatch' ]; then
+            "${command[@]}" --max-pages 1 --max-items 12 --backfill-bodies
+          else
+            "${command[@]}" --max-pages 2
           fi
       - name: Verify stored text hashes without logging content
         if: github.event_name == 'workflow_dispatch'
