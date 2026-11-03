@@ -1,0 +1,25 @@
+name: Gemini Free context control
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  control:
+    if: github.repository == 'nab0k/bohun-the-field' && github.actor == 'nab0k' && github.run_attempt == 1 && github.sha == inputs.expected_sha
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Run public source control
+        env:
+          GEMINI_FREE_API_KEY: ${{ secrets.GEMINI_FREE_API_KEY }}
+        run: python3 -B trial/gemini-free-control/run_control.py --output result.json
+      - name: Show validated public result
+        run: cat result.json

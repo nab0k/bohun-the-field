@@ -1,0 +1,16 @@
+{
+  "contents": [
+    {
+      "parts": [
+        {
+          "text": "{\"task\": \"Return a JSON object with a stages array, one row per document. Use keys stage (announcement or completion), published, buyer, target, document_id, evidence (exact substring of the excerpt). Use only supplied title and excerpt. published is publication date. Do not infer a legal closing date.\", \"documents\": [{\"id\": \"announcement\", \"published\": \"2022-11-14\", \"url\": \"https://www.rheinmetall.com/en/media/news-watch/news/2022/2022-11-14_rheinmetall-takes-over-spain-s-expal-systems-s-a\", \"excerpt\": \"Completion of the transaction, for which a closing date in summer 2023 is sought, is subject to approval by the competition authorities and other regulatory checks.\", \"title\": \"Rheinmetall takes over Spain\u2019s Expal Systems S.A.\"}, {\"id\": \"completion\", \"published\": \"2023-08-01\", \"url\": \"https://www.rheinmetall.com/en/media/news-watch/news/2023/8/2023-08-01-rheinmetall-completes-acquisition-of-spanish-defence-contractor-expal-systems\", \"excerpt\": \"Rheinmetall AG has completed its takeover of all shares in Expal Systems S.A.U. of Madrid.\"}]}"
+        }
+      ]
+    }
+  ],
+  "generationConfig": {
+    "temperature": 0,
+    "maxOutputTokens": 1024,
+    "responseMimeType": "application/json"
+  }
+}
