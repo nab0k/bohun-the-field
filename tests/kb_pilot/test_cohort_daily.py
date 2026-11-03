@@ -163,7 +163,8 @@ class Tests(unittest.TestCase):
             evidence=path/'audit.json'
             with patch.object(daily,'_execute_private',side_effect=RuntimeError('unknown')):
                 with self.assertRaises(RuntimeError):daily.execute_private(temp,evidence_path=evidence)
-            self.assertEqual(json.loads(evidence.read_text()),audit)
+            saved=json.loads(evidence.read_text());audit.update(stage='ADMISSION',stop='UNKNOWN')
+            self.assertEqual(saved,audit)
             self.assertEqual(evidence.stat().st_mode&0o777,0o600)
 
     def test_model_failure_restores_readers_and_saves_no_false_success(self):

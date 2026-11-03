@@ -56,6 +56,9 @@ def freeze(rows, sha):
 
 
 def validate(manifest, expected_digest):
+    if manifest.get('schema') == 'a11-stored-cohort-v1':
+        from .stored_cohort import validate as validate_stored
+        return validate_stored(manifest, expected_digest)
     # Digest is an integrity check, NOT a replacement for owner authorization.
     if manifest.get('schema') != SCHEMA or digest(manifest) != expected_digest:
         raise Stop('MANIFEST_CHANGED')
@@ -80,6 +83,8 @@ def execute(manifest, expected_digest, conn, current_rows, *, fetch, extractor, 
     No selection/replacement/refetch of failed IDs. The current product CAS writer
     remains the final guard for concurrent changes after snapshot revalidation.
     """
+    if manifest.get('schema') != SCHEMA:
+        raise Stop('FETCH_SCHEMA_REQUIRED')
     validate(manifest, expected_digest)
     ids = {r['item_id'] for r in manifest['rows']}
     if set(current_rows) != ids:
@@ -177,7 +182,7 @@ def verify(manifest, expected_digest, report, current_rows, *, manual_reviewed_i
                  'origin_ok': False, 'reader_replay_ok': False, 'runtime_input_proven': False,
                  'reason': receipt.get('reason', 'NOT_ATTEMPTED')}
         proofs.append(proof)
-        if receipt.get('reason') != 'WRITTEN':
+        if receipt.get('reason') != ('STORED_ADMITTED' if manifest['schema']=='a11-stored-cohort-v1' else 'WRITTEN'):
             continue
         if (not after or any(after.get(k) != before.get(k) for k in ('item_id','source_id','url','source_name','item_type'))
                 or digest(after.get('raw',{}).get('content_capture')) != digest(before['raw'].get('content_capture'))):

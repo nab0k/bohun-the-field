@@ -1,0 +1,68 @@
+{
+  "schema": "a11-stored-evidence-v1",
+  "parent_run": 41439209286,
+  "parent_code_sha": "7d7219244a250083be6ef7cb51033df3e3f26b7a",
+  "parent_manifest_sha256": "48ead750b3647f6e42a2bbed422070a07f51f3e1c568161b445f25c3239bc0aa",
+  "receipts": [
+    {
+      "item_id": 206937,
+      "provider_before_sha256": "4274a4da787ab48903f064f5084fee0cfa81ee3b815d731cc94ff81854273714",
+      "publisher_capture_sha256": "6bb0f9b67540ff7e1b72b032c1dbeda887df84098e853b7d2a9f2c622720d0e3",
+      "publisher_text_sha256": "f91f70aea8ab475313cba59d0e6877e3dcbe095054a0f434fa2a9d67989093a6"
+    },
+    {
+      "item_id": 207830,
+      "provider_before_sha256": "68a89fab2c691571156d1dd635ff68b1db0097dfc42d0f65824dc888b0e19ab1",
+      "publisher_capture_sha256": "14f674913e4f0164463fed11115d1d9d3bf8c60da3b17e6003738ed7f5acb23b",
+      "publisher_text_sha256": "5d7eeda6d59f7f71579da8d23709e635ac8401ca4fdff78e5f55fda3caa0ce76"
+    },
+    {
+      "item_id": 207831,
+      "provider_before_sha256": "6e91d5d138c3bebcea8d465da05d5ddf0d0a3055fa094cab2203f3c1731a2c0e",
+      "publisher_capture_sha256": "8753b9f1ff9784db7d212425a8118ba4f2ac6a59b0a90f0625cac660e3e14c70",
+      "publisher_text_sha256": "0b841f4786fbe31b97bd91016522beef3c3f4a97d8af0c28d3e3d66f5cc2a048"
+    },
+    {
+      "item_id": 207832,
+      "provider_before_sha256": "774545f89abcd73bd8861301940389337de06a0e07cf0f6dfd4468f9659e760f",
+      "publisher_capture_sha256": "2b1a0dbf05a2051f6ab2b18c8db90616869b88b00f26e17d68bb231eca718620",
+      "publisher_text_sha256": "eeac0e777a4beaf02766b7ce99b0ac2a876f50c6ab79cb475b5a709c7a43143c"
+    },
+    {
+      "item_id": 207834,
+      "provider_before_sha256": "9b848ff4d52f24198bfb960af54187a2dae392877bc43b1ce75dc63cce6e7afb",
+      "publisher_capture_sha256": "4824022ee9c9d966429ee3128835fef1f485f8928ef070fb071714a1a88c0626",
+      "publisher_text_sha256": "430152b43fe2bb50e880fd2d9cac412fc8444fd4cfcfa3574117a9807b88b521"
+    },
+    {
+      "item_id": 207835,
+      "provider_before_sha256": "20ddc7d8f6693513893f079053e96f01e8a712160fb447b9533d852653bc4369",
+      "publisher_capture_sha256": "d344f125674d5a5ce65ae8717e467690fd9b5207cf3da2a2f4f8b2a474a3ff26",
+      "publisher_text_sha256": "57370715dad0a07eea642e39cb671710e08fe828ddb8d120ef16ac56c063cce5"
+    },
+    {
+      "item_id": 207836,
+      "provider_before_sha256": "cad45195bdc2c84e5094baeda277b9fad946d8587c2148e2701c231ac9e8e553",
+      "publisher_capture_sha256": "6b781117c8e4540d789aeb09f7d4a7b50d9ded86f929fe1f24f7912be4da6abb",
+      "publisher_text_sha256": "6c5d73ace3a25386d12ef8fa535ac2129d5484a2e74441a380a2fd0f01ff1d63"
+    },
+    {
+      "item_id": 207838,
+      "provider_before_sha256": "adcf13921ffd73a53220d12d79e50cf81b3fd68371b9a07c40836dbe361f6446",
+      "publisher_capture_sha256": "0b3961070eaf7cf4cb79b0963fa0e501f14478f4f3d32f47d644eaf9019d528e",
+      "publisher_text_sha256": "19aff5857bcc5a4cf9997483f185582439b0ba1587b9aa84980af422f78e252c"
+    },
+    {
+      "item_id": 207839,
+      "provider_before_sha256": "9806b5a30390dddbb0b51255cbae0b140f50f951d19bf2b883cd05ea55dabc4b",
+      "publisher_capture_sha256": "310eea3c1575734d2fb513e4654be67e2f3f752ae1ca8db6002be571af43128f",
+      "publisher_text_sha256": "32b34f479357ef551c9ead0dc99e1ca2f71eed3c8204bbbf846f6dd7c40bdc54"
+    },
+    {
+      "item_id": 207840,
+      "provider_before_sha256": "5467194d57c967110b290aa0af0a1483519c934cbfbef2f3a5b98da04085e197",
+      "publisher_capture_sha256": "0d9cb104821235b000ac03c58ff412f495f08ba449b156bc377d302be24e9cf0",
+      "publisher_text_sha256": "21ecf69f2e45a1b91d5de47a64a7599ad4fc00b3812f99e87859ea9083536c72"
+    }
+  ]
+}
