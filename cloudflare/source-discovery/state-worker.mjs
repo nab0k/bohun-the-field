@@ -9,6 +9,10 @@ export class DiscoveryState extends DurableObject {
       bootstrap: env.ALLOW_BOOTSTRAP === "true",
       oauthBootstrap: env.ALLOW_OAUTH_BOOTSTRAP === "true",
       oauthSeed: () => env.INOREADER_DISCOVERY_BOOTSTRAP_REFRESH_TOKEN,
+      oauthClientId: env.INOREADER_DISCOVERY_CLIENT_ID,
+      oauthRecovery: env.ALLOW_OAUTH_RECOVERY === "true",
+      oauthRecoverySpec: () => JSON.parse(env.OAUTH_RECOVERY_SPEC),
+      oauthRecoveryGrant: () => JSON.parse(env.INOREADER_DISCOVERY_RECOVERY_GRANT),
       oauthRefresh: refresh => refreshTransport(fetch, {
         client_id: env.INOREADER_DISCOVERY_CLIENT_ID,
         client_secret: env.INOREADER_DISCOVERY_CLIENT_SECRET}, refresh)});
