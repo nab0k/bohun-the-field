@@ -221,5 +221,17 @@ class Tests(unittest.TestCase):
             model.assert_not_called()
             self.assertEqual(json.loads((path/'reader-receipts.json').read_text()),[])
 
+    def test_origin_shape_error_survives_safe_audit_without_private_payload(self):
+        with tempfile.TemporaryDirectory() as temp:
+            evidence=Path(temp)/'audit.json'
+            with patch.object(daily,'_resume_private',side_effect=RuntimeError('ORIGIN_ROW_SHAPE_INVALID')):
+                with self.assertRaisesRegex(RuntimeError,'ORIGIN_ROW_SHAPE_INVALID'):
+                    daily.execute_private(temp,resume=True,evidence_path=evidence)
+            audit=json.loads(evidence.read_text())
+            self.assertEqual(audit['stop'],'ORIGIN_ROW_SHAPE_INVALID')
+            self.assertEqual(audit['stage'],'ADMISSION')
+            self.assertNotIn('Traceback',evidence.read_text())
+            self.assertEqual(audit['reader_receipts'],[])
+
 
 if __name__=='__main__':unittest.main()
