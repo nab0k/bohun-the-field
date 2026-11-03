@@ -325,7 +325,7 @@ if (process.argv.includes("--protocol")) {
     let calls = 0;
     const url = "https://www.inoreader.com/oauth2/token";
     const fetcher = async (target, init) => {
-      calls++; assert.equal(target, url); assert.equal(init.redirect, "error"); assert.equal(init.method, "POST");
+      calls++; assert.equal(target, url); assert.equal(init.redirect, "manual"); assert.equal(init.method, "POST");
       assert.equal(new URLSearchParams(init.body).get("refresh_token"), seed);
       const response = new Response(JSON.stringify(tokenReply(1)));
       Object.defineProperty(response, "url", {value: url}); return response;
