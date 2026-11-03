@@ -9,7 +9,7 @@ import {createInterface} from "node:readline";
 import test from "node:test";
 import net from "node:net";
 import dns from "node:dns";
-import {StateCoordinator, authenticated, route, refreshTransport, MAX_SNAPSHOT, CHUNK_SIZE} from "../../../../cloudflare/source-discovery/state-core.mjs";
+import {StateCoordinator, authenticated, route, refreshTransport, OAuthFailure, MAX_SNAPSHOT, CHUNK_SIZE} from "../../../../cloudflare/source-discovery/state-core.mjs";
 
 const TOKEN = "SYNTHETIC_" + "t".repeat(64);
 const identity = {deployment: "synthetic-cloud-v1", code_sha256: "a".repeat(64), policy_sha256: "b".repeat(64)};
@@ -338,4 +338,192 @@ if (process.argv.includes("--protocol")) {
     }
     await assert.rejects(refreshTransport(blocked, {client_id: "SYNTHETIC_ID", client_secret: "SYNTHETIC_SECRET"}, seed));
   });
+  const operation = "9".repeat(64), newCode = "f".repeat(64);
+  async function heldFixture(path) {
+    const f = oauthFixture(path), lease = await oauthBoot(f);
+    f.core.expected.oauthRefresh = async () => { throw Error("SYNTHETIC_PRIVATE_UPSTREAM_ERROR"); };
+    assert.equal((await f.request("/v1/oauth-access", {lease, body: {scope: "read"}})).status, 409);
+    return Object.assign(f, {lease});
+  }
+  function enableRecovery(f, override = {}, grantOverride = {}) {
+    const row = f.core.control();
+    f.spec = {operation_id: operation, previous_code_sha256: identity.code_sha256,
+      snapshot_sha256: sha(snapshot), revision: row.revision, lease_generation: row.generation,
+      credential_generation: f.core.credential().generation, ...override};
+    f.grant = {client_id: "SYNTHETIC_APP_ID", access_token: "SYNTHETIC_FRESH_ACCESS",
+      refresh_token: "SYNTHETIC_FRESH_REFRESH", token_type: "Bearer", scope: "read",
+      expires_at: Math.floor(f.clock.ms / 1000) + 3600, ...grantOverride};
+    Object.assign(f.core.expected, {code_sha256: newCode, oauthClientId: "SYNTHETIC_APP_ID",
+      oauthRecovery: true, bootstrap: false, oauthBootstrap: false, oauthRecoverySpec: () => f.spec, oauthRecoveryGrant: () => f.grant});
+  }
+  function recover(f, body = {operation_id: operation}, headers = {}) {
+    return f.request("/v1/oauth-recover", {body, headers: {"X-Code-Sha256": newCode, ...headers}});
+  }
+  function readCurrent(f) {
+    return f.request("/v1/status", {headers: {"X-Code-Sha256": newCode}});
+  }
+  test("HTTP errors retain only numeric status; secret provider body is never consumed", async () => {
+    let reads = 0;
+    const fetcher = async () => ({status: 401, url: "https://www.inoreader.com/oauth2/token", read() {reads++; throw Error(seed);}});
+    await assert.rejects(refreshTransport(fetcher, {client_id: "SYNTHETIC_ID", client_secret: seed}, seed), error => {
+      assert.equal(error.stage, "OAUTH_HTTP"); assert.equal(error.status, 401);
+      assert.equal(error.attempted, true); assert.ok(!String(error).includes(seed)); return true;
+    });
+    assert.equal(reads, 0);
+  });
+  test("transport classification covers credentials, network, JSON, size and redirect without text", async () => {
+    const cred = {client_id:"SYNTHETIC_ID",client_secret:seed}, url="https://www.inoreader.com/oauth2/token";
+    await assert.rejects(refreshTransport(blocked, {client_id:null,client_secret:seed}, seed), e => e.stage === "OAUTH_CREDENTIALS" && !e.attempted);
+    await assert.rejects(refreshTransport(async () => {throw Error(seed);}, cred, seed), e => e.stage === "OAUTH_NETWORK_UNKNOWN" && !String(e).includes(seed));
+    for (const [raw,stage] of [["not JSON", "OAUTH_JSON"],["x".repeat(16385),"OAUTH_BODY_UNKNOWN"]]) {
+      const r = new Response(raw);Object.defineProperty(r,"url",{value:url});
+      await assert.rejects(refreshTransport(async () => r,cred,seed),e=>e.stage===stage && e.status===200);
+    }
+    const r = new Response("{}");Object.defineProperty(r,"url",{value:"https://redirect.invalid/"});
+    await assert.rejects(refreshTransport(async()=>r,cred,seed),e=>e.stage==="OAUTH_REDIRECT");
+  });
+  test("durable OAuth status exposes safe phase and code, never tokens, owner or error text", async () => {
+    const f = oauthFixture(), lease = await oauthBoot(f);
+    f.core.expected.oauthRefresh = async () => {throw new OAuthFailure("OAUTH_HTTP", 400, true);};
+    await f.request("/v1/oauth-access", {lease,body:{scope:"read"}});
+    const meta=await (await f.request("/v1/status")).json();
+    assert.equal(meta.oauth.credential.status,"REFRESHING");assert.equal(meta.oauth.credential.cached_access_bytes,0);
+    assert.deepEqual(meta.oauth.diagnostic,{generation:1,stage:"OAUTH_HTTP",http_status:400,upstream_may_have_started:1});
+    const raw=JSON.stringify(meta);for (const secret of [seed,owner,"SYNTHETIC_ACCESS","SYNTHETIC_PRIVATE"]) assert.ok(!raw.includes(secret));
+    assert.equal((await f.request("/v1/oauth-access",{lease,body:{scope:"read"}})).status,409);
+    assert.deepEqual((await (await f.request("/v1/status")).json()).oauth.diagnostic,meta.oauth.diagnostic);
+    f.s.db.close();
+  });
+  test("failure before durable request marker diagnoses zero attempted upstream", async () => {
+    const f=oauthFixture(),lease=await oauthBoot(f);f.s.failSync=true;
+    await f.request("/v1/oauth-access",{lease,body:{scope:"read"}});
+    assert.equal(f.seen.length,0);
+    assert.equal(f.s.sql.exec("SELECT stage FROM oauth_diagnostics").toArray()[0].stage,"OAUTH_STORAGE_BEFORE_REQUEST");
+    f.s.db.close();
+  });
+  test("response contract failure remains held and is distinguishable from HTTP failure", async () => {
+    const f=oauthFixture(),lease=await oauthBoot(f);
+    f.core.expected.oauthRefresh=async()=>({...tokenReply(1),scope:"write"});
+    await f.request("/v1/oauth-access",{lease,body:{scope:"read"}});
+    const meta=await(await f.request("/v1/status")).json();
+    assert.equal(meta.oauth.diagnostic.stage,"OAUTH_RESPONSE_CONTRACT");
+    assert.equal(meta.oauth.credential.status,"REFRESHING");f.s.db.close();
+  });
+  test("recovery disabled by default and requires distinct one-use capability", async () => {
+    const f=await heldFixture();
+    assert.equal((await f.request("/v1/oauth-recover",{body:{operation_id:operation}})).status,409);
+    enableRecovery(f);
+    assert.equal((await recover(f,{operation_id:"8".repeat(64)})).status,409);
+    assert.equal((await recover(f,{operation_id:operation,refresh_token:seed})).status,409);
+    assert.equal((await recover(f,undefined,{Authorization:"Bearer wrong"})).status,401);
+    assert.equal(f.core.credential().generation,1);f.s.db.close();
+  });
+  test("all recovery fences are exact and reject without touching old state", async () => {
+    for (const override of [{revision:1},{lease_generation:99},{credential_generation:99},
+      {previous_code_sha256:"e".repeat(64)},{snapshot_sha256:"e".repeat(64)}]) {
+      const f=await heldFixture(),old=f.s.sql.exec("SELECT * FROM control").toArray();enableRecovery(f,override);
+      assert.equal((await recover(f)).status,409);
+      assert.deepEqual(f.s.sql.exec("SELECT * FROM control").toArray(),old);
+      assert.equal(f.core.credential().status,"REFRESHING");f.s.db.close();
+    }
+  });
+  test("fresh read grant rejects expiry, wrong app, scope expansion and old refresh", async () => {
+    for(const override of [{expires_at:0},{client_id:"SYNTHETIC_OTHER_APP"},{scope:"read write"},
+      {refresh_token:seed},{access_token:"bad\r\nvalue"},{token_type:"other"}]) {
+      const f=await heldFixture();enableRecovery(f,{},override);
+      assert.equal((await recover(f)).status,409);
+      assert.equal(f.core.credential().generation,1);f.s.db.close();
+    }
+  });
+  test("recovery atomically fences old client and repins exact journal without upstream calls", async () => {
+    const f=await heldFixture();let calls=0;enableRecovery(f);
+    f.core.expected.oauthRefresh=async()=>{calls++;throw Error("MUST_NOT_REFRESH");};
+    const before=f.s.sql.exec("SELECT * FROM checkpoints ORDER BY revision,part").toArray();
+    const reply=await(await recover(f)).json();assert.equal(reply.status,"OAUTH_RECOVERED");
+    assert.equal(reply.generation,f.lease.generation+1);assert.equal(reply.credential_generation,2);
+    assert.equal(f.core.control().owner,null);assert.equal(f.core.control().revision,f.lease.revision);
+    assert.deepEqual(f.s.sql.exec("SELECT * FROM checkpoints ORDER BY revision,part").toArray(),before);
+    for(const path of ["/v1/release","/v1/oauth-access","/v1/checkpoint"])
+      assert.equal((await f.request(path,{lease:f.lease,...(path.endsWith("checkpoint")?{raw:snapshot}:{body:{scope:"read"}})})).status,409);
+    const next=await(await f.request("/v1/acquire",{body:{owner:"d".repeat(64)},headers:{"X-Code-Sha256":newCode}})).json();
+    const data=await f.request("/v1/download",{lease:next,headers:{"X-Code-Sha256":newCode}});
+    assert.deepEqual(Buffer.from(await data.arrayBuffer()),snapshot);
+    const access=await(await f.request("/v1/oauth-access",{lease:next,body:{scope:"read"},headers:{"X-Code-Sha256":newCode}})).json();
+    assert.equal(access.access_token,f.grant.access_token);assert.equal(calls,0);
+    const publicMeta=JSON.stringify(await(await readCurrent(f)).json());
+    for(const secret of [f.grant.access_token,f.grant.refresh_token,operation,owner])assert.ok(!publicMeta.includes(secret));
+    f.s.db.close();
+  });
+  test("recovery capability cannot be replayed after first durable success", async()=>{
+    const f=await heldFixture();enableRecovery(f);assert.equal((await recover(f)).status,200);
+    const generation=f.core.control().generation;
+    assert.equal((await recover(f)).status,409);assert.equal(f.core.control().generation,generation);
+    assert.equal(f.s.sql.exec("SELECT COUNT(*) AS n FROM oauth_recoveries").toArray()[0].n,1);f.s.db.close();
+  });
+  test("recovery transaction failure rolls back credentials, control, pin and audit together",async()=>{
+    const f=await heldFixture();enableRecovery(f);const exec=f.s.sql.exec;
+    const old=f.s.sql.exec("SELECT * FROM control").toArray();
+    f.s.sql.exec=(sql,...args)=>{if(sql.startsWith("INSERT INTO oauth_recoveries"))throw Error("SYNTHETIC_FAIL");return exec(sql,...args);};
+    assert.equal((await recover(f)).status,409);f.s.sql.exec=exec;
+    assert.deepEqual(f.s.sql.exec("SELECT * FROM control").toArray(),old);
+    assert.equal(f.core.credential().generation,1);assert.equal(f.core.credential().status,"REFRESHING");
+    assert.equal(f.s.sql.exec("SELECT COUNT(*) AS n FROM oauth_recoveries").toArray()[0].n,0);f.s.db.close();
+  });
+  test("unknown recovery ACK is inspectable and never triggers another refresh or reset",async()=>{
+    const f=await heldFixture();enableRecovery(f);f.s.failSync=true;
+    assert.equal((await recover(f)).status,409);f.s.failSync=false;
+    const meta=await(await readCurrent(f)).json();assert.equal(meta.leased,false);
+    assert.equal(meta.oauth.credential.status,"READY");assert.equal(meta.oauth.recovery.operation_hash,sha(Buffer.from(operation)));
+    assert.equal((await recover(f)).status,409);f.s.db.close();
+  });
+  test("late response from fenced old refresh cannot overwrite recovered grant",async()=>{
+    const f=oauthFixture(),lease=await oauthBoot(f);let resolve,started;
+    const ready=new Promise(r=>{started=r;});f.core.expected.oauthRefresh=()=>{started();return new Promise(r=>{resolve=r;});};
+    const pending=f.request("/v1/oauth-access",{lease,body:{scope:"read"}});await ready;
+    enableRecovery(f);assert.equal((await recover(f)).status,200);
+    resolve(tokenReply(1));assert.equal((await pending).status,409);
+    assert.equal(f.core.credential().access,f.grant.access_token);
+    const meta=await(await readCurrent(f)).json();assert.equal(meta.oauth.diagnostic.stage,"RECOVERED");f.s.db.close();
+  });
+  test("disk restart retains recovery audit, code transition and exact checkpoint bytes",async()=>{
+    const dir=mkdtempSync(join(tmpdir(),"discovery-recovery-")),path=join(dir,"state.sqlite");
+    try{
+      const first=await heldFixture(path);enableRecovery(first);assert.equal((await recover(first)).status,200);first.s.db.close();
+      const next=fixture({...identity,code_sha256:newCode},path);
+      const meta=await(await next.request("/v1/status")).json();assert.equal(meta.oauth.credential.generation,2);assert.equal(meta.leased,false);
+      const lease=await acquire(next);assert.deepEqual(Buffer.from(await(await next.request("/v1/download",{lease})).arrayBuffer()),snapshot);
+      assert.equal((await next.request("/v1/oauth-recover",{body:{operation_id:operation}})).status,409);next.s.db.close();
+    }finally{rmSync(dir,{recursive:true,force:true});}
+  });
+
+  test("recovery refuses corrupt checkpoint bytes before replacing credentials",async()=>{
+    for(const mutation of ["DELETE FROM checkpoints", "UPDATE checkpoints SET payload=zeroblob(length(payload))"]){
+      const f=await heldFixture();enableRecovery(f);f.s.db.exec(mutation);
+      assert.equal((await recover(f)).status,409);assert.equal(f.core.credential().generation,1);
+      assert.equal(f.s.sql.exec("SELECT generation FROM control").toArray()[0].generation,f.lease.generation);f.s.db.close();
+    }
+  });
+  test("historic held rows upgrade without resetting journal or inventing a failure cause",async()=>{
+    const f=await heldFixture();enableRecovery(f);
+    f.s.db.exec("DROP TABLE oauth_diagnostics; DROP TABLE oauth_recoveries;");
+    new StateCoordinator(f.s,f.core.expected);
+    assert.equal(f.core.oauthMetadata().diagnostic,null);
+    assert.equal((await recover(f)).status,200);
+    assert.equal((await(await readCurrent(f)).json()).oauth.diagnostic.stage,"RECOVERED");f.s.db.close();
+  });
+  test("bootstrap gates must be closed during explicit recovery",async()=>{
+    const f=await heldFixture();enableRecovery(f);f.core.expected.oauthBootstrap=true;
+    assert.equal((await recover(f)).status,409);assert.equal(f.core.credential().generation,1);f.s.db.close();
+  });
+
+  test("timeout is classified without waiting or exposing raw network exception",async()=>{
+    const originalTimer=globalThis.setTimeout;
+    globalThis.setTimeout=(fn,ms,...args)=>{if(ms===15000){queueMicrotask(fn);return 0;}return originalTimer(fn,ms,...args);};
+    try{
+      const fetcher=(_,init)=>new Promise((_,reject)=>init.signal.addEventListener("abort",()=>reject(Error(seed)),{once:true}));
+      await assert.rejects(refreshTransport(fetcher,{client_id:"SYNTHETIC_APP_ID",client_secret:seed},seed),error=>
+        error.stage==="OAUTH_TIMEOUT_UNKNOWN" && error.attempted===true && !String(error).includes(seed));
+    }finally{globalThis.setTimeout=originalTimer;}
+  });
+
 }
