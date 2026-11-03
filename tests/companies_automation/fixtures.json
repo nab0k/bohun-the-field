@@ -1,0 +1,15 @@
+{
+  "synthetic_only": true,
+  "date": "2026-11-01T12:00:00+00:00",
+  "companies": [
+    {"name": "Example Rotor GmbH", "country": "DE", "website": "https://rotor.example.test"},
+    {"name": "Example Rotor GmbH", "country": "AT", "website": "https://rotor-at.example.test"},
+    {"name": "Example Group One GmbH", "country": "DE", "website": "https://group.example.test"},
+    {"name": "Example Group Two GmbH", "country": "DE", "website": "https://group.example.test"}
+  ],
+  "product_text": "Example Rotor GmbH says it manufactures electric rotors.",
+  "plan_text": "Example Rotor GmbH plans to deliver 20 rotors in 2027.",
+  "negation_text": "Example Rotor GmbH did not win the contract.",
+  "amount_text": "Example Rotor GmbH was awarded EUR 500000 in 2026.",
+  "website_text": "The official website of Example Rotor GmbH is https://rotor.example.test."
+}

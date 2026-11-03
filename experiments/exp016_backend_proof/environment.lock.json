@@ -1,0 +1,152 @@
+{
+  "format": "exp016.postgres-proof.environment.v0",
+  "date": "2026-11-02",
+  "python": "3.13.17",
+  "runner": "ubuntu-24.04",
+  "actions": {
+    "checkout": "11d5960a326750d5838078e36cf38b85af677262",
+    "setup-python": "ece7cb06caefa5fff74198d8649806c4678c61a1"
+  },
+  "packages": [
+    {
+      "name": "psycopg",
+      "version": "3.3.6",
+      "filename": "psycopg-3.3.6-py3-none-any.whl",
+      "url": "https://files.pythonhosted.org/packages/4e/de/748bd7609c71cae5d737f0ba9192f19329f70180ecda8fff3cac02c5abe3/psycopg-3.3.6-py3-none-any.whl",
+      "sha256": "a1db9f7148b06a28606767efaca51fa6f9398c5c0a3810519be69d7000bdb631",
+      "requires_python": ">=3.10",
+      "requires_dist": [
+        "typing-extensions>=4.6; python_version < \"3.13\"",
+        "tzdata; sys_platform == \"win32\"",
+        "psycopg-c==3.3.6; implementation_name != \"pypy\" and extra == \"c\"",
+        "psycopg-binary==3.3.6; implementation_name != \"pypy\" and extra == \"binary\"",
+        "psycopg-pool; extra == \"pool\"",
+        "anyio>=4.0; extra == \"test\"",
+        "mypy>=2.1.0; implementation_name != \"pypy\" and extra == \"test\"",
+        "pproxy>=2.7; extra == \"test\"",
+        "pytest>=6.2.5; extra == \"test\"",
+        "pytest-cov>=3.0; extra == \"test\"",
+        "pytest-randomly>=3.5; extra == \"test\"",
+        "ast-comments>=1.1.2; extra == \"dev\"",
+        "black>=26.1.0; extra == \"dev\"",
+        "codespell>=2.2; extra == \"dev\"",
+        "cython-lint>=0.21; extra == \"dev\"",
+        "dnspython>=2.1; extra == \"dev\"",
+        "flake8>=4.0; extra == \"dev\"",
+        "isort[colors]>=6.0; extra == \"dev\"",
+        "isort-psycopg>=0.0.3; extra == \"dev\"",
+        "mypy>=2.1.0; extra == \"dev\"",
+        "pre-commit>=4.0.1; extra == \"dev\"",
+        "types-setuptools>=57.4; extra == \"dev\"",
+        "types-shapely>=2.0; extra == \"dev\"",
+        "wheel>=0.37; extra == \"dev\"",
+        "Sphinx>=9.1; extra == \"docs\"",
+        "furo==2025.12.19; extra == \"docs\"",
+        "sphinx-autobuild>=2025.8.25; extra == \"docs\"",
+        "sphinx-autodoc-typehints>=3.10.2; extra == \"docs\""
+      ]
+    },
+    {
+      "name": "psycopg-binary",
+      "version": "3.3.6",
+      "filename": "psycopg_binary-3.3.6-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+      "url": "https://files.pythonhosted.org/packages/de/b0/c6f8a0585a5dacbea74e130bcfc66629390e8f5bbc79d2a8e806e8952150/psycopg_binary-3.3.6-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+      "sha256": "cec5ea900390897d0b46130f60bc2883bf19c314f9044235217c8be88b0ef269",
+      "requires_python": ">=3.10",
+      "requires_dist": null
+    }
+  ],
+  "primary_sources": [
+    {
+      "url": "https://www.postgresql.org/docs/17/sql-createfunction.html",
+      "read_via": "web",
+      "finding": "Private function boundary: owner permissions and empty search_path."
+    },
+    {
+      "url": "https://www.postgresql.org/docs/17/sql-alterfunction.html",
+      "read_via": "web",
+      "finding": "Superuser can change ownership; non-superuser requires schema CREATE and SET ROLE."
+    },
+    {
+      "url": "https://www.postgresql.org/docs/17/explicit-locking.html",
+      "read_via": "web",
+      "finding": "Row locks serialize conflicts; concurrency requires real sessions."
+    },
+    {
+      "url": "https://www.postgresql.org/docs/17/transaction-iso.html",
+      "read_via": "web",
+      "finding": "Serializable transactions may abort and require explicit classification."
+    },
+    {
+      "url": "https://www.postgresql.org/docs/17/functions-string.html",
+      "read_via": "web",
+      "finding": "Use ordinary comma function form for schema-qualified string functions."
+    },
+    {
+      "url": "https://docs.github.com/en/billing/concepts/product-billing/github-actions",
+      "read_via": "web",
+      "finding": "Standard hosted public repository runners are free; larger runners and storage differ."
+    },
+    {
+      "url": "https://supabase.com/changelog.md",
+      "bytes": 103109,
+      "breaking_change_lines": [
+        "2026-09-25 · Breaking Change · Database · [supabase.com/changelog/postgres-15-19-17-11-breaking-changes](https://supabase.com/changelog/postgres-15-19-17-11-breaking-changes)",
+        "2026-05-25 · Breaking Change · Database · [supabase.com/changelog/46320-breaking-change-in-pg-graphql-1-6-0-graphql-introspection-disabled-by-default](https://supabase.com/changelog/46320-breaking-change-in-pg-graphql-1-6-0-graphql-introspe",
+        "2026-05-18 · Breaking Change · Database · [supabase.com/changelog/46081-self-hosted-supabase-switching-studio-from-supabase-admin-to-postgres-breaking-change](https://supabase.com/changelog/46081-self-hosted-supabase-switching-studio-from-s",
+        "2026-05-18 · Breaking Change · Database · [supabase.com/changelog/46080-self-hosted-supabase-upgrading-from-pg-15-to-17-breaking-change](https://supabase.com/changelog/46080-self-hosted-supabase-upgrading-from-pg-15-to-17-breaking-change)",
+        "2026-05-01 · Breaking Change · Platform · [supabase.com/changelog/45468-breaking-change-oauth-token-endpoint-will-return-http-200-instead-of-201](https://supabase.com/changelog/45468-breaking-change-oauth-token-endpoint-will-return-http-200",
+        "2026-04-28 · Breaking Change · Data APIs, Database · [supabase.com/changelog/45329-breaking-change-tables-not-exposed-to-data-and-graphql-api-automatically](https://supabase.com/changelog/45329-breaking-change-tables-not-exposed-to-data-and",
+        "2026-02-17 · Breaking Change · Data APIs · [supabase.com/changelog/42949-breaking-change-removing-access-to-openapi-spec-via-the-anon-key](https://supabase.com/changelog/42949-breaking-change-removing-access-to-openapi-spec-via-the-anon-key",
+        "2026-01-26 · Breaking Change · Platform · [supabase.com/changelog/42180-breaking-change-pg-graphql-no-longer-enabled-automatically-within-approx-3-weeks-from-today](https://supabase.com/changelog/42180-breaking-change-pg-graphql-no-longer-e",
+        "2025-10-08 · Breaking Change · Database · [supabase.com/changelog/39378-potential-breaking-change-in-pgmq-from-1-4-4-to-1-5-1-and-temporary-halt-on-upgrade-for-existing-projects](https://supabase.com/changelog/39378-potential-breaking-chang",
+        "2025-02-18 · Breaking Change · Studio · [supabase.com/changelog/33670-upcoming-breaking-change-to-dashboard-navigation](https://supabase.com/changelog/33670-upcoming-breaking-change-to-dashboard-navigation)",
+        "2024-09-24 · Breaking Change · Security · [supabase.com/changelog/29494-supabase-platform-access-control-project-permissions-breaking-changes-on-october-15-2024](https://supabase.com/changelog/29494-supabase-platform-access-control-project-",
+        "2024-07-15 · Breaking Change · Platform · [supabase.com/changelog/27993-supabase-platform-access-control-organization-permissions-breaking-changes-on-july-26-2024](https://supabase.com/changelog/27993-supabase-platform-access-control-organi"
+      ]
+    }
+  ],
+  "ready": true,
+  "metadata_reads": [
+    {
+      "url": "https://supabase.com/changelog.md",
+      "bytes": 103109,
+      "sha256": "e42d0a99566ae6cc8be923976da1548410d24a32a14c3f21d4e1819c405a721b"
+    },
+    {
+      "url": "https://pypi.org/pypi/psycopg/3.3.6/json",
+      "bytes": 5978,
+      "sha256": "67267f5b63adf658b4d04848e36f70fc4b32ffc31e3bc6ea9086117bce8cc96a"
+    },
+    {
+      "url": "https://pypi.org/pypi/psycopg-binary/3.3.6/json",
+      "bytes": 61551,
+      "sha256": "73c5e31cb3c5d454391b3e218a5c7f2d1e693c2cd338e1b63a65cc667a83bfaf"
+    },
+    {
+      "url": "https://auth.docker.io/token?service=registry.docker.io&scope=repository:library/postgres:pull",
+      "bytes": 5495,
+      "sha256": "b05203755d212f800272bb023931fc46e4621a3819dcb9b0aceda04b6cb70375"
+    },
+    {
+      "url": "https://registry-1.docker.io/v2/library/postgres/manifests/17-bookworm",
+      "bytes": 6496,
+      "sha256": "839fbb5a4942a7758dd93e18b42ea5649807491a0545b5eeeb8f0b8bb11857a5"
+    },
+    {
+      "url": "https://registry-1.docker.io/v2/library/postgres/manifests/sha256:2cd2c0f809604aaeff6f0ec8f40aecbd025613107561015c69369a1a7f1d3416",
+      "bytes": 3641,
+      "sha256": "2cd2c0f809604aaeff6f0ec8f40aecbd025613107561015c69369a1a7f1d3416"
+    }
+  ],
+  "metadata_bytes": 186270,
+  "active_seconds": 1.363,
+  "postgres": {
+    "major": 17,
+    "source_tag": "17-bookworm",
+    "image": "postgres@sha256:2cd2c0f809604aaeff6f0ec8f40aecbd025613107561015c69369a1a7f1d3416",
+    "platform": "linux/amd64",
+    "index_digest": "sha256:839fbb5a4942a7758dd93e18b42ea5649807491a0545b5eeeb8f0b8bb11857a5",
+    "manifest_bytes": 3641
+  }
+}

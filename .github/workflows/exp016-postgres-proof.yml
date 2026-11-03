@@ -1,0 +1,57 @@
+name: EXP-016 disposable PostgreSQL proof
+"on":
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact separately approved full commit SHA
+        required: true
+        type: string
+      confirmation:
+        description: Type SYNTHETIC_POSTGRES_ONLY for this separately approved run
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: exp016-postgres-proof
+  cancel-in-progress: false
+jobs:
+  postgres-proof:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.repository == 'nab0k/bohun-the-field' &&
+      github.event.repository.private == false &&
+      github.ref == 'refs/heads/main' &&
+      inputs.confirmation == 'SYNTHETIC_POSTGRES_ONLY'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      EXP016_EXPECTED_SHA: ${{ inputs.expected_sha }}
+      EXP016_CONFIRMATION: ${{ inputs.confirmation }}
+      EXP016_PUBLIC_REPO: ${{ github.event.repository.private == false && 'true' || 'false' }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Verify the approved workflow SHA before checkout
+        run: |
+          set -euo pipefail
+          [[ "$EXP016_EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$GITHUB_SHA" == "$EXP016_EXPECTED_SHA" ]]
+          [[ "$GITHUB_WORKFLOW_SHA" == "$EXP016_EXPECTED_SHA" ]]
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ inputs.expected_sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13.17'
+          check-latest: false
+      - name: Start the pinned synthetic database
+        run: python -I -B experiments/exp016_backend_proof/environment.py prepare
+      - name: PostgreSQL transactions and denied writes
+        run: python -I -B experiments/exp016_backend_proof/environment.py live
+      - name: Remove only this proof container and its temporary storage
+        if: always()
+        run: python -I -S -B experiments/exp016_backend_proof/environment.py cleanup

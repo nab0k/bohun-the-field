@@ -19,8 +19,12 @@ def _scheme_conflict(store, company_id, identifiers):
                if scheme in STRONG_SCHEMES or scheme.startswith("NATIONAL:"))
 
 
-def resolve(store, mention, observation_id):
+def resolve(store, mention, observation_id, *, policy="legacy", evidence=None):
     """Return (company_id or None, outcome) where outcome in matched|new|candidate."""
+    if policy == "continuous_v0":
+        return _continuous_resolve(store, mention, observation_id, evidence)
+    if policy != "legacy":
+        raise ValueError("UNKNOWN_IDENTITY_POLICY")
     if mention.notion_page_id:
         row = store.query("SELECT id FROM company WHERE notion_page_id=?", (mention.notion_page_id,))
         if row:
@@ -54,6 +58,133 @@ def resolve(store, mention, observation_id):
     cid = store.create_company(mention.name, country=mention.country, city=mention.city, website=mention.website,
                                notion_page_id=mention.notion_page_id, flags=mention.flags,
                                supply_role=mention.supply_role)
+    return cid, "new"
+
+
+def _continuous_resolve(store, mention, observation_id, evidence):
+    """Strict discovery/linking. Evidence is an admitted source receipt, never an LLM score.
+
+    No call to legacy apply(): returned identity does not grant permission to add
+    identifiers/categories/fields. The future transactional writer revalidates it.
+    """
+    from .automation.contracts import IdentityEvidence, ContractError, https_host
+    from .normalize import clean_name
+    import re
+    import unicodedata
+
+    def surface(value):
+        return " ".join(unicodedata.normalize("NFKC", clean_name(value)).casefold().split())
+
+    candidates = set(store.companies_by_name(name_norm(mention.name), mention.country))
+    ids = tuple((s, str(v)) for s, v in mention.identifiers)
+    owners = {store.company_by_identifier(s, v) for s, v in ids}
+    owners.discard(None)
+    candidates.update(owners)
+
+    def hold(reason):
+        for cid in sorted(candidates):
+            store.add_match_candidate(observation_id, cid, reason, mention.name)
+        return None, "candidate"
+
+    if not isinstance(evidence, IdentityEvidence):
+        return hold("identity_receipt_required")
+    if evidence.entity_kind != "company" or not evidence.industry_relevant:
+        return hold("type_or_relevance_unconfirmed")
+    if evidence.expected_role != evidence.observed_role or evidence.observed_role not in (
+            "company", "manufacturer", "supplier", "subcontractor", "grantee"):
+        return hold("participant_role_unconfirmed")
+    if (surface(evidence.observed_name) != surface(mention.name)
+            or evidence.observed_country != mention.country
+            or not re.fullmatch(r"[A-Z]{2}", mention.country or "")):
+        return hold("source_subject_mismatch")
+    if mention.country in ("RU", "CN"):
+        return hold("excluded_country")
+    for scheme, _ in ids:
+        if scheme.startswith("NATIONAL:") and scheme != "NATIONAL:" + mention.country:
+            return hold("identifier_jurisdiction_conflict")
+        if (scheme in STRONG_SCHEMES or scheme.startswith("NATIONAL:")) and len({v for s, v in ids if s == scheme}) > 1:
+            return hold("multiple_identifier_values_need_review")
+    if mention.notion_page_id:
+        bound = store.query("SELECT id FROM company WHERE notion_page_id=?", (mention.notion_page_id,))
+        if bound:
+            candidates.add(bound[0]["id"])
+            if owners and bound[0]["id"] not in owners:
+                return hold("binding_identifier_conflict")
+    if len(owners) > 1:
+        return hold("identifier_conflict")
+
+    # All identifiers must be consistent, even if one of them matched first.
+    for cid in owners:
+        have = {}
+        for scheme, value in store.identifiers_of(cid):
+            have.setdefault(scheme, set()).add(str(value))
+        if any(s in have and v not in have[s] for s, v in ids):
+            return hold("identifier_conflict")
+
+    admitted_schemes = {s for s in evidence.legal_entity_schemes
+                        if s in STRONG_SCHEMES or re.fullmatch(r"NATIONAL:[A-Z]{2}", s)}
+    documented = set(evidence.document_identifiers)
+    legal_ids = [(s, v) for s, v in ids if s in admitted_schemes and (s, v) in documented]
+    legal_owners = {store.company_by_identifier(s, v) for s, v in legal_ids}
+    legal_owners.discard(None)
+
+    def usable(cid):
+        row = store.get(cid)
+        return row and row["status"] != "excluded" and row["country"] == mention.country
+
+    if len(legal_owners) == 1:
+        cid = next(iter(legal_owners))
+        return (cid, "matched") if usable(cid) else hold("record_protected_or_country_conflict")
+
+    if mention.notion_page_id:
+        rows = store.query("SELECT id FROM company WHERE notion_page_id=?", (mention.notion_page_id,))
+        if rows:
+            cid = rows[0]["id"]
+            candidates.add(cid)
+            if owners and cid not in owners:
+                return hold("binding_identifier_conflict")
+            if (evidence.source_kind == "saved_binding" and evidence.bound_page_id == mention.notion_page_id
+                    and usable(cid)):
+                if _scheme_conflict(store, cid, ids):
+                    return hold("identifier_conflict")
+                return cid, "matched"
+        return hold("notion_binding_needs_review")
+
+    # ADR-018 official-domain route confirms a link, not a corporate merge.
+    try:
+        host = https_host(evidence.source_url)
+        domain_rows = []
+        for row in store.query("SELECT id, website FROM company WHERE website IS NOT NULL"):
+            try:
+                if https_host(row["website"]) == host:
+                    domain_rows.append(row["id"])
+            except ContractError:
+                continue
+        candidates.update(domain_rows)
+        exact = []
+        for cid in candidates:
+            row = store.get(cid)
+            aliases = store.query("SELECT alias FROM company_alias WHERE company_id=?", (cid,))
+            names = [row["name"]] + [r["alias"] for r in aliases]
+            if cid in domain_rows and usable(cid) and surface(mention.name) in {surface(n) for n in names}:
+                exact.append(cid)
+        if (evidence.source_kind == "official_company" and len(exact) == 1 and len(domain_rows) == 1
+                and len(candidates) == 1 and not owners):
+            cid = exact[0]
+            if _scheme_conflict(store, cid, ids):
+                return hold("identifier_conflict")
+            return cid, "matched"
+    except ContractError:
+        return hold("official_domain_invalid")
+
+    if candidates:
+        return hold("identity_collision")
+    if not legal_ids or evidence.source_kind not in ("official_registry", "official_award", "official_company"):
+        return hold("legal_identity_not_established")
+    if mention.country in ("RU", "CN"):
+        return hold("excluded_country")
+    # Creating a lead is permitted, but applying its claims/identifiers is separate.
+    cid = store.create_company(mention.name, country=mention.country)
     return cid, "new"
 
 
