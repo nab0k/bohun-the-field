@@ -106,7 +106,7 @@ def pending(cur, limit, day_from=None, item_ids=None):
 
 def neighbours(cur, item_id, k=8):
     cur.execute("""SELECT e2.item_id, e2.text_sha256, e2.origin_item_id, i2.published_at,
-                          e2.embedding OPERATOR(extensions.<=>) e1.embedding AS distance,e2.text_sha256,e2.origin_method
+                          e2.embedding OPERATOR(extensions.<=>) e1.embedding AS distance
                      FROM knowledge.item_embedding e1
                      JOIN knowledge.item_embedding e2 ON e2.item_id <> e1.item_id
                      JOIN intelligence.items i1 ON i1.id = e1.item_id
@@ -115,8 +115,11 @@ def neighbours(cur, item_id, k=8):
                       AND i2.published_at BETWEEN i1.published_at - make_interval(days => %s) AND i1.published_at
                  ORDER BY e2.embedding OPERATOR(extensions.<=>) e1.embedding LIMIT %s""",
                 (item_id, ORIGIN_WINDOW_DAYS, k))
+    rows = cur.fetchall()
+    if any(not isinstance(row, (tuple, list)) or len(row) != 5 for row in rows):
+        raise RuntimeError('ORIGIN_ROW_SHAPE_INVALID')
     return [{"item_id": a, "text_sha256": b, "origin_item_id": c, "published": d, "distance": float(e)}
-            for a, b, c, d, e in cur.fetchall()]
+            for a, b, c, d, e in rows]
 
 
 def similar_items(cur, item_ids, before, k=15, max_distance=0.45, years=6):
