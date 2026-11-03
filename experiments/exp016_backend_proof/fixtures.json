@@ -22,7 +22,7 @@
     "collectors/companies/store.py": "fd48044604dc305da705a2a20d2161bf4dac1199684e59f23afd5249ac5cea8a",
     "collectors/companies/taxonomy.py": "917f9bac0ba7e13f42a8dd71c76efe3fe8489be7b4a1b23f5118a5dcee8ce4ba",
     "db/companies/001_companies_schema.sql": "ad1c1fabd34d7c23c337e3aff6611f577532857bcfc1cc22c6913a4c27dd9c5a",
-    "db/companies/automation_v0_candidate.sql": "568ea0c599b727546cf10c089d4eda85de876bd700dbdec755c50b364d7d4de3",
+    "db/companies/automation_v0_candidate.sql": "d4c77d7a400f06e5f17a09177302975c420fa37f10252eea6fb76a5e1dcea6d1",
     "experiments/exp016_backend_proof/README.md": "a924d7b98895e7b3e8b480b79fc3acf72c905754f9d5d1885a2c9b0837f6cde7",
     "experiments/exp016_backend_proof/__init__.py": "ab7e84b8a114efc8448a2a0b168a8f435c4605f62806dd33f4291fcd43b90139",
     "experiments/exp016_backend_proof/bootstrap.sql": "0bf2bc5d0efa3ed0e1baaa4c820007501e223bc1f0794cf581aff8d2ac7958eb",

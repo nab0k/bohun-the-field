@@ -426,7 +426,7 @@ begin
          where company_id=j.company_id and content_sha256=item->>'supporting_hash'
           and (review_note::jsonb)->'base_fill_admitted'='true'),'AUTO_FILL_NOT_VERIFIED');
         perform companies._automation_require(exists(select 1 from pg_catalog.jsonb_array_elements(ch->'claims') q(v)
-         where companies._automation_hash(pg_catalog.jsonb_build_array(v#>'{proposal,company_id}',v#>'{proposal,section}',v#>'{proposal,field_path}',v#>'{proposal,value_json}',companies._automation_plain(v#>'{proposal,qualifiers})))=item->>'supporting_hash'
+         where companies._automation_hash(pg_catalog.jsonb_build_array(v#>'{proposal,company_id}',v#>'{proposal,section}',v#>'{proposal,field_path}',v#>'{proposal,value_json}',companies._automation_plain(v#>'{proposal,qualifiers}')))=item->>'supporting_hash'
          and v#>>'{proposal,field_path}'=item->>'field_path' and v#>>'{proposal,value_json}'=item->>'value_json'
          and v#>>'{proposal,qualifiers,polarity}'='positive' and v#>>'{proposal,qualifiers,modality}'='actual'),'FILL_UNSUPPORTED');
         if item->>'field_path'='/identity/country' then
