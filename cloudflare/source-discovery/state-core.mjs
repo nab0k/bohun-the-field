@@ -39,7 +39,8 @@ export async function refreshTransport(fetcher, credentials, refresh) {
     const body = new URLSearchParams({client_id: credentials.client_id,
       client_secret: credentials.client_secret, refresh_token: refresh, grant_type: "refresh_token"});
     stage = "OAUTH_NETWORK_UNKNOWN"; attempted = true;
-    const response = await fetcher(OAUTH_URL, {method: "POST", redirect: "error",
+    // Workers supports manual/follow only. Reject non-200 responses below without following Location.
+    const response = await fetcher(OAUTH_URL, {method: "POST", redirect: "manual",
       signal: controller.signal, headers: {"Content-Type": "application/x-www-form-urlencoded",
         "Accept": "application/json"}, body: body.toString()});
     status = response.status;
