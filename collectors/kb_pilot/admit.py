@@ -28,7 +28,7 @@ RULES = "auto-admission-v1"
 MODEL_SECTIONS = ("what_happened", "bigger_picture", "why_it_matters")
 CODE_SECTIONS = ("context", "policy_direction", "supply_chain")
 MAX_DROP_SHARE = 0.5
-MAX_PUBLISH = 10
+MAX_PUBLISH = 30
 SOURCE_CHARS = 6000
 SENTENCE = re.compile(r"(?<=[a-z0-9)%”\"'])[.!?]\s+(?=[A-Z“\"'])")
 
