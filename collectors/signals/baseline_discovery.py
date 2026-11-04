@@ -180,7 +180,7 @@ def _actor_clause(quote: str, candidate: Candidate) -> str | None:
             after = quote[match.end():]
             # The name must lead an action clause. Allow "said in March 2026 that it now produces".
             if re.match(r"\s*(?:,?\s*(?:Inc\.?|LLC|Company)\b[,.]?)?\s*"
-                        r"(?:said\b.{0,75}?\b(?:that\s+it\s+)?(?:now\s+)?(?:produces|makes|manufactures)|"
+                        r"(?:said(?:\s+in\s+[A-Za-z]+\s+\d{4})?\s+that\s+it\s+(?:now\s+)?(?:produces|makes|manufactures)|"
                         r"(?:has\s+)?(?:won|built|made|produced|manufactured|delivered|ships|shipped|"
                         r"produces|makes|manufactures|delivers))\b", after, re.I):
                 return quote[match.start():]
