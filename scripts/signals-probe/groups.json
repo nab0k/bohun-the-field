@@ -1,0 +1,254 @@
+{
+"G1_us_navy_mine_hunting": [
+{
+"source_id": "syn371_0",
+"synthesis": "syn-371",
+"outlet": "www.tectonicdefense.com",
+"date": "2026-11-02",
+"title": "Aevex Secures $41.6M US Navy Mine-Hunting Deal",
+"summary": "Aevex secured $41.6 million across two Navy contracts for its Fisher and SightGlass mine countermeasure systems deployed from unmanned surface vessels.",
+"url": "https://www.tectonicdefense.com/aevex-inks-41-6m-mine-hunting-deal-with-the-us-navy/"
+},
+{
+"source_id": "syn383_0",
+"synthesis": "syn-383",
+"outlet": "www.opex360.com",
+"date": "2026-11-02",
+"title": "Thales Subsidiary Awarded $53.9M U.S. Navy Mine Hunting Contract",
+"summary": "Advanced Acoustic Concepts received a $53.9 million contract from the U.S. Navy for two Remote Mine Hunting modules and engineering support.",
+"url": "https://www.opex360.com/2026/11/02/une-filiale-du-groupe-francais-thales-va-livrer-des-modules-de-lutte-contre-les-mines-a-la-marine-americaine/"
+}
+],
+"G2_large_underwater_drones": [
+{
+"source_id": "syn214_0",
+"synthesis": "syn-214",
+"outlet": "www.navalnews.com",
+"date": "2026-10-30",
+"title": "Kongsberg Secures $54M DIU Contract Modification for AUV Deliveries",
+"summary": "Kongsberg Gruppen ASA was awarded a $54 million modification to its DIU Prototype Other Transaction Agreement for autonomous underwater vehicles and subsea components.",
+"url": "https://www.navalnews.com/naval-news/2026/10/kongsberg-secures-us-government-contract-for-underwater-capabilities/"
+},
+{
+"source_id": "syn302_0",
+"synthesis": "syn-302",
+"outlet": "www.defensenews.com",
+"date": "2026-11-02",
+"title": "Australia Unveils Ghost Shark XLAUV Payloads",
+"summary": "Australia revealed three modular payloads for the Ghost Shark extra-large autonomous underwater vehicle, including sea mines, Altius-600 loitering munitions, and logistics supply caches.",
+"url": "https://www.defensenews.com/naval/2026/11/02/australia-unveils-secretive-ghost-shark-underwater-drone-payloads/"
+}
+],
+"G3_european_surface_drones": [
+{
+"source_id": "syn375_0",
+"synthesis": "syn-375",
+"outlet": "www.edrmagazine.eu",
+"date": "2026-11-02",
+"title": "Sirehna Seaquest S USV Selected for French DANAE Program",
+"summary": "The French DGA down-selected Naval Group's Sirehna Seaquest S for the second phase of the DANAE autonomous naval surface drone project on 9 October 2026. The USV has undergone two years of operational evaluations and international exercises following its initial unveiling.",
+"url": "https://www.edrmagazine.eu/naval-groups-sirenha-seaquest-s-down-selected-for-danae-program-after-two-year-testing-while-ready-for-firing-after-euronaval"
+},
+{
+"source_id": "syn305_0",
+"synthesis": "syn-305",
+"outlet": "www.navalnews.com",
+"date": "2026-11-02",
+"title": "Naval Group demonstrates armed SEAQUEST-S USV at Euronaval 2026",
+"summary": "During Euronaval 2026, Naval Group and Sirehna demonstrated the armed SEAQUEST-S multi-role combat USV equipped with RAMPART rocket launcher modules.",
+"url": "https://www.navalnews.com/event-news/euronaval-2026/2026/11/video-naval-group-demonstrates-armed-seaquest-s-usv/"
+},
+{
+"source_id": "syn213_0",
+"synthesis": "syn-213",
+"outlet": "defence-industry.eu",
+"date": "2026-10-30",
+"title": "Rheinmetall to debut Kraken K3 USV and MASS Nova at Euronaval",
+"summary": "Rheinmetall announced its exhibition lineup for Euronaval 2026, featuring the first public display of the series-produced Kraken K3 uncrewed surface vessel manufactured at its Hamburg site. The company is also debuting the MASS Nova decoy launcher and presenting a standalone configuration of the Millennium gun system.",
+"url": "https://defence-industry.eu/rheinmetall-to-present-kraken-k3-naval-drone-millennium-gun-system-and-mass-nova-decoys-at-euronaval-2026/"
+}
+],
+"G4_directed_energy": [
+{
+"source_id": "syn364_0",
+"synthesis": "syn-364",
+"outlet": "www.edrmagazine.eu",
+"date": "2026-11-02",
+"title": "Leonardo DRS Selected for U.S. Army E-HEL Production",
+"summary": "AeroVironment selected Leonardo DRS to provide power management and environmental control integration expertise for the U.S. Army's Enduring-High Energy Laser production program.",
+"url": "https://www.edrmagazine.eu/leonardo-drs-selected-by-av-for-u-s-armys-enduring-high-energy-laser-production-program"
+},
+{
+"source_id": "syn378_0",
+"synthesis": "syn-378",
+"outlet": "defence-industry.eu",
+"date": "2026-11-02",
+"title": "Leonardo DRS to Support AeroVironment LOCUST X3 Production",
+"summary": "Leonardo DRS will support AeroVironment's production of the LOCUST X3 system for the U.S. Army's first high-energy laser weapon production program.",
+"url": "https://defence-industry.eu/leonardo-drs-to-support-aerovironments-locust-x3-production-for-u-s-armys-first-high-energy-laser-weapon-production-program/"
+},
+{
+"source_id": "syn365_0",
+"synthesis": "syn-365",
+"outlet": "www.hartpunkt.de",
+"date": "2026-11-02",
+"title": "MBDA Deutschland to Build Airborne Laser Demonstrator for Bundeswehr",
+"summary": "MBDA Deutschland received a contract from the German procurement office BAAINBw to build an airborne laser demonstrator pod.",
+"url": "https://www.hartpunkt.de/mbda-deutschland-soll-airborne-laser-demonstrator-fuer-die-bundeswehr-entwickeln/"
+},
+{
+"source_id": "syn256_0",
+"synthesis": "syn-256",
+"outlet": "www.hartpunkt.de",
+"date": "2026-10-31",
+"title": "INLEAP Photonics launches serial production of laser-based C-UAS in Hanover",
+"summary": "INLEAP Photonics inaugurated its new production facility in Hanover on 30 October 2026 to launch serial manufacturing of its FASTLIGHT HELD laser-based counter-unmanned aircraft systems using a one-piece flow line.",
+"url": "https://www.hartpunkt.de/inleap-photonics-startet-serienproduktion-fuer-drohnenabwehrlaser-in-hannover/"
+}
+],
+"G5_air_defence_missiles": [
+{
+"source_id": "syn382_0",
+"synthesis": "syn-382",
+"outlet": "www.defensenews.com",
+"date": "2026-11-02",
+"title": "US Approves $2.1B Patriot Sale to Ukraine",
+"summary": "The U.S. State Department approved the sale of 500 Patriot PAC-3 missiles to Ukraine for an estimated $2.1 billion, funded through allied contributions and EU loans. Lockheed Martin serves as the principal contractor for the sale, though actual deliveries are not expected until a couple of years into the 2030s due to manufacturing backlogs.",
+"url": "https://www.defensenews.com/global/europe/2026/11/02/us-approves-2-1-billion-patriot-missile-sale-to-ukraine/"
+},
+{
+"source_id": "syn252_0",
+"synthesis": "syn-252",
+"outlet": "ukdefencejournal.org.uk",
+"date": "2026-10-31",
+"title": "UK Confirms Aster Block 1 Missile Deliveries and Upgrades",
+"summary": "The UK Ministry of Defence announced that deliveries of new Aster Block 1 missiles will commence later this year alongside progress on upgrading existing stock.",
+"url": "https://ukdefencejournal.org.uk/advanced-new-naval-anti-air-missiles-to-arrive-later-this-year/"
+},
+{
+"source_id": "syn360_0",
+"synthesis": "syn-360",
+"outlet": "defence-industry.eu",
+"date": "2026-11-02",
+"title": "NATO SeaSparrow Consortium Reaches 1,000 ESSM Block 2 Deliveries",
+"summary": "The U.S. Navy announced that deliveries of the ESSM Block 2 surface-to-air missile have reached 1,000 units for the 12-nation NATO SeaSparrow Consortium Raytheon serves as the prime contractor, manufacturing the ship self-defense missiles alongside a multinational industrial base.",
+"url": "https://defence-industry.eu/u-s-navy-says-essm-block-2-deliveries-reach-1000-for-12-nation-nato-seasparrow-consortium/"
+}
+],
+"G6_ukraine_casualty_evacuation": [
+{
+"source_id": "syn359_0",
+"synthesis": "syn-359",
+"outlet": "militaeraktuell.at",
+"date": "2026-11-02",
+"title": "Robotergesteuerte Komplexe Unveils Caseevak Evacuation Capsule",
+"summary": "The Ukrainian firm Robotergesteuerte Komplexe has presented the Caseevak evacuation module designed for its Ameise tracked UGV to safely extract wounded personnel from frontlines under constant threat.",
+"url": "https://militaeraktuell.at/caseevak-evakuierungsroboter-fuer-verwundete/"
+},
+{
+"source_id": "syn271_0",
+"synthesis": "syn-271",
+"outlet": "ukdefencejournal.org.uk",
+"date": "2026-11-01",
+"title": "Ukraine conducts world's first heavy drone medical evacuations",
+"summary": "Ukraine carried out the world's first medical evacuations using heavy uncrewed aircraft to lift wounded soldiers out of inaccessible positions.",
+"url": "https://ukdefencejournal.org.uk/ukraine-flies-the-first-drone-rescues-of-wounded-troops/"
+}
+],
+"G7_second_hand_transfers": [
+{
+"source_id": "syn248_0",
+"synthesis": "syn-248",
+"outlet": "www.navalnews.com",
+"date": "2026-10-31",
+"title": "Belgium transfers first Tripartite minehunter to Bulgaria",
+"summary": "Belgium officially transferred the first of four Tripartite-class minehunters, BNS Bellis, to the Bulgarian Navy on October 30, 2026.",
+"url": "https://www.navalnews.com/naval-news/2026/10/31/belgium-transfers-first-tripartite-minehunter-bns-bellis-to-bulgarian-navy/"
+},
+{
+"source_id": "syn248_1",
+"synthesis": "syn-248",
+"outlet": "www.navalnews.com",
+"date": "2026-10-31",
+"title": "Belgium transfers first Tripartite minehunter to Bulgaria",
+"summary": "Belgium officially transferred the first of four Tripartite-class minehunters, BNS Bellis, to the Bulgarian Navy on October 30, 2026.",
+"url": "https://www.navalnews.com/naval-news/2026/10/belgium-transfers-first-tripartite-minehunter-bns-bellis-to-bulgarian-navy/"
+},
+{
+"source_id": "syn374_0",
+"synthesis": "syn-374",
+"outlet": "www.hartpunkt.de",
+"date": "2026-11-02",
+"title": "Sweden Receives TAURUS Missiles from German Stocks",
+"summary": "The Swedish armed forces received an unquantified number of TAURUS cruise missiles from German military stocks, as confirmed by the Swedish procurement agency FMV.",
+"url": "https://www.hartpunkt.de/schweden-hat-taurus-marschflugkoerper-aus-bundeswehr-bestaenden-erhalten/"
+},
+{
+"source_id": "syn269_1",
+"synthesis": "syn-269",
+"outlet": "defence-industry.eu",
+"date": "2026-11-01",
+"title": "Netherlands to Procure Additional CV90 Vehicles via Joint Nordic Initiative",
+"summary": "State Secretary for Defence Derk Boswijk informed the Dutch parliament in writing on 26 October 2026 about the finalized purchase parameters to acquire more CV90 infantry fighting vehicles and supporting engineering variants.",
+"url": "https://defence-industry.eu/netherlands-to-acquire-more-cv90-infantry-fighting-vehicles-defence-ministry-says/"
+}
+],
+"G8_uk_submarine_programme": [
+{
+"source_id": "syn243_0",
+"synthesis": "syn-243",
+"outlet": "defence-industry.eu",
+"date": "2026-10-30",
+"title": "UK Submarine Delivery Agency aims to double production for up to 12 SSN-AUKUS boats",
+"summary": "The Submarine Delivery Agency announced the formation of the Submarine Production Alliance to coordinate design and manufacturing across the Dreadnought and SSN-AUKUS programmes.",
+"url": "https://defence-industry.eu/britains-submarine-delivery-agency-says-uk-aims-to-double-production-for-up-to-12-ssn-aukus-submarines/"
+},
+{
+"source_id": "syn243_1",
+"synthesis": "syn-243",
+"outlet": "ukdefencejournal.org.uk",
+"date": "2026-10-30",
+"title": "UK Submarine Delivery Agency aims to double production for up to 12 SSN-AUKUS boats",
+"summary": "The Submarine Delivery Agency announced the formation of the Submarine Production Alliance to coordinate design and manufacturing across the Dreadnought and SSN-AUKUS programmes.",
+"url": "https://ukdefencejournal.org.uk/britains-most-powerful-nuclear-sub-enters-final-build-phase/"
+},
+{
+"source_id": "syn267_0",
+"synthesis": "syn-267",
+"outlet": "ukdefencejournal.org.uk",
+"date": "2026-10-31",
+"title": "Dreadnought reactor core upgrades delivered",
+"summary": "Major facility upgrades required for Dreadnought reactor core production have been delivered, with activity now focused on final commissioning and manufacturing.",
+"url": "https://ukdefencejournal.org.uk/reactor-core-plant-upgrades-for-dreadnought-delivered/"
+},
+{
+"source_id": "syn270_0",
+"synthesis": "syn-270",
+"outlet": "www.navylookout.com",
+"date": "2026-11-01",
+"title": "HMS Venturer delivery delayed to 2028",
+"summary": "Babcock confirmed that lead ship HMS Venturer is now expected to be delivered to the Royal Navy in 2028, roughly two years later than anticipated at its float-out.",
+"url": "https://www.navylookout.com/hms-venturer-to-be-delivered-to-the-royal-navy-in-2028/"
+}
+],
+"N1_negative_unrelated": [
+{
+"source_id": "syn304_0",
+"synthesis": "syn-304",
+"outlet": "www.drones-magazin.de",
+"date": "2026-11-02",
+"title": "Arcanus and NeuralDrones Partner for AI Wildfire Monitoring",
+"summary": "Arcanus Aerial Systems and NeuralDrones announced a five-year exclusive partnership to integrate Arcanus aircraft into NeuralDrones' PreFire and AfterFire systems.",
+"url": "https://www.drones-magazin.de/presse/partnerschaft-zur-waldbranderkennung-und-brandnachwache/"
+},
+{
+"source_id": "syn386_0",
+"synthesis": "syn-386",
+"outlet": "www.twz.com",
+"date": "2026-11-02",
+"title": "NASA to Unveil New X-Plane at Max Power",
+"summary": "NASA Administrator Jared Isaacman stated on a podcast that a new X-plane will be announced at the Max Power event at Kennedy Space Center, while deflecting questions regarding the status of a retired SR-71 Blackbird.",
+"url": "https://www.twz.com/air/new-x-plane-to-be-announced-at-max-power-airshow-nasa-administrator-isaacman"
+}
+]
+}
