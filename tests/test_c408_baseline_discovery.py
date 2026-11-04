@@ -22,8 +22,8 @@ def source(url, text, root=None, first_seen="2025-08-02", scope="annual producti
     return module.PrimaryDocument(url, text, first_seen, root or url, scope)
 
 
-def row(url, line, status="published"):
-    return {"what": line, "occurred_on": "2025-08-02",
+def row(url, line, status="published", occurred_on="2025-08-02"):
+    return {"what": line, "occurred_on": occurred_on,
             "source_url": url, "status": status}
 
 
@@ -60,7 +60,7 @@ class BaselineTests(unittest.TestCase):
         line_b = "On 2025-09-10 ACME produced 15 units/year in the official statement."
         docs = {a: source(a, line_a), b: source(b, line_b, first_seen="2025-09-10")}
         result = module.discover(item(),
-            sql_read=lambda *_: [row(a, line_a), row(b, line_b)],
+            sql_read=lambda *_: [row(a, line_a), row(b, line_b, occurred_on="2025-09-10")],
             documents=docs)
         self.assertEqual(result.outcome, "found")
         self.assertIsNotNone(result.second_source)
@@ -73,7 +73,7 @@ class BaselineTests(unittest.TestCase):
         docs = {a: source(a, la, root="https://primary.example/root"),
                 b: source(b, lb, root="https://primary.example/root")}
         result = module.discover(item(),
-            sql_read=lambda *_: [row(a, la), row(b, lb)], documents=docs)
+            sql_read=lambda *_: [row(a, la), row(b, lb, occurred_on="2025-08-03")], documents=docs)
         self.assertIsNotNone(result.baseline)
         self.assertIsNone(result.second_source)
 
