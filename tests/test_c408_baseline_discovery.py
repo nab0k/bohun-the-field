@@ -45,7 +45,7 @@ class BaselineTests(unittest.TestCase):
 
     def test_primary_text_verification_extracts_number_date_and_quote(self):
         url = "https://primary.example/a"
-        line = "On 2025-08-02 ACME produced 12 units/year in the annual report."
+        line = "On 2025-08-02 ACME produced 12 units/year of missiles in the annual report."
         result = module.discover(item(), sql_read=lambda *_: [row(url, line)],
                                  documents={url: source(url, line)})
         self.assertEqual(result.outcome, "found")
@@ -56,8 +56,8 @@ class BaselineTests(unittest.TestCase):
 
     def test_second_independent_primary_source_is_found(self):
         a, b = "https://primary.example/a", "https://primary.example/b"
-        line_a = "On 2025-08-02 ACME produced 12 units/year in the annual report."
-        line_b = "On 2025-09-10 ACME produced 15 units/year in the official statement."
+        line_a = "On 2025-08-02 ACME produced 12 units/year of missiles in the annual report."
+        line_b = "On 2025-09-10 ACME produced 15 units/year of missiles in the official statement."
         docs = {a: source(a, line_a), b: source(b, line_b, first_seen="2025-09-10")}
         result = module.discover(item(),
             sql_read=lambda *_: [row(a, line_a), row(b, line_b, occurred_on="2025-09-10")],
@@ -68,8 +68,8 @@ class BaselineTests(unittest.TestCase):
 
     def test_reprinted_sources_do_not_count_twice(self):
         a, b = "https://primary.example/a", "https://media.example/b"
-        la = "On 2025-08-02 ACME produced 12 units/year from the program."
-        lb = "On 2025-08-03 ACME produced 12 units/year from the program."
+        la = "On 2025-08-02 ACME produced 12 units/year of missiles from the program."
+        lb = "On 2025-08-03 ACME produced 12 units/year of missiles from the program."
         docs = {a: source(a, la, root="https://primary.example/root"),
                 b: source(b, lb, root="https://primary.example/root")}
         result = module.discover(item(),
@@ -79,8 +79,8 @@ class BaselineTests(unittest.TestCase):
 
     def test_budget_caps_checks_and_marks_unverified(self):
         a, b = "https://primary.example/a", "https://primary.example/b"
-        la = "On 2025-08-02 ACME produced 12 units/year from its factory."
-        lb = "On 2025-08-02 ACME produced 13 units/year from its factory."
+        la = "On 2025-08-02 ACME produced 12 units/year of missiles from its factory."
+        lb = "On 2025-08-02 ACME produced 13 units/year of missiles from its factory."
         result = module.discover(item(),
             sql_read=lambda *_: [row(a, la), row(b, lb)],
             documents={a: source(a, la), b: source(b, lb)},
@@ -96,10 +96,10 @@ class BaselineTests(unittest.TestCase):
 
     def test_mismatching_primary_quote_is_rejected(self):
         url = "https://primary.example/a"
-        doc = "On 2025-08-02 ACME produced 120 units/year at this factory."
+        doc = "On 2025-08-02 ACME produced 120 units/year of missiles at this factory."
         # Proposed quote absent in primary document
         evidence = module.Evidence("local", "12", "2025-08-02",
-            "On 2025-08-02 ACME produced 12 units/year at this factory.",
+            "On 2025-08-02 ACME produced 12 units/year of missiles at this factory.",
             url, "missile_output", "units/year", "rate", "", False, "")
         checked = module.verify_primary(item(), evidence, source(url, doc))
         self.assertFalse(checked.comparable)
@@ -116,7 +116,7 @@ class BaselineTests(unittest.TestCase):
 
     def test_no_future_first_seen(self):
         url = "https://primary.example/a"
-        line = "On 2025-08-02 ACME produced 12 units/year at its factory."
+        line = "On 2025-08-02 ACME produced 12 units/year of missiles at its factory."
         result = module.discover(item(), sql_read=lambda *_: [row(url, line)],
             documents={url: source(url, line, first_seen="2026-10-02")})
         self.assertIsNone(result.baseline)
@@ -200,6 +200,68 @@ class BaselineTests(unittest.TestCase):
             raise ConnectionError("offline")
         result = module.discover(item(), sql_read=failure, search=lambda _: [])
         self.assertEqual(result.searched[0]["status"], "error:ConnectionError")
+
+    def test_claude_eight_semantic_regressions(self):
+        """The exact eight cases from the 21:46 Claude review."""
+        cases = [
+            (item(), "On 2026-01-01 ACME built 100 units/year of trucks at the plant.", False),
+            (item(), "On 2026-01-01 ACME said it hopes to reach 100 units/year some day.", False),
+            (item(), "On 2026-01-01 Raytheon, unlike ACME, made 100 units/year of missiles.", False),
+            (item(metric="units", unit="units", stage="delivered"),
+             "On 2026-01-01 ACME has not delivered the 100 units yet.", False),
+            (item(metric="units", unit="units", kind="cumulative"),
+             "On 2026-01-01 ACME built missiles at a pace of 100 units every year.", False),
+            (item(entity="BAE"),
+             "On 2026-01-01 Baekeland Works made 100 units/year of missiles.", False),
+            (item(entity="Raytheon", aliases=("RTX",), metric="essm_output",
+                  unit="missiles/year", kind="rate"),
+             "RTX said in March 2026 that it now produces about 400 missiles per year.", True),
+            (item(entity="Aevex", metric="contract_value", unit="USD", kind="point_in_time"),
+             "On March 5, 2026, Aevex won a $41.6 million US Navy contract.", True),
+        ]
+        for index, (candidate, statement, expected) in enumerate(cases, start=1):
+            url = f"https://official.example/{index}"
+            document = source(url, statement, first_seen="2026-04-01")
+            response = module.discover(candidate, search=lambda query: [
+                {"title": "Official report", "snippet": statement, "url": url}],
+                documents={url: document})
+            with self.subTest(case=index):
+                self.assertEqual(response.outcome == "found", expected)
+                if not expected:
+                    self.assertIn(response.outcome, ("needs_verification", "not_found"))
+                if index == 7:
+                    self.assertEqual(response.baseline.value, "400")
+                    self.assertEqual(response.baseline.value_date, "2026-03")
+                    self.assertEqual(response.baseline.date_precision, "month")
+                    self.assertTrue(response.baseline.approximate)
+                if index == 8:
+                    self.assertEqual(response.baseline.value, "41600000")
+                    self.assertEqual(response.baseline.value_date, "2026-03-05")
+                    self.assertEqual(response.baseline.date_precision, "day")
+
+    def test_sql_prioritizes_company_over_common_metric_words(self):
+        candidate = item(entity="ACME", metric="missile_output")
+        ordinary = [row(f"https://example.org/{n}", "missile output discussion")
+                    for n in range(40)]
+        specific = row("https://example.org/acme", "2025-08-02 ACME 100 units/year of missiles")
+        def reader(query, params):
+            self.assertIn("ORDER BY CASE WHEN what ILIKE ANY(%(names)s) THEN 0 ELSE 1 END", query)
+            self.assertEqual(params["names"], ["%ACME%"])
+            # Fake SQL runner simulates priority ordering and LIMIT 20.
+            matches = [specific] + ordinary
+            return matches[:20]
+        candidates = module.local_search(candidate, reader)
+        self.assertEqual(candidates[0].url, "https://example.org/acme")
+        self.assertEqual(len(candidates), 20)
+
+    def test_month_precision_not_invented_at_cutoff(self):
+        url = "https://official.example/rtx"
+        statement = "RTX said in March 2026 that it now produces about 400 missiles per year."
+        candidate = item(entity="Raytheon", aliases=("RTX",), metric="essm_output",
+                         unit="missiles/year", kind="rate", as_of="2026-03-15")
+        found = module.discover(candidate, search=lambda _: [{"url": url, "title": "Statement"}],
+                                documents={url: source(url, statement, first_seen="2026-03-01")})
+        self.assertIsNone(found.baseline)  # March value cannot be placed before March 15
 
 
 if __name__ == "__main__":
