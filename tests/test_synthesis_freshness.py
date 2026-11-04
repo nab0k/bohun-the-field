@@ -1,4 +1,4 @@
-"""Offline unit tests for C3-02. Run: python -m unittest discover -s tests -p 'test_synthesis_freshness.py'."""
+"""C3-02 offline regression tests against the documented public-feed shape."""
 import importlib.util
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,59 +13,80 @@ spec.loader.exec_module(probe)
 NOW = datetime(2026, 11, 4, 20, 0, tzinfo=timezone.utc)
 
 
+def real_shape(items):
+    return {"schema": "synthesis-feed", "notice": "feed notice",
+            "generated_at": "2026-11-04T20:00:00Z", "items": items}
+
+
 class FreshnessTests(unittest.TestCase):
-    def test_fresh_publication(self):
-        r = probe.evaluate({"items": [{"published_at": "2026-11-04T19:00:00Z"}]}, NOW)
-        self.assertEqual(r["status"], "fresh")
-        self.assertEqual(r["age_hours"], 1.0)
-
-    def test_older_than_24_hours_warns(self):
-        r = probe.evaluate({"syntheses": [{"published_at": "2026-11-03T19:59:59Z"}]}, NOW)
+    def test_real_feed_shape_and_date_only_stale(self):
+        doc = real_shape([{"date": "2026-11-02", "title": "Representative item"}])
+        r = probe.evaluate(doc, NOW)
         self.assertEqual(r["status"], "stale")
-        self.assertIn("WARNING", probe.markdown(r))
+        self.assertEqual(r["latest_item_date"], "2026-11-02")
+        self.assertEqual(r["age_days"], 2)
 
-    def test_exact_24_hours_passes(self):
-        r = probe.evaluate([{"published_at": "2026-11-03T20:00:00+00:00"}], NOW)
-        self.assertEqual(r["status"], "fresh")
+    def test_today_and_yesterday_are_fresh_by_calendar_days(self):
+        for item_date, expected_age in [("2026-11-04", 0), ("2026-11-03", 1)]:
+            with self.subTest(item_date=item_date):
+                r = probe.evaluate(real_shape([{"date": item_date}]), NOW)
+                self.assertEqual(r["status"], "fresh")
+                self.assertEqual(r["age_days"], expected_age)
 
-    def test_empty_feed_is_stale_not_success(self):
-        self.assertEqual(probe.evaluate({"items": []}, NOW)["reason"], "feed_empty")
+    def test_threshold_is_configurable(self):
+        data = real_shape([{"date": "2026-11-02"}])
+        self.assertEqual(probe.evaluate(data, NOW, max_age_days=2)["status"], "fresh")
+        self.assertEqual(probe.evaluate(data, NOW, max_age_days=0)["status"], "stale")
 
-    def test_feed_generated_at_not_mistaken_for_publication(self):
-        with self.assertRaisesRegex(ValueError, "timestamp"):
-            probe.evaluate({"generated_at": "2026-11-04T20:00:00Z",
-                            "items": [{"title": "Old material"}]}, NOW)
+    def test_calendar_boundary_not_24_hour_window(self):
+        near_midnight = datetime(2026, 11, 4, 0, 1, tzinfo=timezone.utc)
+        self.assertEqual(probe.evaluate(real_shape([{"date": "2026-11-03"}]),
+                                              near_midnight)["status"], "fresh")
 
-    def test_bad_dates_fail_closed(self):
-        for value in ("not-a-date", "2026-11-04T19:00:00"):
-            with self.subTest(value=value), self.assertRaises(ValueError):
-                probe.evaluate([{"published_at": value}], NOW)
+    def test_empty_feed_is_stale(self):
+        self.assertEqual(probe.evaluate(real_shape([]), NOW)["reason"], "feed_empty")
 
-    def test_future_date_fails_closed(self):
+    def test_generated_at_not_used(self):
+        with self.assertRaisesRegex(ValueError, "date"):
+            probe.evaluate(real_shape([{"title": "No item date"}]), NOW)
+
+    def test_naive_datetime_is_error_even_when_item_date_only_works(self):
+        with self.assertRaisesRegex(ValueError, "UTC offset"):
+            probe.evaluate(real_shape([{"date": "2026-11-04T19:00:00"}]), NOW)
+
+    def test_offset_timestamp_converted_to_utc_date(self):
+        r = probe.evaluate(real_shape([{"date": "2026-11-05T00:30:00+02:00"}]), NOW)
+        self.assertEqual(r["latest_item_date"], "2026-11-04")
+
+    def test_future_date_fails(self):
         with self.assertRaisesRegex(ValueError, "future"):
-            probe.evaluate([{"published_at": "2026-11-05T00:00:00Z"}], NOW)
+            probe.evaluate(real_shape([{"date": "2026-11-05"}]), NOW)
 
-    def test_multi_page_items_use_newest(self):
-        document = {"data": {"items": [
-            {"date": "2026-11-01T10:00:00+00:00"},
-            {"date": "2026-11-04T18:00:00+00:00"}]}}
-        self.assertEqual(probe.evaluate(document, NOW)["status"], "fresh")
+    def test_unknown_schema_is_error(self):
+        for obj in ([], {"entries": []}, {"data": {"items": []}},
+                    {"items": ["text"]}, {}):
+            with self.subTest(obj=obj), self.assertRaises(ValueError):
+                probe.evaluate(obj, NOW)
 
-    def test_wrong_shape_errors(self):
-        for data in ({}, {"items": {"invalid": True}}, {"items": ["text"]}):
-            with self.subTest(data=data), self.assertRaises(ValueError):
-                probe.evaluate(data, NOW)
+    def test_bad_date(self):
+        with self.assertRaises(ValueError):
+            probe.evaluate(real_shape([{"date": "2026-02-30"}]), NOW)
 
-    def test_offline_http_error_sets_error_not_stale(self):
-        with patch.object(probe, "fetch_json", side_effect=probe.URLError("network down")):
+    def test_newest_item_date(self):
+        r = probe.evaluate(real_shape([{"date": "2026-10-31"},
+                                      {"date": "2026-11-04"}]), NOW)
+        self.assertEqual(r["age_days"], 0)
+
+    def test_offline_http_failure_sets_error(self):
+        with patch.object(probe, "fetch_json", side_effect=probe.URLError("no network")):
             self.assertEqual(probe.main(["--now", "2026-11-04T20:00:00Z"]), 2)
 
-    def test_offline_stale_exit_code(self):
-        with patch.object(probe, "fetch_json", return_value={"items": [{"date": "2026-11-01T00:00:00Z"}]}):
+    def test_offline_stale_exit(self):
+        with patch.object(probe, "fetch_json", return_value=real_shape([{"date": "2026-11-02"}])):
             self.assertEqual(probe.main(["--now", "2026-11-04T20:00:00Z"]), 1)
 
-    def test_offline_fresh_exit_code(self):
-        with patch.object(probe, "fetch_json", return_value={"items": [{"date": "2026-11-04T19:00:00Z"}]}):
+    def test_offline_fresh_exit(self):
+        with patch.object(probe, "fetch_json", return_value=real_shape([{"date": "2026-11-03"}])):
             self.assertEqual(probe.main(["--now", "2026-11-04T20:00:00Z"]), 0)
 
 
