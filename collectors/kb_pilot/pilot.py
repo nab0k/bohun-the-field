@@ -587,6 +587,14 @@ def documents(research, facts, pages, terms, out_dir):
 
 # --- run ---------------------------------------------------------------------------------------
 
+def names_in_text(names, event_items):
+    """Only names the news itself uses may pick a dossier: a term the model made up ("technology programme") gave nine
+    unrelated syntheses one foreign chronology (C3-08)."""
+    text = " " + re.sub(r"[^a-z0-9-]+", " ", " ".join(it.get("text") or "" for it in event_items).lower()) + " "
+    return [n for n in names if isinstance(n, str) and n.strip()
+            and " " + re.sub(r"[^a-z0-9-]+", " ", n.lower()).strip() + " " in text]
+
+
 def prepare(cur, group, event_items, doctrine_records, store):
     """Everything the research step needs: archive hits, doctrine, the programme's dossier."""
     before = event_items[0]["published"]
@@ -602,7 +610,7 @@ def prepare(cur, group, event_items, doctrine_records, store):
     node = None
     if store and hasattr(store, "find_node"):
         # the market model knows more than programme names: any programme or product node with verified edges
-        node = store.find_node([group.get("programme") or ""] + (group.get("terms") or []))
+        node = store.find_node(names_in_text([group.get("programme") or ""] + (group.get("terms") or []), event_items))
     if programme and node and node["id"] == programme["id"]:
         dossier = store.load_node(node["id"])
     elif programme:

@@ -959,6 +959,11 @@ class EnoughKnowledgeTest(unittest.TestCase):
         self.assertFalse(pilot.enough_knowledge(rows[:4] + rows[5:]))
         self.assertFalse(pilot.enough_knowledge(rows[:5]))
 
+    def test_dossier_name_must_be_in_the_news(self):
+        items = [{"text": "Aevex wins a Navy deal for Fisher mine countermeasure systems."}]
+        names = ["Fisher", "technology programme", "mine countermeasure", "", None, "fish"]
+        self.assertEqual(pilot.names_in_text(names, items), ["Fisher", "mine countermeasure"])
+
     def test_known_node_skips_search_and_structure(self):
         dossier = [{"kind": "chronology", "row": {"date": "2020-0%d-01" % m, "precision": "month", "what": "step %d" % m,
                                                   "commitment": "contract"}, "source_url": "https://s.example/%d" % m,
