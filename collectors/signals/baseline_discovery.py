@@ -7,11 +7,10 @@ Outputs evidence candidates, never signal decisions or publication permissions.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from datetime import date, timedelta
+from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Any, Callable, Mapping, Sequence
 import json
-import re
 
 USASPENDING_RECIPIENT = "https://api.usaspending.gov/api/v2/search/spending_by_category/recipient/"
 USASPENDING_SUBAGENCY = "https://api.usaspending.gov/api/v2/search/spending_by_category/awarding_subagency/"
@@ -46,6 +45,9 @@ class Evidence:
     explanation: str
     root_source: str | None = None
     verification: str = "candidate"  # verified only when source span actually checked
+    first_seen_at: str | None = None  # required before historical baseline acceptance
+    subject: str | None = None        # exact organization/object of the measurement
+    scope: str | None = None          # denominator/geography/program/period description
 
 @dataclass
 class Discovery:
@@ -81,8 +83,19 @@ def _compatible(candidate: Candidate, item: Evidence) -> tuple[bool, str]:
         return False, "different_unit_or_currency"
     if candidate.kind != item.kind:
         return False, "rate_vs_cumulative_or_other_kind"
-    if candidate.stage and item.stage and candidate.stage != item.stage:
-        return False, "different_stage"
+    if candidate.stage and item.stage != candidate.stage:
+        return False, "different_or_unknown_stage"
+    if item.subject is None or _text(item.subject) != _text(candidate.entity):
+        return False, "unverified_measurement_subject"
+    if not item.scope or not item.scope.strip():
+        return False, "unknown_measurement_scope"
+    if not item.first_seen_at:
+        return False, "unknown_first_seen_at"
+    try:
+        if _date(item.first_seen_at) > _date(candidate.as_of):
+            return False, "source_not_available_at_cutoff"
+    except ValueError:
+        return False, "invalid_first_seen_at"
     if not item.value_date:
         return False, "unknown_value_date"
     try:
@@ -90,8 +103,8 @@ def _compatible(candidate: Candidate, item: Evidence) -> tuple[bool, str]:
             return False, "after_cutoff"
     except ValueError:
         return False, "invalid_date"
-    if not item.url or not item.quote:
-        return False, "missing_quote_or_url"
+    if not item.url or not item.url.startswith("https://") or not item.quote:
+        return False, "missing_quote_or_https_url"
     return True, "same_measure_and_stage_before_cutoff"
 
 def _dedupe(items: list[Evidence]) -> list[Evidence]:
@@ -109,7 +122,7 @@ LOCAL_SQL = """
 SELECT what, occurred_on, source_url, status
 FROM knowledge.edge
 WHERE occurred_on <= %(cutoff)s
-  AND (what ILIKE %(entity)s OR what ILIKE %(metric)s)
+  AND (what ILIKE %(entity)s ESCAPE '\\' OR what ILIKE %(metric)s ESCAPE '\\')
 ORDER BY occurred_on DESC
 LIMIT 20
 """.strip()
@@ -117,8 +130,8 @@ LIMIT 20
 def local_search(candidate: Candidate, sql_read: Callable[[str, Mapping[str, Any]], Sequence[Mapping[str, Any]]]) -> list[Evidence]:
     rows = sql_read(LOCAL_SQL, {
         "cutoff": candidate.as_of,
-        "entity": f"%{candidate.entity.replace('%', '').replace('_', '')}%",
-        "metric": f"%{candidate.metric.replace('%', '').replace('_', '')}%",
+        "entity": "%" + candidate.entity.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%",
+        "metric": "%" + candidate.metric.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%",
     })
     if len(rows) > MAX_DB_RESULTS:
         raise ValueError("local reader exceeded result cap")
@@ -217,8 +230,10 @@ def discover(candidate: Candidate,
              verify: Callable[[Candidate, Evidence], Evidence] | None = None) -> Discovery:
     """Search strictly in order. Every adapter is optional and injected by caller.
 
-    verify() MUST independently check a primary document, date, quote, number and
-    provenance before marking 'verified'; no default or LLM self-approval exists.
+    verify() MUST independently check a primary document, date, quote, number,
+    subject, scope, first_seen_at and provenance before marking 'verified'.
+    No default or LLM self-approval exists. This is a contract, not attestation
+    that a caller's verifier is trustworthy.
     """
     _date(candidate.as_of)
     output = Discovery(candidate.candidate_id)
@@ -247,7 +262,10 @@ def discover(candidate: Candidate,
         for lead in _dedupe(raw):
             if verify is not None:
                 try:
-                    lead = verify(candidate, lead)
+                    checked = verify(candidate, lead)
+                    if not isinstance(checked, Evidence):
+                        raise ValueError("verifier must return Evidence")
+                    lead = checked
                 except Exception:
                     lead.verification = "candidate"
                     lead.explanation = "verification_failed"
