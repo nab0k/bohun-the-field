@@ -299,7 +299,9 @@ def verify_primary(candidate: Candidate, lead: Evidence, document: PrimaryDocume
             continue
         if lead.value is not None and _safe_value(lead.value) != value:
             continue
-        parsed_date = _source_date(clause)
+        # Dates commonly prefix the actor: 'On 2026-01-01 ACME produced ...'.
+        # Keep that temporal preamble while claims/numbers stay actor-scoped.
+        parsed_date = _source_date(quote)
         if parsed_date is None:
             continue
         value_date, precision = parsed_date
