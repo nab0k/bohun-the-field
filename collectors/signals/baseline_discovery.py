@@ -6,17 +6,18 @@ Outputs evidence candidates, never signal decisions or publication permissions.
 """
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Any, Callable, Mapping, Sequence
 import json
+import re
 
 USASPENDING_RECIPIENT = "https://api.usaspending.gov/api/v2/search/spending_by_category/recipient/"
-USASPENDING_SUBAGENCY = "https://api.usaspending.gov/api/v2/search/spending_by_category/awarding_subagency/"
 MAX_DB_RESULTS = 20
-MAX_API_REQUESTS = 2
 MAX_WEB_REQUESTS = 2
+MAX_VERIFICATIONS = 8
+LEGAL_FORMS = frozenset({'inc', 'incorporated', 'llc', 'ltd', 'limited', 'corp', 'corporation', 'co', 'company', 'plc'})
 
 @dataclass(frozen=True)
 class Candidate:
@@ -49,11 +50,21 @@ class Evidence:
     subject: str | None = None        # exact organization/object of the measurement
     scope: str | None = None          # denominator/geography/program/period description
 
+@dataclass(frozen=True)
+class PrimaryDocument:
+    url: str
+    text: str
+    first_seen_at: str
+    root_source: str
+    primary: bool = True
+
 @dataclass
 class Discovery:
     candidate_id: str
     baseline: Evidence | None = None
     alternatives: list[Evidence] = field(default_factory=list)
+    second_source: Evidence | None = None
+    verification_count: int = 0
     searched: list[dict[str, str]] = field(default_factory=list)
     outcome: str = "not_found"  # found | needs_verification | not_found
     # No opinion about existence or strength of signal.
@@ -73,6 +84,73 @@ def _safe_value(value: Any) -> str | None:
     except (InvalidOperation, ValueError):
         return None
 
+def _norm_name(value: str) -> str:
+    tokens = re.findall(r"[a-z0-9]+", value.casefold())
+    while tokens and tokens[-1] in LEGAL_FORMS:
+        tokens.pop()
+    return " ".join(tokens)
+
+def _names(candidate: Candidate) -> tuple[str, ...]:
+    return tuple(dict.fromkeys(n for n in (candidate.entity, *candidate.aliases) if n.strip()))
+
+def _identity(candidate: Candidate, name: str) -> bool:
+    return bool(_norm_name(name)) and _norm_name(name) in {_norm_name(n) for n in _names(candidate)}
+
+def _metric_terms(metric: str) -> list[str]:
+    return [term for term in re.split(r"[_\W]+", metric) if len(term) > 2]
+
+def _number_in(value: str, content: str) -> bool:
+    try:
+        expected = Decimal(str(value).replace(",", ""))
+    except InvalidOperation:
+        return False
+    for text in re.findall(r"(?<![\w.])[-+]?\d[\d,]*(?:\.\d+)?(?![\w.])", content):
+        try:
+            if Decimal(text.replace(",", "")) == expected:
+                return True
+        except InvalidOperation:
+            continue
+    return False
+
+def verify_primary(candidate: Candidate, lead: Evidence, document: PrimaryDocument) -> Evidence:
+    """Check literal number, unit, ISO date, exact quote in caller-supplied primary text.
+
+    The caller is responsible for authenticity and first_seen_at provenance.
+    """
+    failed = replace(lead, verification="candidate", comparable=False)
+    if not document.primary or document.url != lead.url or not document.url.startswith("https://"):
+        failed.explanation = "primary_document_mismatch"
+        return failed
+    quote = (lead.quote or "").strip()
+    if len(quote) < 12 or quote not in document.text:
+        failed.explanation = "quote_not_found_in_primary_text"
+        return failed
+    if not lead.value or not _number_in(lead.value, quote):
+        failed.explanation = "number_not_in_quote"
+        return failed
+    if not lead.unit or lead.unit.casefold() not in quote.casefold():
+        failed.explanation = "unit_not_in_quote"
+        return failed
+    if not lead.value_date or lead.value_date not in quote:
+        failed.explanation = "date_not_in_quote"
+        return failed
+    if not any(name.casefold() in quote.casefold() for name in _names(candidate)):
+        failed.explanation = "subject_not_in_quote"
+        return failed
+    if candidate.stage and candidate.stage.casefold() not in quote.casefold():
+        failed.explanation = "stage_not_in_quote"
+        return failed
+    checked = replace(lead, verification="verified", first_seen_at=document.first_seen_at,
+                      root_source=document.root_source or document.url, subject=candidate.entity)
+    valid, reason = _compatible(candidate, checked)
+    if not valid:
+        failed.explanation = reason
+        return failed
+    checked.comparable = True
+    checked.explanation = "verified_primary_quote_number_unit_date"
+    return checked
+
+
 def _same_metric(a: str, b: str) -> bool:
     return bool(a.strip() and b.strip()) and _text(a) == _text(b)
 
@@ -85,7 +163,7 @@ def _compatible(candidate: Candidate, item: Evidence) -> tuple[bool, str]:
         return False, "rate_vs_cumulative_or_other_kind"
     if candidate.stage and item.stage != candidate.stage:
         return False, "different_or_unknown_stage"
-    if item.subject is None or _text(item.subject) != _text(candidate.entity):
+    if item.subject is None or not _identity(candidate, item.subject):
         return False, "unverified_measurement_subject"
     if not item.scope or not item.scope.strip():
         return False, "unknown_measurement_scope"
@@ -122,16 +200,18 @@ LOCAL_SQL = """
 SELECT what, occurred_on, source_url, status
 FROM knowledge.edge
 WHERE occurred_on <= %(cutoff)s
-  AND (what ILIKE %(entity)s ESCAPE '\\' OR what ILIKE %(metric)s ESCAPE '\\')
+  AND (what ILIKE ANY(%(names)s) OR what ILIKE ANY(%(metric_words)s))
 ORDER BY occurred_on DESC
 LIMIT 20
 """.strip()
 
 def local_search(candidate: Candidate, sql_read: Callable[[str, Mapping[str, Any]], Sequence[Mapping[str, Any]]]) -> list[Evidence]:
+    def escape(term: str) -> str:
+        return "%" + term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
     rows = sql_read(LOCAL_SQL, {
         "cutoff": candidate.as_of,
-        "entity": "%" + candidate.entity.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%",
-        "metric": "%" + candidate.metric.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%",
+        "names": [escape(name) for name in _names(candidate)],
+        "metric_words": [escape(word) for word in _metric_terms(candidate.metric)],
     })
     if len(rows) > MAX_DB_RESULTS:
         raise ValueError("local reader exceeded result cap")
@@ -144,7 +224,7 @@ def local_search(candidate: Candidate, sql_read: Callable[[str, Mapping[str, Any
         evidence.append(Evidence("knowledge.edge", None, when, str(row.get("what") or "")[:350],
                                  str(row.get("source_url") or "") or None,
                                  candidate.metric, candidate.unit, candidate.kind,
-                                 str(row.get("status") or ""), False,
+                                 "", False,
                                  "textual_lead_only_no_structured_value",
                                  str(row.get("source_url") or "") or None))
     return evidence
@@ -166,7 +246,7 @@ def usaspending_request(candidate: Candidate, endpoint: str) -> dict[str, Any] |
         return None
     filters: dict[str, Any] = {"time_period": [{"start_date": start.isoformat(), "end_date": end.isoformat()}]}
     if endpoint == "recipient":
-        filters["recipient_search_text"] = [candidate.entity]
+        filters["recipient_search_text"] = list(_names(candidate))
     else:
         # A subagency category needs a verified awarding agency code/filter to be meaningful.
         # Without one do not issue broad searches or claim entity matching.
@@ -188,7 +268,7 @@ def usaspending_search(candidate: Candidate, post_json: Callable[[str, Mapping[s
         if not isinstance(row, Mapping):
             continue
         name = str(row.get("name") or "")
-        if _text(name) != _text(candidate.entity):
+        if not _identity(candidate, name):
             continue   # prevent conflating subsidiaries and similar names
         value = _safe_value(row.get("amount"))
         if value is None:
@@ -202,10 +282,10 @@ def usaspending_search(candidate: Candidate, post_json: Callable[[str, Mapping[s
     return out
 
 def web_query(candidate: Candidate) -> list[str]:
-    words = [candidate.entity, candidate.metric.replace("_", " "), candidate.unit,
-             f"before:{candidate.as_of}"]
-    return [" ".join(words), " ".join([candidate.entity, candidate.metric.replace("_", " "),
-                                       "official report before:" + candidate.as_of])]
+    # Search backend operators (including before:) are NOT portable. The
+    # historical cutoff is enforced by independently verified first_seen_at.
+    metric = " ".join(_metric_terms(candidate.metric))
+    return [f'"{name}" {metric} {candidate.unit}' for name in _names(candidate)][:MAX_WEB_REQUESTS]
 
 def web_search(candidate: Candidate, search: Callable[[str], Sequence[Mapping[str, Any]]]) -> list[Evidence]:
     """Provider-agnostic discovery. Snippets are leads, never verified facts."""
@@ -227,59 +307,64 @@ def discover(candidate: Candidate,
              sql_read: Callable[[str, Mapping[str, Any]], Sequence[Mapping[str, Any]]] | None = None,
              post_json: Callable[[str, Mapping[str, Any]], Mapping[str, Any]] | None = None,
              search: Callable[[str], Sequence[Mapping[str, Any]]] | None = None,
-             verify: Callable[[Candidate, Evidence], Evidence] | None = None) -> Discovery:
-    """Search strictly in order. Every adapter is optional and injected by caller.
-
-    verify() MUST independently check a primary document, date, quote, number,
-    subject, scope, first_seen_at and provenance before marking 'verified'.
-    No default or LLM self-approval exists. This is a contract, not attestation
-    that a caller's verifier is trustworthy.
-    """
+             documents: Mapping[str, PrimaryDocument] | None = None,
+             max_verifications: int = MAX_VERIFICATIONS) -> Discovery:
+    """Find baseline and second independent root within bounded primary checks."""
     _date(candidate.as_of)
-    output = Discovery(candidate.candidate_id)
+    if not 0 <= max_verifications <= MAX_VERIFICATIONS:
+        raise ValueError("invalid max_verifications")
+    result = Discovery(candidate.candidate_id)
     stages = [
-        ("knowledge.edge", sql_read is not None,
-         lambda: local_search(candidate, sql_read)),
-        ("USAspending", post_json is not None,
-         lambda: usaspending_search(candidate, post_json)),
-        ("free_web", search is not None,
-         lambda: web_search(candidate, search)),
+        ("knowledge.edge", sql_read is not None, lambda: local_search(candidate, sql_read)),
+        ("USAspending", post_json is not None, lambda: usaspending_search(candidate, post_json)),
+        ("free_web", search is not None, lambda: web_search(candidate, search)),
     ]
-    for label, enabled, get_results in stages:
-        if not enabled:
-            output.searched.append({"provider": label, "status": "not_connected"})
+    roots: set[str] = set()
+    for provider, enabled, getter in stages:
+        if result.baseline is not None and result.second_source is not None:
+            result.searched.append({"provider": provider, "status": "not_needed"})
             continue
-        if label == "USAspending" and usaspending_request(candidate, "recipient") is None:
-            output.searched.append({"provider": label, "status": "not_comparable_metric"})
+        if not enabled:
+            result.searched.append({"provider": provider, "status": "not_connected"})
+            continue
+        if provider == "USAspending" and usaspending_request(candidate, "recipient") is None:
+            result.searched.append({"provider": provider, "status": "not_comparable_metric"})
             continue
         try:
-            raw = get_results()
-        except Exception as ex:
-            # Failure must be visible; later provider may still provide evidence.
-            output.searched.append({"provider": label, "status": "error:" + type(ex).__name__})
+            leads = _dedupe(getter())
+        except Exception as exc:
+            result.searched.append({"provider": provider, "status": "error:" + type(exc).__name__})
             continue
-        output.searched.append({"provider": label, "status": "results:" + str(len(raw))})
-        for lead in _dedupe(raw):
-            if verify is not None:
-                try:
-                    checked = verify(candidate, lead)
-                    if not isinstance(checked, Evidence):
-                        raise ValueError("verifier must return Evidence")
-                    lead = checked
-                except Exception:
-                    lead.verification = "candidate"
-                    lead.explanation = "verification_failed"
-            comparable, why = _compatible(candidate, lead)
-            lead.comparable = comparable and lead.verification == "verified" and bool(_safe_value(lead.value))
-            lead.explanation = why if not comparable else (
-                "verified_comparable" if lead.comparable else "requires_independent_verification")
-            output.alternatives.append(lead)
-            if lead.comparable:
-                output.baseline = lead
-                output.outcome = "found"
-                return output
-    output.outcome = "needs_verification" if output.alternatives else "not_found"
-    return output
+        result.searched.append({"provider": provider, "status": "results:" + str(len(leads))})
+        skipped = 0
+        for lead in leads:
+            document = (documents or {}).get(lead.url or "")
+            if result.verification_count >= max_verifications:
+                skipped += 1
+                result.alternatives.append(replace(lead, comparable=False,
+                    verification="candidate", explanation="verification_budget_exhausted"))
+                continue
+            if document is None:
+                result.alternatives.append(replace(lead, comparable=False,
+                    verification="candidate", explanation="primary_text_not_supplied"))
+                continue
+            result.verification_count += 1
+            checked = verify_primary(candidate, lead, document)
+            result.alternatives.append(checked)
+            if checked.comparable:
+                root = checked.root_source or checked.url
+                if root in roots:
+                    continue
+                roots.add(root)
+                if result.baseline is None:
+                    result.baseline = checked
+                elif result.second_source is None:
+                    result.second_source = checked
+        if skipped:
+            result.searched.append({"provider": provider, "status": f"unverified_budget:{skipped}"})
+    result.outcome = ("found" if result.baseline is not None else
+                      "needs_verification" if result.alternatives else "not_found")
+    return result
 
 def to_json(result: Discovery) -> str:
     return json.dumps(asdict(result), ensure_ascii=False, sort_keys=True, indent=2)
