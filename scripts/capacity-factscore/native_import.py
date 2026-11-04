@@ -8,6 +8,7 @@ import platform
 import sys
 import tarfile
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 PIN = "f28272deffcf33efc1f1117d5479c10bb75221a9"
 DIGEST = "dcc1c9139b6f54ef3d946dc1bbc58b0080092fcbab023890a0728fd17e0eaa4f"
@@ -47,6 +48,20 @@ def no_network(event, _args):
                  "socket.gethostbyaddr", "socket.getnameinfo", "subprocess.Popen",
                  "os.posix_spawn", "os.system", "os.exec"}:
         raise RuntimeError("offline smoke attempted an external operation")
+
+
+def import_scorer():
+    import nltk
+
+    def skip_unused_punkt(resource):
+        verify(resource == "punkt", "unexpected NLTK download during FActScore import")
+        return False
+
+    # The smoke supplies ready-made assertions and never invokes sentence splitting.
+    with patch.object(nltk, "download", side_effect=skip_unused_punkt) as download:
+        import factscore.factscorer as scorer
+        download.assert_called_once_with("punkt")
+    return scorer
 
 
 class Corpus:
@@ -106,7 +121,7 @@ def main():
         root = Path(tmp)
         package = materialize_source(args.archive, root)
         sys.path.insert(0, str(root))
-        import factscore.factscorer as scorer
+        scorer = import_scorer()
         import factscore.retrieval as retrieval
         import torch
 
@@ -125,6 +140,7 @@ def main():
         "bm25": version("rank-bm25"),
         "simulated_calls": simulated,
         "model_api_calls": 0,
+        "nltk_punkt_download_suppressed": 1,
     }, sort_keys=True))
 
 
