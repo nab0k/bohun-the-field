@@ -89,7 +89,8 @@ class BaselineTests(unittest.TestCase):
 
     def test_date_cutoff_prevents_future_leak(self):
         e = module.Evidence("local", "20", "2026-10-02", "20", "https://example.org/a",
-                            "missile_output", "units/year", "rate", "", False, "")
+                            "missile_output", "units/year", "rate", "", False, "",
+                            first_seen_at="2025-01-01", subject="ACME", scope="same annual production scope")
         self.assertEqual(module._compatible(item(), e)[1], "after_cutoff")
 
     def test_duplicate_root_source_counts_once(self):
@@ -109,7 +110,8 @@ class BaselineTests(unittest.TestCase):
 
     def test_missing_date_and_value_not_comparable(self):
         e = module.Evidence("local", None, None, "quote", "https://example.org",
-                            "missile_output", "units/year", "rate", "", False, "")
+                            "missile_output", "units/year", "rate", "", False, "",
+                            first_seen_at="2025-01-01", subject="ACME", scope="same annual production scope")
         self.assertEqual(module._compatible(item(), e)[1], "unknown_value_date")
 
     def test_error_logged_and_fallback_continues(self):
