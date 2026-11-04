@@ -8,7 +8,7 @@
 
 **Важно о противоречии инструкций:** краткая таблица «Работа для ChatGPT» называет C4-08 документальным исследованием без кода, но подробная карточка C4-08 прямо назначает код ChatGPT и владелец в чате отдельно попросил дизайн и код. Здесь реализован только изолированный модуль с offline tests; использование рабочих адаптеров, сетевые запросы и изменения workflow отсутствуют.
 
-## Что дал ручной опыт владельца (не наш прогон)
+## Что дал ручная проба Claude (не наш прогон)
 
 - `knowledge.edge`: поля `what`, `occurred_on`, `source_url`, `status`; в ручной пробе обнаружена статья о темпе ESSM. Схема прочитана из карточки, база не открывалась. Нет доказанного структурного поля числа/единицы измерения.
 - USAspending без API ключа: `POST /api/v2/search/spending_by_category/recipient/` и `/awarding_subagency/`; поиск получателя работал лучше поиска `minehunting` по словам. Текущий год может запаздывать, это **сигнал неполноты**, не «нулевой расход».
@@ -26,8 +26,8 @@ Candidate(entity, metric, unit, kind, stage, as_of, target_value)
   |      enough verified, comparable evidence? --> return baseline
   +--> injected free-search adapter -> ranked web leads, max 2 queries
          |
-         independent verifier (not provided) checks primary document,
-         value + quoted span + date + URL + same unit/kind/stage
+         built-in verifier checks caller-supplied primary document,
+         literal quote + number/unit/date + URL + same unit/kind/stage
          |
          found | needs_verification | not_found
 ```
@@ -45,7 +45,7 @@ Candidate(entity, metric, unit, kind, stage, as_of, target_value)
 
 ### Уточнение договора на будущие адаптеры
 
-`sql_read(query, named_params) -> rows` возвращает **только** `what/occurred_on/source_url/status`. `post_json(url, json_body) -> response` (только allowlisted домен и endpoint, при интеграции ограничить timeout, retries, размер ответа). `search(query) -> [{title,snippet,url,origin_url?}]`, максимум две поисковые строки и до пяти lead на каждую. `verify(candidate,evidence)` возвращает evidence с нормализованным `value`, `value_date`, `quote`, `url`, `verification=verified` только после **внешней** проверки исходного документа. Для production нужна ещё проверка `first_seen_at` и provenance, которую нельзя имитировать из сегодняшних результатов.
+`sql_read(query, named_params) -> rows` возвращает **только** `what/occurred_on/source_url/status`. `post_json(url, json_body) -> response` (только allowlisted домен и endpoint, при интеграции ограничить timeout, retries, размер ответа). `search(query) -> [{title,snippet,url,origin_url?}]`, максимум две поисковые строки и до пяти lead на каждую. `verify_primary(candidate, lead, document)` проверяет буквальную цитату в переданном тексте первоисточника, число непосредственно рядом с единицей и дату. Документ, дату первого появления, первичность, scope и root_source передает вызывающая система; внутреннего сетевого клиента нет. Для production нужна ещё проверка `first_seen_at` и provenance, которую нельзя имитировать из сегодняшних результатов.
 
 Пример JSON-выдачи при пустой интеграции: `{"candidate_id":"s1","baseline":null,"alternatives":[],"searched":[{"provider":"knowledge.edge","status":"not_connected"},{"provider":"USAspending","status":"not_connected"},{"provider":"free_web","status":"not_connected"}],"outcome":"not_found"}`. Это не ложный сигнал и не пустой успешный baseline.
 
@@ -63,7 +63,7 @@ Candidate(entity, metric, unit, kind, stage, as_of, target_value)
 
 ## Условия проверки, лимиты и принятие
 
-- Предварительный программный бюджет на **1 кандидат**: max 1 локальный SELECT (20 строк), max 1 recipient POST (до 5 ответов), max 2 бесплатных web-запроса (до 10 ссылок). `MAX_API_REQUESTS=2` зарезервирован как верхний проектный лимит для развития subagency; сейчас не более 1. **Никаких автоматических HTTP вызовов:** transport предоставляется извне только после отдельного решения.
+- Предварительный программный бюджет на **1 кандидат**: max 1 локальный SELECT (20 строк), max 1 recipient POST (до 5 ответов), max 2 бесплатных web-запроса (до 10 ссылок). Неиспользуемые константы MAX_API_REQUESTS и USAspending subagency URL удалены; сейчас не более 1 recipient POST. **Никаких автоматических HTTP вызовов:** transport предоставляется извне только после отдельного решения.
 - Для `awarding_subagency` будущий адаптер требует verified agency filter и описание того, что именно сравнивает (расходы субагентства, не производителя). Сначала проверить карточку agency, затем тест запроса с фиктивным HTTP transport. Запрос по одному ключевому слову типа `minehunting` не считать подтверждённым baseline.
 - Тест: группы из C4-02 (количество и детали доступны только Claude в локальном архиве), на большинстве кандидатов **подтверждённая сравнимая база** либо полный маршрут поиска и объяснение отсутствия. Отдельно проверить ESSM tempo, прошлогоднее award vs нынешний год, `announced/contracted/delivered/demonstrated`, годовой темп vs накопленная сумма, независимые roots.
 - Реализованы offline mocks; **живые тесты, запросы к БД/USAspending/Tavily/Brave и workflow не запускались**. Данные ручной пробы не считались независимым live-тестом этого кода. Тесты могут запускаться локально стандартной библиотекой после ревью: `python -B -m unittest discover -s tests -p 'test_c408_baseline_discovery.py' -v`.
@@ -75,3 +75,29 @@ Candidate(entity, metric, unit, kind, stage, as_of, target_value)
 В PR пока **нет комментария/заключения Claude**; ниже только самопроверка ChatGPT, не подмена независимого ревью. Найдены и устранены потенциально ложные PASS из-за неизвестной даты доступности источника, неуточнённого субъекта измерения, пустого описания scope и неизвестной стадии, а также необработанные спецсимволы SQL ILIKE. В evidence добавлены `first_seen_at`, `subject`, `scope`; в тестах предусмотрены 4 отрицательных кейса. Наличие полей не гарантирует корректность независимого `verify`; интеграция остаётся запрещена до проверки первоисточника.
 
 **Тесты:** добавлено 16 offline unit-тестов в исходном модуле тестов (12+4); в этой сессии Python исполнение из GitHub-контекста не выполнялось. Нет результата PASS/FAIL, нельзя считать их пройденными. Live-данные C4-02 не исследовались, сеть/БД не подключались, GitHub Actions не запускались. Для независимого reviewer: `python -B -m unittest discover -s tests -p 'test_c408_baseline_discovery.py' -v`. До его результата C4-08 открыта.
+
+## Дополнение после комментария Claude от 21:19 (PR №179)
+
+Источник: https://github.com/nab0k/bohun-the-field/pull/179#issuecomment-6642390051. Claude запускал исходные 16 offline-тестов: **15 PASS, 1 FAIL**. Падало только ошибочное ожидаемое экранирование SQL в test_database_like_special_characters_are_escaped. Исправлен тест, а не SQL-экранирование.
+
+### Обязательные правки
+
+1. Встроен verify_primary: из переданного извне первичного текста проверяет буквальную цитату, число непосредственно перед точной единицей, ISO-дату, субъект или допустимый алиас, стадию, URL, дата доступности <= as_of, scope. Запрещено подтверждать базу только поисковым сниппетом или моделью. Достоверность происхождения текста/поля primary и метаданных должен обеспечить отдельно вызывающий код.
+2. Алиасы используются в параметризованном SQL, recipient_search_text USAspending и веб-запросах. Нормализуются регистр, пунктуация и юридические суффиксы, без fuzzy-склейки похожих или дочерних компаний.
+3. Поиск не останавливается на первом подтверждённом свидетельстве: отдельно возвращается second_source, только при независимом root_source. Повтор заявления не считается вторым подтверждением. outcome=found означает наличие baseline, **не** гарантию второго источника.
+4. max_verifications задаётся в диапазоне 0..8 на кандидата. В searched явно указывается unverified_budget:N, а неиспользованные найденные материалы остаются кандидатами.
+5. Исправлено ожидание экранирования % и _ в старом тесте.
+
+### Мелкие исправления
+
+- knowledge.edge.status больше не копируется в Evidence.stage: статус записи не равен стадии события.
+- Удалены неиспользуемые MAX_API_REQUESTS и константа subagency endpoint. Вызов subagency по-прежнему намеренно не реализован без подтверждённого фильтра.
+- Источник вывода обозначен как **ручная проба Claude**, а не владельца.
+- Поиск по метрике использует слова (missile, output), а не машинное имя missile_output.
+- Оператор before: в запросах отсутствует: у ещё не выбранного поискового провайдера его поддержка **не подтверждена**. Срез обеспечивается только корректной, доверенной first_seen_at <= as_of; полное исключение утечки будущих данных требует независимого журнала первого появления.
+
+### Тесты и остаточные риски
+
+После изменений новый тестовый файл содержит **20 offline-сценариев** (включая алиасы, второй источник, бюджеты, проверку цитаты/числа/даты, SQL wildcard). **Новый набор пока не запускался и не имеет результата PASS/FAIL**. Команда: python -B -m unittest discover -s tests -p 'test_c408_baseline_discovery.py' -v. Запуск исходного набора Claude (15/16) не является результатом обновлённой реализации.
+
+Рабочие БД, USAspending, веб-поиск, ключи и workflow не вызывались; никаких live-тестов. Пробу на группах C4-02 и ESSM далее проводит Claude. PR не сливать, C4-08 пока не закрывать.
