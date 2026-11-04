@@ -81,6 +81,9 @@ class RpcTransport:
             if phase in ('COMMIT','COMMITTED'):
                 raise UnknownCommit() from None
             if isinstance(exc,c.ContractError):raise
+            # SQLSTATE is a fixed five-character class code, never private DB text.
+            if type(state) is str and re.fullmatch(r'[0-9A-Z]{5}',state):
+                raise BackendFault('TX_NOT_COMMITTED_'+state) from None
             raise BackendFault('TX_NOT_COMMITTED') from None
         finally:
             if conn is not None:

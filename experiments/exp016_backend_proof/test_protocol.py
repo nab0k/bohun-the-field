@@ -90,6 +90,11 @@ class ProtocolTests(unittest.TestCase):
         with self.assertRaisesRegex(BackendFault,'^TX_NOT_COMMITTED$'):RpcTransport(lambda:conn)('claim',REQUEST)
         self.assertEqual(conn.calls[-1][0],'close')
 
+    def test_precommit_failure_reports_only_validated_sqlstate(self):
+        for state,code in (('42501','^TX_NOT_COMMITTED_42501$'),('private text','^TX_NOT_COMMITTED$')):
+            with self.subTest(state=state),self.assertRaisesRegex(BackendFault,code):
+                RpcTransport(lambda:Connection(DriverError(state)))('claim',REQUEST)
+
     def test_commit_connection_loss_is_unknown_not_rollback_proof(self):
         conn=Connection()
         def lost():raise DriverError()
