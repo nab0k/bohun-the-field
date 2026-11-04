@@ -135,16 +135,19 @@ def verify_primary(candidate: Candidate, lead: Evidence, document: PrimaryDocume
     if len(quote) < 12 or quote not in document.text:
         failed.explanation = "quote_not_found_in_primary_text"
         return failed
-    value = lead.value
+    # Require a numeric token immediately associated with the exact unit:
+    # a number elsewhere (including in an ISO date) cannot validate the claim.
+    matches = re.findall(r"(?<![\w.])([-+]?\d[\d,]*(?:\.\d+)?)\s*" +
+                         re.escape(lead.unit) + r"(?![\w/])", quote, flags=re.I)
+    values = [_safe_value(token.replace(",", "")) for token in matches]
+    expected = _safe_value(lead.value)
+    if expected is not None:
+        value = expected if expected in values else None
+    else:
+        distinct = {v for v in values if v is not None}
+        value = next(iter(distinct)) if len(distinct) == 1 else None
     if value is None:
-        match = re.search(r"(?<![\w.])([-+]?\d[\d,]*(?:\.\d+)?)\s*" +
-                          re.escape(lead.unit) + r"(?![\w/])", quote, flags=re.I)
-        value = match.group(1).replace(",", "") if match else None
-    if not value or not _number_in(value, quote):
-        failed.explanation = "number_not_in_quote"
-        return failed
-    if not lead.unit or lead.unit.casefold() not in quote.casefold():
-        failed.explanation = "unit_not_in_quote"
+        failed.explanation = "number_not_adjacent_to_exact_unit"
         return failed
     value_date = lead.value_date
     if value_date is None:
