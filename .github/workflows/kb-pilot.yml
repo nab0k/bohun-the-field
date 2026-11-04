@@ -1,10 +1,19 @@
-name: CAPACITY FActScore native import (isolated)
-run-name: CAPACITY FActScore native import
+name: CAPACITY BOHUN and FActScore comparison (isolated)
+run-name: CAPACITY BOHUN and FActScore comparison
 on:
   workflow_dispatch:
     inputs:
       expected_sha:
         description: Exact reviewed trial commit
+        type: string
+        required: true
+      free_approved:
+        description: Free project and available quota confirmed by owner
+        type: boolean
+        required: true
+        default: false
+      recipient_b64:
+        description: Base64 public recipient certificate
         type: string
         required: true
 permissions:
@@ -14,9 +23,9 @@ concurrency:
   cancel-in-progress: false
 jobs:
   native:
-    if: github.repository == 'nab0k/bohun-the-field' && github.actor == 'nab0k' && github.run_attempt == 1 && github.ref == 'refs/heads/codex/capacity-factscore-native-20261104'
+    if: github.repository == 'nab0k/bohun-the-field' && github.actor == 'nab0k' && github.run_attempt == 1 && inputs.free_approved && github.ref == 'refs/heads/codex/capacity-factscore-native-20261104'
     runs-on: ubuntu-24.04
-    timeout-minutes: 16
+    timeout-minutes: 42
     env:
       PYTHONDONTWRITEBYTECODE: '1'
       PIP_DISABLE_PIP_VERSION_CHECK: '1'
@@ -36,7 +45,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
-          python-version: '3.10'
+          python-version: '3.10.22'
       - name: Resolve CPU wheels and install in a temporary venv
         run: |
           set -euo pipefail
@@ -59,7 +68,8 @@ jobs:
           (
             cd "$root/wheels"
             sha256sum -- *.whl | tee "$root/wheel-sha256.txt"
-            grep -Fx '7bd4a95571adadfc271746fa146a4bcfd89c0cf731e49c3d1ad863290adbe8ae  rank_bm25-0.2.2-py3-none-any.whl' "$root/wheel-sha256.txt"
+            sha256sum --check --strict "$GITHUB_WORKSPACE/scripts/capacity-factscore/wheels.sha256"
+            test "$(wc -l < "$root/wheel-sha256.txt")" -eq 54
           )
           "$py" -m pip --isolated install --no-index --no-deps "$root"/wheels/*.whl
           "$py" -m pip check
@@ -80,3 +90,27 @@ jobs:
           set -euo pipefail
           root="$RUNNER_TEMP/factscore-native"
           "$root/venv/bin/python" -I scripts/capacity-factscore/native_import.py "$root/upstream.tar.gz" | tee "$root/result.json"
+
+      - name: Compare 24 assertions with a single free provider
+        env:
+          HF_HUB_OFFLINE: '1'
+          TRANSFORMERS_OFFLINE: '1'
+          HF_HUB_DISABLE_TELEMETRY: '1'
+          CAPACITY_FREE_APPROVED: ${{ inputs.free_approved }}
+          CAPACITY_RECIPIENT_B64: ${{ inputs.recipient_b64 }}
+          CAPACITY_PACKET_B64: ${{ secrets.CAPACITY_FACTSCORE_AB_PACKET_B64 }}
+          GEMINI_FREE_API_KEY: ${{ secrets.GEMINI_FREE_API_KEY }}
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          umask 077
+          root="$RUNNER_TEMP/factscore-native"
+          "$root/venv/bin/python" -B scripts/capacity-factscore/run_ab.py "$root/upstream.tar.gz" "$root/comparison.der"
+      - name: Upload encrypted comparison receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: capacity-factscore-ab-encrypted
+          path: ${{ runner.temp }}/factscore-native/comparison.der
+          if-no-files-found: ignore
+          retention-days: 1
