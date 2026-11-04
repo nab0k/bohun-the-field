@@ -254,6 +254,29 @@ class BaselineTests(unittest.TestCase):
         self.assertEqual(candidates[0].url, "https://example.org/acme")
         self.assertEqual(len(candidates), 20)
 
+    def test_reporting_company_is_not_subcontractor_actor(self):
+        url = "https://official.example/subcontractor"
+        candidate = item(entity="ACME", metric="missile_output",
+                         unit="units/year", kind="rate")
+        statement = ("On 2026-01-01 ACME said that its supplier "
+                     "produces 100 units/year of missiles.")
+        result = module.discover(candidate, search=lambda _: [
+            {"url": url, "title": "Announcement"}],
+            documents={url: source(url, statement, first_seen="2026-02-01")})
+        self.assertIsNone(result.baseline)
+        self.assertEqual(result.outcome, "needs_verification")
+
+    def test_attributed_self_report_is_accepted_only_when_explicit(self):
+        url = "https://official.example/self-report"
+        candidate = item(entity="ACME")
+        statement = ("On 2026-01-01 ACME said that it now produces "
+                     "100 units/year of missiles.")
+        result = module.discover(candidate, search=lambda _: [
+            {"url": url, "title": "Primary statement"}],
+            documents={url: source(url, statement, first_seen="2026-02-01")})
+        self.assertEqual(result.outcome, "found")
+        self.assertEqual(result.baseline.value, "100")
+
     def test_month_precision_not_invented_at_cutoff(self):
         url = "https://official.example/rtx"
         statement = "RTX said in March 2026 that it now produces about 400 missiles per year."
