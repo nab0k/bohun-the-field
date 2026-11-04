@@ -42,6 +42,9 @@ class BaselineTests(unittest.TestCase):
             evidence.unit = candidate.unit
             evidence.stage = candidate.stage
             evidence.verification = "verified"
+            evidence.first_seen_at = "2025-08-02"
+            evidence.subject = candidate.entity
+            evidence.scope = "ACME annual missile output, same geography and counting rule"
             return evidence
         result = module.discover(
             item(), sql_read=lambda *_: [{
@@ -79,7 +82,7 @@ class BaselineTests(unittest.TestCase):
         evidence = module.Evidence("local", "20", "2025-01-01", "20 shipped",
                                    "https://example.org/a", "missile_output",
                                    "units/year", "rate", "announced", False, "")
-        self.assertEqual(module._compatible(candidate, evidence)[1], "different_stage")
+        self.assertEqual(module._compatible(candidate, evidence)[1], "different_or_unknown_stage")
         evidence.stage = "delivered"
         evidence.kind = "cumulative"
         self.assertEqual(module._compatible(candidate, evidence)[1], "rate_vs_cumulative_or_other_kind")
@@ -115,6 +118,39 @@ class BaselineTests(unittest.TestCase):
         result = module.discover(item(), sql_read=fail, search=lambda _: [])
         self.assertEqual(result.searched[0]["status"], "error:ConnectionError")
         self.assertEqual(result.outcome, "not_found")
+
+
+    def test_unverified_scope_not_sufficient_for_pass(self):
+        candidate = item()
+        e = module.Evidence("local", "20", "2025-01-01", "20 made",
+                            "https://example.org/a", candidate.metric, candidate.unit,
+                            candidate.kind, "", False, "", verification="verified")
+        self.assertEqual(module._compatible(candidate, e)[1], "unverified_measurement_subject")
+
+    def test_future_discovery_rejected_even_when_event_old(self):
+        candidate = item()
+        e = module.Evidence("local", "20", "2025-01-01", "20 made",
+                            "https://example.org/a", candidate.metric, candidate.unit,
+                            candidate.kind, "", False, "", verification="verified",
+                            first_seen_at="2026-10-02", subject="ACME", scope="same annual scope")
+        self.assertEqual(module._compatible(candidate, e)[1], "source_not_available_at_cutoff")
+
+    def test_unknown_stage_does_not_pass_staged_claim(self):
+        candidate = item(stage="delivered")
+        e = module.Evidence("local", "20", "2025-01-01", "20 made",
+                            "https://example.org/a", candidate.metric, candidate.unit,
+                            candidate.kind, "", False, "", verification="verified",
+                            first_seen_at="2025-01-01", subject="ACME", scope="same annual scope")
+        self.assertEqual(module._compatible(candidate, e)[1], "different_or_unknown_stage")
+
+    def test_database_like_special_characters_are_escaped(self):
+        candidate = item(entity="AC%ME_", metric="factory_output")
+        def reader(sql, params):
+            self.assertIn("ESCAPE", sql)
+            self.assertEqual(params["entity"], r"%AC\\%ME\\_%")
+            self.assertEqual(params["metric"], r"%factory\\_output%")
+            return []
+        self.assertEqual(module.local_search(candidate, reader), [])
 
 if __name__ == "__main__":
     unittest.main()
