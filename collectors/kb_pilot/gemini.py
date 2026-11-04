@@ -1,7 +1,7 @@
 """Gemini calls for the pilot: plain JSON calls, calls grounded with Google Search, and Batch mode.
 
 Cost is charged from usageMetadata, including the tokens of search results (toolUsePromptTokenCount);
-an unknown cost or a transport error stops the whole run without retry, as in synthesis.live. Batch
+an unknown cost or an uncertain transport error stops the whole run. Explicit HTTP 503 responses are retried. Batch
 requests cost half (Batch mode, D-20261029-EXP028-COST); a batch answer without usage is charged at
 its worst case. Spend is kept per step (grouping, research, structure, writer).
 """
@@ -135,6 +135,10 @@ def unwrap(answer):
     return answer
 
 
+# Seconds before each try. Short pauses did not outlast these outages; a pause of a minute did (run 41887111976).
+RETRY_503_DELAYS = (0, 60, 120)
+
+
 class Gemini:
     def __init__(self, key, ledger, transport=http_post, thinking="low", getter=http_get, sleep=time.sleep,
                  batch=False):
@@ -227,15 +231,23 @@ class Gemini:
         except json.JSONDecodeError:
             return self._direct(req)
 
+    def _post(self, url, body, reserve, grounded, label, uncertain):
+        self.ledger.reserve(reserve, grounded)  # once: a 503 is not billed, so a retry must not reserve again
+        for delay in RETRY_503_DELAYS:
+            if delay:
+                self.sleep(delay)
+            try:
+                return self.transport(url, {"x-goog-api-key": self.key}, body)
+            except urllib.error.HTTPError as exc:
+                if exc.code != 503 or delay == RETRY_503_DELAYS[-1]:
+                    raise BudgetStop(http_detail(label, exc)) from None
+            except Exception:
+                raise BudgetStop(uncertain) from None
+
     def _direct(self, req):
-        self.ledger.reserve(self.ledger.worst(len(canonical(req["body"]).encode()), req["max_output"], req["grounded"]),
-                            req["grounded"])
-        try:
-            reply = self.transport(GEMINI_URL.format(MODEL), {"x-goog-api-key": self.key}, req["body"])
-        except urllib.error.HTTPError as exc:
-            raise BudgetStop(http_detail("MODEL", exc)) from None
-        except Exception:
-            raise BudgetStop("MODEL_CALL_UNCERTAIN_NO_RETRY") from None
+        reserve = self.ledger.worst(len(canonical(req["body"]).encode()), req["max_output"], req["grounded"])
+        reply = self._post(GEMINI_URL.format(MODEL), req["body"], reserve, req["grounded"],
+                           "MODEL", "MODEL_CALL_UNCERTAIN_NO_RETRY")
         cost = self.ledger.charge(reply.get("usageMetadata"), req["step"])
         answer, info = parse_reply(reply, req["plain"])
         self.ledger.search_queries += info["search_queries"]
@@ -248,16 +260,11 @@ class Gemini:
         reqs = [self.as_text_mode(r) for r in reqs]
         worsts = [self.ledger.worst(len(canonical(r["body"]).encode()), r["max_output"], r["grounded"]) // 2
                   for r in reqs]
-        self.ledger.reserve(sum(worsts), any(r["grounded"] for r in reqs))
         payload = {"batch": {"display_name": "kb-pilot-%s" % reqs[0]["step"], "input_config": {"requests": {
             "requests": [{"request": r["body"], "metadata": {"key": "r%d" % i}} for i, r in enumerate(reqs)]}}}}
         headers = {"x-goog-api-key": self.key}
-        try:
-            op = self.transport(BATCH_URL.format(MODEL), headers, payload)
-        except urllib.error.HTTPError as exc:
-            raise BudgetStop(http_detail("BATCH_CREATE", exc)) from None
-        except Exception:
-            raise BudgetStop("BATCH_CREATE_UNCERTAIN") from None
+        op = self._post(BATCH_URL.format(MODEL), payload, sum(worsts), any(r["grounded"] for r in reqs),
+                        "BATCH_CREATE", "BATCH_CREATE_UNCERTAIN")
         name = op.get("name")
         if not name:
             raise BudgetStop("BATCH_NO_NAME")
