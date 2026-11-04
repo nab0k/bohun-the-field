@@ -22,6 +22,7 @@ import urllib.request
 FIELD = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(FIELD))
 from collectors.source_registry.discovery.cloud import run
+from collectors.source_registry.discovery.cloud.shared import SharedQuota
 from collectors.source_registry.discovery.cloud.state import CloudHold, StateClient, MAX_CALLS, MAX_TRANSFER, MAX_SNAPSHOT
 from collectors.source_registry.discovery.policy import Problem, load_policy, digest, stamp
 from collectors.source_registry.discovery.radars import Response
@@ -41,7 +42,7 @@ def blocked(*_, **__):
 
 class NodeTransport:
     """Exercise state-core.mjs using its local SQLite harness, with no HTTP socket."""
-    def __init__(self, code_hash, *, oauth=False):
+    def __init__(self, code_hash, *, oauth=False, oauth_scope="read"):
         node = shutil.which("node", path="/opt/homebrew/bin:/usr/bin:/bin")
         if not node:
             raise AssertionError("INSTALLED_NODE_REQUIRED")
@@ -50,7 +51,8 @@ class NodeTransport:
             env={"PATH": "/usr/bin:/bin", "NODE_NO_WARNINGS": "1"})
         self.calls = []
         self.exchange({"setup": {"deployment": DEPLOYMENT, "code_sha256": code_hash,
-                                  "policy_sha256": POLICY_HASH, "token": TOKEN, "oauth": oauth}})
+                                  "policy_sha256": POLICY_HASH, "token": TOKEN, "oauth": oauth,
+                                  "oauth_scope": oauth_scope}})
 
     def exchange(self, value):
         self.process.stdin.write(json.dumps(value, separators=(",", ":")) + "\n")
@@ -446,9 +448,48 @@ class CloudTests(unittest.TestCase):
                 run.execute(document, mode=mode, pilot_manifest=raw, approved_manifest_hash=approved,
                             approved_policy_hash=POLICY_HASH, token_provider=blocked)
 
+    def test_live_pilot_with_read_only_scope_leaves_collector_lease_free(self):
+        document, raw, approved = self.pilot_config("batch3")
+        transport = NodeTransport(run.code_hash(), oauth=True)
+        self.addCleanup(transport.close)
+        self.boot(transport)
+        reader = self.client(transport)
+        reader.acquire()
+        reader.oauth_bootstrap()
+        reader.oauth_access("read")
+        reader.release()
+        with self.assertRaises(CloudHold):
+            self.once(document, transport, mode="pilot", pilot_manifest=raw, approved_manifest_hash=approved,
+                      approved_policy_hash=POLICY_HASH)
+        self.assertFalse(Path(document["runtime"]["state_path"]).exists())
+        status = reader._json(reader._request("/v1/status"))
+        self.assertFalse(status["leased"])
+        self.assertEqual(status["oauth"]["credential"]["scope"], "read")
+        reader.acquire()
+        reader.release()
+
     def test_batch_runner_uses_one_shared_budget_and_durable_pilot_event(self):
         document, raw, approved = self.pilot_config("batch3")
-        transport = self.transport(); self.boot(transport)
+        with Store(self.root / "pilot-seed", DEPLOYMENT, bootstrap=True) as store:
+            for source in json.loads(raw)["sources"]:
+                url = source["feed_url"]
+                store.ingest("fixture", "batch", [{"item_id": url, "feed_url": url}], {}, time.time())
+                store.validate(digest(url), [{**source, "lifecycle": "VALIDATED", "policy_sha256": POLICY_HASH,
+                    "assessment": {"decision": "AUTO_ADMIT", "group": source["group"]}}], time.time())
+            quota = SharedQuota(store, "collector")
+            quota.reserve_attempt("1")
+            quota.observe({"X-Reader-Zone1-Limit": "100", "X-Reader-Zone1-Usage": "1",
+                           "X-Reader-Zone2-Limit": "100", "X-Reader-Zone2-Usage": "0",
+                           "X-Reader-Limits-Reset-After": "3600"})
+            snapshot = store.db.serialize()
+        transport = NodeTransport(run.code_hash(), oauth=True, oauth_scope="read write")
+        self.addCleanup(transport.close)
+        self.boot(transport, snapshot)
+        reader = self.client(transport)
+        reader.acquire()
+        reader.oauth_bootstrap()
+        reader.oauth_access("read")
+        reader.release()
         used = []
         class PilotProbe:
             def __init__(self, store, policy, policy_hash, config, **options):

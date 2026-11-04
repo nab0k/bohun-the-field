@@ -13,7 +13,7 @@ function scopes(value) {
 }
 
 // Only fixed codes and numeric status survive an OAuth failure; never provider text.
-const OAUTH_STAGES = new Set(["PREPARED", "REFRESH_DISPATCHED", "READY", "RECOVERED",
+const OAUTH_STAGES = new Set(["PREPARED", "REFRESH_DISPATCHED", "READY", "RECOVERED", "WRITE_ENABLED",
   "OAUTH_CREDENTIALS", "OAUTH_NETWORK_UNKNOWN", "OAUTH_TIMEOUT_UNKNOWN", "OAUTH_HTTP",
   "OAUTH_REDIRECT", "OAUTH_BODY_UNKNOWN", "OAUTH_JSON", "OAUTH_RESPONSE_CONTRACT",
   "OAUTH_STORAGE_BEFORE_REQUEST", "OAUTH_STORAGE_UNKNOWN"]);
@@ -216,12 +216,14 @@ export class StateCoordinator {
     check(spec && typeof spec.operation_id === "string" && HEX.test(spec.operation_id) && body.operation_id === spec.operation_id &&
       HEX.test(spec.previous_code_sha256) && HEX.test(spec.snapshot_sha256) &&
       [spec.revision, spec.lease_generation, spec.credential_generation].every(n => Number.isSafeInteger(n) && n >= 0));
+    check(!Object.hasOwn(spec, "action") || spec.action === "PROMOTE_WRITE");
+    const promote = spec.action === "PROMOTE_WRITE";
     const operationHash = await hash(new TextEncoder().encode(body.operation_id));
     const now = Math.floor((this.expected.now ? this.expected.now() : Date.now()) / 1000);
     check(grant && grant.client_id === this.expected.oauthClientId && typeof grant.client_id === "string" &&
       typeof grant.access_token === "string" && SECRET.test(grant.access_token) &&
       typeof grant.refresh_token === "string" && SECRET.test(grant.refresh_token) &&
-      grant.token_type === "Bearer" && grant.scope === "read" &&
+      grant.token_type === "Bearer" && grant.scope === (promote ? "read write" : "read") &&
       Number.isSafeInteger(grant.expires_at) && grant.expires_at > now + 60 && grant.expires_at <= now + MAX_TTL);
     const preview = this.storage.sql.exec("SELECT * FROM control WHERE id=1").toArray();
     check(preview.length === 1);
@@ -234,8 +236,11 @@ export class StateCoordinator {
       // This is the ONLY explicit, audited pin transition; policy/deployment cannot change.
       const rows = this.storage.sql.exec("SELECT * FROM control WHERE id=1").toArray(); check(rows.length === 1);
       const row = rows[0], old = JSON.parse(row.manifest), credential = this.credential();
-      check(row.manifest === preview[0].manifest && row.revision === spec.revision && row.generation === spec.lease_generation && row.owner !== null &&
-        credential.generation === spec.credential_generation && credential.status === "REFRESHING" &&
+      const expectedState = promote
+        ? row.owner === null && credential.status === "READY" && credential.scope === "read"
+        : row.owner !== null && credential.status === "REFRESHING";
+      check(row.manifest === preview[0].manifest && row.revision === spec.revision && row.generation === spec.lease_generation && expectedState &&
+        credential.generation === spec.credential_generation &&
         grant.refresh_token !== credential.refresh && grant.access_token !== credential.access &&
         old.version === 1 && old.schema === 1 && old.deployment === this.expected.deployment &&
         old.policy_sha256 === this.expected.policy_sha256 && old.code_sha256 === spec.previous_code_sha256 &&
@@ -248,13 +253,14 @@ export class StateCoordinator {
       const audit = {operation_hash: operationHash, revision: row.revision, previous_generation: row.generation,
         generation, previous_credential_generation: credential.generation, credential_generation: credentialGeneration,
         previous_code_sha256: old.code_sha256, code_sha256: manifest.code_sha256, snapshot_sha256: old.sha256};
+      if (promote) audit.action = "PROMOTE_WRITE";
       this.storage.sql.exec("UPDATE oauth_credentials SET generation=?,status='READY',access=?,refresh=?,expires_at=?,scope=? WHERE id=1",
         credentialGeneration, grant.access_token, grant.refresh_token, grant.expires_at, grant.scope);
       this.storage.sql.exec("UPDATE manifests SET payload=? WHERE revision=?", JSON.stringify(manifest), row.revision);
       this.storage.sql.exec("UPDATE control SET owner=NULL,generation=?,manifest=? WHERE id=1", generation, JSON.stringify(manifest));
-      this.diagnostic(credentialGeneration, "RECOVERED");
+      this.diagnostic(credentialGeneration, promote ? "WRITE_ENABLED" : "RECOVERED");
       this.storage.sql.exec("INSERT INTO oauth_recoveries VALUES (?,?)", operationHash, JSON.stringify(audit));
-      return {...this.identity(), status: "OAUTH_RECOVERED", ...audit};
+      return {...this.identity(), status: promote ? "OAUTH_WRITE_ENABLED" : "OAUTH_RECOVERED", ...audit};
     });
     await this.storage.sync(); // Unknown ACK requires inspection, never a blind retry.
     return reply;
@@ -397,9 +403,15 @@ export class StateCoordinator {
             return {...identity, revision: row.revision, generation: row.generation, leased: row.owner !== null, oauth: this.oauthMetadata()};
           }
           if (path === "/v1/acquire") {
-            check(Object.keys(body).length === 1 && HEX.test(body.owner));
+            const scoped = Object.hasOwn(body, "required_scope");
+            check(Object.keys(body).length === (scoped ? 2 : 1) && HEX.test(body.owner));
             const row = this.control(), generation = row.generation + 1;
             check(row.owner === null && Number.isSafeInteger(generation));
+            if (scoped) {
+              check(body.required_scope === "read write");
+              const credential = this.credential();
+              check(credential.status === "READY" && credential.scope === body.required_scope);
+            }
             this.storage.sql.exec("UPDATE control SET owner=?,generation=? WHERE id=1", body.owner, generation);
             return {...identity, owner: body.owner, generation, revision: row.revision, manifest: row.manifest};
           }

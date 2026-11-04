@@ -109,10 +109,14 @@ class StateClient:
             self.poisoned = True
             raise CloudHold("CLOUD_STATE_HOLD") from None
 
-    def acquire(self):
+    def acquire(self, *, required_scope=None):
         try:
             check(not self.held)
-            data = self._json(self._request("/v1/acquire", data={"owner": self.owner}))
+            request = {"owner": self.owner}
+            if required_scope is not None:
+                check(required_scope == "read write")
+                request["required_scope"] = required_scope
+            data = self._json(self._request("/v1/acquire", data=request))
             check(data.get("owner") == self.owner and type(data.get("generation")) is int and
                   data["generation"] > 0 and type(data.get("revision")) is int and data["revision"] >= 0)
             manifest = data.get("manifest")

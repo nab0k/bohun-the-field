@@ -16,7 +16,7 @@ from .harvest import discover
 from .health import evaluate, optional_connect, read_delivery
 from .policy import Problem, assess, digest, identity_url, load_policy, parse_json, read_file, require, stamp
 from .radars import Budget, HTTP, artifact_page, radar_pages
-from .store import Store
+from .store import Store, profile_identity
 
 
 def code_identity():
@@ -43,7 +43,17 @@ class Worker:
         if manager is not None:
             self.producer["manager_sha256"] = hashlib.sha256(read_file(Path(manager.__file__))).hexdigest()
 
-    def cycle(self, *, apply=False, approved_policy_hash=None):
+    def check_delivery_destination(self, profile):
+        group = self.pilot_admission.group_for(profile) if self.pilot_admission else profile["assessment"]["group"]
+        require(group in self.manager.FOLDERS, "ROUTE_UNKNOWN")
+        folder = self.manager.FOLDERS[group]
+        prospective = {**profile, "connection": {"connected_at": self.clock(), "folder": folder}}
+        receipt = self.delivery_reader(prospective)
+        require(receipt.get("read_only") is True and receipt.get("origin_stream_id") == "feed/" + profile["feed_url"]
+                and receipt.get("folder") == folder and isinstance(receipt.get("records"), list)
+                and len(receipt["records"]) <= 20, "DELIVERY_READER_SCOPE")
+
+    def cycle(self, *, apply=False, approved_policy_hash=None, pilot_snapshot=None):
         if self.pilot_admission is not None:
             require(apply, "PILOT_REQUIRES_APPLY")
             self.pilot_admission.check(self.clock())
@@ -76,7 +86,7 @@ class Worker:
                   "supabase_writes": 0, "new_subscriptions": 0, "live_proof": "NOT_ESTABLISHED_BY_CODE"}
         bridge = Bridge(self.manager, http, token, self.store, self.policy, run, self.clock,
                         live_enabled=apply, pilot_proofs=self.config.get("pilot_proofs"),
-                        pilot_admission=self.pilot_admission) if self.manager else None
+                        pilot_admission=self.pilot_admission, snapshot_cache=pilot_snapshot) if self.manager else None
         try:
             # Artifact imports work offline; their cursors are independent of radar cursors.
             for source in self.config.get("artifacts", []):
@@ -119,18 +129,46 @@ class Worker:
                         if source["type"] == "inoreader" and any(code in str(exc) for code in ("_429", "_401", "_403", "QUOTA_BLOCKED")):
                             report["errors"].append("INOREADER_WRITER_BLOCKED")
 
-                # Revalidate pending profiles before spending more slots on new candidates.
+                # Keep a slot for first-time validation even with a large refresh queue.
                 due = self.store.due(self.clock(), self.policy["limits"]["max_sites"])
+                fresh = next((row for row in due if row["state"] == "DISCOVERED"), None)
                 refresh = []
+                reviewed_batch = self.pilot_admission is not None and self.pilot_admission.reviewed
+                reviewed_preflight = reviewed_batch and pilot_snapshot == {}
                 for profile in self.store.profiles():
-                    if profile.get("lifecycle") == "VALIDATED" and profile["assessment"]["decision"] != "REJECT" and \
-                            (self.clock() - profile["validated_at"] > 300 or profile.get("policy_sha256") != self.policy_hash):
-                        refresh.append({"id": profile["candidate_id"], "url": profile["feed_url"],
-                                        "payload": json.dumps({"publisher_hints": profile.get("publisher_hints", [])})})
-                selected = list({r["id"]: r for r in [*refresh, *due]}.values())[:self.policy["limits"]["max_sites"]]
+                    decision = profile["assessment"]["decision"]
+                    stale = self.clock() - profile["validated_at"] > self.policy["limits"]["snapshot_ttl"]
+                    changed_policy = profile.get("policy_sha256") != self.policy_hash
+                    reviewed_pilot = reviewed_batch and self.pilot_admission.selects(profile)
+                    if reviewed_batch and not reviewed_pilot:
+                        continue
+                    if profile.get("lifecycle") == "VALIDATED" and decision != "REJECT" and \
+                            (changed_policy or (stale and (decision == "AUTO_ADMIT" or reviewed_pilot))
+                             or (reviewed_preflight and reviewed_pilot)):
+                        row = {"id": profile["candidate_id"], "url": profile["feed_url"],
+                               "payload": json.dumps({"publisher_hints": profile.get("publisher_hints", [])})}
+                        if reviewed_pilot:
+                            row["expected_profile_id"] = profile["profile_id"]
+                        refresh.append(row)
+                if reviewed_batch:
+                    candidates = refresh
+                else:
+                    queued = {row["id"]: row for row in ([fresh] if fresh else []) + refresh + due}
+                    if pilot_snapshot is not None:
+                        selected_ids = {p["candidate_id"] for p in self.store.profiles() if self.pilot_admission.selects(p)}
+                        queued = {key: row for key, row in queued.items() if key in selected_ids}
+                    candidates = list(queued.values())
+                selected = candidates[:self.policy["limits"]["max_sites"]]
+                if reviewed_preflight and len(selected) != len(candidates):
+                    report["errors"].append("PILOT_VALIDATION_CAP")
                 for candidate in selected:
                     try:
                         feeds = discover(candidate["url"], http, self.clock())
+                        if "expected_profile_id" in candidate:
+                            require(len(feeds) == 1 and feeds[0]["feed_url"] == candidate["url"],
+                                    "PILOT_FEED_CHANGED")
+                            require(profile_identity(feeds[0]) == candidate["expected_profile_id"],
+                                    "PILOT_PROFILE_CHANGED")
                         hints = json.loads(candidate["payload"]).get("publisher_hints", []) if "payload" in candidate else []
                         for feed in feeds:
                             feed["publisher_hints"] = hints
@@ -157,24 +195,29 @@ class Worker:
                 writer_profile = "writer"
                 try:
                     require(not report["errors"], "CYCLE_BUDGET_WRITER_HOLD")
+                    if pilot_snapshot is not None:
+                        require(not any("error" in row for row in report["validation"]), "PILOT_VALIDATION_FAILED")
+                        self.pilot_admission.check_profiles(self.store, self.clock())
+                        if not pilot_snapshot:
+                            subscriptions = bridge.snapshot(bridge.token())
+                            pending = [p for p in self.store.profiles() if self.pilot_admission.selects(p)
+                                       and p.get("lifecycle") == "VALIDATED"]
+                            proposed = {"feed/" + p["feed_url"] for p in pending}
+                            for profile in pending:
+                                bridge.check_subscription_conflicts(profile, subscriptions, require_new=True)
+                                bridge.check_subscription_conflicts(profile, proposed)
+                                self.check_delivery_destination(profile)
                     require(bridge.reconcile(), "UNRESOLVED_WRITE_HOLD")
                     for profile in self.store.profiles():
                         if self.pilot_admission is not None and not self.pilot_admission.selects(profile):
                             continue
-                        if profile.get("lifecycle") != "VALIDATED" or profile["assessment"]["decision"] != "AUTO_ADMIT":
+                        if profile.get("lifecycle") != "VALIDATED":
+                            continue
+                        if self.pilot_admission is None and profile["assessment"]["decision"] != "AUTO_ADMIT":
                             continue
                         writer_profile = profile["profile_id"]
                         require(profile.get("policy_sha256") == self.policy_hash, "POLICY_REVALIDATION_REQUIRED")
-                        # Verify the actual destination reader before allowing a new subscription.
-                        prospective = dict(profile)
-                        prospective["connection"] = {"connected_at": self.clock(),
-                                                       "folder": self.manager.FOLDERS[profile["assessment"]["group"]]}
-                        receipt = self.delivery_reader(prospective)
-                        require(receipt.get("read_only") is True and
-                                receipt.get("origin_stream_id") == "feed/" + profile["feed_url"] and
-                                receipt.get("folder") == prospective["connection"]["folder"] and
-                                isinstance(receipt.get("records"), list) and len(receipt["records"]) <= 20,
-                                "DELIVERY_READER_SCOPE")
+                        self.check_delivery_destination(profile)
                         result = bridge.connect(profile)
                         report["connections"].append({"profile_id": profile["profile_id"], "summary": result["summary"]})
                         report["new_subscriptions"] += result["summary"]["added"]

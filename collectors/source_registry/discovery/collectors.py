@@ -33,13 +33,14 @@ def load_manager(field_root, expected_hash):
 
 class Bridge:
     def __init__(self, manager, http, token_provider, store, policy, run_id, clock,
-                 *, live_enabled=False, pilot_proofs=None, pilot_admission=None):
+                 *, live_enabled=False, pilot_proofs=None, pilot_admission=None, snapshot_cache=None):
         self.manager, self.http, self.token_provider = manager, http, token_provider
         self.store, self.policy, self.run_id, self.clock = store, policy, run_id, clock
         self.live_enabled = live_enabled
         self.pilot_proofs = pilot_proofs or {}
         require(pilot_admission is None or isinstance(pilot_admission, PilotAdmission), "PILOT_ADMISSION_TYPE")
         self.pilot_admission = pilot_admission
+        self.snapshot_cache = snapshot_cache
         self.token_value = None
 
     def token(self):
@@ -48,6 +49,11 @@ class Bridge:
         return self.token_value
 
     def snapshot(self, token):
+        cache = self.snapshot_cache
+        if cache:
+            require(0 <= self.clock() - cache["at"] <= self.policy["limits"]["snapshot_ttl"],
+                    "PILOT_SUBSCRIPTION_SNAPSHOT_STALE")
+            return cache["subscriptions"]
         response = api_json(self.http, "subscription/list", token)
         body = parse_json(response.body)
         require(isinstance(body, dict) and isinstance(body.get("subscriptions"), list)
@@ -59,6 +65,8 @@ class Bridge:
                     and all(isinstance(c, dict) for c in sub.get("categories", [])), "SNAPSHOT_ITEM")
             require(sub["id"] not in snapshot, "SNAPSHOT_DUPLICATE")
             snapshot[sub["id"]] = sub
+        if cache is not None:
+            cache.update(at=self.clock(), subscriptions=snapshot)
         return snapshot
 
     def reconcile(self):
@@ -79,46 +87,57 @@ class Bridge:
                 self.store.operation_state(operation["id"], "RECONCILED")
                 for profile in self.store.profiles():
                     if profile["profile_id"] == operation["profile_id"]:
-                        self._connected(profile, folder, operation["created"], operation["id"])
+                        self._connected(profile, folder, operation["created"], operation["id"],
+                                        pilot_sha256=data.get("pilot_sha256"))
             else:
                 self.store.event("WRITER_HOLD", operation["id"], {"reason": "OUTCOME_REQUIRES_REVIEW"}, self.clock())
         return not self.store.unresolved()
 
-    def _connected(self, profile, folder, now, operation):
+    def _connected(self, profile, folder, now, operation, *, pilot_sha256=None):
         profile["lifecycle"] = "CONNECTED"
         profile["connection"] = {"membership_verified": True, "folder_verified": True,
                                   "connected_at": now, "verified_at": self.clock(),
                                   "folder": folder, "operation_id": operation,
                                   "stream_id": "feed/" + profile["feed_url"]}
+        if pilot_sha256 is not None:
+            profile["connection"]["pilot_sha256"] = pilot_sha256
         self.store.put_profile(profile)
         self.store.event("CONNECTED", profile["profile_id"], {"folder": folder}, self.clock())
 
-    def connect(self, profile):
-        require(self.live_enabled, "WRITER_DISABLED")
-        if self.pilot_admission is not None:
-            self.pilot_admission.admit(profile, self.store, self.clock())
-        else:
-            require(self.pilot_proofs.get("single") is True and self.pilot_proofs.get("batch3") is True,
-                    "PILOT_PROOFS_REQUIRED")
-        require(profile["assessment"]["decision"] == "AUTO_ADMIT", "ADMISSION_REQUIRED")
-        now = self.clock()
-        require(0 <= now - profile["validated_at"] <= self.policy["limits"]["snapshot_ttl"], "VALIDATION_STALE")
-        group = profile["assessment"]["group"]
-        require(group in self.manager.FOLDERS, "ROUTE_UNKNOWN")
+    def check_subscription_conflicts(self, profile, subscriptions, *, require_new=False):
         feed_url = identity_url(profile["feed_url"])
-        folder = self.manager.FOLDERS[group]
-        require(self.reconcile(), "UNRESOLVED_WRITE_HOLD")
-        preflight = self.snapshot(self.token())
+        stream_id = "feed/" + feed_url
+        if require_new:
+            require(stream_id not in subscriptions, "PILOT_ALREADY_SUBSCRIBED")
         aliases = set(profile.get("aliases", [])) - {feed_url}
         hosts = {urlsplit(url).hostname for url in [feed_url, profile.get("publisher_url", feed_url),
                                                    *profile.get("publisher_hints", [])]}
-        for stream in preflight:
-            if not stream.startswith("feed/") or stream == "feed/" + feed_url:
+        for stream in subscriptions:
+            if not stream.startswith("feed/") or stream == stream_id:
                 continue
             existing = stream[5:]
             require(existing not in aliases, "EXISTING_ALIAS_REVIEW")
             require(urlsplit(existing).hostname not in hosts, "EXISTING_HOST_PROFILE_REVIEW")
-        operation = self.store.begin_operation(profile, self.run_id, now)
+
+    def connect(self, profile):
+        require(self.live_enabled, "WRITER_DISABLED")
+        now = self.clock()
+        if self.pilot_admission is not None:
+            group = self.pilot_admission.admit(profile, self.store, now)
+        else:
+            require(self.pilot_proofs.get("batch3") is True,
+                    "PILOT_PROOFS_REQUIRED")
+            require(profile["assessment"]["decision"] == "AUTO_ADMIT", "ADMISSION_REQUIRED")
+            group = profile["assessment"]["group"]
+        require(0 <= now - profile["validated_at"] <= self.policy["limits"]["snapshot_ttl"], "VALIDATION_STALE")
+        require(group in self.manager.FOLDERS, "ROUTE_UNKNOWN")
+        feed_url = identity_url(profile["feed_url"])
+        folder = self.manager.FOLDERS[group]
+        require(self.reconcile(), "UNRESOLVED_WRITE_HOLD")
+        self.check_subscription_conflicts(profile, self.snapshot(self.token()),
+                                          require_new=self.snapshot_cache is not None)
+        pilot_sha256 = self.pilot_admission.sha256 if self.pilot_admission is not None else None
+        operation = self.store.begin_operation(profile, self.run_id, now, group=group, pilot_sha256=pilot_sha256)
         directory = self.store.root / "operations" / operation
         directory.mkdir(parents=True, mode=0o700)
         name = "Candidate " + profile["profile_id"][:16]
@@ -150,6 +169,9 @@ class Bridge:
                 raise Problem("WRITE_METHOD_DENIED")
             self.store.reserve(operation, self.run_id, kind, when, day_limit=day_limit, cycle_limit=cycle_limit)
             self.store.operation_state(operation, "SENDING_" + kind.upper())
+            # A post-write readback must never reuse a pre-write snapshot.
+            if self.snapshot_cache is not None:
+                self.snapshot_cache.clear()
             response = api_json(self.http, path, token, form=values)
             return response.body.decode("utf-8")
 
@@ -161,10 +183,12 @@ class Bridge:
             report = parse_json(read_file(report_path))
             data = {"feed_url": feed_url, "group": group, "receipt": report,
                     "policy_sha256": profile.get("policy_sha256"), "producer": profile.get("producer", "UNKNOWN")}
+            if pilot_sha256 is not None:
+                data["pilot_sha256"] = pilot_sha256
             item = report["results"][0]
             if code == 0 and item.get("membership_verified") is True and item.get("folder_verified") is True:
                 self.store.operation_state(operation, "CONFIRMED", data)
-                self._connected(profile, folder, now, operation)
+                self._connected(profile, folder, now, operation, pilot_sha256=pilot_sha256)
                 return report
             self.store.operation_state(operation, "UNKNOWN" if self.store.has_attempt(operation) else "CANCELLED", data)
             raise Problem("CONNECTION_NOT_CONFIRMED")

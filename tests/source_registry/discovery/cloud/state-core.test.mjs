@@ -69,13 +69,13 @@ async function acquire(f, token = owner) {
 const seed = "SYNTHETIC_REFRESH_SEED";
 const tokenReply = n => ({access_token: "SYNTHETIC_ACCESS_" + n, refresh_token: "SYNTHETIC_REFRESH_" + n,
   token_type: "Bearer", scope: "read", expires_in: 3600});
-function oauthFixture(path) {
+function oauthFixture(path, scope = "read") {
   const seen = [], clock = {ms: Date.now()};
   const f = fixture(identity, path, {oauthBootstrap: true, oauthSeed: () => seed,
     now: () => clock.ms, oauthRefresh: async refresh => {
       assert.equal(f.core.credential().status, "REFRESHING");
       assert.equal(refresh, seen.length ? tokenReply(seen.length).refresh_token : seed);
-      seen.push(refresh); return tokenReply(seen.length);
+      seen.push(refresh); return {...tokenReply(seen.length), scope};
     }});
   return Object.assign(f, {seen, clock});
 }
@@ -92,7 +92,7 @@ if (process.argv.includes("--protocol")) {
       const item = JSON.parse(line);
       if (item.setup) {
         assert.ok(item.setup.token.startsWith("SYNTHETIC_"));
-        f = item.setup.oauth ? oauthFixture() : fixture(item.setup);
+        f = item.setup.oauth ? oauthFixture(undefined, item.setup.oauth_scope) : fixture(item.setup);
         if (item.setup.oauth) Object.assign(f.core.expected, item.setup);
         f.env.RUNTIME_TOKEN = item.setup.token;
         console.log(JSON.stringify({ready: true}));
@@ -362,6 +362,51 @@ if (process.argv.includes("--protocol")) {
   function readCurrent(f) {
     return f.request("/v1/status", {headers: {"X-Code-Sha256": newCode}});
   }
+  test("write-scope denial does not acquire a lease or interfere with a later reader", async () => {
+    const f = oauthFixture(), lease = await oauthBoot(f);
+    await f.request("/v1/oauth-access", {lease, body:{scope:"read"}});
+    assert.equal((await f.request("/v1/release", {lease})).status, 200);
+    assert.equal((await f.request("/v1/acquire", {body:{owner, required_scope:"read write"}})).status, 409);
+    const status = await (await f.request("/v1/status")).json();
+    assert.equal(status.leased, false);
+    assert.equal(status.generation, lease.generation);
+    assert.equal(status.oauth.credential.scope, "read");
+    assert.equal((await f.request("/v1/acquire", {body:{owner}})).status, 200);
+  });
+  test("explicit write promotion preserves a healthy idle journal and permits a scoped lease", async () => {
+    const f = oauthFixture(), lease = await oauthBoot(f);
+    await f.request("/v1/oauth-access", {lease, body:{scope:"read"}});
+    assert.equal((await f.request("/v1/release", {lease})).status, 200);
+    const before = f.s.sql.exec("SELECT * FROM checkpoints ORDER BY revision,part").toArray();
+    enableRecovery(f, {action:"PROMOTE_WRITE"}, {scope:"read write"});
+    const reply = await (await recover(f)).json();
+    assert.equal(reply.status, "OAUTH_WRITE_ENABLED");
+    assert.equal(reply.credential_generation, 2);
+    assert.equal(reply.revision, lease.revision);
+    assert.equal((await recover(f)).status, 409);
+    assert.deepEqual(f.s.sql.exec("SELECT * FROM checkpoints ORDER BY revision,part").toArray(), before);
+    const status = await (await readCurrent(f)).json();
+    assert.equal(status.leased, false);
+    assert.equal(status.oauth.diagnostic.stage, "WRITE_ENABLED");
+    assert.equal(status.oauth.credential.scope, "read write");
+    assert.equal(f.seen.length, 1);
+    const next = await f.request("/v1/acquire", {body:{owner, required_scope:"read write"}, headers:{"X-Code-Sha256":newCode}});
+    assert.equal(next.status, 200);
+  });
+  test("write promotion cannot change a leased, stale or insufficient grant", async () => {
+    for (const mode of ["active_lease", "stale_fence", "read_grant"]) {
+      const f = oauthFixture(), lease = await oauthBoot(f);
+      await f.request("/v1/oauth-access", {lease, body:{scope:"read"}});
+      if (mode !== "active_lease") await f.request("/v1/release", {lease});
+      const before = f.s.sql.exec("SELECT * FROM control").toArray();
+      const override = mode === "stale_fence" ? {revision:lease.revision + 1} : {};
+      enableRecovery(f, {action:"PROMOTE_WRITE", ...override}, {scope:mode === "read_grant" ? "read" : "read write"});
+      assert.equal((await recover(f)).status, 409);
+      assert.deepEqual(f.s.sql.exec("SELECT * FROM control").toArray(), before);
+      assert.equal(f.core.credential().scope, "read");
+      assert.equal(f.core.credential().generation, 1);
+    }
+  });
   test("HTTP errors retain only numeric status; secret provider body is never consumed", async () => {
     let reads = 0;
     const fetcher = async () => ({status: 401, url: "https://www.inoreader.com/oauth2/token", read() {reads++; throw Error(seed);}});

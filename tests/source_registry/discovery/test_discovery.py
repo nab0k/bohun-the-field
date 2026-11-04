@@ -514,6 +514,25 @@ class TransportTests(Offline):
 
 
 class ContinuousTests(Offline):
+    def test_new_candidate_has_a_slot_with_a_full_old_profile_queue(self):
+        for decision in ("REVIEW", "AUTO_ADMIT"):
+            with self.subTest(decision=decision):
+                store = self.state(name="queue-" + decision.lower())
+                for index in range(POLICY["limits"]["max_sites"]):
+                    profile = self.profile(store, f"https://old-{index}.example/feed")
+                    profile["assessment"]["decision"] = decision
+                    store.put_profile(profile)
+                self.clock.advance(POLICY["limits"]["snapshot_ttl"] + 1)
+                new_url = "https://new-publisher.example/feed"
+                store.ingest("radar", "test", [{"item_id": "fresh", "feed_url": new_url}], {}, self.clock.now())
+                with patch("collectors.source_registry.discovery.discovery.discover",
+                           side_effect=lambda url, *_: [self.feed(url)]) as discover_feed:
+                    self.worker(store, Server(), providers=[]).cycle()
+                self.assertEqual(discover_feed.call_args_list[0].args[0], new_url)
+                self.assertLessEqual(discover_feed.call_count, POLICY["limits"]["max_sites"])
+                if decision == "REVIEW":
+                    self.assertEqual(discover_feed.call_count, 1)
+
     def test_full_pipeline_three_radars_68_existing_not_discovery_repeat_zero_adds(self):
         store, server = self.state(), Server()
         worker = self.worker(store, server)

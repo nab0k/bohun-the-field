@@ -32,6 +32,11 @@ def encoded(value):
     return json.dumps(value, ensure_ascii=False, sort_keys=True, allow_nan=False)
 
 
+def profile_identity(feed):
+    return digest([identity_url(feed["feed_url"]), feed.get("language", ""),
+                   feed.get("section", ""), feed.get("access", "UNKNOWN")])
+
+
 class CheckpointError(BaseException):
     """Fatal: committed local state may differ from its durable cloud copy."""
 
@@ -197,8 +202,7 @@ class Store:
     def validate(self, cid, profiles, now):
         with self.transaction():
             for feed in profiles:
-                fid = digest([identity_url(feed["feed_url"]), feed.get("language", ""),
-                              feed.get("section", ""), feed.get("access", "UNKNOWN")])
+                fid = profile_identity(feed)
                 receipt = {**feed, "profile_id": fid, "candidate_id": cid, "validated_at": now}
                 row = self.db.execute("SELECT id,payload FROM channel_profiles WHERE endpoint=?", (feed["feed_url"],)).fetchone()
                 if row and row[0] != fid:
@@ -264,14 +268,18 @@ class Store:
             require(count < day_limit and cycle < cycle_limit, "QUOTA_BLOCKED")
             self.db.execute("INSERT INTO attempt_ledger VALUES (?,?,?,?,?,?)", (key, operation, run, kind, day, now))
 
-    def begin_operation(self, profile, run, now):
+    def begin_operation(self, profile, run, now, *, group=None, pilot_sha256=None):
         require(not self.unresolved(), "UNRESOLVED_WRITE_HOLD")
         op = uuid.uuid4().hex
+        payload = {"feed_url": profile["feed_url"],
+                   "group": group if group is not None else profile["assessment"]["group"],
+                   "policy_sha256": profile.get("policy_sha256"),
+                   "producer": profile.get("producer", "UNKNOWN")}
+        if pilot_sha256 is not None:
+            payload["pilot_sha256"] = pilot_sha256
         with self.transaction():
             self.db.execute("INSERT INTO connection_operations VALUES (?,?,?,'PREPARED',?,?)",
-                            (op, profile["profile_id"], run, encoded({"feed_url": profile["feed_url"],
-                             "group": profile["assessment"]["group"], "policy_sha256": profile.get("policy_sha256"),
-                             "producer": profile.get("producer", "UNKNOWN")}), now))
+                            (op, profile["profile_id"], run, encoded(payload), now))
         return op
 
     def operation_state(self, op, state, payload=None):
