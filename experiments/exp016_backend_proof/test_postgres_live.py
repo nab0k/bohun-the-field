@@ -141,6 +141,13 @@ class PostgresLive(unittest.TestCase):
             with self.assertRaises(Exception) as cm:conn.execute('SELECT companies.automation_rpc_v0(%s,%s::jsonb)',('status','{}'))
             self.assertEqual(cm.exception.sqlstate,'42501')
 
+    def test_01b_lock_grant_does_not_let_owner_change_control(self):
+        with self.connect_admin() as conn:
+            conn.execute('SET ROLE bohun_companies_owner_v0')
+            with self.assertRaises(Exception) as cm:
+                conn.execute('UPDATE companies.automation_control SET updated_at=clock_timestamp()')
+        self.assertEqual(cm.exception.sqlstate,'42501')
+
     def test_02_missing_trusted_reader_is_not_empty_success(self):
         self.admin('DROP FUNCTION companies.automation_profile_read_v0(text[])')
         with self.assertRaisesRegex(c.ContractError,'PROFILE_READER_NOT_READY'):self.port().read_current((CID,))

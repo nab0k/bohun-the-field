@@ -95,6 +95,10 @@ revoke all on companies.automation_control,companies.automation_job,companies.au
 grant select on companies.automation_control to bohun_companies_owner_v0;
 grant select,insert,update on companies.automation_job,companies.automation_checkpoint to bohun_companies_owner_v0;
 create policy automation_control_owner on companies.automation_control for select to bohun_companies_owner_v0 using(true);
+-- FOR SHARE in automation_rpc_v0 needs UPDATE on one column and an UPDATE policy.
+-- WITH CHECK(false) keeps the row lock but denies any real change by this role.
+grant update(updated_at) on companies.automation_control to bohun_companies_owner_v0;
+create policy automation_control_owner_lock on companies.automation_control for update to bohun_companies_owner_v0 using(true) with check(false);
 create policy automation_job_owner on companies.automation_job to bohun_companies_owner_v0 using(true) with check(true);
 create policy automation_checkpoint_owner on companies.automation_checkpoint to bohun_companies_owner_v0 using(true) with check(true);
 
