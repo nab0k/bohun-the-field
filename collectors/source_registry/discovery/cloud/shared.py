@@ -96,6 +96,22 @@ class SharedQuota:
         self.pending = {"zone": zone, "attempt": attempt or uuid.uuid4().hex}
         self.attempts += 1
 
+    def require_capacity(self, *, reads, writes):
+        """Check a bounded pilot can afford its write and readback sequence."""
+        require(self.consumer == "discovery" and self.pending is None, "SHARED_PILOT_QUOTA_CONTEXT")
+        value = self.read()
+        now = int(self.clock())
+        day = time.strftime("%Y-%m-%d", time.gmtime(now))
+        total = reads + writes
+        require(self.attempts + total <= self.max_attempts and
+                value["daily"].get(day, 0) + total <= self.day_cap, "SHARED_PILOT_QUOTA_INSUFFICIENT")
+        for zone, count in (("1", reads), ("2", writes)):
+            if count:
+                row = value["zones"].get(zone)
+                require(row and row["verified"] and now < row["reset_at"] and
+                        row["limit"] - row["charged"] - count >= self.reserve,
+                        "SHARED_PILOT_QUOTA_INSUFFICIENT")
+
     def observe(self, headers):
         require(self.pending is not None, "SHARED_RESPONSE_WITHOUT_RESERVATION")
         values = {str(k).lower(): str(v) for k, v in headers.items()}

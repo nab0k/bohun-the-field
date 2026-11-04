@@ -69,7 +69,6 @@ def settings(document, *, apply=False, approved_policy_hash=None):
         require(config.get("live_inputs") is True and config.get("writer_enabled") is True and
                 config.get("collector_ready") is True and config.get("delivery", {}).get("enabled") is True and
                 manager is not None and approved_policy_hash == policy_hash and
-                config.get("pilot_proofs", {}).get("single") is True and
                 config.get("pilot_proofs", {}).get("batch3") is True, "CLOUD_APPLY_NOT_ADMITTED")
     return config, policy, policy_hash, allowed, root, manager
 
@@ -125,6 +124,9 @@ def execute(document, *, mode="once", allow_live=False, apply=False, approved_po
         require(config.get("live_inputs") is True and config.get("writer_enabled") is True and
                 config.get("collector_ready") is True and config.get("delivery", {}).get("enabled") is True and
                 manager is not None and approved_policy_hash == policy_hash, "CLOUD_PILOT_NOT_ADMITTED")
+        if admission.stage != "single":
+            require(not any(source.get("enabled", True) for source in config.get("providers", [])),
+                    "BATCH3_REQUIRES_PREVALIDATED_INPUTS")
     if mode == "validate":
         return {"status": "VALIDATED_NO_IO", "mode": "VALIDATE"}
     require(document["enabled"] is True and allow_live, "CLOUD_LIVE_NOT_ALLOWED")
@@ -141,15 +143,18 @@ def execute(document, *, mode="once", allow_live=False, apply=False, approved_po
         with Store(root, config["deployment_id"], bootstrap=True) as store:
             client.bootstrap(store.db.serialize())
         return {"status": "BOOTSTRAPPED_NO_SOURCE_IO", "mode": "BOOTSTRAP"}
-    client.acquire()
+    writing = apply or admission is not None
+    # Scope is checked in the coordinator's acquire transaction. A read-only
+    # grant can never take the lease for a writer and block the collector.
+    client.acquire(required_scope="read write" if writing else None)
     restore(client.download(), allowed, root, config["deployment_id"])
     # Store verifies SQLite integrity, schema and deployment before starting Worker.
     delivery = config.get("delivery", {})
     reader = (lambda profile: read_delivery(lambda: optional_connect(delivery), delivery, profile)) \
         if delivery.get("enabled") else None
     with Store(root, config["deployment_id"], checkpoint=client.checkpoint) as store:
-        writing = apply or admission is not None
         options = {"pilot_admission": admission, "shared_budget": Budget(policy["limits"])} if admission else {}
+        quota = None
         if config.get("api_quota_mode") == "shared":
             quota = SharedQuota(store, "discovery")
             options["http_wrapper"] = lambda http: SharedHTTP(http, quota)
@@ -157,7 +162,7 @@ def execute(document, *, mode="once", allow_live=False, apply=False, approved_po
             token_provider_factory=lambda http: AccessProvider(client, http, scope="read write" if writing else "read"),
             **options)
         if admission:
-            reports, complete = run_cycles(worker, admission, policy_hash)
+            reports, complete = run_cycles(worker, admission, policy_hash, quota=quota)
             counts = [summary(r, True) for r in reports]
             safe = {"status": "PILOT_CONNECTIONS_CONFIRMED" if complete else "CYCLE_PARTIAL",
                     "mode": "PILOT", "stage": admission.stage, "cycles": len(reports),
