@@ -1,129 +1,82 @@
-name: BOHUN knowledge-base pilot (manual, EXP-028)
-run-name: kb-pilot ${{ inputs.day_from }}..${{ inputs.day_to }} limit ${{ inputs.limit }}
+name: CAPACITY FActScore native import (isolated)
+run-name: CAPACITY FActScore native import
 on:
   workflow_dispatch:
     inputs:
-      day_from:
-        description: First publication day (YYYY-MM-DD)
-        type: string
-        required: true
-      day_to:
-        description: Last publication day (YYYY-MM-DD)
-        type: string
-        required: true
-      limit:
-        description: First N news items only (0 = all)
-        type: string
-        required: false
-        default: '1'
-      schema_mode:
-        description: schema = JSON schema with search; text = JSON asked in the prompt
-        type: choice
-        options: [schema, text]
-        default: text
-      source:
-        description: events = items that reached the old writer; items = every item with a body
-        type: choice
-        options: [events, items]
-        default: events
-      batch:
-        description: Each model phase as one Gemini Batch request (half price, may wait)
-        type: boolean
-        default: false
-      dossier_write:
-        description: Save verified rows to the programme dossier (knowledge v16)
-        type: boolean
-        default: true
-      mode:
-        description: pilot = the run; pilot-publish = the run + CANDIDATEs held in the feed tables; admit = automatic admission of held syntheses (limit = max published, dossier_write off = dry run); extract = relations from every item (free models only); fulltext = publisher pages for items without text (measurement, no write); probe = one neutral grounded question
-        type: choice
-        options: [pilot, pilot-publish, admit, embed, extract, fulltext, probe, probe-cloudflare, probe-free]
-        default: pilot
-      research_thinking:
-        description: Thinking level of the research (search) step
-        type: choice
-        options: [low, medium, high]
-        default: medium
       expected_sha:
-        description: Exact reviewed main commit
+        description: Exact reviewed trial commit
         type: string
         required: true
 permissions:
   contents: read
 concurrency:
-  group: bohun-kb-pilot
+  group: capacity-factscore-native-20261104
   cancel-in-progress: false
 jobs:
-  pilot:
-    if: github.repository == 'nab0k/bohun-the-field' && github.actor == 'nab0k' && github.run_attempt == 1
+  native:
+    if: github.repository == 'nab0k/bohun-the-field' && github.actor == 'nab0k' && github.run_attempt == 1 && github.ref == 'refs/heads/codex/capacity-factscore-native-20261104'
     runs-on: ubuntu-24.04
-    timeout-minutes: 180
+    timeout-minutes: 16
     env:
       PYTHONDONTWRITEBYTECODE: '1'
+      PIP_DISABLE_PIP_VERSION_CHECK: '1'
+      PIP_NO_INPUT: '1'
     steps:
-      - name: Verify reviewed revision before credentials
+      - name: Verify exact reviewed trial commit
         env:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
         run: |
-          test "$EXPECTED_SHA" = "$GITHUB_SHA"
-          test "$GITHUB_REF" = 'refs/heads/main'
+          set -eu
           test "${#EXPECTED_SHA}" -eq 40
           case "$EXPECTED_SHA" in *[!0-9a-f]*) exit 1 ;; esac
+          test "$EXPECTED_SHA" = "$GITHUB_SHA"
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
-          python-version: '3.13'
-      - name: Offline pilot tests
-        run: python -B -m unittest tests/kb_pilot/test_pilot.py tests/kb_pilot/test_transport.py
-      - name: Temporary pinned PostgreSQL driver
+          python-version: '3.10'
+      - name: Resolve CPU wheels and install in a temporary venv
         run: |
-          python -m venv "$RUNNER_TEMP/bohun-kb"
-          "$RUNNER_TEMP/bohun-kb/bin/python" -m pip install --only-binary=:all: --disable-pip-version-check 'psycopg[binary]==3.3.6'
-      - name: Article extractor (fulltext mode only; pinned, never on the owner's Mac)
-        if: inputs.mode == 'fulltext'
+          set -euo pipefail
+          root="$RUNNER_TEMP/factscore-native"
+          mkdir -m 700 "$root" "$root/torch" "$root/wheels"
+          python -m venv "$root/venv"
+          py="$root/venv/bin/python"
+          "$py" -m pip --isolated download --timeout 25 --retries 0 \
+            --only-binary=:all: --no-deps --index-url https://download.pytorch.org/whl/cpu \
+            --dest "$root/torch" 'torch==1.13.1+cpu'
+          wheels=("$root"/torch/torch-1.13.1+cpu-cp310-*-linux_x86_64.whl)
+          test "${#wheels[@]}" -eq 1
+          test -f "${wheels[0]}"
+          "$py" -m pip --isolated download --timeout 25 --retries 0 \
+            --only-binary=:all: --index-url https://pypi.org/simple --dest "$root/wheels" \
+            "${wheels[0]}" 'numpy==1.24.4' 'transformers==4.29.2' \
+            'openai==0.27.10' 'spacy==3.5.4' 'thinc==8.1.12' 'blis==0.7.11' \
+            'pydantic==1.10.15' 'nltk==3.8.1' 'rank-bm25==0.2.2' 'tqdm==4.66.6' \
+            'huggingface-hub==0.16.4' 'tokenizers==0.13.3' 'sentencepiece==0.1.99'
+          (
+            cd "$root/wheels"
+            sha256sum -- *.whl | tee "$root/wheel-sha256.txt"
+            grep -Fx '7bd4a95571adadfc271746fa146a4bcfd89c0cf731e49c3d1ad863290adbe8ae  rank_bm25-0.2.2-py3-none-any.whl' "$root/wheel-sha256.txt"
+          )
+          "$py" -m pip --isolated install --no-index --no-deps "$root"/wheels/*.whl
+          "$py" -m pip check
+      - name: Download and verify the pinned upstream source
         run: |
-          "$RUNNER_TEMP/bohun-kb/bin/python" -m pip install --disable-pip-version-check 'trafilatura==2.3.1'
-      - name: Spare embedding model (bge-m3 on CPU, embed mode only)
-        if: inputs.mode == 'embed'
-        run: |
-          "$RUNNER_TEMP/bohun-kb/bin/python" -m pip install --disable-pip-version-check --index-url https://download.pytorch.org/whl/cpu 'torch==2.6.0'
-          "$RUNNER_TEMP/bohun-kb/bin/python" -m pip install --disable-pip-version-check 'sentence-transformers==3.4.1'
-      - name: Cache the spare embedding model
-        if: inputs.mode == 'embed'
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/huggingface
-          key: hf-bge-m3-v1
-      - name: Run the pilot (writes only the dossier tables; cap $2 per run)
+          set -euo pipefail
+          archive="$RUNNER_TEMP/factscore-native/upstream.tar.gz"
+          curl --fail --silent --show-error --proto '=https' --max-time 40 --max-filesize 100000 \
+            https://codeload.github.com/shmsw25/FActScore/tar.gz/f28272deffcf33efc1f1117d5479c10bb75221a9 -o "$archive"
+          printf '%s  %s\n' dcc1c9139b6f54ef3d946dc1bbc58b0080092fcbab023890a0728fd17e0eaa4f "$archive" | sha256sum -c -
+      - name: Normal upstream imports and simulated verdicts
         env:
-          DAY_FROM: ${{ inputs.day_from }}
-          DAY_TO: ${{ inputs.day_to }}
-          LIMIT: ${{ inputs.limit }}
-          SCHEMA_MODE: ${{ inputs.schema_mode }}
-          KB_RESEARCH_THINKING: ${{ inputs.research_thinking }}
-          KB_MODE: ${{ inputs.mode }}
-          SOURCE: ${{ inputs.source }}
-          BATCH: ${{ inputs.batch && '--batch' || '' }}
-          NO_DOSSIER: ${{ (!inputs.dossier_write) && '--no-dossier-write' || '' }}
-          PUBLISH_HOLD: ${{ inputs.mode == 'pilot-publish' && '--publish-hold' || '' }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          # Free model (Workers AI); absent secrets = every step on Gemini.
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_WORKERS_AI_TOKEN: ${{ secrets.CLOUDFLARE_WORKERS_AI_TOKEN }}
-          # Further free providers (D-20261029-EXP028 A13); absent = not used.
-          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          GEMINI_FREE_API_KEY: ${{ secrets.GEMINI_FREE_API_KEY }}
-        run: '"$RUNNER_TEMP/bohun-kb/bin/python" -B -m collectors.kb_pilot --day-from "$DAY_FROM" --day-to "$DAY_TO" --limit "${LIMIT:-0}" --schema-mode "$SCHEMA_MODE" --source "$SOURCE" $BATCH $NO_DOSSIER $PUBLISH_HOLD --out "$RUNNER_TEMP/kb-pilot-out"'
-      - name: Keep the result for review
-        if: always()
-        uses: actions/upload-artifact@v4.6.2
-        with:
-          name: kb-pilot-result
-          path: ${{ runner.temp }}/kb-pilot-out
-          retention-days: 14
-          if-no-files-found: warn
+          HF_HUB_OFFLINE: '1'
+          TRANSFORMERS_OFFLINE: '1'
+          HF_HUB_DISABLE_TELEMETRY: '1'
+          TOKENIZERS_PARALLELISM: 'false'
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/factscore-native"
+          "$root/venv/bin/python" -I scripts/capacity-factscore/native_import.py "$root/upstream.tar.gz" | tee "$root/result.json"
