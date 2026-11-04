@@ -28,7 +28,9 @@ def node_key(name):
 GENERIC = {"other", "others", "unknown", "none", "n a", "na", "programme", "program", "contract", "company",
            "companies", "government", "the government", "ministry of defence", "ministry of defense", "mod", "dod",
            "army", "navy", "air force", "military", "armed forces", "industry", "partners", "customer", "customers",
-           "the company", "it", "they", "we", "supplier", "suppliers", "manufacturer", "country", "countries"}
+           "the company", "it", "they", "we", "supplier", "suppliers", "manufacturer", "country", "countries",
+           # C3-08: a model term matched this node and gave nine unrelated events one foreign dossier
+           "technology programme", "technology program"}
 
 
 def is_generic(name):
