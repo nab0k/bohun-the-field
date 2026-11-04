@@ -122,7 +122,7 @@ def mark_processed(cur, events):
     outcome = {"CANDIDATE": "event", "HOLD": "hold", "REJECT": "reject"}
     n = 0
     for rec in events:
-        if rec.get("outcome") not in outcome:
+        if rec.get("outcome") not in outcome or rec.get("publish_error"):
             continue
         for k, item_id in enumerate(rec["item_ids"]):
             cur.execute("""INSERT INTO knowledge.item_processing (item_id, pipeline_version, outcome, reason_codes,
@@ -901,4 +901,5 @@ def main(argv=None):
     result["spent_by_step"] = ledger.steps
     (out_dir / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
     print("KB_PILOT_RESULT " + canonical(summary(result, ledger)))
-    return 1 if result.get("stop") else 0
+    return 1 if (result.get("stop") not in (None, "NO_EVENTS_IN_WINDOW")
+                 or result.get("mark_error") or any(r.get("publish_error") for r in result["events"])) else 0
