@@ -13,7 +13,7 @@ function scopes(value) {
 }
 
 // Only fixed codes and numeric status survive an OAuth failure; never provider text.
-const OAUTH_STAGES = new Set(["PREPARED", "REFRESH_DISPATCHED", "READY", "RECOVERED", "WRITE_ENABLED",
+const OAUTH_STAGES = new Set(["PREPARED", "REFRESH_DISPATCHED", "READY", "RECOVERED", "WRITE_ENABLED", "READ_RESTORED",
   "OAUTH_CREDENTIALS", "OAUTH_NETWORK_UNKNOWN", "OAUTH_TIMEOUT_UNKNOWN", "OAUTH_HTTP",
   "OAUTH_REDIRECT", "OAUTH_BODY_UNKNOWN", "OAUTH_JSON", "OAUTH_RESPONSE_CONTRACT",
   "OAUTH_STORAGE_BEFORE_REQUEST", "OAUTH_STORAGE_UNKNOWN"]);
@@ -216,8 +216,15 @@ export class StateCoordinator {
     check(spec && typeof spec.operation_id === "string" && HEX.test(spec.operation_id) && body.operation_id === spec.operation_id &&
       HEX.test(spec.previous_code_sha256) && HEX.test(spec.snapshot_sha256) &&
       [spec.revision, spec.lease_generation, spec.credential_generation].every(n => Number.isSafeInteger(n) && n >= 0));
-    check(!Object.hasOwn(spec, "action") || spec.action === "PROMOTE_WRITE");
-    const promote = spec.action === "PROMOTE_WRITE";
+    check(!Object.hasOwn(spec, "action") || ["PROMOTE_WRITE", "RESTORE_READ"].includes(spec.action));
+    const promote = spec.action === "PROMOTE_WRITE", restoreRead = spec.action === "RESTORE_READ";
+    if (restoreRead) {
+      check(typeof spec.expected_leased === "boolean");
+      // The operator verifies the runner ended before issuing the private recovery spec.
+      check(spec.expected_leased
+        ? Number.isSafeInteger(spec.terminated_run_id) && spec.terminated_run_id > 0
+        : !Object.hasOwn(spec, "terminated_run_id"));
+    }
     const operationHash = await hash(new TextEncoder().encode(body.operation_id));
     const now = Math.floor((this.expected.now ? this.expected.now() : Date.now()) / 1000);
     check(grant && grant.client_id === this.expected.oauthClientId && typeof grant.client_id === "string" &&
@@ -232,13 +239,16 @@ export class StateCoordinator {
     check(await hash(raw) === spec.snapshot_sha256 && previewManifest.sha256 === spec.snapshot_sha256);
     const reply = this.storage.transactionSync(() => {
       check(this.storage.sql.exec("SELECT operation_hash FROM oauth_recoveries WHERE operation_hash=?", operationHash).toArray().length === 0);
-      // A new executable pin may be installed while the old journal remains held.
-      // This is the ONLY explicit, audited pin transition; policy/deployment cannot change.
+      // Recovery may install a new executable pin without changing policy or deployment.
       const rows = this.storage.sql.exec("SELECT * FROM control WHERE id=1").toArray(); check(rows.length === 1);
       const row = rows[0], old = JSON.parse(row.manifest), credential = this.credential();
-      const expectedState = promote
-        ? row.owner === null && credential.status === "READY" && credential.scope === "read"
-        : row.owner !== null && credential.status === "REFRESHING";
+      const leased = row.owner !== null;
+      let expectedState = leased && credential.status === "REFRESHING";
+      if (promote) expectedState = !leased && credential.status === "READY" && credential.scope === "read";
+      if (restoreRead) {
+        expectedState = leased === spec.expected_leased && credential.status === "READY" &&
+          ["read", "read write"].includes(credential.scope);
+      }
       check(row.manifest === preview[0].manifest && row.revision === spec.revision && row.generation === spec.lease_generation && expectedState &&
         credential.generation === spec.credential_generation &&
         grant.refresh_token !== credential.refresh && grant.access_token !== credential.access &&
@@ -253,14 +263,18 @@ export class StateCoordinator {
       const audit = {operation_hash: operationHash, revision: row.revision, previous_generation: row.generation,
         generation, previous_credential_generation: credential.generation, credential_generation: credentialGeneration,
         previous_code_sha256: old.code_sha256, code_sha256: manifest.code_sha256, snapshot_sha256: old.sha256};
-      if (promote) audit.action = "PROMOTE_WRITE";
+      if (promote || restoreRead) audit.action = spec.action;
+      if (restoreRead && leased) audit.terminated_run_id = spec.terminated_run_id;
       this.storage.sql.exec("UPDATE oauth_credentials SET generation=?,status='READY',access=?,refresh=?,expires_at=?,scope=? WHERE id=1",
         credentialGeneration, grant.access_token, grant.refresh_token, grant.expires_at, grant.scope);
       this.storage.sql.exec("UPDATE manifests SET payload=? WHERE revision=?", JSON.stringify(manifest), row.revision);
       this.storage.sql.exec("UPDATE control SET owner=NULL,generation=?,manifest=? WHERE id=1", generation, JSON.stringify(manifest));
-      this.diagnostic(credentialGeneration, promote ? "WRITE_ENABLED" : "RECOVERED");
+      let stage = "RECOVERED";
+      if (promote) stage = "WRITE_ENABLED";
+      if (restoreRead) stage = "READ_RESTORED";
+      this.diagnostic(credentialGeneration, stage);
       this.storage.sql.exec("INSERT INTO oauth_recoveries VALUES (?,?)", operationHash, JSON.stringify(audit));
-      return {...this.identity(), status: promote ? "OAUTH_WRITE_ENABLED" : "OAUTH_RECOVERED", ...audit};
+      return {...this.identity(), status: "OAUTH_" + stage, ...audit};
     });
     await this.storage.sync(); // Unknown ACK requires inspection, never a blind retry.
     return reply;

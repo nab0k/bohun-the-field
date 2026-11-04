@@ -407,6 +407,143 @@ if (process.argv.includes("--protocol")) {
       assert.equal(f.core.credential().generation, 1);
     }
   });
+  async function readyForRestore(t, scope = "read") {
+    const f = oauthFixture(undefined, scope);
+    t.after(() => f.s.db.close());
+    const lease = await oauthBoot(f);
+    assert.equal((await f.request("/v1/oauth-access", {lease, body: {scope: "read"}})).status, 200);
+    assert.equal((await f.request("/v1/release", {lease})).status, 200);
+    return f;
+  }
+
+  test("restore read replaces either idle grant, preserves journal and restores collector access", async t => {
+    for (const scope of ["read", "read write"]) {
+      const f = await readyForRestore(t);
+      const before = f.s.sql.exec("SELECT * FROM checkpoints ORDER BY revision,part").toArray();
+      let previousCode = identity.code_sha256;
+      let previousCredentialGeneration = 1;
+      if (scope === "read write") {
+        enableRecovery(f, {action: "PROMOTE_WRITE"}, {scope, access_token: "SYNTHETIC_WRITE_ACCESS",
+          refresh_token: "SYNTHETIC_WRITE_REFRESH"});
+        const promoted = await recover(f);
+        assert.equal(promoted.status, 200);
+        previousCode = newCode;
+        previousCredentialGeneration = 2;
+      }
+      const restoreOperation = "8".repeat(64);
+      enableRecovery(f, {action: "RESTORE_READ", expected_leased: false,
+        operation_id: restoreOperation, previous_code_sha256: previousCode});
+      const response = await recover(f, {operation_id: restoreOperation});
+      assert.equal(response.status, 200);
+      const reply = await response.json();
+      assert.equal(reply.status, "OAUTH_READ_RESTORED");
+      assert.equal(reply.action, "RESTORE_READ");
+      assert.equal(reply.revision, 0);
+      assert.equal(reply.snapshot_sha256, sha(snapshot));
+      assert.equal(reply.previous_code_sha256, previousCode);
+      assert.equal(reply.code_sha256, newCode);
+      assert.equal(reply.credential_generation, previousCredentialGeneration + 1);
+      assert.equal(Object.hasOwn(reply, "terminated_run_id"), false);
+      assert.deepEqual(f.s.sql.exec("SELECT * FROM checkpoints ORDER BY revision,part").toArray(), before);
+      const status = await (await readCurrent(f)).json();
+      assert.equal(status.leased, false);
+      assert.equal(status.oauth.credential.scope, "read");
+      assert.equal(status.oauth.diagnostic.stage, "READ_RESTORED");
+      assert.equal((await f.request("/v1/acquire", {body: {owner, required_scope: "read write"},
+        headers: {"X-Code-Sha256": newCode}})).status, 409);
+      const headers = {"X-Code-Sha256": newCode};
+      const lease = await (await f.request("/v1/acquire", {body: {owner}, headers})).json();
+      const data = await f.request("/v1/download", {lease, headers});
+      assert.deepEqual(Buffer.from(await data.arrayBuffer()), snapshot);
+      const access = await f.request("/v1/oauth-access", {lease, body: {scope: "read"}, headers});
+      assert.equal((await access.json()).access_token, f.grant.access_token);
+      assert.equal((await f.request("/v1/release", {lease, headers})).status, 200);
+      assert.equal(f.seen.length, 1); // Only the fixture's initial refresh.
+    }
+  });
+
+  test("held READY restore requires a terminal run receipt and fences the old owner", async t => {
+    const f = await readyForRestore(t, "read write");
+    const held = await acquire(f);
+    const headers = {"X-Code-Sha256": newCode};
+    const before = f.s.sql.exec("SELECT * FROM control").toArray();
+    enableRecovery(f, {action: "RESTORE_READ", expected_leased: false});
+    assert.equal((await recover(f)).status, 409);
+    f.spec.expected_leased = true;
+    for (const invalid of [undefined, null, 0, "41765539330", 1.5]) {
+      f.spec.terminated_run_id = invalid;
+      assert.equal((await recover(f)).status, 409);
+    }
+    assert.deepEqual(f.s.sql.exec("SELECT * FROM control").toArray(), before);
+    assert.equal(f.core.credential().generation, 1);
+    assert.equal(f.s.sql.exec("SELECT COUNT(*) AS n FROM oauth_recoveries").toArray()[0].n, 0);
+    f.spec.terminated_run_id = 12345;
+    const response = await recover(f);
+    assert.equal(response.status, 200);
+    const restored = await response.json();
+    assert.equal(restored.generation, held.generation + 1);
+    assert.equal(restored.terminated_run_id, 12345);
+    const meta = await (await readCurrent(f)).json();
+    assert.equal(meta.leased, false);
+    assert.equal(meta.oauth.recovery.terminated_run_id, 12345);
+    assert.ok(!JSON.stringify(meta).includes(owner));
+    assert.equal((await f.request("/v1/checkpoint", {lease: held, raw: snapshot, headers})).status, 409);
+    assert.equal((await f.request("/v1/release", {lease: held, headers})).status, 409);
+    assert.equal((await f.request("/v1/oauth-access", {lease: held, body: {scope: "read"}, headers})).status, 409);
+    const next = await (await f.request("/v1/acquire", {body: {owner: "d".repeat(64)}, headers})).json();
+    assert.deepEqual(Buffer.from(await (await f.request("/v1/download", {lease: next, headers})).arrayBuffer()), snapshot);
+    assert.equal((await f.request("/v1/release", {lease: next, headers})).status, 200);
+  });
+
+  test("restore read fails closed on stale fences, conflicting lease evidence or invalid grants", async t => {
+    const f = await readyForRestore(t);
+    const before = f.s.sql.exec("SELECT * FROM control").toArray();
+    for (const spec of [{expected_leased: undefined}, {expected_leased: "false"}, {terminated_run_id: 12345},
+      {expected_leased: true, terminated_run_id: 12345}, {revision: 1}, {lease_generation: 99},
+      {credential_generation: 99}, {previous_code_sha256: "e".repeat(64)}, {snapshot_sha256: "e".repeat(64)}]) {
+      enableRecovery(f, {action: "RESTORE_READ", expected_leased: false, ...spec});
+      assert.equal((await recover(f)).status, 409);
+      f.core.expected.code_sha256 = identity.code_sha256;
+    }
+    for (const grant of [{scope: "read write"}, {client_id: "SYNTHETIC_WRONG_APP"},
+      {expires_at: 1}, {access_token: tokenReply(1).access_token}, {refresh_token: tokenReply(1).refresh_token}]) {
+      enableRecovery(f, {action: "RESTORE_READ", expected_leased: false}, grant);
+      assert.equal((await recover(f)).status, 409);
+      f.core.expected.code_sha256 = identity.code_sha256;
+    }
+    assert.deepEqual(f.s.sql.exec("SELECT * FROM control").toArray(), before);
+    assert.equal(f.core.credential().generation, 1);
+    assert.equal(f.s.sql.exec("SELECT COUNT(*) AS n FROM oauth_recoveries").toArray()[0].n, 0);
+  });
+
+  test("a lost restore acknowledgement can be inspected and the operation cannot replay", async t => {
+    const f = await readyForRestore(t, "read write");
+    enableRecovery(f, {action: "RESTORE_READ", expected_leased: false});
+    f.s.failSync = true;
+    assert.equal((await recover(f)).status, 409);
+    f.s.failSync = false;
+    const meta = await (await readCurrent(f)).json();
+    assert.equal(meta.oauth.credential.scope, "read");
+    assert.equal(meta.oauth.credential.generation, 2);
+    assert.equal(meta.oauth.recovery.operation_hash, sha(Buffer.from(operation)));
+    assert.equal(meta.oauth.recovery.action, "RESTORE_READ");
+    assert.equal((await recover(f)).status, 409);
+    assert.equal(f.core.credential().generation, 2);
+    assert.equal(f.s.sql.exec("SELECT COUNT(*) AS n FROM oauth_recoveries").toArray()[0].n, 1);
+    assert.equal(f.seen.length, 1);
+  });
+
+  test("RESTORE_READ does not replace the held refresh recovery path", async t => {
+    const f = await heldFixture();
+    t.after(() => f.s.db.close());
+    enableRecovery(f, {action: "RESTORE_READ", expected_leased: true, terminated_run_id: 12345});
+    assert.equal((await recover(f)).status, 409);
+    assert.equal(f.core.credential().status, "REFRESHING");
+    f.core.expected.code_sha256 = identity.code_sha256;
+    enableRecovery(f);
+    assert.equal((await (await recover(f)).json()).status, "OAUTH_RECOVERED");
+  });
+
   test("HTTP errors retain only numeric status; secret provider body is never consumed", async () => {
     let reads = 0;
     const fetcher = async () => ({status: 401, url: "https://www.inoreader.com/oauth2/token", read() {reads++; throw Error(seed);}});
