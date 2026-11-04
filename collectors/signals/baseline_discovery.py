@@ -83,7 +83,7 @@ def _safe_value(value: Any) -> str | None:
         return None
     try:
         n = Decimal(str(value))
-        return str(n) if n.is_finite() else None
+        return format(n.normalize(), "f") if n.is_finite() else None
     except (InvalidOperation, ValueError):
         return None
 
@@ -201,7 +201,7 @@ def _parse_quantity(quote: str, candidate: Candidate) -> tuple[str, str, bool] |
                  for m in pattern.finditer(quote)]
         if len(set(items)) != 1:
             return None
-        return str(items[0]), "USD", bool(APPROX.search(quote))
+        return _safe_value(items[0]), "USD", bool(APPROX.search(quote))
     # For unit counts, support literally written "100 units/year", "100 missiles per year",
     # or "100 units every year"; do not infer arbitrary conversions.
     pattern = re.compile(r"(?<![\w.])(?:about\s+|around\s+|approximately\s+|roughly\s+)?"
