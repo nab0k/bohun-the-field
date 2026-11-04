@@ -111,7 +111,7 @@ jobs:
         continue-on-error: true
         env:
           KB_MODE: admit
-        run: '"$RUNNER_TEMP/bohun-kb/bin/python" -B -m collectors.kb_pilot --limit 10 | tee "$RUNNER_TEMP/kb-daily/admit.log"'
+        run: '"$RUNNER_TEMP/bohun-kb/bin/python" -B -m collectors.kb_pilot --limit 30 | tee "$RUNNER_TEMP/kb-daily/admit.log"'
       - name: Relation extraction on the free quota left
         if: github.event_name != 'workflow_dispatch' || (inputs.verify_fulltext_cohort != true && inputs.resume_stored_cohort != true)
         continue-on-error: true
