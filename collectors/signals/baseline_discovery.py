@@ -7,7 +7,7 @@ Outputs evidence candidates, never signal decisions or publication permissions.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field, replace
-from datetime import date
+from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from typing import Any, Callable, Mapping, Sequence
 import json
@@ -49,6 +49,8 @@ class Evidence:
     first_seen_at: str | None = None  # required before historical baseline acceptance
     subject: str | None = None        # exact organization/object of the measurement
     scope: str | None = None          # denominator/geography/program/period description
+    date_precision: str | None = None  # day | month; never invent day of month
+    approximate: bool = False
 
 @dataclass(frozen=True)
 class PrimaryDocument:
@@ -113,67 +115,213 @@ def _number_in(value: str, content: str) -> bool:
             continue
     return False
 
-def verify_primary(candidate: Candidate, lead: Evidence, document: PrimaryDocument) -> Evidence:
-    """Check literal number, unit, ISO date, exact quote in caller-supplied primary text.
 
-    The caller is responsible for authenticity and first_seen_at provenance.
+MONTHS = {
+    "january": 1, "february": 2, "march": 3, "april": 4,
+    "may": 5, "june": 6, "july": 7, "august": 8,
+    "september": 9, "october": 10, "november": 11, "december": 12,
+}
+MONTH_NAMES = "|".join(MONTHS)
+NEGATIVE = re.compile(r"\b(?:not|never|no longer|failed to|did not|hasn't|haven't|cannot|can't|without)\b", re.I)
+SPECULATIVE = re.compile(
+    r"\b(?:hope|hopes|hoped|aim|aims|plan|plans|planned|intend|intends|"
+    r"expect|expects|expected|forecast|forecasts|predict|predicts|target|"
+    r"targets|goal|goals|could|might|would|will|potential|projected)\b", re.I)
+CONTRAST = re.compile(r"\b(?:unlike|rather than|as opposed to|compared with)\b", re.I)
+RATE = re.compile(r"(?:/year\b|\bper\s+year\b|\bevery\s+year\b|\bannually\b|\bannual\s+(?:rate|pace)\b)", re.I)
+CUMULATIVE = re.compile(r"\b(?:total(?:led)?|cumulative|to date|so far|altogether|in all)\b", re.I)
+OUTPUT_ACTION = re.compile(r"\b(?:built|builds|made|makes|produced|produces|manufactured|manufactures|"
+                           r"delivered|delivers|shipped|ships|supplied|supplies)\b", re.I)
+CONTRACT_ACTION = re.compile(r"\b(?:won|awarded|signed|received|secured)\b", re.I)
+APPROX = re.compile(r"\b(?:about|around|approximately|roughly|nearly|circa|estimated|almost)\b|~", re.I)
+MISSILE_OBJECT = re.compile(r"\b(?:missile|missiles|essm|interceptor|interceptors)\b", re.I)
+VEHICLE_OBJECT = re.compile(r"\b(?:truck|trucks|vehicle|vehicles)\b", re.I)
+
+
+def _source_date(quote: str) -> tuple[str, str] | None:
+    """Return date with explicit precision; never assign a day to a month."""
+    iso = re.search(r"\b(\d{4}-\d{2}-\d{2})\b", quote)
+    if iso:
+        try:
+            return date.fromisoformat(iso.group(1)).isoformat(), "day"
+        except ValueError:
+            return None
+    plain = re.search(r"\b(" + MONTH_NAMES + r")\s+(\d{1,2}),?\s+(\d{4})\b", quote, re.I)
+    if plain:
+        try:
+            return date(int(plain.group(3)), MONTHS[plain.group(1).lower()],
+                        int(plain.group(2))).isoformat(), "day"
+        except ValueError:
+            return None
+    month = re.search(r"\b(" + MONTH_NAMES + r")\s+(\d{4})\b", quote, re.I)
+    if month:
+        return f"{int(month.group(2)):04d}-{MONTHS[month.group(1).lower()]:02d}", "month"
+    return None
+
+
+def _date_upper_bound(value: str, precision: str | None = None) -> date:
+    if precision == "month" or re.fullmatch(r"\d{4}-\d{2}", value):
+        start = date.fromisoformat(value + "-01")
+        return (date(start.year + 1, 1, 1) if start.month == 12 else
+                date(start.year, start.month + 1, 1)) - timedelta(days=1)
+    return date.fromisoformat(value)
+
+
+def _actor_clause(quote: str, candidate: Candidate) -> str | None:
+    """Conservative syntactic proxy: name must be the clause actor, not mere mention."""
+    for name in _names(candidate):
+        tokens = re.escape(name).replace(r"\ ", r"\s+")
+        pattern = re.compile(r"(?<![\w])" + tokens + r"(?![\w])", re.I)
+        for match in pattern.finditer(quote):
+            # Reject contrastive "Raytheon, unlike ACME, ...", where ACME is not actor.
+            before = quote[:match.start()]
+            if re.search(r"\b(?:unlike|rather than)\s+$", before, re.I):
+                continue
+            after = quote[match.end():]
+            # The name must lead an action clause. Allow "said in March 2026 that it now produces".
+            if re.match(r"\s*(?:,?\s*(?:Inc\.?|LLC|Company)\b[,.]?)?\s*"
+                        r"(?:said\b.{0,75}?\b(?:that\s+it\s+)?(?:now\s+)?(?:produces|makes|manufactures)|"
+                        r"(?:has\s+)?(?:won|built|made|produced|manufactured|delivered|ships|shipped|"
+                        r"produces|makes|manufactures|delivers))\b", after, re.I):
+                return quote[match.start():]
+    return None
+
+
+def _parse_quantity(quote: str, candidate: Candidate) -> tuple[str, str, bool] | None:
+    """Return normalized numeric value, independent observed unit and approximation.
+
+    Only deliberately supported forms can be verified. Unrecognized prose -> candidate.
+    """
+    if candidate.metric == "contract_value":
+        pattern = re.compile(r"(?<![\w])\$\s*(\d[\d,]*(?:\.\d+)?)\s*"
+                             r"(million|billion|thousand)?\b", re.I)
+        items = [(Decimal(m.group(1).replace(",", "")) *
+                  {"million": Decimal("1000000"), "billion": Decimal("1000000000"),
+                   "thousand": Decimal("1000")}.get((m.group(2) or "").lower(), Decimal(1)))
+                 for m in pattern.finditer(quote)]
+        if len(set(items)) != 1:
+            return None
+        return str(items[0]), "USD", bool(APPROX.search(quote))
+    # For unit counts, support literally written "100 units/year", "100 missiles per year",
+    # or "100 units every year"; do not infer arbitrary conversions.
+    pattern = re.compile(r"(?<![\w.])(?:about\s+|around\s+|approximately\s+|roughly\s+)?"
+                         r"(\d[\d,]*(?:\.\d+)?)\s*"
+                         r"(units|missiles|interceptors)(?:\s*/\s*year|\s+per\s+year|\s+every\s+year)?", re.I)
+    candidates = []
+    for match in pattern.finditer(quote):
+        unit_word = match.group(2).lower()
+        period = quote[match.start():match.end()].lower()
+        annual = bool(re.search(r"/\s*year|\bper\s+year\b|\bevery\s+year\b", period))
+        observed_unit = "missiles/year" if annual and unit_word == "missiles" else (
+            "units/year" if annual and unit_word == "units" else
+            "interceptors/year" if annual and unit_word == "interceptors" else unit_word)
+        candidates.append((_safe_value(match.group(1).replace(",", "")), observed_unit))
+    unique = {(v, u) for v, u in candidates if v is not None}
+    if len(unique) != 1:
+        return None
+    value, unit = next(iter(unique))
+    return value, unit, bool(APPROX.search(quote))
+
+
+def _observed_metric_kind(quote: str, candidate: Candidate) -> tuple[str, str, str] | None:
+    if NEGATIVE.search(quote) or SPECULATIVE.search(quote):
+        return None
+    if candidate.metric == "contract_value":
+        if not CONTRACT_ACTION.search(quote) or not re.search(r"\bcontract\b", quote, re.I):
+            return None
+        return "contract_value", "point_in_time", "contracted"
+    if candidate.metric == "federal_obligations":
+        # Aggregate amounts are not a verified claim without source details.
+        return None
+    # Avoid confirming missile output from truck production.
+    if candidate.metric in {"missile_output", "essm_output"}:
+        if not MISSILE_OBJECT.search(quote) or VEHICLE_OBJECT.search(quote):
+            return None
+    elif candidate.metric in {"units", "unit_output"}:
+        if not re.search(r"\bunits\b", quote, re.I):
+            return None
+    else:
+        return None  # unsupported metric: no guessing based on candidate
+    if not OUTPUT_ACTION.search(quote):
+        return None
+    observed_kind = "rate" if RATE.search(quote) else (
+        "cumulative" if CUMULATIVE.search(quote) else "point_in_time")
+    if candidate.kind == "cumulative" and observed_kind == "point_in_time":
+        # Only a dated count explicitly described as cumulative may prove cumulative.
+        return None
+    stage = "delivered" if re.search(r"\b(?:delivered|shipped|supplied)\b", quote, re.I) else (
+        "demonstrated" if re.search(r"\bdemonstrated\b", quote, re.I) else "")
+    return candidate.metric, observed_kind, stage
+
+
+def verify_primary(candidate: Candidate, lead: Evidence, document: PrimaryDocument) -> Evidence:
+    """Conservative literal check. No LLM decision and no network access.
+
+    Semantic inference is intentionally limited to explicit supported forms.
     """
     failed = replace(lead, verification="candidate", comparable=False)
     if not document.primary or document.url != lead.url or not document.url.startswith("https://"):
         failed.explanation = "primary_document_mismatch"
         return failed
-    quote = (lead.quote or "").strip()
-    # For text-only local leads and web snippets, find a literal complete line
-    # in the caller-supplied primary document. Never trust a snippet as a quote.
-    if not quote or quote not in document.text:
-        quote = next((line.strip() for line in document.text.splitlines()
-                      if len(line.strip()) >= 12
-                      and any(name.casefold() in line.casefold() for name in _names(candidate))
-                      and lead.unit.casefold() in line.casefold()), "")
-    if not quote and lead.quote:
-        quote = lead.quote.strip()
-    if len(quote) < 12 or quote not in document.text:
-        failed.explanation = "quote_not_found_in_primary_text"
+    if not document.text or not document.root_source:
+        failed.explanation = "missing_primary_text_or_root"
         return failed
-    # Require a numeric token immediately associated with the exact unit:
-    # a number elsewhere (including in an ISO date) cannot validate the claim.
-    matches = re.findall(r"(?<![\w.])([-+]?\d[\d,]*(?:\.\d+)?)\s*" +
-                         re.escape(lead.unit) + r"(?![\w/])", quote, flags=re.I)
-    values = [_safe_value(token.replace(",", "")) for token in matches]
-    expected = _safe_value(lead.value)
-    if expected is not None:
-        value = expected if expected in values else None
-    else:
-        distinct = {v for v in values if v is not None}
-        value = next(iter(distinct)) if len(distinct) == 1 else None
-    if value is None:
-        failed.explanation = "number_not_adjacent_to_exact_unit"
-        return failed
-    value_date = lead.value_date
-    if value_date is None:
-        dates = re.findall(r"\b\d{4}-\d{2}-\d{2}\b", quote)
-        value_date = dates[0] if len(dates) == 1 else None
-    if not value_date or value_date not in quote:
-        failed.explanation = "date_not_in_quote"
-        return failed
-    if not any(name.casefold() in quote.casefold() for name in _names(candidate)):
-        failed.explanation = "subject_not_in_quote"
-        return failed
-    if candidate.stage and candidate.stage.casefold() not in quote.casefold():
-        failed.explanation = "stage_not_in_quote"
-        return failed
-    checked = replace(lead, verification="verified", first_seen_at=document.first_seen_at,
-                      root_source=document.root_source or document.url, subject=candidate.entity,
-                      stage=candidate.stage if candidate.stage else lead.stage,
-                      quote=quote, value=value, value_date=value_date, scope=document.scope)
-    valid, reason = _compatible(candidate, checked)
-    if not valid:
-        failed.explanation = reason
-        return failed
-    checked.comparable = True
-    checked.explanation = "verified_primary_quote_number_unit_date"
-    return checked
 
+    # Entire sentence rather than isolated snippets, not source metadata or headline.
+    sentences = [line.strip() for line in document.text.splitlines() if line.strip()]
+    if lead.quote and lead.quote in document.text:
+        # If a lead supplied a factual quote use only the same source sentence,
+        # not unrelated clauses in the document.
+        sentences = [line for line in sentences if lead.quote in line]
+
+    for quote in sentences:
+        actor = _actor_clause(quote, candidate)
+        if actor is None:
+            continue
+        # Restrict semantic claims to the actor's clause. Do not borrow a number
+        # belonging to another company mentioned earlier or later.
+        clause = actor.split(". ", 1)[0]
+        if CONTRAST.search(clause) or NEGATIVE.search(clause) or SPECULATIVE.search(clause):
+            continue
+        observed = _observed_metric_kind(clause, candidate)
+        if observed is None:
+            continue
+        observed_metric, observed_kind, observed_stage = observed
+        if observed_kind != candidate.kind:
+            continue
+        if candidate.stage and observed_stage != candidate.stage:
+            continue
+        parsed_quantity = _parse_quantity(clause, candidate)
+        if parsed_quantity is None:
+            continue
+        value, observed_unit, approximate = parsed_quantity
+        if _text(observed_unit) != _text(candidate.unit):
+            continue
+        if lead.value is not None and _safe_value(lead.value) != value:
+            continue
+        parsed_date = _source_date(clause)
+        if parsed_date is None:
+            continue
+        value_date, precision = parsed_date
+        if lead.value_date is not None and lead.value_date != value_date:
+            continue
+
+        checked = replace(
+            lead, value=value, value_date=value_date, date_precision=precision,
+            approximate=approximate, quote=quote, unit=observed_unit,
+            metric=observed_metric, kind=observed_kind, stage=observed_stage,
+            first_seen_at=document.first_seen_at, root_source=document.root_source,
+            subject=candidate.entity, scope=document.scope,
+            verification="verified", comparable=False)
+        matches, reason = _compatible(candidate, checked)
+        if matches:
+            checked.comparable = True
+            checked.explanation = "verified_explicit_actor_metric_quantity_and_date"
+            return checked
+        failed.explanation = reason
+    if failed.explanation == lead.explanation:
+        failed.explanation = "claim_not_explicitly_supported_by_primary_text"
+    return failed
 
 def _same_metric(a: str, b: str) -> bool:
     return bool(a.strip() and b.strip()) and _text(a) == _text(b)
@@ -201,7 +349,7 @@ def _compatible(candidate: Candidate, item: Evidence) -> tuple[bool, str]:
     if not item.value_date:
         return False, "unknown_value_date"
     try:
-        if _date(item.value_date) > _date(candidate.as_of):
+        if _date_upper_bound(item.value_date, item.date_precision) > _date(candidate.as_of):
             return False, "after_cutoff"
     except ValueError:
         return False, "invalid_date"
@@ -225,7 +373,8 @@ SELECT what, occurred_on, source_url, status
 FROM knowledge.edge
 WHERE occurred_on <= %(cutoff)s
   AND (what ILIKE ANY(%(names)s) OR what ILIKE ANY(%(metric_words)s))
-ORDER BY occurred_on DESC
+ORDER BY CASE WHEN what ILIKE ANY(%(names)s) THEN 0 ELSE 1 END,
+         occurred_on DESC
 LIMIT 20
 """.strip()
 
