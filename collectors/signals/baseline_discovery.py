@@ -137,8 +137,8 @@ def verify_primary(candidate: Candidate, lead: Evidence, document: PrimaryDocume
         return failed
     value = lead.value
     if value is None:
-        match = re.search(r"(?<![\\w.])([-+]?\\d[\\d,]*(?:\\.\\d+)?)\\s*" +
-                          re.escape(lead.unit) + r"(?![\\w/])", quote, flags=re.I)
+        match = re.search(r"(?<![\w.])([-+]?\d[\d,]*(?:\.\d+)?)\s*" +
+                          re.escape(lead.unit) + r"(?![\w/])", quote, flags=re.I)
         value = match.group(1).replace(",", "") if match else None
     if not value or not _number_in(value, quote):
         failed.explanation = "number_not_in_quote"
@@ -148,7 +148,7 @@ def verify_primary(candidate: Candidate, lead: Evidence, document: PrimaryDocume
         return failed
     value_date = lead.value_date
     if value_date is None:
-        dates = re.findall(r"\\b\\d{4}-\\d{2}-\\d{2}\\b", quote)
+        dates = re.findall(r"\b\d{4}-\d{2}-\d{2}\b", quote)
         value_date = dates[0] if len(dates) == 1 else None
     if not value_date or value_date not in quote:
         failed.explanation = "date_not_in_quote"
@@ -161,6 +161,7 @@ def verify_primary(candidate: Candidate, lead: Evidence, document: PrimaryDocume
         return failed
     checked = replace(lead, verification="verified", first_seen_at=document.first_seen_at,
                       root_source=document.root_source or document.url, subject=candidate.entity,
+                      stage=candidate.stage if candidate.stage else lead.stage,
                       quote=quote, value=value, value_date=value_date, scope=document.scope)
     valid, reason = _compatible(candidate, checked)
     if not valid:
