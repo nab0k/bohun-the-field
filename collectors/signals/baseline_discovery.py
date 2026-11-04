@@ -56,6 +56,7 @@ class PrimaryDocument:
     text: str
     first_seen_at: str
     root_source: str
+    scope: str
     primary: bool = True
 
 @dataclass
@@ -122,16 +123,34 @@ def verify_primary(candidate: Candidate, lead: Evidence, document: PrimaryDocume
         failed.explanation = "primary_document_mismatch"
         return failed
     quote = (lead.quote or "").strip()
+    # For text-only local leads and web snippets, find a literal complete line
+    # in the caller-supplied primary document. Never trust a snippet as a quote.
+    if not quote or quote not in document.text:
+        quote = next((line.strip() for line in document.text.splitlines()
+                      if len(line.strip()) >= 12
+                      and any(name.casefold() in line.casefold() for name in _names(candidate))
+                      and lead.unit.casefold() in line.casefold()), "")
+    if not quote and lead.quote:
+        quote = lead.quote.strip()
     if len(quote) < 12 or quote not in document.text:
         failed.explanation = "quote_not_found_in_primary_text"
         return failed
-    if not lead.value or not _number_in(lead.value, quote):
+    value = lead.value
+    if value is None:
+        match = re.search(r"(?<![\\w.])([-+]?\\d[\\d,]*(?:\\.\\d+)?)\\s*" +
+                          re.escape(lead.unit) + r"(?![\\w/])", quote, flags=re.I)
+        value = match.group(1).replace(",", "") if match else None
+    if not value or not _number_in(value, quote):
         failed.explanation = "number_not_in_quote"
         return failed
     if not lead.unit or lead.unit.casefold() not in quote.casefold():
         failed.explanation = "unit_not_in_quote"
         return failed
-    if not lead.value_date or lead.value_date not in quote:
+    value_date = lead.value_date
+    if value_date is None:
+        dates = re.findall(r"\\b\\d{4}-\\d{2}-\\d{2}\\b", quote)
+        value_date = dates[0] if len(dates) == 1 else None
+    if not value_date or value_date not in quote:
         failed.explanation = "date_not_in_quote"
         return failed
     if not any(name.casefold() in quote.casefold() for name in _names(candidate)):
@@ -141,7 +160,8 @@ def verify_primary(candidate: Candidate, lead: Evidence, document: PrimaryDocume
         failed.explanation = "stage_not_in_quote"
         return failed
     checked = replace(lead, verification="verified", first_seen_at=document.first_seen_at,
-                      root_source=document.root_source or document.url, subject=candidate.entity)
+                      root_source=document.root_source or document.url, subject=candidate.entity,
+                      quote=quote, value=value, value_date=value_date, scope=document.scope)
     valid, reason = _compatible(candidate, checked)
     if not valid:
         failed.explanation = reason
