@@ -94,9 +94,12 @@ def decide(version, items, texts, already_in_feed, published_so_far, max_publish
         reasons.append("no_real_source")
     if not texts.get(0):
         reasons.append("headline_unsupported")
-    if not version.get("what_happened"):
+    # Check the final rebuilt payload, not the pre-correction source version.
+    # A reviewer can drop every sentence in a mandatory section while leaving
+    # the original version populated. Such a payload must remain HOLD.
+    if not (version.get("what_happened") or "").strip():
         reasons.append("what_happened_empty")
-    if not version.get("why_it_matters"):
+    if not (version.get("why_it_matters") or "").strip():
         reasons.append("why_it_matters_empty")
     if len(items) - len(texts) > MAX_DROP_SHARE * len(items):
         reasons.append("too_many_unsupported")
@@ -111,11 +114,14 @@ def decide(version, items, texts, already_in_feed, published_so_far, max_publish
 
 def review(cheap, sources_text, version, items):
     """Two review rounds with fixes; returns (texts n → sentence, provider, stats) or None if nobody answered."""
-    source_numbers = set(numbers_in(sources_text + "\n" + "\n".join(version.get(s) or "" for s in CODE_SECTIONS)))
+    # The model sees at most SOURCE_CHARS of source evidence. Numbers hidden
+    # beyond this boundary must not make an otherwise unsupported claim pass.
+    packet = review_packet(sources_text, version, items)
+    source_numbers = set(numbers_in(packet["sources"] + "\n" + packet["database"]))
     exclude = verifier_excludes(cheap, None)
     first = cheap.free_many([cheap.request(REVIEW_SYSTEM, review_packet(sources_text, version, items), REVIEW_SCHEMA,
                                            max_output=4000, step="review")], exclude=[exclude])[0]
-    if first[0] != "ok" or first[2].get("model") in WEAK_JUDGES:
+    if first[0] != "ok" or not first[2].get("model") or first[2].get("model") in WEAK_JUDGES:
         return None  # a weak judge never publishes (run 41132169743: gemma admitted a thin brief); retried later
     relevant = (first[1] or {}).get("defence_relevant") is True
     keep, fixes, dropped = corrected(items, verdicts_of(first[1]), source_numbers)
@@ -124,7 +130,8 @@ def review(cheap, sources_text, version, items):
         again = [(n, sec, fixes[n]) for n, sec, _ in items if n in fixes]
         second = cheap.free_many([cheap.request(REVIEW_SYSTEM, review_packet(sources_text, version, again),
                                                 REVIEW_SCHEMA, max_output=3000, step="review")], exclude=[exclude])[0]
-        if second[0] == "ok":
+        if (second[0] == "ok" and second[2].get("model")
+                and second[2].get("model") not in WEAK_JUDGES):
             ok2 = verdicts_of(second[1])
             for n, _, text in again:
                 if (ok2.get(n) or {}).get("ok") is True:
