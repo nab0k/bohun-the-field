@@ -72,7 +72,7 @@ class RunnerTests(unittest.TestCase):
     def test_precomputed_proposal_accepted_only_with_exact_quote(self):
         row = item(3)
         row["description"] = "A specialised publisher"
-        row["sample_titles"] = ["Technology journal: research papers on radar"]
+        row["sample_titles"] = ["Technology journal: Research papers on radar"]
         proposal = {"source_id": "feed-3", "source_class": "technology",
                     "evidence_quote": "Research papers"}
         report = cli.build_report({"sources": [row]},
