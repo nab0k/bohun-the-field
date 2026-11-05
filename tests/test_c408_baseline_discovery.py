@@ -309,6 +309,10 @@ class BaselineTests(unittest.TestCase):
             candidate = item(entity=name, metric=metric, unit=unit, kind=kind,
                              aliases=("RTX",) if idx == 6 else ())
             document = source("https://official.example/proposal", quote, first_seen="2026-04-01")
+            if idx == 6:
+                document = module.PrimaryDocument(
+                    document.url, document.text, document.first_seen_at,
+                    document.root_source, document.scope, title="Raytheon ESSM production")
             lead = module.Evidence("web", None, None, None, document.url,
                  metric, unit, kind, "", False, "")
             date_text = "March 2026" if idx == 6 else "March 5, 2026" if idx == 7 else "2026-01-01"
@@ -428,6 +432,56 @@ class BaselineTests(unittest.TestCase):
             propose=lambda *_: [dict(value=100, unit="units/year")])
         self.assertIsNone(result.baseline)
         self.assertEqual(result.outcome, "needs_verification")
+
+
+
+    def test_propose_injected_into_discover_for_we_last_year(self):
+        url = "https://official.example/essm-discover"
+        quote = "We produced over 400 missiles last year."
+        doc = module.PrimaryDocument(
+            url, "Raytheon vice president Jane Roe said:\n" + quote,
+            "2026-04-01", url, "ESSM production, 2025",
+            published_at="2026-03-10", title="Raytheon ESSM update")
+        candidate = item(entity="Raytheon", metric="essm_output",
+                         kind="annual_total", unit="missiles")
+        calls = []
+        def propose(c, d):
+            calls.append(d.url)
+            return [module.Proposal("400", "missiles", "annual_total", "",
+                     "Raytheon", "Jane Roe", quote, "last year", False, "essm_output")]
+        result = module.discover(candidate, search=lambda _: [{"url": url}],
+                                 documents={url: doc}, propose=propose)
+        self.assertEqual(calls, [url])
+        self.assertEqual(result.verification_count, 1)
+        self.assertEqual(result.outcome, "found")
+        self.assertEqual(result.baseline.value_date, "2025")
+        self.assertTrue(result.baseline.lower_bound)
+
+    def test_we_without_verified_affiliation_fails(self):
+        url = "https://official.example/no-affiliation"
+        quote = "We produced over 400 missiles last year."
+        doc = module.PrimaryDocument(
+            url, "Raytheon reported results. Supplier director Jane Roe said:\n" + quote,
+            "2026-04-01", url, "ESSM production",
+            published_at="2026-03-10", title="Raytheon ESSM report")
+        c = item(entity="Raytheon", metric="essm_output",
+                 kind="annual_total", unit="missiles")
+        lead = module.Evidence("web", None, None, None, url, c.metric, c.unit, c.kind, "", False, "")
+        proposal = module.Proposal("400", "missiles", "annual_total", "",
+            "Raytheon", "Jane Roe", quote, "last year", False, "essm_output")
+        self.assertFalse(module.verify_proposal(c, lead, doc, proposal).comparable)
+
+    def test_essm_needs_program_context_not_generic_missiles(self):
+        url = "https://official.example/general-missiles"
+        quote = "RTX said in March 2026 that it now produces about 400 missiles per year."
+        doc = module.PrimaryDocument(url, quote, "2026-04-01", url,
+                                     "all missiles", title="RTX industrial report")
+        c = item(entity="Raytheon", aliases=("RTX",), metric="essm_output",
+                 unit="missiles/year", kind="rate")
+        lead = module.Evidence("web", None, None, None, url, c.metric, c.unit, c.kind, "", False, "")
+        proposal = module.Proposal("400", "missiles/year", "rate", "", "Raytheon",
+            "", quote, "March 2026", False, "essm_output")
+        self.assertFalse(module.verify_proposal(c, lead, doc, proposal).comparable)
 
 
 
