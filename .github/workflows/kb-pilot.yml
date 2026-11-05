@@ -13,7 +13,7 @@ jobs:
   trial:
     if: github.run_attempt == '1' && github.sha == inputs.approved_head
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -21,6 +21,7 @@ jobs:
       - name: Classify registry
         env:
           GEMINI_FREE_API_KEY: ${{ secrets.GEMINI_FREE_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: python3 -B scripts/sources-classify/run.py "$RUNNER_TEMP/classify-result.json"
       - name: Upload result
         if: always()
