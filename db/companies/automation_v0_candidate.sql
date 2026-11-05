@@ -202,7 +202,7 @@ declare ctl companies.automation_control%rowtype; j companies.automation_job%row
  item jsonb; x jsonb; ch jsonb; h jsonb; p jsonb; ev jsonb; src jsonb; admission jsonb; ctx jsonb; viewj jsonb;
  kh text; content text; source_id bigint; claim_id bigint; resultstate text; token uuid; t timestamptz:=clock_timestamp();
  batchbody jsonb; checkpoint jsonb; newstate jsonb; n integer; verified boolean; sweep_after text;
- sweep_revision bigint; expected_ids text[]; expected_next text;
+ sweep_revision bigint; expected_ids text[]; expected_next text; section_input text;
 begin
  perform companies._automation_require(session_user='bohun_companies_worker_v0','CALLER_DENIED');
  perform companies._automation_require(pg_catalog.jsonb_typeof(request)='object' and request->'wire_version'='1'
@@ -362,8 +362,13 @@ begin
      reader:=companies._automation_reader(array[j.company_id]); ctx:=reader#>array['contexts',j.company_id]; viewj:=ctx->'view';
      t:=clock_timestamp();
      perform companies._automation_require(j.lease_until>t,'LEASE_EXPIRED');
-     perform companies._automation_require(ctx->>'_type'='WorkContext' and ctx->>'input_hash'=j.job->>'input_hash'
+     -- A section input saved atomically with its jobs outranks the company-wide reader value.
+     select e.v->>'value' into section_input from companies.automation_checkpoint c
+      cross join lateral pg_catalog.jsonb_array_elements(coalesce(c.state_json->'section_inputs','[]')) e(v)
+      where c.checkpoint_key='company:'||j.company_id and e.v->>'section'=j.section_key;
+     perform companies._automation_require(ctx->>'_type'='WorkContext' and coalesce(section_input,ctx->>'input_hash')=j.job->>'input_hash'
       and viewj->>'company_id'=j.company_id and viewj->'protected'='false','INPUT_VERSION_OR_SCOPE_CHANGED');
+     ctx:=pg_catalog.jsonb_set(ctx,'{input_hash}',j.job->'input_hash');
      if action='context' then outdata:=ctx;
      else
       ch:=case when action='save_prepared' then a->'changes' else j.prepared end;
