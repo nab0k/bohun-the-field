@@ -307,7 +307,9 @@ def verify_primary(candidate: Candidate, lead: Evidence, document: PrimaryDocume
         # Restrict semantic claims to the actor's clause. Do not borrow a number
         # belonging to another company mentioned earlier or later.
         clause = actor.split(". ", 1)[0]
-        if CONTRAST.search(clause) or NEGATIVE.search(clause) or SPECULATIVE.search(clause):
+        if (CONTRAST.search(quote) or NEGATIVE.search(quote) or
+                SPECULATIVE.search(quote) or ANALYST_ESTIMATE.search(quote) or
+                CAPACITY.search(quote)):
             continue
         observed = _observed_metric_kind(clause, candidate)
         if observed is None:
@@ -491,6 +493,9 @@ def verify_proposal(candidate: Candidate, lead: Evidence, document: PrimaryDocum
         rejected.explanation = "wrong_kind"
         return rejected
     if proposal.kind == "annual_total":
+        if re.search(r"\bthis year\b", quote, re.I):
+            rejected.explanation = "current_year_incomplete"
+            return rejected
         if not re.search(r"\b(?:last year|this year|in \d{4}|during \d{4})\b", quote, re.I):
             rejected.explanation = "annual_period_not_explicit"
             return rejected
