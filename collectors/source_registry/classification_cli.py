@@ -21,10 +21,9 @@ from pathlib import Path
 import sys
 from typing import Any
 
-from .classification import ClassificationError, assess_sample, classify_batch, MAX_SOURCES, MAX_ID
+from .classification import ClassificationError, assess_sample, classify_batch, validated_source, MAX_SOURCES, MAX_ID
 
 MAX_INPUT_BYTES = 1_000_000
-MAX_PROPOSAL_BYTES = 128_000
 
 
 def _unique_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -65,7 +64,9 @@ def _proposals(payload: Any, sources: list[dict[str, Any]]) -> dict[str, dict[st
     rows = payload["proposals"]
     if not isinstance(rows, list) or len(rows) > MAX_SOURCES:
         raise ClassificationError("PROPOSAL_LIMIT")
-    known = {s["source_id"] for s in sources}
+    if not isinstance(sources, list) or len(sources) > MAX_SOURCES:
+        raise ClassificationError("BATCH_SIZE")
+    known = {validated_source(source)["source_id"] for source in sources}
     out: dict[str, dict[str, Any]] = {}
     for row in rows:
         if not isinstance(row, dict) or set(row) != {
