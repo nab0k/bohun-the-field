@@ -69,6 +69,78 @@ class RunnerTests(unittest.TestCase):
         with self.assertRaisesRegex(cli.ClassificationError, "GOLD_SAMPLE_IDS_MISMATCH"):
             cli.build_report({"sources": rows}, {"labels": wrong})
 
+    def test_precomputed_proposal_accepted_only_with_exact_quote(self):
+        row = item(3)
+        row["description"] = "A specialised publisher"
+        row["sample_titles"] = ["Technology journal: research papers on radar"]
+        proposal = {"source_id": "feed-3", "source_class": "technology",
+                    "evidence_quote": "research papers"}
+        report = cli.build_report({"sources": [row]},
+                                  proposal_payload={"proposals": [proposal]})
+        found = report["classifications"][0]
+        self.assertEqual(found["source_class"], "technology")
+        self.assertEqual(found["class_origin"], "external_proposal")
+        self.assertEqual(found["delivery_method"], "unknown")
+        self.assertEqual(report["external_proposals_accepted"], 1)
+
+    def test_fabricated_proposal_is_not_evidence(self):
+        row = item(3)
+        row["description"] = "A specialised publisher"
+        proposal = {"source_id": "feed-3", "source_class": "grants",
+                    "evidence_quote": "a grant that the source never mentioned"}
+        report = cli.build_report({"sources": [row]},
+                                  proposal_payload={"proposals": [proposal]})
+        found = report["classifications"][0]
+        self.assertEqual(found["class_status"], "needs_review")
+        self.assertEqual(found["source_class"], "other")
+        self.assertEqual(report["external_proposals_accepted"], 0)
+
+    def test_precomputed_proposals_cannot_invent_source_ids(self):
+        fake = {"source_id": "feed-999", "source_class": "media",
+                "evidence_quote": "Defence news"}
+        with self.assertRaisesRegex(cli.ClassificationError, "PROPOSAL_UNKNOWN_SOURCE"):
+            cli.build_report({"sources": [item(3)]},
+                             proposal_payload={"proposals": [fake]})
+
+    def test_precomputed_proposals_cannot_repeat_source_ids(self):
+        proposal = {"source_id": "feed-3", "source_class": "media",
+                    "evidence_quote": "Defence news"}
+        with self.assertRaisesRegex(cli.ClassificationError, "PROPOSAL_DUPLICATE_SOURCE"):
+            cli.build_report({"sources": [item(3)]},
+                             proposal_payload={"proposals": [proposal, proposal]})
+
+    def test_precomputed_proposals_reject_unexpected_fields(self):
+        proposal = {"source_id": "feed-3", "source_class": "media",
+                    "evidence_quote": "Defence news", "delivery_method": "rss"}
+        with self.assertRaisesRegex(cli.ClassificationError, "PROPOSAL_FIELDS"):
+            cli.build_report({"sources": [item(3)]},
+                             proposal_payload={"proposals": [proposal]})
+
+    def test_precomputed_proposal_failure_for_unstructured_source(self):
+        with self.assertRaises(cli.ClassificationError):
+            cli.build_report({"sources": [{"source_id": "feed-3"}]},
+                             proposal_payload={"proposals": []})
+
+    def test_proposal_cli_reads_local_fixture_without_network(self):
+        with tempfile.TemporaryDirectory() as folder:
+            source_path = Path(folder, "sources.json")
+            proposal_path = Path(folder, "proposals.json")
+            row = item(3)
+            row["description"] = "Specialist reporting on radar"
+            row["sample_titles"] = ["Research papers on radar imaging"]
+            source_path.write_text(json.dumps({"sources": [row]}), encoding="utf-8")
+            proposal_path.write_text(json.dumps({"proposals": [
+                {"source_id": "feed-3", "source_class": "technology",
+                 "evidence_quote": "Research papers"}]}), encoding="utf-8")
+            before = set(Path(folder).iterdir())
+            output = io.StringIO()
+            with redirect_stdout(output):
+                status = cli.main(["--input", str(source_path),
+                                   "--proposals", str(proposal_path)])
+            self.assertEqual(status, 0)
+            self.assertEqual(set(Path(folder).iterdir()), before)
+            self.assertEqual(json.loads(output.getvalue())["external_proposals_accepted"], 1)
+
     def test_count_137_is_not_138(self):
         rows = [item(i, confirmed=True) for i in range(137)]
         with self.assertRaises(cli.ClassificationError):
