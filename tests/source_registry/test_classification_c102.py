@@ -187,26 +187,34 @@ class SourceClassificationTests(unittest.TestCase):
         self.assertEqual(metrics["correct"], 50)
         self.assertTrue(metrics["meets_90pct"])
 
-    def test_other_is_valid_gold_class_even_with_review(self):
-        # Accuracy asks whether categories match. Review rate measures
-        # autonomous readiness separately; neither metric conceals the other.
+    def test_abstention_never_counts_as_correct_other(self):
+        # needs_review keeps the default class "other", but it is not an answer.
         rows = [source(i, "Unspecified publisher") for i in range(50)]
         labels = {f"feed-{i}": "other" for i in range(50)}
         report = c.assess_sample(c.classify_batch(rows), labels)
-        self.assertEqual(report["correct"], 50)
-        self.assertEqual(report["accuracy"], 1.0)
-        self.assertTrue(report["meets_90pct"])
+        self.assertEqual(report["correct"], 0)
+        self.assertEqual(report["accuracy"], 0.0)
+        self.assertFalse(report["meets_90pct"])
         self.assertEqual(report["review_required"], 50)
-        self.assertEqual(report["autonomous_correct"], 0)
         self.assertEqual(report["autonomous_coverage"], 0.0)
 
-    def test_category_accuracy_and_autonomy_diverge(self):
+    def test_proposed_other_counts_as_correct(self):
+        rows = [dict(source(i, "Unspecified publisher"), description="Annual trade show") for i in range(50)]
+        labels = {f"feed-{i}": "other" for i in range(50)}
+        def propose(packet):
+            return {"source_id": packet["source_id"], "source_class": "other", "evidence_quote": "Annual trade show"}
+        report = c.assess_sample(c.classify_batch(rows, propose), labels)
+        self.assertEqual(report["correct"], 50)
+        self.assertTrue(report["meets_90pct"])
+        self.assertEqual(report["review_required"], 0)
+
+    def test_one_abstention_is_not_correct(self):
         rows = [source(i, "Tender notices") for i in range(50)]
         rows[0] = source(0, "Unspecified publisher")
         labels = {f"feed-{i}": "tenders" for i in range(50)}
         labels["feed-0"] = "other"
         report = c.assess_sample(c.classify_batch(rows), labels)
-        self.assertEqual(report["correct"], 50)
+        self.assertEqual(report["correct"], 49)
         self.assertEqual(report["review_required"], 1)
         self.assertEqual(report["autonomous_correct"], 49)
         self.assertEqual(report["autonomous_coverage"], 49 / 50)

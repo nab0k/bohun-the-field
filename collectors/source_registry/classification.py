@@ -237,15 +237,12 @@ def assess_sample(predicted: Sequence[Classification],
             "GOLD_SAMPLE_REQUIREMENT")
     found = {x.source_id: x for x in predicted}
     require(len(found) == len(predicted) and set(labels).issubset(found), "GOLD_MISMATCH")
-    # Category accuracy and autonomous readiness are different metrics:
-    # human-labelled "other" is a legitimate class, even when the system
-    # correctly abstains and requests review. Do not count review as an error
-    # unless the predicted class actually disagrees with the gold label.
-    right = sum(found[sid].source_class == cls for sid, cls in labels.items())
+    # A review request is an abstention, not an answer. The default class "other"
+    # on an abstained source must never count as a correct "other".
+    right = sum(found[sid].source_class == cls and found[sid].class_status == "proposed"
+                for sid, cls in labels.items())
     review = sum(found[sid].class_status == "needs_review" for sid in labels)
     return {"sample_size": 50, "correct": right, "accuracy": right / 50,
             "meets_90pct": right >= 45, "review_required": review,
             "autonomous_coverage": (50 - review) / 50,
-            "autonomous_correct": sum(
-                found[sid].source_class == cls and found[sid].class_status == "proposed"
-                for sid, cls in labels.items())}
+            "autonomous_correct": right}
