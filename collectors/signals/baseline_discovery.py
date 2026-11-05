@@ -524,7 +524,7 @@ def verify_proposal(candidate: Candidate, lead: Evidence, document: PrimaryDocum
             rejected.explanation = "wrong_object"
             return rejected
         if candidate.metric == "essm_output" and not re.search(
-                r"\\bESSM\\b", document.title + " " + paragraph, re.I):
+                r"\bESSM\b", document.title + " " + paragraph, re.I):
             rejected.explanation = "essm_program_not_established"
             return rejected
         if not OUTPUT_ACTION.search(quote):
