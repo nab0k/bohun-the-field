@@ -1,0 +1,58 @@
+name: Company Discovery (source-first staging)
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [dry-run, staging]
+        required: true
+        default: dry-run
+  schedule:
+    - cron: '17 4 * * 1'
+permissions:
+  contents: read
+concurrency:
+  group: company-discovery-staging
+  cancel-in-progress: false
+jobs:
+  discovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Existing EXP-012 offline tests first
+        run: |
+          python -m unittest discover -s tests/companies -t .
+          python -m py_compile collectors/companies/model.py collectors/companies/store.py collectors/companies/pg_store.py collectors/companies/pipeline.py collectors/companies/sources/eurosatory.py scripts/companies-collect.py
+      - name: Install PostgreSQL driver for staging only
+        if: github.event_name == 'schedule' || inputs.mode == 'staging'
+        run: python -m pip install "psycopg[binary]"
+      - name: Collect in staging (no schema migration, no promotion)
+        if: github.event_name == 'schedule' || inputs.mode == 'staging'
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          mkdir -p output/company-discovery/raw
+          python scripts/companies-collect.py --store supabase --sources eurosatory2024 --limit 2500 --raw-dir output/company-discovery/raw --report > output/company-discovery/report.json
+      - name: Dry-run in ephemeral SQLite
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'dry-run'
+        run: |
+          mkdir -p output/company-discovery/raw
+          python scripts/companies-collect.py --dry-run --sources eurosatory2024 --limit 2500 --raw-dir output/company-discovery/raw --report > output/company-discovery/report.json
+      - name: Log aggregate metrics only
+        run: |
+          python - <<'PY'
+          import json
+          r=json.load(open("output/company-discovery/report.json"))["eurosatory2024"]
+          keys=("status","fetched","new_observations","discoveries","candidate_existing","holds","new_companies","cursor_out")
+          print(json.dumps({k:r.get(k) for k in keys},sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: discovery-raw-and-report
+          path: output/company-discovery/
+          retention-days: 30

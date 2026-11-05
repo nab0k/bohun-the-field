@@ -19,13 +19,16 @@ def summary(store):
         "with_identifier": q("SELECT COUNT(DISTINCT company_id) n FROM company_identifier")[0]["n"],
         "with_category": q("SELECT COUNT(DISTINCT company_id) n FROM company_category")[0]["n"],
         "match_candidates": q("SELECT COUNT(*) n FROM match_candidate")[0]["n"],
+        "discovery_candidates": q("SELECT COUNT(*) n FROM discovery_candidate")[0]["n"],
+        "discovery_by_status": {r["status"]: r["n"] for r in q(
+            "SELECT status, COUNT(*) n FROM discovery_candidate GROUP BY status")},
         "excluded_reasons": {r["excluded_reason"]: r["n"] for r in q(
             "SELECT excluded_reason, COUNT(*) n FROM company WHERE status='excluded' GROUP BY excluded_reason")},
         "ownership_links": q("SELECT COUNT(*) n FROM company_ownership_link")[0]["n"],
         "observations_by_source": {r["source"]: r["n"] for r in q(
             "SELECT source, COUNT(*) n FROM observation GROUP BY source")},
         "last_runs": q("""SELECT source, status, finished_at, fetched, new_observations, new_companies, matched,
-                          candidates, error FROM run ORDER BY id DESC LIMIT 20"""),
+                          candidates, discoveries, candidate_existing, holds, error FROM run ORDER BY id DESC LIMIT 20"""),
     }
 
 

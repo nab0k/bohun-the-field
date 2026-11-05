@@ -54,12 +54,25 @@ CREATE TABLE IF NOT EXISTS match_candidate (
 CREATE TABLE IF NOT EXISTS source_state (
   source TEXT PRIMARY KEY, cursor TEXT, consecutive_failures INTEGER NOT NULL DEFAULT 0,
   disabled INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS discovery_candidate (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  observation_id INTEGER NOT NULL REFERENCES observation(id),
+  name TEXT NOT NULL, name_norm TEXT NOT NULL, reported_country TEXT,
+  website TEXT, role TEXT NOT NULL DEFAULT 'lead',
+  status TEXT NOT NULL CHECK (status IN ('discovered','candidate_existing','hold','rejected','promotion_ready')),
+  matched_company_id TEXT REFERENCES company(id), match_reason TEXT,
+  created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+  UNIQUE (observation_id,name_norm));
+CREATE INDEX IF NOT EXISTS dc_status ON discovery_candidate(status);
+CREATE TABLE IF NOT EXISTS schema_migration (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS run (
   id INTEGER PRIMARY KEY AUTOINCREMENT, source TEXT NOT NULL, started_at TEXT NOT NULL,
   finished_at TEXT, cursor_in TEXT, cursor_out TEXT, fetched INTEGER NOT NULL DEFAULT 0,
   new_observations INTEGER NOT NULL DEFAULT 0, new_companies INTEGER NOT NULL DEFAULT 0,
   matched INTEGER NOT NULL DEFAULT 0, candidates INTEGER NOT NULL DEFAULT 0,
-  skipped INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL, error TEXT);
+  skipped INTEGER NOT NULL DEFAULT 0, discoveries INTEGER NOT NULL DEFAULT 0,
+  candidate_existing INTEGER NOT NULL DEFAULT 0, holds INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL, error TEXT);
 """
 
 
@@ -124,6 +137,27 @@ class SqliteStore:
         q = """SELECT DISTINCT c.id FROM company c LEFT JOIN company_alias a ON a.company_id = c.id
                WHERE (c.name_norm = ? OR a.alias_norm = ?) AND c.country IS ?"""
         return [r["id"] for r in self._q(q, (norm, norm, country))]
+
+    def seen_discovery_source_key(self, source, source_key):
+        """A source/event pair is observed once; HTML decoration cannot duplicate it."""
+        return bool(self._q(
+            "SELECT 1 FROM observation WHERE source=? AND source_key=? LIMIT 1",
+            (source, source_key)).fetchone())
+
+    def companies_by_discovery_name(self, norm):
+        """Exact normalized company/alias match, never filtered by event country."""
+        return [r["id"] for r in self._q(
+            """SELECT DISTINCT c.id FROM company c LEFT JOIN company_alias a ON a.company_id=c.id
+               WHERE c.name_norm=? OR a.alias_norm=? ORDER BY c.id""", (norm, norm))]
+
+    def add_discovery_candidate(self, observation_id, discovery, status, company_id=None, reason=None):
+        self._q("""INSERT OR IGNORE INTO discovery_candidate
+            (observation_id,name,name_norm,reported_country,website,role,status,
+             matched_company_id,match_reason,created_at,updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            (observation_id, discovery.name, name_norm(discovery.name),
+             discovery.reported_country, discovery.website, discovery.role,
+             status, company_id, reason, now(), now()))
 
     def identifiers_of(self, company_id):
         return [(r["scheme"], r["value"]) for r in self._q(
