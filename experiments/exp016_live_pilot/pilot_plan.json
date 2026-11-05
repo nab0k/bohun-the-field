@@ -1,0 +1,18 @@
+{
+ "format": "exp016.live_pilot.plan.v1",
+ "packet_sha256": "15c9ec842830ce5ddee982ca99214ab9bfef26a40b60c5d51181c43716c90c88",
+ "certificate_sha256": "fdcbf52846e795e8b9df07e19d7615e9c822a026c1295797755581abd30ae1d6",
+ "limits": {
+  "documents": 200,
+  "model_posts": 40,
+  "seconds": 7200,
+  "post_interval_seconds": 15,
+  "chars_per_document": 9000
+ },
+ "model": "gemini-3.5-flash-lite",
+ "cases": {
+  "existing": 28,
+  "controls": 2,
+  "new": 5
+ }
+}
