@@ -1,0 +1,85 @@
+name: EXP-016 private company pilot, one approved run
+"on":
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact separately approved full commit SHA
+        required: true
+        type: string
+      confirmation:
+        description: Type PRIVATE_PILOT_30_PLUS_5 for this separately approved run
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: exp016-live-pilot
+  cancel-in-progress: false
+jobs:
+  pilot:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.repository == 'nab0k/bohun-the-field' &&
+      github.event.repository.private == false &&
+      github.ref == 'refs/heads/main' &&
+      inputs.confirmation == 'PRIVATE_PILOT_30_PLUS_5'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    env:
+      EXPECTED_SHA: ${{ inputs.expected_sha }}
+      PILOT_CONFIRMATION: ${{ inputs.confirmation }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Validate the approved SHA before checkout
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$GITHUB_SHA" == "$EXPECTED_SHA" ]]
+          [[ "$GITHUB_WORKFLOW_SHA" == "$EXPECTED_SHA" ]]
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ inputs.expected_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13.17'
+          check-latest: false
+      - name: Install the pinned libraries, no secrets
+        env:
+          NATIVE_CONFIRMATION: SYNTHETIC_NATIVE_ONLY
+        run: |
+          set -euo pipefail
+          umask 077
+          python experiments/exp016_enrichment/cloud_environment.py prepare
+      - name: Original libraries pass on synthetic data, no secrets
+        env:
+          NATIVE_CONFIRMATION: SYNTHETIC_NATIVE_ONLY
+        run: |
+          set -euo pipefail
+          umask 077
+          python experiments/exp016_enrichment/cloud_environment.py verify
+      - name: Pilot self-check with a canned answer, no secrets
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/exp016-native-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT/venv/bin/python" experiments/exp016_live_pilot/live_runner.py selfcheck
+      - name: One private pilot pass and replay
+        env:
+          GEMINI_FREE_API_KEY: ${{ secrets.GEMINI_FREE_API_KEY }}
+          EXP016_PILOT_PACKET_B64: ${{ secrets.EXP016_PILOT_PACKET_B64 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          "$RUNNER_TEMP/exp016-native-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT/venv/bin/python" experiments/exp016_live_pilot/live_runner.py live
+      - name: Upload ciphertext only
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: exp016-pilot-result-cms
+          path: ${{ runner.temp }}/exp016-pilot-result/result.cms
+          if-no-files-found: warn
+          retention-days: 3
+          compression-level: 0
