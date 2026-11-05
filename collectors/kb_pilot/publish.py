@@ -62,6 +62,20 @@ def sources_of(rec):
     return out[:MAX_SOURCES]
 
 
+def context_sources(rec):
+    """The source of each context line (C3-11, v21): the feed shows it beside the line.
+
+    Exact line text, not a position, so a later edit of the section cannot attach a link to another line."""
+    urls = {f.get("id"): f.get("source_url") for f in rec.get("facts") or []}
+    out = []
+    for item in (rec.get("synthesis") or {}).get("context") or []:
+        line = " ".join((item.get("text") or "").split())
+        url = next((urls[r] for r in item.get("refs") or [] if real_source(urls.get(r))), None)
+        if line and url:
+            out.append({"line": line, "url": url})
+    return out
+
+
 def place_of(rec):
     """(label, lat, lon) of the event for the map (v20), or Nones when the grouping gave no valid point."""
     p = rec.get("place") if isinstance(rec.get("place"), dict) else {}
@@ -93,11 +107,12 @@ def publish_hold(cur, rec, run_ref):
                    VALUES (%s, 1, 'machine') RETURNING id""", (event_id,))
     synthesis_id = cur.fetchone()[0]
     cur.execute("""INSERT INTO knowledge.synthesis_version (synthesis_id, version, headline, what_happened, context,
-                     policy_direction, bigger_picture, supply_chain, why_it_matters, sources, content_hash, origin,
-                     generator) VALUES (%s,1,%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s,'machine',%s)""",
+                     policy_direction, bigger_picture, supply_chain, why_it_matters, sources, context_sources, content_hash,
+                     origin, generator) VALUES (%s,1,%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s::jsonb,%s,'machine',%s)""",
                 (synthesis_id, version["headline"], version["what_happened"], version["context"],
                  version["policy_direction"], version["bigger_picture"], version["supply_chain"],
-                 version["why_it_matters"], json.dumps(sources, ensure_ascii=False), sha(canonical(version)),
+                 version["why_it_matters"], json.dumps(sources, ensure_ascii=False),
+                 json.dumps(context_sources(rec), ensure_ascii=False), sha(canonical(version)),
                  "kb-pilot|" + (run_ref or "local")))
     cur.execute("""INSERT INTO knowledge.synthesis_admission (synthesis_id, version, decision, reason_codes,
                      rules_version, checker, public_release) VALUES (%s, 1, 'HOLD', %s, 'kb-pilot-v1',

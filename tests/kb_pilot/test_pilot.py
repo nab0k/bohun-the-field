@@ -804,6 +804,37 @@ class PublishTest(unittest.TestCase):
         src = sources_of(self.REC)
         self.assertEqual([s["role"] for s in src], ["primary", "report"])  # the primary is not repeated
 
+    def test_context_lines_keep_their_own_source(self):
+        from collectors.kb_pilot.publish import context_sources
+        rec = dict(self.REC, facts=[{"id": "T1", "source_url": "https://b.example/t1"},
+                                    {"id": "T2", "source_url": "https://vertexaisearch.cloud.google.com/redirect/x"}])
+        self.assertEqual(context_sources(rec), [{"line": "2024-01 — Proteus starts.", "url": "https://b.example/t1"}])
+        self.assertEqual(context_sources(self.REC), [])  # no facts: no links, nothing invented
+
+    def test_many_context_lines_do_not_touch_the_five_sources(self):
+        """C3-11: PR 191 put one entry per line into sources (CHECK 1..5) and would have failed here."""
+        import json
+        from collectors.kb_pilot.publish import publish_hold
+        lines = [{"text": "20%02d — step %d." % (i, i), "refs": ["T%d" % i]} for i in range(15)]
+        rec = dict(self.REC, synthesis=dict(self.REC["synthesis"], context=lines),
+                   facts=[{"id": "T%d" % i, "source_url": "https://b.example/%d" % i} for i in range(15)])
+
+        class Cur:
+            calls = []
+
+            def execute(self, sql, args=()):
+                self.calls.append((" ".join(sql.split()), args))
+
+            def fetchone(self):
+                return (7,)
+
+        cur = Cur()
+        publish_hold(cur, rec, "run")
+        sql, args = [c for c in cur.calls if c[0].startswith("INSERT INTO knowledge.synthesis_version")][0]
+        self.assertIn("sources, context_sources,", sql)
+        self.assertLessEqual(len(json.loads(args[8])), 5)  # sources of the material
+        self.assertEqual(len(json.loads(args[9])), 15)  # one link per context line
+
     def test_publish_hold_writes_a_hidden_held_synthesis(self):
         from collectors.kb_pilot.publish import publish_hold
 
@@ -1034,7 +1065,7 @@ class DailyChainTest(unittest.TestCase):
         broken = dict(full, items=["id", "title", "url", "published_at"])
         self.assertEqual(contract.missing(self.Cur(broken, fn=False)),
                          ["intelligence.items.raw_data", "public.export_synthesis_feed()",
-                          "public.export_synthesis_feed_v2()"])
+                          "public.export_synthesis_feed_v2()", "public.export_synthesis_feed_v3()"])
 
 
 class FindTest(unittest.TestCase):

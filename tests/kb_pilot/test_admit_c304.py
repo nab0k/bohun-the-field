@@ -150,3 +150,32 @@ class C304AdmissionGuard(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ContextSourcesCarry(unittest.TestCase):
+    """C3-11 v21: admission writes a new version; the line links must come with it."""
+
+    def test_held_reads_and_write_keeps_context_sources(self):
+        import json
+        links = [{"line": "2024: A.", "url": "https://b.example/a"}]
+
+        class Cur:
+            def __init__(self):
+                self.calls = []
+
+            def execute(self, sql, args=()):
+                self.calls.append((" ".join(sql.split()), args))
+
+            def fetchall(self):
+                return [(5, 9, 1, "H", "W", "2024: A.", None, None, None, "Y", [{"url": "https://a.example"}], links)]
+
+        cur = Cur()
+        row = admit.held(cur, 1)[0]
+        self.assertIn("v.context_sources", cur.calls[0][0])
+        self.assertEqual(row["v"]["context_sources"], links)
+        new = admit.rebuild(row["v"], [], {0: "New headline"})
+        admit.write(cur, row, new, "PUBLISH", [], "p", "r")
+        sql, args = [c for c in cur.calls if c[0].startswith("INSERT INTO knowledge.synthesis_version")][0]
+        self.assertIn("context_sources", sql)
+        self.assertEqual(json.loads(args[10]), links)
+

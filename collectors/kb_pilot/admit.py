@@ -147,7 +147,7 @@ def review(cheap, sources_text, version, items):
 
 def held(cur, limit):
     cur.execute("""SELECT s.id, s.event_id, v.version, v.headline, v.what_happened, v.context, v.policy_direction,
-                          v.bigger_picture, v.supply_chain, v.why_it_matters, v.sources
+                          v.bigger_picture, v.supply_chain, v.why_it_matters, v.sources, v.context_sources
                      FROM knowledge.synthesis s
                      JOIN knowledge.synthesis_version v ON v.synthesis_id = s.id AND v.version = s.active_version
                      JOIN knowledge.synthesis_admission a ON a.synthesis_id = s.id AND a.version = s.active_version
@@ -155,7 +155,7 @@ def held(cur, limit):
                       AND v.generator LIKE 'kb-pilot|%%'
                  ORDER BY s.id DESC LIMIT %s""", (limit,))
     keys = ("headline", "what_happened", "context", "policy_direction", "bigger_picture", "supply_chain",
-            "why_it_matters", "sources")
+            "why_it_matters", "sources", "context_sources")
     return [{"synthesis_id": r[0], "event_id": r[1], "version": r[2], "v": dict(zip(keys, r[3:]))}
             for r in cur.fetchall()]
 
@@ -188,11 +188,13 @@ def write(cur, row, new, decision, reasons, provider, run_ref):
 
         version = old + 1
         cur.execute("""INSERT INTO knowledge.synthesis_version (synthesis_id, version, headline, what_happened, context,
-                         policy_direction, bigger_picture, supply_chain, why_it_matters, sources, content_hash, origin,
-                         generator) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s,'machine',%s)""",
+                         policy_direction, bigger_picture, supply_chain, why_it_matters, sources, context_sources, content_hash,
+                         origin, generator) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s::jsonb,%s,'machine',%s)""",
                     (sid, version, new["headline"], new["what_happened"], new["context"], new["policy_direction"],
                      new["bigger_picture"], new["supply_chain"], new["why_it_matters"],
-                     json.dumps(new["sources"], ensure_ascii=False), sha(canonical(new)),
+                     json.dumps(new["sources"], ensure_ascii=False),
+                     json.dumps(new.get("context_sources") or [], ensure_ascii=False),  # the line links stay (v21)
+                     sha(canonical({k: v for k, v in new.items() if k != "context_sources"})),
                      RULES + "|" + (provider or "") + "|" + (run_ref or "local")))
         cur.execute("""INSERT INTO knowledge.synthesis_admission (synthesis_id, version, decision, reason_codes,
                          rules_version, checker, public_release, published_at)
