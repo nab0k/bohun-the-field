@@ -21,9 +21,10 @@ from pathlib import Path
 import sys
 from typing import Any
 
-from .classification import ClassificationError, assess_sample, classify_batch
+from .classification import ClassificationError, assess_sample, classify_batch, MAX_SOURCES, MAX_ID
 
 MAX_INPUT_BYTES = 1_000_000
+MAX_PROPOSAL_BYTES = 128_000
 
 
 def _unique_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -57,15 +58,39 @@ def _load(path: str) -> Any:
         raise ClassificationError("INVALID_JSON") from exc
 
 
+def _proposals(payload: Any, sources: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Precomputed, untrusted model outputs, with exact source-ID binding."""
+    if not isinstance(payload, dict) or set(payload) != {"proposals"}:
+        raise ClassificationError("PROPOSAL_ENVELOPE")
+    rows = payload["proposals"]
+    if not isinstance(rows, list) or len(rows) > MAX_SOURCES:
+        raise ClassificationError("PROPOSAL_LIMIT")
+    known = {s["source_id"] for s in sources}
+    out: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        if not isinstance(row, dict) or set(row) != {
+                "source_id", "source_class", "evidence_quote"}:
+            raise ClassificationError("PROPOSAL_FIELDS")
+        sid = row["source_id"]
+        if not isinstance(sid, str) or not (0 < len(sid) <= MAX_ID) or sid not in known:
+            raise ClassificationError("PROPOSAL_UNKNOWN_SOURCE")
+        if sid in out:
+            raise ClassificationError("PROPOSAL_DUPLICATE_SOURCE")
+        out[sid] = row
+    return out
+
+
 def build_report(source_payload: Any, gold_payload: Any = None,
                  *, require_138: bool = False,
-                 sample_seed: str = "C1-02-owner-review-v1") -> dict[str, Any]:
+                 sample_seed: str = "C1-02-owner-review-v1",
+                 proposal_payload: Any = None) -> dict[str, Any]:
     if not isinstance(source_payload, dict) or set(source_payload) != {"sources"}:
         raise ClassificationError("SOURCE_ENVELOPE")
     if not isinstance(sample_seed, str) or not 1 <= len(sample_seed) <= 128:
         raise ClassificationError("SAMPLE_SEED_INVALID")
     sources = source_payload["sources"]
-    result = classify_batch(sources)
+    proposals = _proposals(proposal_payload, sources) if proposal_payload is not None else {}
+    result = classify_batch(sources, propose=lambda row: proposals.get(row["source_id"])) if proposals else classify_batch(sources)
     # Stable SHA-256 ranking across all source IDs makes review selection
     # reproducible and independent of input order or predicted class.
     ranked_ids = sorted((r.source_id for r in result),
@@ -93,6 +118,8 @@ def build_report(source_payload: Any, gold_payload: Any = None,
         "review_sample_seed": sample_seed,
         "review_sample_source_ids": review_sample,
         "human_gold_assessment": None,
+        "external_proposals_supplied": len(proposals),
+        "external_proposals_accepted": sum(x.class_origin == "external_proposal" for x in result),
         "owner_approved": False,
         "network_or_live_probes_run": False,
     }
@@ -110,6 +137,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="C1-02 read-only source classification")
     parser.add_argument("--input", required=True, help="local JSON source snapshot")
     parser.add_argument("--gold", help="optional local JSON with 50 independent human labels")
+    parser.add_argument("--proposals", help="optional local JSON of precomputed, untrusted model proposals")
     parser.add_argument("--require-138", action="store_true",
                         help="fail if not 138 sources with confirmed delivery evidence")
     parser.add_argument("--seed", default="C1-02-owner-review-v1",
@@ -117,7 +145,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         report = build_report(_load(args.input), _load(args.gold) if args.gold else None,
-                              require_138=args.require_138, sample_seed=args.seed)
+                              require_138=args.require_138, sample_seed=args.seed,
+                              proposal_payload=_load(args.proposals) if args.proposals else None)
     except (ClassificationError, ValueError, TypeError) as exc:
         code = str(exc)
         if code not in {
@@ -127,7 +156,8 @@ def main(argv: list[str] | None = None) -> int:
             "INVALID_DESCRIPTION", "INVALID_SAMPLES", "INVALID_URL", "INVALID_DELIVERY",
             "GOLD_SAMPLE_REQUIREMENT", "GOLD_MISMATCH",
             "138_VERIFIED_DELIVERY_NOT_ESTABLISHED", "SAMPLE_SEED_INVALID",
-            "GOLD_SAMPLE_IDS_MISMATCH",
+            "GOLD_SAMPLE_IDS_MISMATCH", "PROPOSAL_ENVELOPE", "PROPOSAL_LIMIT",
+            "PROPOSAL_FIELDS", "PROPOSAL_UNKNOWN_SOURCE", "PROPOSAL_DUPLICATE_SOURCE",
         }:
             code = "CLASSIFICATION_FAILED"
         print(json.dumps({"error_code": code}), file=sys.stderr)
