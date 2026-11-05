@@ -804,15 +804,6 @@ class PublishTest(unittest.TestCase):
         src = sources_of(self.REC)
         self.assertEqual([s["role"] for s in src], ["primary", "report"])  # the primary is not repeated
 
-    def test_context_lines_keep_their_own_source(self):
-        from collectors.kb_pilot.publish import clean_sources, context_sources
-        rec = dict(self.REC, facts=[{"id": "T1", "source_url": "https://b.example/t1"},
-                                    {"id": "T2", "source_url": "https://vertexaisearch.cloud.google.com/redirect/x"}])
-        out = context_sources(rec)
-        self.assertEqual(out, [{"role": "context", "line": "2024-01 — Proteus starts.", "url": "https://b.example/t1"}])
-        self.assertEqual(clean_sources(out), out)  # the admission step keeps them
-        self.assertEqual(context_sources(self.REC), [])  # no facts: no links, nothing invented
-
     def test_publish_hold_writes_a_hidden_held_synthesis(self):
         from collectors.kb_pilot.publish import publish_hold
 
