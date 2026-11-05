@@ -1,7 +1,17 @@
 
 ## Fact linking (C2‑03)
 
-## Pilot 30+10 (C2‑04)
+## Pilot 30+10
+
+## Auto‑record new companies (C2‑05)
+
+The **Auto‑record** module adds new company entries from raw observations without requiring manual data entry. It is idempotent – duplicate mentions are ignored.
+
+* **Module** – `collectors/companies/auto_record.py` with function `auto_record_new_companies`.
+* **Test** – `tests/collectors/companies/test_auto_record.py`.
+* **Run** – `python -m scripts.auto_record_new_companies.py <observations.json>`.
+* **Metrics** – `new_companies` counter in the `run` table reflects how many records were added.
+ (C2‑04)
 
 The **Pilot 30 + 10** script selects a pilot set of 30 existing companies and 10 candidate companies, runs the fact‑linking process for them and reports how many new `company_facts` rows were created.
 
