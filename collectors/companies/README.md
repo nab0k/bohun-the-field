@@ -1,6 +1,21 @@
 
 ## Fact linking (C2‑03)
 
+## Pilot 30+10 (C2‑04)
+
+The **Pilot 30 + 10** script selects a pilot set of 30 existing companies and 10 candidate companies, runs the fact‑linking process for them and reports how many new `company_facts` rows were created.
+
+* **Script** – `scripts/pilot_30_10.py`
+* **Test** – `tests/collectors/companies/test_pilot_30_10.py`
+* **Run**:
+```bash
+python -m scripts.pilot_30_10.py
+```
+The script is idempotent; repeated runs do not create duplicate links.
+
+---
+
+
 The **Fact linking** module connects factual entries (e.g. from `atlas/undersea.json`) to existing company records.
 
 * **Table `company_facts`** – stores `(company_id, fact_id, source_url, confidence)`.
