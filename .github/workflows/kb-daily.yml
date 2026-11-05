@@ -118,6 +118,16 @@ jobs:
         env:
           KB_MODE: extract
         run: '"$RUNNER_TEMP/bohun-kb/bin/python" -B -m collectors.kb_pilot --day-from "$DAY_FROM" --day-to "$DAY_TO" --limit 120 | tee "$RUNNER_TEMP/kb-daily/extract.log"'
+      - name: Refresh the site feed now
+        # GitHub thins scheduled runs of the site's feed job, so new materials could wait for hours.
+        # A narrow token (Actions on nab0k/bohundefense only). Without it the step skips and the schedule still works.
+        if: "!cancelled() && github.ref == 'refs/heads/main'"
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.SITE_FEED_DISPATCH_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then echo "SITE_FEED_DISPATCH_TOKEN not set; waiting for the site schedule"; exit 0; fi
+          gh workflow run automatic-synthesis-feed.yml -R nab0k/bohundefense --ref main
       - name: Summary
         if: always()
         run: |
