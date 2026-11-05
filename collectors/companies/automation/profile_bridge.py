@@ -146,7 +146,8 @@ def dispatch(triggers, backend: Backend, *, policy, as_of):
         return {'status': 'NO_CHANGE', 'jobs': 0}
     try:
         revision, cards, checkpoint = backend.read_current(tuple(sorted({t.company_id for t in triggers})))
-        prepared = prepare_batch(triggers, cards, checkpoint, policy=policy, as_of=as_of)
+        # read_at is stamped by the database, so a live clock must be read after it.
+        prepared = prepare_batch(triggers, cards, checkpoint, policy=policy, as_of=as_of() if callable(as_of) else as_of)
     except core.ContractError as exc:
         return {'status': 'HOLD', 'reason': str(exc)}
     except Exception:

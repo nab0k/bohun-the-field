@@ -147,6 +147,16 @@ class BackendCompatibilityTests(unittest.TestCase):
         self.assertEqual((first['status'], second['status']), ('APPLIED', 'APPLIED'))
         self.assertEqual(rpc.insert_counts, [10, 0])
 
+    def test_live_clock_is_read_after_the_current_read(self):
+        rpc = RpcDouble(self.card)
+        calls = []
+        def clock():
+            calls.append(list(rpc.calls))
+            return NOW
+        result = dispatch((self.one,), self.linked(rpc), policy=core.Policy(), as_of=clock)
+        self.assertEqual(result['status'], 'APPLIED')
+        self.assertEqual(calls, [['read_current']])
+
     def test_original_backend_lost_ack_uses_lookup_not_second_commit(self):
         rpc = RpcDouble(self.card); rpc.lose_ack = True
         backend = self.linked(rpc)

@@ -9,4 +9,4 @@ keys, model, scheduler or Notion writer.
 Caller supplies admitted canonical Trigger objects and shared.PostgresBackend
 through SharedBackendLink with its existing approved RPC and complete reader.
 Tests use fake RPC, not PostgreSQL. Deployment remains disabled until the shared
-SQL, reader, canonical bindings and cloud proof are admitted. See DEPLOYMENT.md.
+SQL, reader, canonical bindings and cloud proof are admitted. See A26_DEPLOYMENT.md.

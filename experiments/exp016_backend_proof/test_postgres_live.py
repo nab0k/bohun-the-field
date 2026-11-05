@@ -395,6 +395,48 @@ class PostgresLive(unittest.TestCase):
         with self.assertRaisesRegex(c.ContractError,'SENSITIVE_GEOGRAPHY'):p.commit_result(lease,ch,now())
         self.assertEqual(self.canonical_counts(),[0,0,0])
 
+    def dispatch_event(self,trigger):
+        from collectors.companies.automation import postgres as shared
+        from collectors.companies.automation.profile_bridge import SharedBackendLink,dispatch
+        link=SharedBackendLink(shared,self.transport(),triggers=(trigger,),policy=POLICY,clock=now)
+        return dispatch((trigger,),link,policy=POLICY,as_of=now)
+
+    def queue_counts(self):
+        return (self.admin('SELECT count(*) FROM companies.automation_job')[0][0],
+                self.admin("SELECT count(*) FROM companies.observation WHERE source='exp016.a26_trigger'")[0][0])
+
+    def only_section(self,section):
+        self.admin('UPDATE companies.automation_job SET state=%s WHERE section_key<>%s',('CANCELLED',section))
+
+    def test_24_event_reaches_hold_claim_and_repeat_adds_nothing(self):
+        from collectors.companies.automation.event_triggers import Trigger
+        trigger=Trigger(CID,'synthetic-origin',c.digest('document'),('IDENTITY',))
+        first=self.dispatch_event(trigger)
+        self.assertEqual((first['status'],first.get('jobs')),('APPLIED',10),first.get('reason'))
+        self.assertEqual(self.queue_counts(),(10,1))
+        repeat=self.dispatch_event(trigger)
+        self.assertEqual((repeat['status'],repeat.get('jobs')),('APPLIED',0),repeat.get('reason'))
+        self.assertEqual(self.queue_counts(),(10,1))
+        self.only_section('IDENTITY')
+        p=self.port();lease=p.claim(POLICY.fingerprint,now(),300);self.assertEqual(lease.job.section,'IDENTITY')
+        ch=self.change(p,lease);p.save_prepared(lease,ch,now())
+        self.assertEqual(p.commit_result(lease,ch,now()).state,'SUCCEEDED')
+        self.assertEqual(self.canonical_counts(),[1,1,1])
+        self.assertEqual(self.admin('SELECT qa_status,public_release FROM companies.profile_claim'),[('HOLD',False)])
+        again=self.dispatch_event(trigger)
+        self.assertEqual((again['status'],again.get('jobs')),('APPLIED',0),again.get('reason'))
+        self.assertEqual(self.canonical_counts(),[1,1,1])
+
+    def test_25_new_event_version_makes_the_older_job_stale(self):
+        from collectors.companies.automation.event_triggers import Trigger
+        self.assertEqual(self.dispatch_event(Trigger(CID,'synthetic-origin',c.digest('v1')))['status'],'APPLIED')
+        self.only_section('EVENTS')
+        p=self.port();lease=p.claim(POLICY.fingerprint,now(),300);self.assertEqual(lease.job.section,'EVENTS')
+        self.assertEqual(p.context(lease).input_hash,lease.job.input_hash)
+        newer=self.dispatch_event(Trigger(CID,'synthetic-origin',c.digest('v2')))
+        self.assertEqual((newer['status'],newer.get('jobs')),('APPLIED',1),newer.get('reason'))
+        with self.assertRaisesRegex(c.ContractError,'INPUT_VERSION_OR_SCOPE_CHANGED'):p.context(lease)
+
     def test_23_lease_expiring_while_waiting_for_company_lock_cannot_write(self):
         p,lease,ch=self.pending();p.save_prepared(lease,ch,now())
         self.admin("UPDATE companies.automation_job SET lease_until=clock_timestamp()+interval '1.5 seconds'")
