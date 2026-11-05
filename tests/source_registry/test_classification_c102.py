@@ -187,6 +187,30 @@ class SourceClassificationTests(unittest.TestCase):
         self.assertEqual(metrics["correct"], 50)
         self.assertTrue(metrics["meets_90pct"])
 
+    def test_other_is_valid_gold_class_even_with_review(self):
+        # Accuracy asks whether categories match. Review rate measures
+        # autonomous readiness separately; neither metric conceals the other.
+        rows = [source(i, "Unspecified publisher") for i in range(50)]
+        labels = {f"feed-{i}": "other" for i in range(50)}
+        report = c.assess_sample(c.classify_batch(rows), labels)
+        self.assertEqual(report["correct"], 50)
+        self.assertEqual(report["accuracy"], 1.0)
+        self.assertTrue(report["meets_90pct"])
+        self.assertEqual(report["review_required"], 50)
+        self.assertEqual(report["autonomous_correct"], 0)
+        self.assertEqual(report["autonomous_coverage"], 0.0)
+
+    def test_category_accuracy_and_autonomy_diverge(self):
+        rows = [source(i, "Tender notices") for i in range(50)]
+        rows[0] = source(0, "Unspecified publisher")
+        labels = {f"feed-{i}": "tenders" for i in range(50)}
+        labels["feed-0"] = "other"
+        report = c.assess_sample(c.classify_batch(rows), labels)
+        self.assertEqual(report["correct"], 50)
+        self.assertEqual(report["review_required"], 1)
+        self.assertEqual(report["autonomous_correct"], 49)
+        self.assertEqual(report["autonomous_coverage"], 49 / 50)
+
     def test_accuracy_requires_exactly_50_human_labels(self):
         with self.assertRaises(c.ClassificationError):
             c.assess_sample([], {"fake": "media"})
