@@ -43,6 +43,32 @@ class RunnerTests(unittest.TestCase):
                                     "138_VERIFIED_DELIVERY_NOT_ESTABLISHED"):
             cli.build_report({"sources": rows}, require_138=True)
 
+    def test_sample_of_50_reproducible_independent_of_order(self):
+        rows = [item(i, confirmed=True) for i in range(138)]
+        first = cli.build_report({"sources": rows}, sample_seed="owner-seed-2026")
+        second = cli.build_report({"sources": list(reversed(rows))},
+                                  sample_seed="owner-seed-2026")
+        ids = first["review_sample_source_ids"]
+        self.assertEqual(len(ids), 50)
+        self.assertEqual(len(set(ids)), 50)
+        self.assertEqual(ids, second["review_sample_source_ids"])
+        changed = cli.build_report({"sources": rows}, sample_seed="another-seed")
+        self.assertNotEqual(ids, changed["review_sample_source_ids"])
+
+    def test_gold_must_match_preselected_source_ids(self):
+        rows = [item(i, confirmed=True) for i in range(138)]
+        report = cli.build_report({"sources": rows})
+        sample_ids = report["review_sample_source_ids"]
+        correct = {sid: "tenders" for sid in sample_ids}
+        self.assertEqual(cli.build_report(
+            {"sources": rows}, {"labels": correct})["human_gold_assessment"]["correct"], 50)
+        wrong = dict(correct)
+        wrong.pop(next(iter(wrong)))
+        outside = next(f"feed-{i}" for i in range(138) if f"feed-{i}" not in sample_ids)
+        wrong[outside] = "tenders"
+        with self.assertRaisesRegex(cli.ClassificationError, "GOLD_SAMPLE_IDS_MISMATCH"):
+            cli.build_report({"sources": rows}, {"labels": wrong})
+
     def test_count_137_is_not_138(self):
         rows = [item(i, confirmed=True) for i in range(137)]
         with self.assertRaises(cli.ClassificationError):
