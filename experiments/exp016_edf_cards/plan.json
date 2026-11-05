@@ -1,0 +1,13 @@
+{
+ "format": "exp016.edf_cards.plan.v1",
+ "packet_sha256": "6082e01543038f827d18491d6c2fdebfb245fc14e41f540ee06c2f5006638243",
+ "certificate_sha256": "fdcbf52846e795e8b9df07e19d7615e9c822a026c1295797755581abd30ae1d6",
+ "companies": 581,
+ "limits": {
+  "documents": 1300,
+  "model_posts": 600,
+  "post_interval_seconds": 5.0,
+  "seconds": 7200
+ },
+ "model": "gemini-3.5-flash-lite"
+}
