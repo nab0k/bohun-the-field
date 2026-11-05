@@ -51,7 +51,6 @@ class Evidence:
     scope: str | None = None          # denominator/geography/program/period description
     date_precision: str | None = None  # day | month; never invent day of month
     approximate: bool = False
-    lower_bound: bool = False
 
 @dataclass(frozen=True)
 class PrimaryDocument:
@@ -61,22 +60,6 @@ class PrimaryDocument:
     root_source: str
     scope: str
     primary: bool = True
-    published_at: str | None = None
-    title: str = ""
-
-@dataclass(frozen=True)
-class Proposal:
-    """Untrusted extraction from caller-supplied model. Not evidence by itself."""
-    value: str
-    unit: str
-    kind: str
-    stage: str
-    organization: str
-    speaker: str
-    quote: str
-    date_text: str
-    is_estimate_or_forecast: bool
-    metric: str = ""
 
 @dataclass
 class Discovery:
@@ -143,7 +126,6 @@ ANALYST_ESTIMATE = re.compile(
     r"\b(?:analysts?|consultants?|experts?|observers?)\b.{0,60}?"
     r"\b(?:estimate|estimates|estimated|forecast|forecasts|predict|predicts|"
     r"believe|believes|expect|expects)\b", re.I)
-LOWER_BOUND = re.compile(r"\b(?:over|more than|at least|above|exceed(?:ed|s)?)\b", re.I)
 CAPACITY = re.compile(r"\b(?:capacity|capable of|capability|potential|can produce|"
                       r"could produce|maximum output|production capacity)\b", re.I)
 NEGATIVE = re.compile(r"\b(?:not|never|no longer|failed to|did not|hasn't|haven't|cannot|can't|without)\b", re.I)
@@ -184,8 +166,6 @@ def _source_date(quote: str) -> tuple[str, str] | None:
 
 
 def _date_upper_bound(value: str, precision: str | None = None) -> date:
-    if precision == "year" or re.fullmatch(r"\d{4}", value):
-        return date(int(value), 12, 31)
     if precision == "month" or re.fullmatch(r"\d{4}-\d{2}", value):
         start = date.fromisoformat(value + "-01")
         return (date(start.year + 1, 1, 1) if start.month == 12 else
@@ -354,217 +334,6 @@ def verify_primary(candidate: Candidate, lead: Evidence, document: PrimaryDocume
     return failed
 
 
-def _proposed_date(text: str, document: PrimaryDocument) -> tuple[str, str] | None:
-    """Relative years require actual publication date; preserve year precision."""
-    raw = text.strip()
-    relative = re.fullmatch(r"(last year|this year)", raw, re.I)
-    if relative:
-        if not document.published_at:
-            return None
-        try:
-            publication = _date(document.published_at)
-        except (TypeError, ValueError):
-            return None
-        year = publication.year - (1 if relative.group(1).lower() == "last year" else 0)
-        return str(year), "year"
-    return _source_date(raw)
-
-
-def _same_normalized_value(a: str, b: str) -> bool:
-    return _safe_value(a) is not None and _safe_value(a) == _safe_value(b)
-
-
-def _proposal_subject(candidate: Candidate, proposal: Proposal,
-                      document: PrimaryDocument, paragraph: str) -> bool:
-    """The named actor or an explicitly affiliated first-person speaker."""
-    if not _identity(candidate, proposal.organization):
-        return False
-    names = _names(candidate)
-    quote = proposal.quote
-    if any(re.search(r"(?<!\w)" + re.escape(name) + r"(?!\w)", quote, re.I)
-           for name in names):
-        return _actor_clause(quote, candidate) is not None
-    if not re.search(r"\b(?:we|our)\b", quote, re.I):
-        return False
-    speaker = proposal.speaker.strip()
-    if not speaker:
-        return False
-    role = r"(?:vice president|president|executive|director|CEO|manager|head|spokesperson)"
-    for name in names:
-        company = re.escape(name)
-        person = re.escape(speaker)
-        # Only a concrete affiliation attached to the claimed speaker is enough.
-        # Mere co-occurrence of speaker/company in the same paragraph is unsafe.
-        attribution = (
-            r"(?<!\w)" + company + r"\s+" + role + r"\s+" + person + r"(?!\w)"
-            + "|" + r"(?<!\w)" + person + r"\s*,?\s*" + role +
-            r"\s+(?:of|at|for)\s+" + company + r"(?!\w)"
-        )
-        if re.search(attribution, paragraph, re.I):
-            return True
-    return False
-
-
-def _quote_quantity(quote: str, proposal: Proposal) -> tuple[str, str, bool, bool] | None:
-    """Verify the proposed number against a unit-bearing token in the quote."""
-    approx = bool(APPROX.search(quote))
-    lower = bool(LOWER_BOUND.search(quote))
-    if proposal.unit == "USD":
-        money = re.findall(r"\$\s*([\d,]+(?:\.\d+)?)\s*(million|billion|thousand)?\b", quote, re.I)
-        values = [
-            _safe_value(Decimal(n.replace(",", "")) *
-                {"million": Decimal("1000000"), "billion": Decimal("1000000000"),
-                 "thousand": Decimal("1000")}.get((mult or "").lower(), Decimal(1)))
-            for n, mult in money
-        ]
-        if _safe_value(proposal.value) not in values:
-            return None
-        return _safe_value(proposal.value), "USD", approx, lower
-    quantity = _parse_quantity(quote, Candidate("_proposal", proposal.organization,
-        proposal.metric or "missile_output", proposal.unit, proposal.kind, "9999-12-31"))
-    if quantity is None:
-        return None
-    value, unit, parsed_approx = quantity
-    if not _same_normalized_value(value, proposal.value) or _text(unit) != _text(proposal.unit):
-        return None
-    return value, unit, approx or parsed_approx, lower
-
-
-def verify_proposal(candidate: Candidate, lead: Evidence, document: PrimaryDocument,
-                    proposal: Proposal) -> Evidence:
-    """The model proposes; code checks source spans, scope, dates, modality and figures.
-
-    Unknown grammar, missing source attribution, or forged fields fail closed.
-    """
-    rejected = replace(lead, comparable=False, verification="candidate",
-                       explanation="unverified_proposal")
-    if not isinstance(proposal, Proposal):
-        rejected.explanation = "invalid_proposal_format"
-        return rejected
-    if not isinstance(proposal.is_estimate_or_forecast, bool):
-        rejected.explanation = "invalid_proposal_format"
-        return rejected
-    fields = (proposal.value, proposal.unit, proposal.kind, proposal.stage,
-              proposal.organization, proposal.speaker, proposal.quote, proposal.date_text)
-    if any(not isinstance(x, str) for x in fields) or not isinstance(proposal.metric, str):
-        rejected.explanation = "invalid_proposal_format"
-        return rejected
-    if (not document.primary or document.url != lead.url
-            or not document.root_source or not document.text):
-        rejected.explanation = "invalid_primary_document"
-        return rejected
-    quote = proposal.quote
-    if not quote.strip() or quote not in document.text:
-        rejected.explanation = "quote_not_in_document"
-        return rejected
-    if proposal.is_estimate_or_forecast:
-        rejected.explanation = "model_flags_estimate"
-        return rejected
-    # Match the original paragraph that contains the exact quote.
-    paragraphs = [p.strip() for p in re.split(r"\n\s*\n", document.text) if quote in p]
-    if len(paragraphs) != 1:
-        rejected.explanation = "ambiguous_quote_context"
-        return rejected
-    paragraph = paragraphs[0]
-    if (NEGATIVE.search(quote) or SPECULATIVE.search(quote) or
-            ANALYST_ESTIMATE.search(paragraph) or CAPACITY.search(paragraph)):
-        rejected.explanation = "estimate_plan_negation_or_capacity"
-        return rejected
-    if not _proposal_subject(candidate, proposal, document, paragraph):
-        rejected.explanation = "unverified_actor_or_speaker"
-        return rejected
-    quantity = _quote_quantity(quote, proposal)
-    if quantity is None:
-        rejected.explanation = "quantity_not_in_quote"
-        return rejected
-    value, unit, approx, lower = quantity
-    if proposal.date_text.strip().casefold() not in quote.casefold():
-        rejected.explanation = "date_text_not_in_quote"
-        return rejected
-    parsed = _proposed_date(proposal.date_text, document)
-    if parsed is None:
-        rejected.explanation = "unknown_date_or_missing_publication_date"
-        return rejected
-    when, precision = parsed
-    # The model cannot invent the kind: corroborate from explicit language.
-    if proposal.kind != candidate.kind:
-        rejected.explanation = "wrong_kind"
-        return rejected
-    if proposal.kind == "annual_total":
-        if re.search(r"\bthis year\b", quote, re.I):
-            rejected.explanation = "current_year_incomplete"
-            return rejected
-        if not re.search(r"\b(?:last year|this year|in \d{4}|during \d{4})\b", quote, re.I):
-            rejected.explanation = "annual_period_not_explicit"
-            return rejected
-        if RATE.search(quote):
-            rejected.explanation = "annual_total_confused_with_rate"
-            return rejected
-    elif proposal.kind == "rate":
-        if not RATE.search(quote):
-            rejected.explanation = "rate_not_explicit"
-            return rejected
-    elif proposal.kind == "cumulative":
-        if not CUMULATIVE.search(quote) or RATE.search(quote):
-            rejected.explanation = "cumulative_not_explicit"
-            return rejected
-    elif proposal.kind == "point_in_time":
-        if proposal.metric != "contract_value" or not CONTRACT_ACTION.search(quote) or not re.search(r"\bcontract\b", quote, re.I):
-            rejected.explanation = "point_in_time_not_proven"
-            return rejected
-    else:
-        rejected.explanation = "unsupported_kind"
-        return rejected
-
-    if proposal.metric != candidate.metric:
-        rejected.explanation = "metric_not_proven"
-        return rejected
-    if candidate.metric in {"missile_output", "essm_output"}:
-        if not MISSILE_OBJECT.search(quote) or VEHICLE_OBJECT.search(quote):
-            rejected.explanation = "wrong_object"
-            return rejected
-        if candidate.metric == "essm_output" and not re.search(
-                r"\bESSM\b", document.title + " " + paragraph, re.I):
-            rejected.explanation = "essm_program_not_established"
-            return rejected
-        if not OUTPUT_ACTION.search(quote):
-            rejected.explanation = "missing_output_action"
-            return rejected
-    elif candidate.metric == "contract_value":
-        if unit != "USD":
-            rejected.explanation = "contract_not_currency"
-            return rejected
-    elif candidate.metric in {"units", "unit_output"}:
-        if not re.search(r"\bunits\b", quote, re.I):
-            rejected.explanation = "unit_not_explicit"
-            return rejected
-    else:
-        rejected.explanation = "unsupported_metric"
-        return rejected
-    if candidate.stage and proposal.stage != candidate.stage:
-        rejected.explanation = "wrong_stage"
-        return rejected
-    if proposal.stage == "delivered" and not re.search(r"\b(?:delivered|shipped|supplied)\b", quote, re.I):
-        rejected.explanation = "stage_not_in_quote"
-        return rejected
-    if proposal.stage == "contracted" and not CONTRACT_ACTION.search(quote):
-        rejected.explanation = "stage_not_in_quote"
-        return rejected
-    result = replace(
-        lead, value=value, unit=unit, kind=proposal.kind, metric=proposal.metric,
-        stage=proposal.stage, subject=candidate.entity, quote=quote,
-        value_date=when, date_precision=precision, approximate=approx,
-        lower_bound=lower, first_seen_at=document.first_seen_at,
-        root_source=document.root_source, scope=document.scope, verification="verified")
-    ok, why = _compatible(candidate, result)
-    if not ok:
-        rejected.explanation = why
-        return rejected
-    result.comparable = True
-    result.explanation = "verified_proposal_against_primary_text"
-    return result
-
-
 def _same_metric(a: str, b: str) -> bool:
     return bool(a.strip() and b.strip()) and _text(a) == _text(b)
 
@@ -723,8 +492,7 @@ def discover(candidate: Candidate,
              post_json: Callable[[str, Mapping[str, Any]], Mapping[str, Any]] | None = None,
              search: Callable[[str], Sequence[Mapping[str, Any]]] | None = None,
              documents: Mapping[str, PrimaryDocument] | None = None,
-             max_verifications: int = MAX_VERIFICATIONS,
-             propose: Callable[[Candidate, PrimaryDocument], list[Proposal]] | None = None) -> Discovery:
+             max_verifications: int = MAX_VERIFICATIONS) -> Discovery:
     """Find baseline and second independent root within bounded primary checks."""
     _date(candidate.as_of)
     if not 0 <= max_verifications <= MAX_VERIFICATIONS:
@@ -736,7 +504,6 @@ def discover(candidate: Candidate,
         ("free_web", search is not None, lambda: web_search(candidate, search)),
     ]
     roots: set[str] = set()
-    proposed_urls: set[str] = set()
     for provider, enabled, getter in stages:
         if result.baseline is not None and result.second_source is not None:
             result.searched.append({"provider": provider, "status": "not_needed"})
@@ -767,21 +534,6 @@ def discover(candidate: Candidate,
                 continue
             result.verification_count += 1
             checked = verify_primary(candidate, lead, document)
-            if not checked.comparable and propose is not None and document.url not in proposed_urls:
-                proposed_urls.add(document.url)
-                try:
-                    suggestions = propose(candidate, document)
-                    if not isinstance(suggestions, list) or len(suggestions) > 10:
-                        raise ValueError("invalid proposal collection")
-                    for suggestion in suggestions:
-                        proposal_result = verify_proposal(candidate, lead, document, suggestion)
-                        if proposal_result.comparable:
-                            checked = proposal_result
-                            break
-                        checked = proposal_result
-                except Exception:
-                    checked = replace(lead, verification="candidate", comparable=False,
-                                      explanation="proposal_error_or_invalid_format")
             result.alternatives.append(checked)
             if checked.comparable:
                 root = checked.root_source or checked.url
