@@ -1,0 +1,21 @@
+# Defencegrantbot: secondary grant-discovery signal
+
+- Handle: `@Defencegrantbot`
+- Public entry point: https://t.me/Defencegrantbot
+- Category: grants / defence / dual-use
+- Status: **user-submitted, not independently verified** (bot identity, ownership, posting frequency, content and upstream sources not yet established).
+- Collection role: **secondary discovery / cross-check only**. Do not treat the bot as a primary source of grant terms or deadlines.
+- Access: Telegram bot, not necessarily a public channel or exportable feed. No automatic ingestion until access permissions and bot behaviour are verified.
+- Verification procedure: inspect the bot's public description and sample messages; for each grant extract the original issuer, call ID, deadline, eligibility and official link; match against issuer's official site; measure lag, duplicates and missing calls.
+- Primary sources to monitor independently:
+  - European Defence Fund / European Commission: https://defence-industry-space.ec.europa.eu/eu-defence-industry/european-defence-fund-edf-official-webpage-european-commission_en
+  - EUDIS: https://eudis.europa.eu/eudis-tracks_en
+  - EU Funding & Tenders portal: https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home
+  - NATO DIANA: https://www.diana.nato.int/
+  - UK DASA: https://www.gov.uk/government/organisations/defence-and-security-accelerator
+  - US SBIR/STTR: https://www.sbir.gov/
+  - US AFWERX: https://afwerx.com/
+- These are **candidate upstream sources**, not verified as sources used by the Telegram bot.
+- Proposed collector: issuer-first grant ingestion into `intelligence.opportunities` linked to `intelligence.items`; preserve programme, call identifier, funding amount, currency, geography, deadline, eligibility, status and canonical official URL. Use Telegram only for discovery or gap analysis.
+- Next evidence needed: bot sample messages or accessible public channel history, then compare outgoing links and citation patterns against official issuers.
+- Added: 2026-10-09.
