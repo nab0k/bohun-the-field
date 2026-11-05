@@ -1,4 +1,23 @@
-# Companies collector (EXP-012)
+
+## Fact linking (C2‑03)
+
+The **Fact linking** module connects factual entries (e.g. from `atlas/undersea.json`) to existing company records.
+
+* **Table `company_facts`** – stores `(company_id, fact_id, source_url, confidence)`.
+* **Method `store.add_fact_link`** – inserts a link idempotently.
+* **`fact_linker.py`** – provides `load_facts()`, `match_fact()`, and `link_facts(store)` for batch processing.
+* **Sanity script** – `scripts/run_fact_linker_test.py` runs basic checks without external dependencies.
+
+Typical usage:
+```python
+from collectors.companies.store import SqliteStore
+from collectors.companies.fact_linker import link_facts
+
+store = SqliteStore()
+link_facts(store)
+```
+
+See the experiment log `docs/experiments/EXP-###‑fact‑linking.md` for detailed results.
 
 Autonomous, bounded collection of defence and dual-use companies (world without RU/CN, down to
 components and services). Design: BOHUN-local `docs/experiments/EXP-012-companies-coverage-audit/DESIGN_v0.md`.
