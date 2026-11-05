@@ -426,7 +426,7 @@ class BaselineTests(unittest.TestCase):
     def test_invalid_proposal_format_is_not_verified(self):
         url = "https://official.example/invalid"
         candidate = item()
-        doc = source(url, "On 2026-01-01 ACME produced 100 units/year of missiles.")
+        doc = source(url, "On 2026-01-01 ACME hopes to produce 100 units/year of missiles.")
         result = module.discover(candidate,
             search=lambda _: [{"url": url}], documents={url: doc},
             propose=lambda *_: [dict(value=100, unit="units/year")])
