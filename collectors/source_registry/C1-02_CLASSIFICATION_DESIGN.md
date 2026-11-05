@@ -43,8 +43,38 @@
 
 ## Проверки
 
-Репозиторный тест: `python -B -m unittest tests.source_registry.test_classification_c102 -v`.
+Репозиторный тест: `python -B -m unittest discover -s tests/source_registry -p 'test_classification*c102.py' -v`. Отдельные наборы: `test_classification_c102.py` и `test_classification_cli_c102.py`.
 
 Добавлен offline test module с проверками десяти классов, ошибочных предложений модели, отделения доставки от классификации, отсутствия признаков подписки, лимитов, дублей ID и scoring API. Включён **искусственный** набор из 50 случаев, показывающий только арифметику метрики; это не accuracy на реальных источниках.
 
 **Не запускалось** в этой сессии: репозиторный unittest (локальная среда не может разрешить github.com для загрузки актуального кода, изменения внесены через GitHub connector), модель, интернет, DB, Inoreader, Web Monitor, workflow. Технический тест доставки не проводился. C1-02 пока нельзя закрывать; приёмка 138/50/90% ещё впереди.
+
+## Чтение реальной выгрузки и вычисление приёмки (offline CLI)
+
+Добавлен `collectors/source_registry/classification_cli.py`, не требующий сторонних зависимостей. Принимает только локальные JSON-файлы размером до 1 MiB, отвергает дубли JSON-ключей и NaN, не выполняет HTTP/DB/модельные запросы и не пишет файлы. Выводит JSON в stdout; ошибок с содержимым статей и путями на stderr не печатает.
+
+Пример `/private/feeds.json` (вымышленная запись, **не** реальный проверенный feed):
+
+```json
+{"sources":[{"source_id":"feed-001","title":"Official tender portal",
+ "url":"https://tenders.example.org/feed","description":"Tender notices and invitations to bid",
+ "sample_titles":["Invitation to bid for maintenance"],
+ "delivery_evidence":[{"method":"rss","status":"confirmed","ref":"synthetic-probe-001"}]}]}
+```
+
+Пример формата `/private/human-labels.json` (выборка в настоящем запуске должна содержать ровно 50 **независимо размеченных** идентификаторов):
+
+```json
+{"labels":{"feed-001":"tenders"}}
+```
+
+Команды **после получения подлинной выгрузки**:
+
+```sh
+python -B -m collectors.source_registry.classification_cli --input /private/feeds.json --require-138 > /private/c102-report.json
+python -B -m collectors.source_registry.classification_cli --input /private/feeds.json --gold /private/human-labels-50.json --require-138 > /private/c102-evaluation.json
+```
+
+`--require-138` отказывает, если источников не ровно 138 или у хотя бы одного нет переданного `confirmed` технического свидетельства доставки; **это проверка структуры входного доказательства, не реальная сетевая валидация**. Ответ `owner_approved=false` всегда, реальные `live_probes` не выполнялись. Порог 90% считается только из **собственного** `--gold`, а не из предложений модели. Синтетические 138 записей и 50 меток проверяют только работу кода.
+
+**Новые офлайн-тесты:** 9 для CLI, всего 32 метода в двух файлах `test_classification*c102.py`; полный запуск в этой сессии не подтверждён. Состояние карточки: **ожидает реальную выгрузку 138 проверенных лент и независимую ручную оценку 50**. Никаких записей в Inoreader или другие рабочие системы.
