@@ -199,6 +199,20 @@ class SourceClassificationTests(unittest.TestCase):
         self.assertEqual(result["correct"], 49)
         self.assertEqual(result["review_required"], 1)
 
+    def test_batch_of_138_synthetic_feeds_keeps_one_result_per_id(self):
+        # This tests capacity and stable identity, NOT 138 verified feeds.
+        rows = [source(i, EXAMPLES[i % len(EXAMPLES)][1]) for i in range(138)]
+        result = c.classify_batch(rows)
+        self.assertEqual(len(result), 138)
+        self.assertEqual(len({item.source_id for item in result}), 138)
+        self.assertTrue(all(item.class_status == "proposed" for item in result))
+
+    def test_malformed_url_rejected_with_fixed_error_code(self):
+        bad = source(1, "Defence news media", url="https://[bad-host")
+        with self.assertRaisesRegex(c.ClassificationError, "^INVALID_URL$"):
+            c.classify(bad)
+
+
 
 if __name__ == "__main__":
     unittest.main()
