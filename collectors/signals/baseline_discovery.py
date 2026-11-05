@@ -376,7 +376,7 @@ def _same_normalized_value(a: str, b: str) -> bool:
 
 def _proposal_subject(candidate: Candidate, proposal: Proposal,
                       document: PrimaryDocument, paragraph: str) -> bool:
-    """Pronoun attribution requires external editorial context in the same paragraph."""
+    """The named actor or an explicitly affiliated first-person speaker."""
     if not _identity(candidate, proposal.organization):
         return False
     names = _names(candidate)
@@ -386,25 +386,23 @@ def _proposal_subject(candidate: Candidate, proposal: Proposal,
         return _actor_clause(quote, candidate) is not None
     if not re.search(r"\b(?:we|our)\b", quote, re.I):
         return False
-    if not proposal.speaker.strip():
+    speaker = proposal.speaker.strip()
+    if not speaker:
         return False
-    # A model's speaker field is only a lead. The actual paragraph must
-    # identify the speaker and represent the candidate organization.
-    if not re.search(r"(?<!\w)" + re.escape(proposal.speaker) + r"(?!\w)",
-                     paragraph, re.I):
-        return False
-    if not any(re.search(r"(?<!\w)" + re.escape(name) + r"(?!\w)", paragraph, re.I)
-               for name in names):
-        return False
-    if not (any(re.search(r"(?<!\w)" + re.escape(name) + r"(?!\w)", document.title, re.I)
-                for name in names)
-            or re.search(r"\b(?:president|executive|director|vice president|"
-                         r"spokesperson|CEO|chair|manager|head of)\b", paragraph, re.I)):
-        return False
-    # Refuse paragraphs that identify another entity as the speaker's employer.
-    if re.search(r"\b(?:for|at|of)\s+(?:another company|supplier|subcontractor)\b", paragraph, re.I):
-        return False
-    return True
+    role = r"(?:vice president|president|executive|director|CEO|manager|head|spokesperson)"
+    for name in names:
+        company = re.escape(name)
+        person = re.escape(speaker)
+        # Only a concrete affiliation attached to the claimed speaker is enough.
+        # Mere co-occurrence of speaker/company in the same paragraph is unsafe.
+        attribution = (
+            r"(?<!\w)" + company + r"\s+" + role + r"\s+" + person + r"(?!\w)"
+            + "|" + r"(?<!\w)" + person + r"\s*,?\s*" + role +
+            r"\s+(?:of|at|for)\s+" + company + r"(?!\w)"
+        )
+        if re.search(attribution, paragraph, re.I):
+            return True
+    return False
 
 
 def _quote_quantity(quote: str, proposal: Proposal) -> tuple[str, str, bool, bool] | None:
