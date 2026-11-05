@@ -1,0 +1,10 @@
+{
+ "format": "exp016.candidate_batch.plan.v1",
+ "batch": "C2-08-20261105",
+ "packet_sha256": "1b5b3c053a0ae3a1e3f10357e34a3cae6c4e61395919d9b754567b13150c0b67",
+ "registry": {
+  "companies": 3751,
+  "ids_md5": "c3c379b61d77464ca142660424508494"
+ },
+ "companies": 1070
+}
