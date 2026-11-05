@@ -102,9 +102,13 @@ def validated_source(raw: Mapping[str, Any]) -> dict[str, Any]:
             "INVALID_SAMPLES")
     url = raw.get("url")
     require(isinstance(url, str) and len(url) <= 2048, "INVALID_URL")
-    parsed = urlsplit(url)
-    require(parsed.scheme == "https" and parsed.hostname
-            and not parsed.username and not parsed.password, "INVALID_URL")
+    try:
+        parsed = urlsplit(url)
+        valid_url = (parsed.scheme == "https" and bool(parsed.hostname)
+                     and not parsed.username and not parsed.password)
+    except ValueError:
+        valid_url = False
+    require(valid_url, "INVALID_URL")
     technical = raw.get("delivery_evidence", [])
     require(isinstance(technical, list) and len(technical) <= 8
             and all(isinstance(x, Mapping) for x in technical), "INVALID_DELIVERY")
