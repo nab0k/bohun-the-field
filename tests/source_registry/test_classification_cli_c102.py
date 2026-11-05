@@ -74,7 +74,7 @@ class RunnerTests(unittest.TestCase):
         row["description"] = "A specialised publisher"
         row["sample_titles"] = ["Technology journal: research papers on radar"]
         proposal = {"source_id": "feed-3", "source_class": "technology",
-                    "evidence_quote": "research papers"}
+                    "evidence_quote": "Research papers"}
         report = cli.build_report({"sources": [row]},
                                   proposal_payload={"proposals": [proposal]})
         found = report["classifications"][0]
@@ -82,6 +82,17 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(found["class_origin"], "external_proposal")
         self.assertEqual(found["delivery_method"], "unknown")
         self.assertEqual(report["external_proposals_accepted"], 1)
+
+    def test_proposal_quote_wrong_case_is_rejected(self):
+        row = item(3)
+        row["description"] = "Specialist publisher"
+        row["sample_titles"] = ["Research papers on radar"]
+        proposal = {"source_id": "feed-3", "source_class": "technology",
+                    "evidence_quote": "research papers"}
+        result = cli.build_report({"sources": [row]},
+                                  proposal_payload={"proposals": [proposal]})
+        self.assertEqual(result["external_proposals_accepted"], 0)
+        self.assertEqual(result["classifications"][0]["class_status"], "needs_review")
 
     def test_fabricated_proposal_is_not_evidence(self):
         row = item(3)
