@@ -191,6 +191,20 @@ class EditorOfflineTests(unittest.TestCase):
         self.assertEqual(run_with(candidate=changed).decision, "BLOCK")
         self.assertIn("unrelated_context", codes(run_with(candidate=changed)))
 
+    def test_malformed_context_collection_blocks_without_crashing(self):
+        c, e, a, p = fixture()
+        changed = replace(c, payload={**c.payload, "context_items": None})
+        v = run_with(candidate=changed)
+        self.assertEqual(v.decision, "BLOCK")
+        self.assertIn("invalid_context_collection", codes(v))
+
+    def test_source_published_after_as_of_requires_review(self):
+        c, e, a, p = fixture()
+        future = replace(e, sources=(replace(e.sources[0], published_at="2026-11-04"),))
+        v = run_with(evidence=future)
+        self.assertEqual(v.decision, "REVIEW")
+        self.assertIn("source_postdates_candidate", codes(v))
+
     def test_context_without_span_blocks(self):
         c, e, a, p = fixture()
         context = [{**c.payload["context_items"][0], "span_id": "absent"}]
