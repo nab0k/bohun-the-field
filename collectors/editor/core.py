@@ -270,6 +270,14 @@ def review(candidate: PublishCandidate, evidence: EvidenceBundle,
             flag("E07", "BLOCK", "invalid_source_date")
         if src.retrieval_verified is not True:
             flag("E01", "REVIEW", "source_not_independently_retrieved")
+        # Source cannot be evidence already available before its own publication.
+        as_of = candidate.payload.get("as_of")
+        if as_of:
+            try:
+                if _date(src.published_at) > _date(as_of):
+                    flag("E07", "REVIEW", "source_postdates_candidate")
+            except (ValueError, TypeError, OverflowError):
+                pass  # Invalid dates are separately BLOCKed above / in the payload.
         for span in src.spans:
             key = (src.source_id, span.span_id)
             if not span.span_id or not span.text or key in span_map:
@@ -288,7 +296,11 @@ def review(candidate: PublishCandidate, evidence: EvidenceBundle,
             elif ref.get("url") != source_map[ref["source_id"]].url:
                 flag("E01", "BLOCK", "source_url_mismatch")
 
-    for item in candidate.payload.get("context_items", ()):
+    context_items = candidate.payload.get("context_items", ())
+    if not isinstance(context_items, (list, tuple)):
+        flag("E04", "BLOCK", "invalid_context_collection")
+        context_items = ()
+    for item in context_items:
         if not isinstance(item, Mapping):
             flag("E04", "BLOCK", "invalid_context_item")
             continue
