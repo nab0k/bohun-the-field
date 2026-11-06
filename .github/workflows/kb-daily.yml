@@ -128,14 +128,31 @@ jobs:
         run: |
           if [ -z "$GH_TOKEN" ]; then echo "SITE_FEED_DISPATCH_TOKEN not set; waiting for the site schedule"; exit 0; fi
           gh workflow run automatic-synthesis-feed.yml -R nab0k/bohundefense --ref main
+      - name: C3-02 Public synthesis item-date freshness (advisory)
+        id: synthesis_freshness
+        if: "!cancelled()"
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/kb-daily"
+          set -o pipefail
+          python -B scripts/check_synthesis_freshness.py --max-age-days 1 | tee "$RUNNER_TEMP/kb-daily/freshness.json"
       - name: Summary
         if: always()
+        env:
+          FRESHNESS_STATUS: ${{ steps.synthesis_freshness.outputs.freshness_status }}
+          FRESHNESS_DATE: ${{ steps.synthesis_freshness.outputs.latest_item_date }}
+          FRESHNESS_AGE: ${{ steps.synthesis_freshness.outputs.age_days }}
+          FRESHNESS_COUNT: ${{ steps.synthesis_freshness.outputs.published_count }}
         run: |
           {
             echo "### BOHUN daily syntheses $DAY_FROM..$DAY_TO"
             for f in contract embed pilot admit extract; do
               echo "- **$f**: \`$(grep -ho 'KB_[A-Z_]* .*' "$RUNNER_TEMP/kb-daily/$f.log" 2>/dev/null | tail -1 | cut -c1-600)\`"
             done
+            echo "- **C3-02 freshness monitor:** see the dedicated C3-02 section above."
+            echo "- **C3-02 status:** ${FRESHNESS_STATUS:-not_checked}; latest news/item date: ${FRESHNESS_DATE:-unknown}; age in UTC calendar days: ${FRESHNESS_AGE:-unknown}; feed entries: ${FRESHNESS_COUNT:-unknown}."
+            echo "- **C3-02 scope:** item dates reflect source news/events, not necessarily site publication timestamps."
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Keep the result for review
         if: always()
