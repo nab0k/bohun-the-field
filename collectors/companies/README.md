@@ -1,4 +1,48 @@
-# Companies collector (EXP-012)
+
+## Fact linking (C2‑03)
+
+## Pilot 30+10
+
+## Auto‑record new companies (C2‑05)
+
+The **Auto‑record** module adds new company entries from raw observations without requiring manual data entry. It is idempotent – duplicate mentions are ignored.
+
+* **Module** – `collectors/companies/auto_record.py` with function `auto_record_new_companies`.
+* **Test** – `tests/collectors/companies/test_auto_record.py`.
+* **Run** – `python -m scripts.auto_record_new_companies.py <observations.json>`.
+* **Metrics** – `new_companies` counter in the `run` table reflects how many records were added.
+ (C2‑04)
+
+The **Pilot 30 + 10** script selects a pilot set of 30 existing companies and 10 candidate companies, runs the fact‑linking process for them and reports how many new `company_facts` rows were created.
+
+* **Script** – `scripts/pilot_30_10.py`
+* **Test** – `tests/collectors/companies/test_pilot_30_10.py`
+* **Run**:
+```bash
+python -m scripts.pilot_30_10.py
+```
+The script is idempotent; repeated runs do not create duplicate links.
+
+---
+
+
+The **Fact linking** module connects factual entries (e.g. from `atlas/undersea.json`) to existing company records.
+
+* **Table `company_facts`** – stores `(company_id, fact_id, source_url, confidence)`.
+* **Method `store.add_fact_link`** – inserts a link idempotently.
+* **`fact_linker.py`** – provides `load_facts()`, `match_fact()`, and `link_facts(store)` for batch processing.
+* **Sanity script** – `scripts/run_fact_linker_test.py` runs basic checks without external dependencies.
+
+Typical usage:
+```python
+from collectors.companies.store import SqliteStore
+from collectors.companies.fact_linker import link_facts
+
+store = SqliteStore()
+link_facts(store)
+```
+
+See the experiment log `docs/experiments/EXP-###‑fact‑linking.md` for detailed results.
 
 Autonomous, bounded collection of defence and dual-use companies (world without RU/CN, down to
 components and services). Design: BOHUN-local `docs/experiments/EXP-012-companies-coverage-audit/DESIGN_v0.md`.
