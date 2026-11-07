@@ -130,18 +130,23 @@ class EditorVerdict:
     evidence_hash: str
     policy_version: str
     checker_model_id: str
+    policy_hash: str
     reasons: tuple[Reason, ...] = ()
     offline_only: bool = True
 
     def matches(self, candidate: PublishCandidate, evidence: EvidenceBundle,
                 policy: EditorPolicy) -> bool:
         """Check immutable pins only. NOT an atomic publishing permission."""
-        return (self.decision == "PASS" and self.material_id == candidate.material_id
-                and self.material_type == candidate.material_type
-                and self.version == candidate.version
-                and self.content_hash == _hash(candidate.payload)
-                and self.evidence_hash == evidence.fingerprint()
-                and self.policy_version == policy.version)
+        try:
+            return (self.decision == "PASS" and self.material_id == candidate.material_id
+                    and self.material_type == candidate.material_type
+                    and self.version == candidate.version
+                    and self.content_hash == _hash(candidate.payload)
+                    and self.evidence_hash == evidence.fingerprint()
+                    and self.policy_version == policy.version
+                    and self.policy_hash == _hash(asdict(policy)))
+        except (TypeError, ValueError, AttributeError, RecursionError, OverflowError):
+            return False
 
 
 def _url_ok(value: Any) -> bool:
@@ -149,6 +154,7 @@ def _url_ok(value: Any) -> bool:
         return False
     try:
         p = urlsplit(value)
+        _ = p.port  # Invalid ports raise ValueError, not a valid HTTPS source.
         if p.scheme != "https" or not p.hostname or p.username or p.password:
             return False
         # Reject local endpoints even though this module never fetches URLs.
@@ -224,8 +230,16 @@ def review(candidate: PublishCandidate, evidence: EvidenceBundle,
     A caller cannot use this function as a production publishing gate.
     """
     policy = policy or EditorPolicy()
-    payload_hash = _hash(candidate.payload)
-    evidence_hash = evidence.fingerprint()
+    # A contract annotation does not validate JSON or runtime Python types.
+    # Invalid/cyclic/unserializable payloads MUST return BLOCK, not crash.
+    try:
+        payload_hash = _hash(candidate.payload) if isinstance(candidate.payload, Mapping) else ""
+    except (TypeError, ValueError, OverflowError, RecursionError):
+        payload_hash = ""
+    try:
+        evidence_hash = evidence.fingerprint()
+    except (TypeError, ValueError, OverflowError, RecursionError, AttributeError):
+        evidence_hash = ""
     reasons: list[Reason] = []
 
     def flag(rule: str, severity: str, code: str) -> None:
@@ -233,10 +247,23 @@ def review(candidate: PublishCandidate, evidence: EvidenceBundle,
         if item not in reasons:
             reasons.append(item)
 
-    if (not candidate.material_id or candidate.material_type not in TYPES
-            or type(candidate.version) is not int or candidate.version < 1
-            or not isinstance(candidate.payload, Mapping)):
+    if not payload_hash or not evidence_hash:
+        if not payload_hash:
+            flag("E00", "BLOCK", "invalid_payload_serialization")
+        if not evidence_hash:
+            flag("E03", "BLOCK", "invalid_evidence_serialization")
+        return EditorVerdict(
+            "BLOCK", candidate.material_id, candidate.material_type, candidate.version,
+            payload_hash, evidence_hash, policy.version, "",
+            _hash(asdict(policy)), tuple(reasons))
+
+    if (not isinstance(candidate.material_id, str) or not candidate.material_id
+            or candidate.material_type not in TYPES
+            or type(candidate.version) is not int or candidate.version < 1):
         flag("E00", "BLOCK", "invalid_candidate_contract")
+    if (not isinstance(candidate.event_ids, (tuple, list))
+            or not all(isinstance(e, str) and e for e in candidate.event_ids)):
+        flag("E00", "BLOCK", "invalid_candidate_events")
     if len(_canonical(candidate.payload).encode("utf-8")) > policy.max_payload_bytes:
         flag("E00", "BLOCK", "payload_too_large")
     if not isinstance(candidate.payload.get("headline"), str) or not candidate.payload["headline"].strip():
@@ -259,10 +286,18 @@ def review(candidate: PublishCandidate, evidence: EvidenceBundle,
 
     source_map: dict[str, EvidenceSource] = {}
     span_map: dict[tuple[str, str], str] = {}
+    if (not isinstance(evidence.event_ids, (tuple, list))
+            or not all(isinstance(e, str) and e for e in evidence.event_ids)):
+        flag("E03", "BLOCK", "invalid_evidence_event_ids")
+    elif (candidate.event_ids and evidence.event_ids
+          and not set(candidate.event_ids).intersection(evidence.event_ids)):
+        flag("E04", "BLOCK", "evidence_unrelated_to_candidate")
     for src in evidence.sources:
-        if (not src.source_id or not src.root_source_id or src.source_id in source_map
-                or not _url_ok(src.url)):
+        if (not isinstance(src.source_id, str) or not src.source_id
+                or not isinstance(src.root_source_id, str) or not src.root_source_id
+                or src.source_id in source_map or not _url_ok(src.url)):
             flag("E01", "BLOCK", "invalid_evidence_source")
+            continue
         source_map[src.source_id] = src
         try:
             _date(src.published_at)
@@ -278,10 +313,19 @@ def review(candidate: PublishCandidate, evidence: EvidenceBundle,
                     flag("E07", "REVIEW", "source_postdates_candidate")
             except (ValueError, TypeError, OverflowError):
                 pass  # Invalid dates are separately BLOCKed above / in the payload.
+        if not isinstance(src.spans, (tuple, list)):
+            flag("E03", "BLOCK", "invalid_evidence_spans")
+            continue
         for span in src.spans:
-            key = (src.source_id, span.span_id)
-            if not span.span_id or not span.text or key in span_map:
+            if (not isinstance(span, EvidenceSpan)
+                    or not isinstance(span.span_id, str) or not span.span_id
+                    or not isinstance(span.text, str) or not span.text):
                 flag("E03", "BLOCK", "invalid_evidence_span")
+                continue
+            key = (src.source_id, span.span_id)
+            if key in span_map:
+                flag("E03", "BLOCK", "duplicate_evidence_span")
+                continue
             span_map[key] = span.text
     if not source_map:
         flag("E03", "REVIEW", "no_evidence")
@@ -309,7 +353,10 @@ def review(candidate: PublishCandidate, evidence: EvidenceBundle,
         linked = item.get("event_ids")
         if not isinstance(linked, list) or not linked:
             flag("E04", "REVIEW", "context_event_not_attributed")
-        elif not set(linked).intersection(candidate.event_ids):
+        elif not all(isinstance(e, str) and e for e in linked):
+            flag("E04", "BLOCK", "invalid_context_event_ids")
+        elif not set(linked).intersection(
+                candidate.event_ids if isinstance(candidate.event_ids, (tuple, list)) else ()):
             flag("E04", "BLOCK", "unrelated_context")
 
     if candidate.material_type == "signal":
@@ -347,9 +394,15 @@ def review(candidate: PublishCandidate, evidence: EvidenceBundle,
         if (not checker_model or checker_model == candidate.author_model_id or
                 not candidate.author_model_id):
             flag("E12", "REVIEW", "checker_not_independent")
-        if not assessment.coverage_complete or not assessment.claims:
+        if assessment.coverage_complete is not True or not assessment.claims:
             flag("E03", "REVIEW", "semantic_coverage_incomplete")
         for claim in assessment.claims:
+            if (not isinstance(claim, ClaimCheck)
+                    or not isinstance(claim.statement, str) or not claim.statement.strip()
+                    or not isinstance(claim.source_id, str)
+                    or not isinstance(claim.span_id, str)):
+                flag("E03", "REVIEW", "malformed_claim")
+                continue
             if claim.status not in STATUS:
                 flag("E03", "REVIEW", "unknown_claim_verdict")
                 continue
@@ -369,4 +422,4 @@ def review(candidate: PublishCandidate, evidence: EvidenceBundle,
                 else "REVIEW" if reasons else "PASS")
     return EditorVerdict(decision, candidate.material_id, candidate.material_type,
                          candidate.version, payload_hash, evidence_hash, policy.version,
-                         checker_model, tuple(reasons))
+                         checker_model, _hash(asdict(policy)), tuple(reasons))
