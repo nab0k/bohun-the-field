@@ -19,6 +19,7 @@ from .core import (
 SECTIONS = (
     "headline", "what_happened", "context", "policy_direction",
     "bigger_picture", "supply_chain", "why_it_matters", "context_sources",
+    "map", "topic", "language",
 )
 MAX_ROWS = 30
 
