@@ -77,9 +77,15 @@ See [SHADOW_DRY_RUN_2026-11-07.md](SHADOW_DRY_RUN_2026-11-07.md) for the actual 
 
 **Next:** implement an independently trusted capture/provenance resolver using `knowledge.event_document` to link exact `intelligence.items` records to published URL and source body, then an independent checker that emits claim-level citations pinned to the exact candidate/evidence/policy hashes. Until trusted retrieval, gold/holdout benchmarks, dedupe authority and atomic publisher CAS exist, everything stays offline/REVIEW.
 
+## Next integration slice: event-document lineage (07.11.2026)
+
+See [LINEAGE_PREFLIGHT_2026-11-07.md](LINEAGE_PREFLIGHT_2026-11-07.md). An actual **read-only** comparison of the frozen 25 published syntheses showed **30/38** manifest URL links had an exact `knowledge.event_document` → `intelligence.items.url` match with a saved capture; **30/30** matched source publication dates; **8** URLs lacked exact linked items (syntheses **486, 489, 491, 493, 498, 503, 505, 507**). **17/25** syntheses had every manifest URL linked. No origin or content truth is inferred from these numbers.
+
+`lineage_adapter.py` is an offline-only bridge that requires each manifest `source_id` to bind to exactly one saved item and event relation, with exact URLs/publication days and integrity-checked character offsets. It reuses `capture_adapter.py` to produce deterministic quote spans and **never** marks a source `retrieval_verified=True`. It is **not** a trusted provenance resolver and does not connect to live DB, fetch external URLs, invoke a model or publish. Sixteen new synthetic tests in `test_lineage_adapter.py` and the prior thirteen `test_capture_adapter.py` tests ran together **29/29 OK** locally, with exact blob SHA checks for the new files. This local discovery contained only these two test files. The current branch has **145 written test cases** (116 previously externally passed, plus 13+16 tested locally in separate runs), but **145/145 has NOT been executed together on this revision**. Do not call the combined suite passed.
+
 ## Remaining C3-10 acceptance gates
 
-1. Execute **all 104 offline tests** on the current branch and fix any failures. Check C3-04 compatibility in an isolated fixture.
+1. Execute **all 145 offline tests** on the exact current branch and fix any failures. Capture a commit SHA and complete test log. Check C3-04 compatibility in an isolated fixture.
 2. Add trusted evidence provenance, an independent provider-checker over the complete final publishing payload, and source/date verification. Never log copyrighted full articles or confidential snippets.
 3. Implement and verify a real atomic publisher compare-and-swap binding material ID, immutable version, content/evidence hashes, policy and expiry to the transaction. Without it a local PASS never permits publication.
 4. Test E01–E18 on withheld synthetic and real errors including CaseEvak and syn-364/syn-378, as well as genuinely good stories. Report denominators, observed metrics, uncertainty intervals, false BLOCK, REVIEW and provider use. Target thresholds are not yet measured.
