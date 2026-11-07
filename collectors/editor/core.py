@@ -16,6 +16,7 @@ from typing import Any, Mapping, Sequence
 from urllib.parse import urlsplit
 
 from .stages import check_stage_assertions
+from .identity import candidate_identity_hash
 
 
 POLICY_VERSION = "editor-policy-v0"
@@ -133,6 +134,7 @@ class EditorVerdict:
     policy_version: str
     checker_model_id: str
     policy_hash: str
+    identity_hash: str
     reasons: tuple[Reason, ...] = ()
     offline_only: bool = True
 
@@ -146,7 +148,11 @@ class EditorVerdict:
                     and self.content_hash == _hash(candidate.payload)
                     and self.evidence_hash == evidence.fingerprint()
                     and self.policy_version == policy.version
-                    and self.policy_hash == _hash(asdict(policy)))
+                    and self.policy_hash == _hash(asdict(policy))
+                    and self.identity_hash == candidate_identity_hash(
+                        candidate.material_id, candidate.material_type, candidate.version,
+                        candidate.author_model_id, candidate.event_ids,
+                        candidate.event_fingerprint))
         except (TypeError, ValueError, AttributeError, RecursionError, OverflowError):
             return False
 
@@ -242,6 +248,9 @@ def review(candidate: PublishCandidate, evidence: EvidenceBundle,
         evidence_hash = evidence.fingerprint()
     except (TypeError, ValueError, OverflowError, RecursionError, AttributeError):
         evidence_hash = ""
+    identity_hash = candidate_identity_hash(
+        candidate.material_id, candidate.material_type, candidate.version,
+        candidate.author_model_id, candidate.event_ids, candidate.event_fingerprint)
     reasons: list[Reason] = []
 
     def flag(rule: str, severity: str, code: str) -> None:
@@ -257,8 +266,10 @@ def review(candidate: PublishCandidate, evidence: EvidenceBundle,
         return EditorVerdict(
             "BLOCK", candidate.material_id, candidate.material_type, candidate.version,
             payload_hash, evidence_hash, policy.version, "",
-            _hash(asdict(policy)), tuple(reasons))
+            _hash(asdict(policy)), identity_hash, tuple(reasons))
 
+    if not identity_hash:
+        flag("E00", "BLOCK", "invalid_candidate_identity")
     if (not isinstance(candidate.material_id, str) or not candidate.material_id
             or not isinstance(candidate.material_type, str) or candidate.material_type not in TYPES
             or type(candidate.version) is not int or candidate.version < 1):
@@ -465,4 +476,4 @@ def review(candidate: PublishCandidate, evidence: EvidenceBundle,
                 else "REVIEW" if reasons else "PASS")
     return EditorVerdict(decision, candidate.material_id, candidate.material_type,
                          candidate.version, payload_hash, evidence_hash, policy.version,
-                         checker_model, _hash(asdict(policy)), tuple(reasons))
+                         checker_model, _hash(asdict(policy)), identity_hash, tuple(reasons))
