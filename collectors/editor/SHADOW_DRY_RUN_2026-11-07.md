@@ -22,7 +22,7 @@ A read-only Supabase SQL check examined the 25 most recently **publicly released
 
 ## Prepared safe adapter
 
-`shadow.py` converts a **local** JSON snapshot into `PublishCandidate` + `EvidenceBundle` and calls real `core.review()` with `assessment=None`, no trusted retrieval flags and no publication access. It emits only material IDs, reason codes and counts. Input cannot promote sources to verified or fabricate a checker. `PASS` in the shadow path is treated as an error. `test_shadow.py` holds ten synthetic regression cases. **The full Python shadow CLI has not yet been executed on these 25 fully exported records**, so do not label the counts above as its results.
+`shadow.py` converts a **local** JSON snapshot into `PublishCandidate` + `EvidenceBundle` and calls real `core.review()` with `assessment=None`, no trusted retrieval flags and no publication access. It emits only material IDs, reason codes and counts. Input cannot promote sources to verified or fabricate a checker. `PASS` in the shadow path is treated as an error. `test_shadow.py` holds twelve synthetic regression cases. **The full Python shadow CLI has not yet been executed on these 25 fully exported records**, so do not label the counts above as its results.
 
 Minimal read-only SQL snapshot (use export-to-local-file tooling; do not check raw text into git):
 
@@ -68,4 +68,4 @@ The CLI does not download the feed, connect to Supabase, call Gemini/Groq, creat
 5. Frozen gold/holdout corpus with both real good materials and seeded errors; report denominators and uncertainty against the provisional 99/85/5/20 targets.
 6. Independent review of adapter and all new tests. Only after these gates is a production switch proposal appropriate.
 
-**Decision:** C3-10 offline unit suite had an externally reported 104/104 pass before this adapter. The 10 new `test_shadow.py` methods are **written but not yet executed in the full Python checkout**. PR remains Draft. No `.github/workflows`, `main`, `project-status`, source material database, nor live feed were modified by this C3-10 experiment.
+**Decision:** C3-10 offline unit suite had an externally reported 104/104 pass before this adapter. The 12 new `test_shadow.py` methods are **written but not yet executed in the full Python checkout**. PR remains Draft. No `.github/workflows`, `main`, `project-status`, source material database, nor live feed were modified by this C3-10 experiment.
