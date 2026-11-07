@@ -47,7 +47,10 @@ def _prepare(record: dict):
             raise ValueError("invalid_snapshot_source_url")
         source_id = _source_id(url)
         manifest.append({**src, "source_id": source_id})
-        host = urlsplit(url).hostname or ""
+        try:
+            host = urlsplit(url).hostname or ""
+        except ValueError:
+            host = ""  # Preserve the malformed URL; core.review must BLOCK it.
         evidence_sources.append(EvidenceSource(
             source_id=source_id,
             url=url,
