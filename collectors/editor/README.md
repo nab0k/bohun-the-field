@@ -67,6 +67,16 @@ See [SHADOW_DRY_RUN_2026-11-07.md](SHADOW_DRY_RUN_2026-11-07.md) for the actual 
 
 `shadow.py` is a pure offline adapter over a locally supplied JSON array of at most 30 records. It creates candidates/evidence from the existing schema, **never** upgrades source-capture existence to independently verified provenance and never supplies a synthetic `SemanticAssessment`; old PUBLISH records cannot become new PASS. It returns only IDs, decision codes and integration gaps, not source texts. Twelve regression tests in `test_shadow.py` bring the suite to **116 cases**. The owner has provided an **Antigravity report of 116/116 OK** on the fresh branch; ChatGPT has not separately re-run these 116 unittests. A **separate verified local Python shadow replay over all 25 full published synthesis payloads** has now executed successfully: **23 REVIEW, 2 BLOCK (`syn-489`, `syn-507`), 0 PASS, zero exceptions**. All 25 results are `offline_only=true` and `publication_authorized=false`. Only the IDs, reason codes, aggregate counts and SHA checksums are in the public PR; the JSON input containing full published narratives was delivered privately. See the last section of `SHADOW_DRY_RUN_2026-11-07.md` for exact test evidence and limitations.
 
+## Next integration slice: local captured-source integrity
+
+`capture_adapter.py` introduces **offline-only** binding of a `LocalCapture` (exact URL, source_id, source-text SHA-256 and text) to a `QuoteOffset` (source_id, Python character start/end). `attach_local_captures(...)` returns an `EvidenceBundle` with deterministic span IDs and exact, maximum 200-character private quote strings. It rejects missing/extra/duplicate captures, URL mismatch, changed text/hash, invalid and duplicate offsets. Failure codes contain no text.
+
+**CRITICAL trust boundary:** a SHA of text in a local snapshot proves integrity of that snapshot, **not** independent retrieval or factual truth. The function **always sets `retrieval_verified=False`**, even if a caller sends `True`; it does not supply a `SemanticAssessment`, assert independent roots, check claim truth or authorize publication. Treat the existing private capture text as an *input* only. Never log captures, quote strings or model payloads to public CI.
+
+`test_capture_adapter.py` adds **13 synthetic regression tests**. These were run locally using Python `unittest`, with **13/13 OK**, before creation of the matching GitHub files. They have **not yet been rerun from a checkout of the new GitHub commit**, and the full branch test suite now contains **129 written test cases** (116 previously reported passing by Antigravity plus 13 new ones). The 129/129 result is **not** claimed.
+
+**Next:** implement an independently trusted capture/provenance resolver using `knowledge.event_document` to link exact `intelligence.items` records to published URL and source body, then an independent checker that emits claim-level citations pinned to the exact candidate/evidence/policy hashes. Until trusted retrieval, gold/holdout benchmarks, dedupe authority and atomic publisher CAS exist, everything stays offline/REVIEW.
+
 ## Remaining C3-10 acceptance gates
 
 1. Execute **all 104 offline tests** on the current branch and fix any failures. Check C3-04 compatibility in an isolated fixture.
