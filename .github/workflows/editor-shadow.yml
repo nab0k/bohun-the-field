@@ -1,0 +1,77 @@
+name: BOHUN C3-10 synthesis editor shadow (manual, read-only)
+run-name: editor-shadow ${{ inputs.lookback_hours }}h / ${{ inputs.limit }} at ${{ inputs.expected_sha }}
+on:
+  workflow_dispatch:
+    inputs:
+      lookback_hours:
+        description: Recent generation window (hours)
+        required: true
+        type: choice
+        options: ['24', '72', '168']
+        default: '24'
+      limit:
+        description: Maximum newest synthesis versions (30 per run)
+        required: true
+        type: choice
+        options: ['10', '20', '30']
+        default: '30'
+      expected_sha:
+        description: Exact owner-reviewed main commit (40 lowercase hex characters)
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: bohun-editor-shadow
+  cancel-in-progress: false
+jobs:
+  shadow:
+    if: github.repository == 'nab0k/bohun-the-field' && github.actor == 'nab0k' && github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Verify reviewed main revision before accessing DB credentials
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          LOOKBACK_HOURS: ${{ inputs.lookback_hours }}
+          ROW_LIMIT: ${{ inputs.limit }}
+        run: |
+          test "$EXPECTED_SHA" = "$GITHUB_SHA"
+          test "$GITHUB_REF" = 'refs/heads/main'
+          test "${#EXPECTED_SHA}" -eq 40
+          case "$EXPECTED_SHA" in *[!0-9a-f]*) exit 1 ;; esac
+          case "$LOOKBACK_HOURS" in 24|72|168) ;; *) exit 1 ;; esac
+          case "$ROW_LIMIT" in 10|20|30) ;; *) exit 1 ;; esac
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13'
+      - name: Offline editor unit tests (no credentials)
+        run: python -B -m unittest discover -s collectors/editor -t . -p 'test_*.py' -q
+      - name: Temporary pinned PostgreSQL client
+        run: |
+          python -m venv "$RUNNER_TEMP/bohun-editor-shadow"
+          "$RUNNER_TEMP/bohun-editor-shadow/bin/python" -m pip install --only-binary=:all: --disable-pip-version-check 'psycopg[binary]==3.3.6'
+      - name: Read-only live shadow, never an admission or publishing step
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          LOOKBACK_HOURS: ${{ inputs.lookback_hours }}
+          ROW_LIMIT: ${{ inputs.limit }}
+        run: |
+          "$RUNNER_TEMP/bohun-editor-shadow/bin/python" -B -m collectors.editor.live_shadow \
+            --lookback-hours "$LOOKBACK_HOURS" \
+            --limit "$ROW_LIMIT" \
+            --report "$RUNNER_TEMP/editor-shadow-report.json"
+      - name: Keep only the metadata/verdict report
+        if: always()
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: c3-10-editor-shadow-metadata
+          path: ${{ runner.temp }}/editor-shadow-report.json
+          retention-days: 7
+          if-no-files-found: ignore
