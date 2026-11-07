@@ -115,6 +115,10 @@ The five materials successfully formed **5/5 checker packets** with actual relev
 
 See [SECOND_REVIEW_AGREEMENT_2026-11-07.md](SECOND_REVIEW_AGREEMENT_2026-11-07.md). The owner's submitted second-pass labels matched the provisional first-pass labels in **24/25 cases (96.0%, Cohen's κ=0.9307)** across five syntheses. **One unresolved disagreement**, `c310-holdout-488-05`, concerns whether a proposed future funding discussion disproves or merely fails to establish a claim that funding was already enacted. Its final label is deliberately blank and awaiting third independent adjudication. Three other insufficient cases requested full-source review; an owner-only blind four-case adjudication packet was provided. This is *label consistency on P2 snippets*, **not** model accuracy or verified ground truth. No code, source secrets or infrastructure was changed in this document-only step.
 
+## Third adjudication: provisional consensus across all 25 cases (07.11.2026)
+
+The owner returned four third-review answers from Antigravity (provided as chat text, not as an independently attached CSV). See [THIRD_REVIEW_CONSENSUS_2026-11-07.md](THIRD_REVIEW_CONSENSUS_2026-11-07.md). All four case IDs and source-span IDs matched the blind fixture. **Provisional source-entailment labels for all 25** now total **14 supported, 7 contradicted, 4 insufficient**: 21 cases agreed on first/second pass, three `insufficient` cases were unanimous among three reviewers, and the one disputed `c310-holdout-488-05` was resolved **insufficient by 2 of 3**. **Full-article review is still requested for all four third-pass cases**, so this is **not a fully validated gold standard**, real-world truth attestation or AI quality measurement. No editor code was changed at this step; previous **183/183 unit tests** were not rerun.
+
 ## Remaining C3-10 acceptance gates
 
 1. **COMPLETE:** 183/183 editor unit tests on the exact checked source bytes (168 prior + 15 holdout-contract tests). **OPEN:** integration tests in a full repo checkout, especially C3-04 publisher compatibility and CAS.
