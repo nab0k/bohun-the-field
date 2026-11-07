@@ -9,7 +9,7 @@
 - Canonical content and evidence hashes, plus a hash of all candidate identity metadata (material ID/type, version, author model, event IDs and event fingerprint), with both policy version and the full policy configuration hash, bind a verdict to an exact version. Changed quality thresholds invalidate prior pin matches. Altering the payload, evidence, map or version invalidates earlier matches. This is only local checking, **not an atomic publisher transaction**.
 - Deterministic reason codes: E00 (contract and mandatory fields), E01 (URL syntax and source manifest), E02 (numbers/currency in the cited span), E03 (span and claim evidence), E04 (event-linked context), E07 (date formatting and chronology), E12 (independent checker, stamps and semantic coverage), E13–E15 (partial signal requirements), E16 (source/span/event/date validation of explicit stage_assertions), E17 (headline), E18 (possible or definite duplicate). No real URL fetch or event-fingerprint generation is performed.
 - stages.py + test_stages.py: optional structured event-stage checks (E16) require an explicit stage, event ID, date and existing source/span reference. An event is NOT automatically promoted from announced to contracted, delivered or demonstrated. A future-stage assertion relative to `as_of` goes to REVIEW. Only structural/date/provenance validation is covered, not semantic confirmation of the cited source text. 15 isolated tests passed locally (exact GitHub blob bytes verified).
-- identity.py + test_identity.py: pure offline identity pin with 12 tests passed against GitHub-verified exact file bytes. Changing an event ID, event fingerprint or author model invalidates an old PASS; malformed metadata fails closed. **Main EditorVerdict integration test methods are not yet executed.**
+- identity.py + test_identity.py: pure offline identity pin with 12 tests passed against GitHub-verified exact file bytes. Changing an event ID, event fingerprint or author model invalidates an old PASS; malformed metadata fails closed. The earlier 70 core integration tests passed in the previous 97-test snapshot; the current patched branch needs another complete run.
 - SemanticAssessment can be supplied by a future trusted independent-model adapter with matching content/evidence hashes and claim-level evidence. Without it the verdict is REVIEW or BLOCK, not PASS. Matching the author model does not count as independent.
 - metrics.py scores synthetic or real gold cases against the owner-approved **provisional targets**: deterministic recall ≥99%; semantic recall ≥85%; false BLOCK among good materials ≤5%; good material on REVIEW ≤20%. The output contains denominators and point estimates, NOT confidence guarantees.
 
@@ -23,17 +23,24 @@ No code from FActScore, FacTool, Loki, SAFE or other third-party solutions was c
 
 ## Offline tests
 
-**Execution: 2026-11-07. All 97/97 offline Python unittest cases passed (OK), 0 failures, 0 errors, 0 skips; 0.027 s, Python 3.13.** Run from an isolated local copy with the exact GitHub blob SHA of every Python source and test verified before execution.
+**Previous baseline (2026-11-07): 97/97 offline Python unittest cases passed (OK), 0 failures, 0 errors, 0 skips; 0.027 s, Python 3.13.** That run used the exact GitHub blob SHA of every Python file **before** the Antigravity-review changes below. **Current branch: 104 tests written (77 core + 15 stages + 12 identity); the full 104-test suite has NOT yet been executed on the new revision.** Nine focused local regex/IDN checks passed on a reproduced equivalent implementation (9/9 OK), but they are not a substitute for running all 104 tests on the checked-out branch.
 
-- 70 tests in `test_core.py`: editor decisions, immutable candidate and policy pins, source/currency/numeric checks, malformed input, stage E16 integration, event duplicates, synthetic CaseEvak-shaped mandatory-section regression, and metric denominators.
+- 77 tests in `test_core.py`: the prior 70 editor checks plus seven regressions for Unicode-spaced thousands, punycode/Unicode domains and private IP rejection. One new test exercises a whole offline review against a cited source span.
 - 15 tests in `test_stages.py`: structural provenance and event-stage chronology.
 - 12 tests in `test_identity.py`: publication material identity and event metadata pinning.
 
-Run command, **without external provider calls, workflow, database or website access**:
+Run from the **repository root**, the folder containing `collectors/`. If using ZIP downloads, open the extracted branch directory, **not** its parent. Verify `collectors/editor/test_core.py` exists before running. The `collectors` import error in the external Antigravity report occurred in its execution environment; do **not** add `sys.path.append('..')` to package code.
 
-    python -B -m unittest discover -s collectors/editor -p "test_*.py" -v
+On Linux/macOS (from repository root), without external API requests:
 
-All eight Python files verified as exact copies of the GitHub `chatgpt/C3-10` branch (snapshot prior to this README-only edit):
+    PYTHONPATH=. python -B -m unittest discover -s collectors/editor -p 'test_*.py' -v
+
+On Windows PowerShell (from repository root):
+
+    $env:PYTHONPATH = (Get-Location).Path
+    py -B -m unittest discover -s collectors/editor -p "test_*.py" -v
+
+The following **historical** Git blob SHA list documents the exact eight Python files used for the 97/97 baseline run, **not** the current versions of `core.py` and `test_core.py`:
 
 | File | Verified Git blob SHA |
 |---|---|
@@ -46,11 +53,15 @@ All eight Python files verified as exact copies of the GitHub `chatgpt/C3-10` br
 | `test_identity.py` | `a52d4d331802bf546fa8be81f0ae2f987d924cca` |
 | `test_stages.py` | `23b433ed20cf02c4ee0d443b267c40ffd10c2a05` |
 
-**Scope:** the 97 tests use synthetic fixtures only; no production data, real article text or independent model check was used. Passing these tests is **not** evidence that the provisional 99%/85%/5%/20% quality targets have been achieved, and not authorization for production publishing. Missing trusted checker, CAS publisher, live source validation and C3-04 integration still block C3-10 acceptance.
+**Scope:** the test suite uses synthetic fixtures only; no production data, real article text or independent model check was used. Passing these tests is **not** evidence that the provisional 99%/85%/5%/20% quality targets have been achieved, and not authorization for production publishing. Missing trusted checker, CAS publisher, live source validation and C3-04 integration still block C3-10 acceptance.
+
+## Independent audit follow-up
+
+See [ANTIGRAVITY_AUDIT_2026-11-07.md](ANTIGRAVITY_AUDIT_2026-11-07.md) for the disposition of findings C1–C9 and M1–N3. The external FAIL verdict for **production readiness** is accepted. Confirmed regex issue M2 was corrected; other asserted bugs were either not reproduced or are unresolved **integration/trust-boundary** requirements rather than defects in the current offline-only prototype. The newly added regression tests have not been fully rerun.
 
 ## Remaining C3-10 acceptance gates
 
-1. Execute the offline tests on this exact branch and fix any failures. Check C3-04 compatibility in an isolated fixture.
+1. Execute **all 104 offline tests** on the current branch and fix any failures. Check C3-04 compatibility in an isolated fixture.
 2. Add trusted evidence provenance, an independent provider-checker over the complete final publishing payload, and source/date verification. Never log copyrighted full articles or confidential snippets.
 3. Implement and verify a real atomic publisher compare-and-swap binding material ID, immutable version, content/evidence hashes, policy and expiry to the transaction. Without it a local PASS never permits publication.
 4. Test E01–E18 on withheld synthetic and real errors including CaseEvak and syn-364/syn-378, as well as genuinely good stories. Report denominators, observed metrics, uncertainty intervals, false BLOCK, REVIEW and provider use. Target thresholds are not yet measured.
