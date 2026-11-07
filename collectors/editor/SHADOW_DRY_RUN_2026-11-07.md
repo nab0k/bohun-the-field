@@ -83,3 +83,55 @@ The CLI does not download the feed, connect to Supabase, call Gemini/Groq, creat
 6. Independent review of adapter and all new tests. Only after these gates is a production switch proposal appropriate.
 
 **Decision:** C3-10 offline unit suite had an externally reported 104/104 pass before this adapter. The 12 new `test_shadow.py` methods are **written but not yet executed in the full Python checkout**. PR remains Draft. No `.github/workflows`, `main`, `project-status`, source material database, nor live feed were modified by this C3-10 experiment.
+
+
+## Frozen 25-record execution protocol, follow-up 07.11.2026
+
+**Status: NOT YET EXECUTED as Python.** A second **read-only SQL classification** of the exact 25 actual public rows reconfirmed 23 projected REVIEW for missing independent checker/provenance, and 2 projected BLOCK for missing source date (synthesis IDs 489 and 507). Neither SQL pass is `shadow_review(...)`, so no `EditorVerdict` is claimed.
+
+Use branch `chatgpt/C3-10` **at revision `8210d816951f5e4833f854a56e90621bc7fa6595`** for a fully reproducible run; if HEAD is different, record it and compare code before presenting results. Use a local checkout with no credentials or external API calls for code execution.
+
+**Step A: 116 exact offline unittests**, from the repo root:
+
+```bash
+PYTHONPATH=. python -B -m unittest discover -s collectors/editor -p 'test_*.py' -v
+```
+
+Success requires the console log to say `Ran 116 tests` and `OK` with zero failures/errors. Archive stdout/stderr privately, plus checkout SHA.
+
+**Step B: export exact currently-published versions to a private local JSON file**, using read-only database access and no code changes. Capture no .env files or secrets. The following query intentionally pins the 25 synthesis IDs instead of using a moving "latest 25" window:
+
+```sql
+WITH selected AS (
+ SELECT s.id, s.event_id, v.version, v.generator, a.published_at,
+        v.headline, v.what_happened, v.context, v.policy_direction,
+        v.bigger_picture, v.supply_chain, v.why_it_matters,
+        v.sources, v.context_sources
+ FROM knowledge.synthesis s
+ JOIN knowledge.synthesis_version v
+   ON v.synthesis_id = s.id AND v.version = s.active_version
+ JOIN knowledge.synthesis_admission a
+   ON a.synthesis_id = s.id AND a.version = s.active_version
+ WHERE s.id IN (
+     483,484,485,486,487,488,489,490,491,492,493,494,495,
+     498,499,500,501,502,503,504,505,506,507,508,509)
+   AND NOT s.is_hidden AND a.decision = 'PUBLISH' AND a.public_release
+)
+SELECT COALESCE(jsonb_agg(to_jsonb(selected) ORDER BY selected.id),
+                '[]'::jsonb) AS shadow_snapshot
+FROM selected;
+```
+
+Expect **exactly 25 rows**, no extras. Save the *value* of `shadow_snapshot` as a UTF-8 JSON **array**, not the SQL result wrapper, to `/private/bohun-c310-snapshot-25.json`. Save it OUTSIDE public GitHub/workspace folders; the snapshot contains copyright-protected published text. Check that the ID set and versions match the SQL preflight; a changed active version is a new sample requiring re-review.
+
+**Step C: real Python shadow invocation**:
+
+```bash
+PYTHONPATH=. python -B -m collectors.editor.shadow \
+  --snapshot /private/bohun-c310-snapshot-25.json \
+  --report /private/bohun-c310-shadow-results.json
+```
+
+Record `count`, `decisions`, each `material_id`/`decision`/`reason_codes`, Python version, checkout SHA and exact command. Verify that `publication_authorized` is `false` and `offline_only` is `true` for all 25. Report only IDs/reason codes/aggregate metrics to public PR; no material body/captured article text, no credentials. No workflow runs, no API model calls, no writes to Supabase or site.
+
+**Important:** the SQL-projected result is 23 REVIEW/2 BLOCK, but Python may find **additional** deterministic issues. Do not claim 23/2 from Python unless its actual output matches. If the private snapshot cannot be exported or tests cannot run, report the blocker, not a fabricated success.
