@@ -305,5 +305,119 @@ class EditorOfflineTests(unittest.TestCase):
             score([entry, entry])
 
 
+    def test_malformed_payload_object_returns_block_not_exception(self):
+        c, e, a, p = fixture()
+        changed = replace(c, payload=object())
+        v = review(changed, e, p)
+        self.assertEqual(v.decision, "BLOCK")
+        self.assertIn("invalid_payload_serialization", codes(v))
+
+    def test_nonfinite_json_payload_returns_block(self):
+        c, e, a, p = fixture()
+        changed = replace(c, payload={**c.payload, "n": float("nan")})
+        v = review(changed, e, p)
+        self.assertEqual(v.decision, "BLOCK")
+        self.assertIn("invalid_payload_serialization", codes(v))
+
+    def test_cyclic_json_payload_returns_block(self):
+        c, e, a, p = fixture()
+        payload = {**c.payload}
+        payload["self"] = payload
+        v = review(replace(c, payload=payload), e, p)
+        self.assertEqual(v.decision, "BLOCK")
+
+    def test_malformed_evidence_returns_block_not_exception(self):
+        c, e, a, p = fixture()
+        changed = replace(e, sources=(replace(e.sources[0], spans=object()),))
+        v = review(c, changed, p)
+        self.assertEqual(v.decision, "BLOCK")
+        self.assertIn("invalid_evidence_serialization", codes(v))
+
+    def test_malformed_evidence_span_data_returns_block(self):
+        c, e, a, p = fixture()
+        wrong_span = EvidenceSpan("quote-1", None)
+        ev = replace(e, sources=(replace(e.sources[0], spans=(wrong_span,)),))
+        v = review(c, ev, p)
+        self.assertEqual(v.decision, "BLOCK")
+        self.assertIn("invalid_evidence_span", codes(v))
+
+    def test_untrusted_semantic_assessment_type_does_not_pass(self):
+        c, e, a, p = fixture()
+        v = review(c, e, p, assessment={"coverage_complete": True})
+        self.assertEqual(v.decision, "REVIEW")
+
+    def test_semantic_coverage_must_be_actual_boolean_true(self):
+        c, e, a, p = fixture()
+        v = run_with(assessment=replace(a, coverage_complete="yes"))
+        self.assertEqual(v.decision, "REVIEW")
+        self.assertIn("semantic_coverage_incomplete", codes(v))
+
+    def test_semantic_claims_null_does_not_crash(self):
+        c, e, a, p = fixture()
+        v = run_with(assessment=replace(a, claims=None))
+        self.assertEqual(v.decision, "REVIEW")
+
+    def test_unhashable_claim_reference_is_review(self):
+        c, e, a, p = fixture()
+        malformed = replace(a.claims[0], source_id=["S1"])
+        v = run_with(assessment=replace(a, claims=(malformed,)))
+        self.assertEqual(v.decision, "REVIEW")
+        self.assertIn("malformed_claim", codes(v))
+
+    def test_unhashable_source_manifest_reference_is_review(self):
+        c, e, a, p = fixture()
+        malformed = replace(c, payload={**c.payload, "sources": [
+            {"source_id": ["S1"], "url": "https://example.org/award"}]})
+        v = run_with(candidate=malformed)
+        self.assertEqual(v.decision, "REVIEW")
+        self.assertIn("unmatched_source_manifest", codes(v))
+
+    def test_evidence_unrelated_to_candidate_blocks(self):
+        c, e, a, p = fixture()
+        unrelated = replace(e, event_ids=("different-event",))
+        v = run_with(evidence=unrelated)
+        self.assertEqual(v.decision, "BLOCK")
+        self.assertIn("evidence_unrelated_to_candidate", codes(v))
+
+    def test_nested_bad_candidate_event_id_does_not_crash(self):
+        c, e, a, p = fixture()
+        changed = replace(c, event_ids=(["event-one"],))
+        v = review(changed, e, p)
+        self.assertEqual(v.decision, "BLOCK")
+        self.assertIn("invalid_candidate_events", codes(v))
+
+    def test_unhashable_context_event_ids_is_block(self):
+        c, e, a, p = fixture()
+        context = [{**c.payload["context_items"][0], "event_ids": [["event-one"]]}]
+        changed = replace(c, payload={**c.payload, "context_items": context})
+        v = run_with(candidate=changed)
+        self.assertEqual(v.decision, "BLOCK")
+        self.assertIn("invalid_context_event_ids", codes(v))
+
+    def test_policy_threshold_change_invalidates_pin(self):
+        c, e, a, p = fixture()
+        v = run_with()
+        changed = replace(p, semantic_recall_target=0.90)
+        self.assertEqual(changed.version, p.version)
+        self.assertFalse(v.matches(c, e, changed))
+        self.assertTrue(v.matches(c, e, p))
+
+    def test_unassessed_visible_number_causes_review(self):
+        c, e, a, p = fixture()
+        changed = replace(c, payload={**c.payload,
+            "headline": "Award for A$1.7B includes 900 units"})
+        v = run_with(candidate=changed)
+        self.assertEqual(v.decision, "REVIEW")
+        self.assertIn("visible_numbers_not_assessed", codes(v))
+
+    def test_invalid_port_is_not_accepted_as_https_url(self):
+        c, e, a, p = fixture()
+        changed = replace(c, payload={**c.payload,
+            "source_url": "https://example.org:notaport/notice"})
+        v = run_with(candidate=changed)
+        self.assertEqual(v.decision, "BLOCK")
+        self.assertIn("invalid_payload_url", codes(v))
+
+
 if __name__ == "__main__":
     unittest.main()
