@@ -91,9 +91,15 @@ The read-only primary-source investigation in [UNMATCHED_P1_TRIAGE_2026-11-07.md
 
 **Test provenance:** 23 new probe tests plus 16 lineage and 13 capture tests ran together, **52/52 OK locally**; exact Git blob SHA of the two new files was compared with the tested bytes. Earlier stages were tested separately. The branch currently contains **168 written tests**; **the full 168-test suite on this HEAD has not been executed**.
 
+## Verified current 168-test milestone and offline probe, 07.11.2026
+
+**All 168/168 editor unit tests passed in one locally executed Python 3.13.5 run, exit code 0, 0 failures/errors/skips.** The editor-only working copy contained exactly the **16** current branch Python files; each local `git hash-object` matched the GitHub blob SHA of `chatgpt/C3-10` at commit `92fe64341bf3ca9b4594df03e557eecb8d5becb5`. See [EDITOR_168_AND_PROBE_AUDIT_2026-11-07.md](EDITOR_168_AND_PROBE_AUDIT_2026-11-07.md) for the command, checksums and limitations. This result supersedes **older interim documentation** saying 168 tests had not been run.
+
+A **real 25-record private JSON preflight** with `shadow._prepare()` + `checker_probe.prepare_probe()` found `probe_has_no_spans` in **25/25** because the material export has URLs and synthesis texts but does not include source article capture quote spans. A separate 3-claim synthetic reply with all `supported` statuses was accepted as *untrusted structure only*: **no trusted assessment, 0 provider calls, 0 publication permission**. These results do not measure model accuracy or prove any P1 provenance. A 25-record source capture export and independently verified retrieval are still outstanding.
+
 ## Remaining C3-10 acceptance gates
 
-1. Execute **all 168 offline tests** on the exact current branch and fix any failures. Capture a commit SHA and complete test log. Check C3-04 compatibility in an isolated fixture.
+1. **COMPLETE:** 168/168 editor unit tests on exact checked source bytes, with run log and Git blob manifest. **OPEN:** integration tests in a full repo checkout, especially C3-04 publisher compatibility and CAS.
 2. Add trusted evidence provenance, an independent provider-checker over the complete final publishing payload, and source/date verification. Never log copyrighted full articles or confidential snippets.
 3. Implement and verify a real atomic publisher compare-and-swap binding material ID, immutable version, content/evidence hashes, policy and expiry to the transaction. Without it a local PASS never permits publication.
 4. Test E01–E18 on withheld synthetic and real errors including CaseEvak and syn-364/syn-378, as well as genuinely good stories. Report denominators, observed metrics, uncertainty intervals, false BLOCK, REVIEW and provider use. Target thresholds are not yet measured.
