@@ -68,5 +68,17 @@ class ShadowTests(unittest.TestCase):
                       result["results"][0]["reason_codes"])
 
 
+    def test_malformed_bracket_source_fails_closed(self):
+        result = shadow_review([row(sources=[{"url": "https://[broken",
+                                              "date": "2026-11-05"}])])
+        self.assertEqual(result["decisions"]["BLOCK"], 1)
+
+    def test_map_and_topic_are_included_in_exact_shadow_payload(self):
+        from collectors.editor.shadow import _prepare
+        candidate, _ = _prepare(row(map={"country": "AU"}, topic="procurement"))
+        self.assertEqual(candidate.payload["map"], {"country": "AU"})
+        self.assertEqual(candidate.payload["topic"], "procurement")
+
+
 if __name__ == "__main__":
     unittest.main()
