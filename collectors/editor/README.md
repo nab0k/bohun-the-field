@@ -23,7 +23,7 @@ No code from FActScore, FacTool, Loki, SAFE or other third-party solutions was c
 
 ## Offline tests
 
-**Previous baseline (2026-11-07): 97/97 offline Python unittest cases passed (OK), 0 failures, 0 errors, 0 skips; 0.027 s, Python 3.13.** That run used the exact GitHub blob SHA of every Python file **before** the Antigravity-review changes below. **Current branch: 104 tests written (77 core + 15 stages + 12 identity); the full 104-test suite has NOT yet been executed on the new revision.** Nine focused local regex/IDN checks passed on a reproduced equivalent implementation (9/9 OK), but they are not a substitute for running all 104 tests on the checked-out branch.
+**Previous baseline (2026-11-07): 97/97 offline Python unittest cases passed (OK), 0 failures, 0 errors, 0 skips; 0.027 s, Python 3.13.** That run used the exact GitHub blob SHA of every Python file **before** the Antigravity-review changes below. **Current branch: 104 tests written (77 core + 15 stages + 12 identity); Antigravity reported that all 104 tests ran and passed in a read-only, offline recheck on 2026-11-07 (0 failures, 0 errors, 0 skips).** This result is based on Antigravity's summary delivered by the owner, not an independently archived full console log. Antigravity used the extracted `chatgpt/C3-10` ZIP project root and adjusted the Python import root via `PYTHONPATH` / `unittest -t .`; it did not edit code. The exact checkout commit SHA was not present in the summary, so a byte-for-byte match to the present branch is not independently established for this external run. Nine focused local regex/IDN checks passed on a reproduced equivalent implementation (9/9 OK), but they are not a substitute for running all 104 tests on the checked-out branch.
 
 - 77 tests in `test_core.py`: the prior 70 editor checks plus seven regressions for Unicode-spaced thousands, punycode/Unicode domains and private IP rejection. One new test exercises a whole offline review against a cited source span.
 - 15 tests in `test_stages.py`: structural provenance and event-stage chronology.
@@ -39,6 +39,8 @@ On Windows PowerShell (from repository root):
 
     $env:PYTHONPATH = (Get-Location).Path
     py -B -m unittest discover -s collectors/editor -p "test_*.py" -v
+
+The 104/104 external recheck is attributed to Antigravity's owner-supplied report; it does not supersede the historical hash-verified 97-test baseline below. For future reproducibility, record `git rev-parse HEAD` and the full test log before merge.
 
 The following **historical** Git blob SHA list documents the exact eight Python files used for the 97/97 baseline run, **not** the current versions of `core.py` and `test_core.py`:
 
@@ -57,7 +59,7 @@ The following **historical** Git blob SHA list documents the exact eight Python 
 
 ## Independent audit follow-up
 
-See [ANTIGRAVITY_AUDIT_2026-11-07.md](ANTIGRAVITY_AUDIT_2026-11-07.md) for the disposition of findings C1–C9 and M1–N3. The external FAIL verdict for **production readiness** is accepted. Confirmed regex issue M2 was corrected; other asserted bugs were either not reproduced or are unresolved **integration/trust-boundary** requirements rather than defects in the current offline-only prototype. The newly added regression tests have not been fully rerun.
+See [ANTIGRAVITY_AUDIT_2026-11-07.md](ANTIGRAVITY_AUDIT_2026-11-07.md) for the disposition of findings C1–C9 and M1–N3. The external FAIL verdict for **production readiness** is accepted. Confirmed regex issue M2 was corrected; other asserted bugs were either not reproduced or are unresolved **integration/trust-boundary** requirements rather than defects in the current offline-only prototype. After this audit, the owner provided a second Antigravity run reporting 104/104 passing after the correct import root was set; no test failures were reported. This is external report evidence, not a production quality benchmark or a trusted checker evaluation.
 
 ## Remaining C3-10 acceptance gates
 
