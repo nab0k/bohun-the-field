@@ -20,6 +20,20 @@ A read-only Supabase SQL check examined the 25 most recently **publicly released
 
 **Interpretation:** this is a **metadata readiness preflight**, not 25 actual independent fact-check decisions. The old `auto-admission-v1` `PUBLISH` flag must **not** be imported as a trusted `SemanticAssessment`. With no trusted claim-level checker, none of these 25 is eligible for an automatic *new* editor PASS. On known contract fields, **2** would require a deterministic source-date block, and **23** need independent REVIEW. These are *projected readiness classes*, not Python `EditorVerdict` outputs. Published context strings and source captures alone do **not** verify context/event relevance or semantic entailment.
 
+## Second read-only SQL projection, current C3-10 shadow contract
+
+Repeated read-only SQL projection on the same **25 real published synthesis IDs** verifies mandatory sections, source-date syntax, source/context URL HTTPS prefixes and whether any source is dated after the recorded publication date.
+
+| **Projected** C3-10 decision | Count | Reason |
+|---|---:|---|
+| BLOCK | **2** | Missing source date (synthesis **489, 507**), E07 `invalid_source_date` |
+| REVIEW | **23** | No trusted independent checker and independently verified retrieval provenance |
+| PASS | **0** | Historical auto-admission cannot authorize a new editor PASS |
+
+The query inspected all 25 rows and did not find non-HTTPS URL prefixes, future-dated source dates, or empty mandatory sections in this sample. However, the query does **not** implement every `core.review()` check (e.g., all embedded links, JSON contracts and claim spans). **These figures are projected structural outcomes, not observed Python `EditorVerdict` outputs.** Additional BLOCK reasons are possible when the full material is reviewed.
+
+Local, user-facing evidence artifacts generated for this pilot: `BOHUN_C3-10_REAL25_shadow_projection_2026-11-07.csv` and `.md`; neither is committed to the public repo. No source bodies, passwords or private URLs were copied into this PR.
+
 ## Prepared safe adapter
 
 `shadow.py` converts a **local** JSON snapshot into `PublishCandidate` + `EvidenceBundle` and calls real `core.review()` with `assessment=None`, no trusted retrieval flags and no publication access. It emits only material IDs, reason codes and counts. Input cannot promote sources to verified or fabricate a checker. `PASS` in the shadow path is treated as an error. `test_shadow.py` holds twelve synthetic regression cases. **The full Python shadow CLI has not yet been executed on these 25 fully exported records**, so do not label the counts above as its results.
