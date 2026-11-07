@@ -352,7 +352,9 @@ def review(candidate: PublishCandidate, evidence: EvidenceBundle,
         if not isinstance(item, Mapping):
             flag("E04", "BLOCK", "invalid_context_item")
             continue
-        if (item.get("source_id"), item.get("span_id")) not in span_map:
+        ref_source, ref_span = item.get("source_id"), item.get("span_id")
+        if (not isinstance(ref_source, str) or not isinstance(ref_span, str)
+                or (ref_source, ref_span) not in span_map):
             flag("E04", "BLOCK", "context_without_verified_span")
         linked = item.get("event_ids")
         if not isinstance(linked, list) or not linked:
@@ -363,7 +365,7 @@ def review(candidate: PublishCandidate, evidence: EvidenceBundle,
             flag("E04", "BLOCK", "unrelated_context")
 
     if candidate.material_type == "signal":
-        roots = {s.root_source_id for s in evidence.sources if s.retrieval_verified is True}
+        roots = {s.root_source_id for s in source_map.values() if s.retrieval_verified is True}
         if len(roots) < 2:
             flag("E14", "REVIEW", "insufficient_independent_roots")
         if not candidate.payload.get("baseline"):
@@ -373,11 +375,23 @@ def review(candidate: PublishCandidate, evidence: EvidenceBundle,
 
     if not candidate.event_ids:
         flag("E18", "REVIEW", "missing_event_ids")
-    source_urls = {s.url for s in evidence.sources}
+    source_urls = {s.url for s in source_map.values()}
+    if not isinstance(published, (tuple, list)):
+        flag("E18", "REVIEW", "invalid_published_catalog")
+        published = ()
     for prior in published:
+        if (not isinstance(prior, PublishedStory)
+                or not isinstance(prior.material_id, str)
+                or not isinstance(prior.event_ids, (tuple, list))
+                or not all(isinstance(e, str) for e in prior.event_ids)
+                or not isinstance(prior.primary_source_urls, (tuple, list))
+                or not all(isinstance(u, str) for u in prior.primary_source_urls)):
+            flag("E18", "REVIEW", "invalid_published_story")
+            continue
         if prior.material_id == candidate.material_id:
             continue  # New version of same material is NOT automatically a duplicate.
-        if set(candidate.event_ids).intersection(prior.event_ids):
+        if (candidate_events_ok and
+                set(candidate.event_ids).intersection(prior.event_ids)):
             flag("E18", "BLOCK", "published_event_duplicate")
         elif (candidate.event_fingerprint and
               candidate.event_fingerprint == prior.event_fingerprint):
@@ -394,8 +408,10 @@ def review(candidate: PublishCandidate, evidence: EvidenceBundle,
             assessment.evidence_hash != evidence_hash or
             assessment.policy_version != policy.version):
             flag("E12", "REVIEW", "assessment_pins_stale")
-        if (not checker_model or checker_model == candidate.author_model_id or
-                not candidate.author_model_id):
+        if (not isinstance(checker_model, str) or not checker_model
+                or checker_model == candidate.author_model_id
+                or not isinstance(candidate.author_model_id, str)
+                or not candidate.author_model_id):
             flag("E12", "REVIEW", "checker_not_independent")
         claims = assessment.claims if isinstance(assessment.claims, (tuple, list)) else ()
         if assessment.coverage_complete is not True or not claims:
@@ -407,7 +423,7 @@ def review(candidate: PublishCandidate, evidence: EvidenceBundle,
                     or not isinstance(claim.span_id, str)):
                 flag("E03", "REVIEW", "malformed_claim")
                 continue
-            if claim.status not in STATUS:
+            if not isinstance(claim.status, str) or claim.status not in STATUS:
                 flag("E03", "REVIEW", "unknown_claim_verdict")
                 continue
             if claim.status == "contradicted":
