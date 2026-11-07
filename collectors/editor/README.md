@@ -6,7 +6,7 @@
 
 - core.py: review(candidate, evidence, policy, assessment=..., published=...) returns EditorVerdict. PublishCandidate includes the entire visible publishing payload (headline, sections, sources, context and map), ID, version, material type, author model and event identifiers.
 - EvidenceBundle carries source IDs, independent origin roots, dates, retrieval verification flags and evidence spans.
-- Canonical content and evidence hashes, with policy version, bind a verdict to an exact version. Altering the payload, evidence, map or version invalidates earlier matches. This is only local checking, **not an atomic publisher transaction**.
+- Canonical content and evidence hashes, with both policy version and a hash of the entire policy configuration, bind a verdict to an exact version. Changed quality thresholds invalidate prior pin matches. Altering the payload, evidence, map or version invalidates earlier matches. This is only local checking, **not an atomic publisher transaction**.
 - Deterministic reason codes: E00 (contract and mandatory fields), E01 (URL syntax and source manifest), E02 (numbers/currency in the cited span), E03 (span and claim evidence), E04 (event-linked context), E07 (date formatting and chronology), E12 (independent checker, stamps and semantic coverage), E13–E15 (partial signal requirements), E17 (headline), E18 (possible or definite duplicate). No real URL fetch or event-fingerprint generation is performed.
 - SemanticAssessment can be supplied by a future trusted independent-model adapter with matching content/evidence hashes and claim-level evidence. Without it the verdict is REVIEW or BLOCK, not PASS. Matching the author model does not count as independent.
 - metrics.py scores synthetic or real gold cases against the owner-approved **provisional targets**: deterministic recall ≥99%; semantic recall ≥85%; false BLOCK among good materials ≤5%; good material on REVIEW ≤20%. The output contains denominators and point estimates, NOT confidence guarantees.
@@ -15,15 +15,15 @@
 
 **Not production-ready.** EditorVerdict.offline_only is always True, including for an offline PASS. EditorVerdict.matches is NOT authorization to publish. There is no trusted checker adapter, evidence-extraction/storage interface, network link verification, publisher compare-and-swap, cross-run duplicate index, quota scheduler, alerting, workflow or publishing integration.
 
-The caller currently supplies retrieval_verified and coverage_complete; both are unauthenticated local claims. A caller can fabricate them. Do not connect this module to production. Semantic categories E05/E08/E09/E11/E16/E17, causal overreach, stage and global semantic duplicates are NOT comprehensively verified. Source text is used only in memory for hashing and comparisons, and is not included in verdict reason strings.
+The caller currently supplies retrieval_verified and coverage_complete; both are unauthenticated local claims. The core now returns BLOCK on unserializable/cyclic publishing or evidence payloads and rejects malformed references, policy edits, unknown coverage and unassessed visible numbers. A caller can fabricate them. Do not connect this module to production. Semantic categories E05/E08/E09/E11/E16/E17, causal overreach, stage and global semantic duplicates are NOT comprehensively verified. Source text is used only in memory for hashing and comparisons, and is not included in verdict reason strings.
 
 No code from FActScore, FacTool, Loki, SAFE or other third-party solutions was copied or executed. Only Python standard library modules are imported.
 
 ## Offline tests
 
-test_core.py contains **40** synthetic unittest methods: version pinning after corrections; edited headline/map/URL/evidence; numbers and currency; missing/contradictory claims; source and context validation; dates; duplicate stories across IDs; CaseEvak-shaped empty required section; preliminary scoring. The cases are fictional fixtures and are NOT validated on the production corpus.
+test_core.py contains **61** synthetic unittest methods: version pinning after corrections; edited headline/map/URL/evidence; numbers and currency; missing/contradictory claims; source and context validation; dates; duplicate stories across IDs; CaseEvak-shaped empty required section; preliminary scoring. The cases are fictional fixtures and are NOT validated on the production corpus. Added malformed/cyclic payload, NaN, malformed evidence/claim/context/catalog, changed policy, evidence-event mismatch and unassessed visible number regressions. These tests have **not** been executed, so their expected outcomes remain unverified.
 
-Offline command in an isolated checkout of this exact PR branch:
+Offline command in an isolated checkout of this exact PR branch (no secret/env files required):
 
     python -B -m unittest discover -s collectors/editor -p "test_*.py" -v
 
