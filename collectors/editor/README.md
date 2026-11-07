@@ -103,9 +103,17 @@ The earlier `25/25 probe_has_no_spans` issue is now **resolved for a narrow offl
 
 **Do not confuse a captured prefix with a supporting passage:** this checks data plumbing only, not claim relevance or entailment. All sources remain `retrieval_verified=False`. **0/8 P1 manifest sources** in the frozen 25 are independently linked to event captures. The full 168 offline unit tests passed at the preceding code revision; only a documentation file has been added since then. Real full-article semantic evaluation, complete atomic claim coverage, independently attested retrieval, labeled holdout and C3-04 CAS are still open.
 
+## 5-synthesis provisional gold candidate and 183-unit-test milestone (07.11.2026)
+
+A **real, private, read-only 5-synthesis pilot** uses final versions **483, 488, 495, 501, 502**, with **25 manually first-pass-labeled atomic statements**, **18 exact source excerpts** from saved event-linked P2 articles and 10 deliberately edited negative/uncertain examples. The expected article-entailment labels are **14 supported, 7 contradicted, 4 insufficient**. Crucially these are **not** 25 independently verified real-world facts and **not** a blind second-annotated gold set. See [GOLD_CANDIDATE_5_AUDIT_2026-11-07.md](GOLD_CANDIDATE_5_AUDIT_2026-11-07.md); private text-bearing JSON and the run log remain chat attachments only.
+
+The five materials successfully formed **5/5 checker packets** with actual relevant source spans (69 *provisional sentence* segments across full narratives). Running the real offline editor with these spans and `assessment=None` yielded **5 REVIEW, 0 BLOCK, 0 PASS**. No trusted retrieval, provider calls, API costs or publication actions occurred.
+
+`holdout_contract.py` and `test_holdout_contract.py` add **15 synthetic, fail-closed tests** for tampered texts/hashes, invalid offsets and cross-material span references, forged second review or trust flags and permission escalation. **All 183 editor tests passed in one local suite at exact Git blob byte hashes** (previous 168 + 15). This supersedes older documentation listing 168 tests as the latest count. The **full application integration tests and model quality thresholds remain open**.
+
 ## Remaining C3-10 acceptance gates
 
-1. **COMPLETE:** 168/168 editor unit tests on exact checked source bytes, with run log and Git blob manifest. **OPEN:** integration tests in a full repo checkout, especially C3-04 publisher compatibility and CAS.
+1. **COMPLETE:** 183/183 editor unit tests on the exact checked source bytes (168 prior + 15 holdout-contract tests). **OPEN:** integration tests in a full repo checkout, especially C3-04 publisher compatibility and CAS.
 2. Add trusted evidence provenance, an independent provider-checker over the complete final publishing payload, and source/date verification. Never log copyrighted full articles or confidential snippets.
 3. Implement and verify a real atomic publisher compare-and-swap binding material ID, immutable version, content/evidence hashes, policy and expiry to the transaction. Without it a local PASS never permits publication.
 4. Test E01–E18 on withheld synthetic and real errors including CaseEvak and syn-364/syn-378, as well as genuinely good stories. Report denominators, observed metrics, uncertainty intervals, false BLOCK, REVIEW and provider use. Target thresholds are not yet measured.
