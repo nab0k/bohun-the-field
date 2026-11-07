@@ -494,5 +494,35 @@ class EditorOfflineTests(unittest.TestCase):
         self.assertIn("assessment_pins_stale", codes(verdict))
 
 
+    def test_identity_event_change_invalidates_old_pass(self):
+        c, e, a, p = fixture()
+        self.assertEqual(run_with().decision, "PASS")
+        self.assertFalse(run_with().matches(replace(c, event_ids=("other-event",)), e, p))
+
+    def test_identity_event_fingerprint_change_invalidates_old_pass(self):
+        c, e, a, p = fixture()
+        self.assertFalse(run_with().matches(
+            replace(c, event_fingerprint="unrelated-story"), e, p))
+
+    def test_identity_author_model_change_invalidates_old_pass(self):
+        c, e, a, p = fixture()
+        self.assertFalse(run_with().matches(
+            replace(c, author_model_id="another-generator"), e, p))
+
+    def test_duplicate_event_ids_are_blocked(self):
+        c, e, a, p = fixture()
+        bad = replace(c, event_ids=("event-one", "event-one"))
+        v = review(bad, e, p, assessment=a)
+        self.assertEqual(v.decision, "BLOCK")
+        self.assertIn("invalid_candidate_identity", codes(v))
+
+    def test_missing_author_identity_is_blocked(self):
+        c, e, a, p = fixture()
+        bad = replace(c, author_model_id="")
+        v = review(bad, e, p, assessment=a)
+        self.assertEqual(v.decision, "BLOCK")
+        self.assertIn("invalid_candidate_identity", codes(v))
+
+
 if __name__ == "__main__":
     unittest.main()
