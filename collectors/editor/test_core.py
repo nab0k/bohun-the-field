@@ -453,5 +453,46 @@ class EditorOfflineTests(unittest.TestCase):
         self.assertIn("unknown_claim_verdict", codes(v))
 
 
+    def test_e16_invalid_stage_blocks_final_payload(self):
+        candidate, evidence, assessment, policy = fixture()
+        statement = {"stage": "ordered", "source_id": "S1", "span_id": "quote-1",
+                     "event_id": "event-one", "event_date": "2026-11-01"}
+        changed = replace(candidate, payload={**candidate.payload,
+                                             "stage_assertions": [statement]})
+        verdict = run_with(candidate=changed)
+        self.assertEqual(verdict.decision, "BLOCK")
+        self.assertIn("invalid_stage_value", codes(verdict))
+        self.assertIn("E16", {reason.rule_id for reason in verdict.reasons})
+
+    def test_e16_requires_cited_span_not_lifecycle_guessing(self):
+        candidate, evidence, assessment, policy = fixture()
+        statement = {"stage": "delivered", "source_id": "S1", "span_id": "not-found",
+                     "event_id": "event-one", "event_date": "2026-11-01"}
+        changed = replace(candidate, payload={**candidate.payload,
+                                             "stage_assertions": [statement]})
+        verdict = run_with(candidate=changed)
+        self.assertIn("stage_without_source_span", codes(verdict))
+
+    def test_e16_future_stage_needs_review(self):
+        candidate, evidence, assessment, policy = fixture()
+        statement = {"stage": "demonstrated", "source_id": "S1", "span_id": "quote-1",
+                     "event_id": "event-one", "event_date": "2026-12-01"}
+        changed = replace(candidate, payload={**candidate.payload,
+                                             "stage_assertions": [statement]})
+        verdict = run_with(candidate=changed)
+        self.assertEqual(verdict.decision, "REVIEW")
+        self.assertIn("stage_claim_postdates_snapshot", codes(verdict))
+
+    def test_e16_valid_attribution_is_only_structural_validation(self):
+        candidate, evidence, assessment, policy = fixture()
+        statement = {"stage": "contracted", "source_id": "S1", "span_id": "quote-1",
+                     "event_id": "event-one", "event_date": "2026-11-01"}
+        changed = replace(candidate, payload={**candidate.payload,
+                                             "stage_assertions": [statement]})
+        verdict = run_with(candidate=changed)
+        self.assertNotIn("E16", {reason.rule_id for reason in verdict.reasons})
+        self.assertIn("assessment_pins_stale", codes(verdict))
+
+
 if __name__ == "__main__":
     unittest.main()
