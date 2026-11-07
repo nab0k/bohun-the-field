@@ -135,3 +135,23 @@ PYTHONPATH=. python -B -m collectors.editor.shadow \
 Record `count`, `decisions`, each `material_id`/`decision`/`reason_codes`, Python version, checkout SHA and exact command. Verify that `publication_authorized` is `false` and `offline_only` is `true` for all 25. Report only IDs/reason codes/aggregate metrics to public PR; no material body/captured article text, no credentials. No workflow runs, no API model calls, no writes to Supabase or site.
 
 **Important:** the SQL-projected result is 23 REVIEW/2 BLOCK, but Python may find **additional** deterministic issues. Do not claim 23/2 from Python unless its actual output matches. If the private snapshot cannot be exported or tests cannot run, report the blocker, not a fabricated success.
+
+## Actual full 25-record Python replay, 07.11.2026 (supersedes pending protocol above)
+
+**COMPLETED: Python `collectors.editor.shadow` processed all 25 fully exported, currently-published synthesis versions in a local offline environment (Python 3.13.5).** The source bytes for `core.py`, `identity.py`, `stages.py`, `shadow.py` and `__init__.py` were fetched via the GitHub connector and every Git blob SHA matched branch code before execution. No network, LLM, publication, workflow or database write was performed by the executed code.
+
+| Actual `EditorVerdict.decision` | Count |
+|---|---:|
+| `PASS` | **0** |
+| `REVIEW` | **23** |
+| `BLOCK` | **2** |
+
+**`BLOCK` only for `syn-489` v2 and `syn-507` v1:** `invalid_payload_date`, `invalid_source_date`, `source_not_independently_retrieved`, `independent_semantic_assessment_missing`. All other 23 records returned REVIEW with `independent_semantic_assessment_missing` and `source_not_independently_retrieved`.
+
+**25/25 had `offline_only=true` and `publication_authorized=false`.** 25/25 reported the missing integration capabilities: `authoritative_duplicate_index_missing`, `context_evidence_linkage_unverified`, `retrieval_provenance_missing`, `trusted_checker_missing`. The original full-text published synthesis sections were present in the private JSON, but **source article captures were not included or independently checked**; therefore this is a structural replay, not semantic fact-checking.
+
+Read-only SQL export was checked against frozen 25 IDs and versions, 38 source URLs, 152 contextual source references, and missing source dates for 489/507. An independent query to Supabase computed an aggregate MD5 checksum of the four narrative fields, which matched the reconstructed JSON: `657c5dee6b43ca6d15269ed06927b837`. Full private JSON SHA256: `ad9f333cc05ddf23ff390604d33242f8c0ef149dfd078ddc08d179aae60e52ee`. Output JSON SHA256: `fa31c6a09f46761be7fd301b090b90fab746ef57839ea5a65723adc11e7d7545`. Private JSON and individual source text were **not** committed to GitHub; the owner received the files privately as conversation artifacts.
+
+**Testing provenance:** the owner separately provided an Antigravity report that the fresh branch's **116/116** offline `unittest` cases passed (0 failures/errors). This ChatGPT replay executed the shadow function on 25 real records; it did **not** rerun those 116 unittests, so the two execution claims remain distinct.
+
+**Limitations / release condition:** PASS is structurally impossible for this untrusted replay since `assessment=None` and `retrieval_verified=False`. To measure accuracy and release readiness, C3-10 still needs trusted independent source retrieval and semantic checks, corpus labels, canonical duplicate provenance, and atomic publisher CAS. PR remains Draft, no publication enabled.
