@@ -111,6 +111,10 @@ The five materials successfully formed **5/5 checker packets** with actual relev
 
 `holdout_contract.py` and `test_holdout_contract.py` add **15 synthetic, fail-closed tests** for tampered texts/hashes, invalid offsets and cross-material span references, forged second review or trust flags and permission escalation. **All 183 editor tests passed in one local suite at exact Git blob byte hashes** (previous 168 + 15). This supersedes older documentation listing 168 tests as the latest count. The **full application integration tests and model quality thresholds remain open**.
 
+## Blind second review: 24/25 agreement (07.11.2026)
+
+See [SECOND_REVIEW_AGREEMENT_2026-11-07.md](SECOND_REVIEW_AGREEMENT_2026-11-07.md). The owner's submitted second-pass labels matched the provisional first-pass labels in **24/25 cases (96.0%, Cohen's κ=0.9307)** across five syntheses. **One unresolved disagreement**, `c310-holdout-488-05`, concerns whether a proposed future funding discussion disproves or merely fails to establish a claim that funding was already enacted. Its final label is deliberately blank and awaiting third independent adjudication. Three other insufficient cases requested full-source review; an owner-only blind four-case adjudication packet was provided. This is *label consistency on P2 snippets*, **not** model accuracy or verified ground truth. No code, source secrets or infrastructure was changed in this document-only step.
+
 ## Remaining C3-10 acceptance gates
 
 1. **COMPLETE:** 183/183 editor unit tests on the exact checked source bytes (168 prior + 15 holdout-contract tests). **OPEN:** integration tests in a full repo checkout, especially C3-04 publisher compatibility and CAS.
