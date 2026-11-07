@@ -524,5 +524,44 @@ class EditorOfflineTests(unittest.TestCase):
         self.assertIn("invalid_candidate_identity", codes(v))
 
 
+    def test_grouped_thousands_narrow_nbsp_matches_source_span(self):
+        c, e, a, p = fixture()
+        changed = replace(c, payload={
+            **c.payload, "what_happened": c.payload["what_happened"] + " It included 1000 units."})
+        spans = (EvidenceSpan("quote-1", e.sources[0].spans[0].text + " The notice lists 1\u202f000 units."),)
+        ev = replace(e, sources=(replace(e.sources[0], spans=spans),))
+        first = review(changed, ev, p)
+        assessed = replace(a, content_hash=first.content_hash, evidence_hash=first.evidence_hash,
+                           claims=a.claims + (ClaimCheck(
+                               "It included 1000 units.", "S1", "quote-1", "supported"),))
+        result = review(changed, ev, p, assessment=assessed)
+        self.assertEqual(result.decision, "PASS")
+        self.assertTrue(result.offline_only)
+
+    def test_grouped_thousands_regular_space_matches_source_span(self):
+        from collectors.editor.core import _numbers
+        self.assertEqual(_numbers("1000 units"), _numbers("1 000 units"))
+
+    def test_grouped_thousands_nbsp_matches_source_span(self):
+        from collectors.editor.core import _numbers
+        self.assertEqual(_numbers("A$1000"), _numbers("A$1\u00a0000"))
+
+    def test_wrong_number_despite_group_separator_blocks(self):
+        from collectors.editor.core import _numbers
+        self.assertFalse(_numbers("A$2000").issubset(_numbers("A$1\u202f000")))
+
+    def test_punycode_source_domain_is_accepted_as_syntax(self):
+        from collectors.editor.core import _url_ok
+        self.assertTrue(_url_ok("https://xn--e1afmkfd.xn--p1ai/notice"))
+
+    def test_unicode_idn_source_domain_is_accepted_as_syntax(self):
+        from collectors.editor.core import _url_ok
+        self.assertTrue(_url_ok("https://пример.рф/notice"))
+
+    def test_private_ip_source_is_still_rejected(self):
+        from collectors.editor.core import _url_ok
+        self.assertFalse(_url_ok("https://127.0.0.1/source"))
+
+
 if __name__ == "__main__":
     unittest.main()
