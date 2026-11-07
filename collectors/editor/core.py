@@ -15,6 +15,8 @@ import re
 from typing import Any, Mapping, Sequence
 from urllib.parse import urlsplit
 
+from .stages import check_stage_assertions
+
 
 POLICY_VERSION = "editor-policy-v0"
 TYPES = frozenset({"synthesis", "signal", "analysis"})
@@ -363,6 +365,13 @@ def review(candidate: PublishCandidate, evidence: EvidenceBundle,
             flag("E04", "BLOCK", "invalid_context_event_ids")
         elif not set(linked).intersection(candidate.event_ids if candidate_events_ok else ()):
             flag("E04", "BLOCK", "unrelated_context")
+
+    # A claimed event stage must refer to the actual event, date and a
+    # supplied evidence span; stage progression is not inferred automatically.
+    for issue in check_stage_assertions(
+            candidate.payload, span_map,
+            tuple(candidate.event_ids) if candidate_events_ok else ()):
+        flag("E16", issue.severity, issue.code)
 
     if candidate.material_type == "signal":
         roots = {s.root_source_id for s in source_map.values() if s.retrieval_verified is True}
