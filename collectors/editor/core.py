@@ -24,7 +24,8 @@ TYPES = frozenset({"synthesis", "signal", "analysis"})
 STATUS = frozenset({"supported", "contradicted", "insufficient"})
 NUMBERS = re.compile(
     r"(?<![A-Za-z0-9])(?:AU\$|US\$|A\$|C\$|€|£|\$)?"
-    r"\d+(?:[.,]\d+)*(?:\s*(?:%|bn|billion|million|km|B|M))?"
+    r"(?:\d{1,3}(?:[ \u00a0\u202f]\d{3})+(?:[.,]\d+)*|\d+(?:[.,]\d+)*)"
+    r"(?:\s*(?:%|bn|billion|million|km|B|M))?"
     r"(?![A-Za-z0-9])", re.IGNORECASE
 )
 INLINE_URLS = re.compile(r"https?://[^\s<>\]\[()\"']+")
