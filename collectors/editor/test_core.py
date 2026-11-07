@@ -419,5 +419,39 @@ class EditorOfflineTests(unittest.TestCase):
         self.assertIn("invalid_payload_url", codes(v))
 
 
+    def test_malformed_context_source_reference_blocks(self):
+        c, e, a, p = fixture()
+        context = [{**c.payload["context_items"][0], "source_id": ["S1"]}]
+        v = run_with(candidate=replace(c, payload={**c.payload, "context_items": context}))
+        self.assertEqual(v.decision, "BLOCK")
+        self.assertIn("context_without_verified_span", codes(v))
+
+    def test_invalid_published_catalog_returns_review(self):
+        c, e, a, p = fixture()
+        v = review(c, e, p, assessment=a, published=None)
+        self.assertEqual(v.decision, "REVIEW")
+        self.assertIn("invalid_published_catalog", codes(v))
+
+    def test_malformed_published_story_returns_review(self):
+        c, e, a, p = fixture()
+        broken = PublishedStory("other", (["event-one"],), "", (), "2026-11-01")
+        v = run_with(published=(broken,))
+        self.assertEqual(v.decision, "REVIEW")
+        self.assertIn("invalid_published_story", codes(v))
+
+    def test_nonstring_checker_model_returns_review(self):
+        c, e, a, p = fixture()
+        v = run_with(assessment=replace(a, checker_model_id=["independent-model"]))
+        self.assertEqual(v.decision, "REVIEW")
+        self.assertIn("checker_not_independent", codes(v))
+
+    def test_malformed_claim_status_returns_review(self):
+        c, e, a, p = fixture()
+        malformed = replace(a.claims[0], status=["supported"])
+        v = run_with(assessment=replace(a, claims=(malformed,)))
+        self.assertEqual(v.decision, "REVIEW")
+        self.assertIn("unknown_claim_verdict", codes(v))
+
+
 if __name__ == "__main__":
     unittest.main()
