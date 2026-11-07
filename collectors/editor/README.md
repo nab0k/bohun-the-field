@@ -23,13 +23,30 @@ No code from FActScore, FacTool, Loki, SAFE or other third-party solutions was c
 
 ## Offline tests
 
-test_core.py contains **70** synthetic unittest methods: version pinning after corrections; edited headline/map/URL/evidence; numbers and currency; missing/contradictory claims; source and context validation; dates; duplicate stories across IDs; CaseEvak-shaped empty required section; preliminary scoring. The cases are fictional fixtures and are NOT validated on the production corpus. Added malformed/cyclic payload, NaN, malformed evidence/claim/context/catalog, changed policy, evidence-event mismatch and unassessed visible number regressions. These tests have **not** been executed, so their expected outcomes remain unverified.
+**Execution: 2026-11-07. All 97/97 offline Python unittest cases passed (OK), 0 failures, 0 errors, 0 skips; 0.027 s, Python 3.13.** Run from an isolated local copy with the exact GitHub blob SHA of every Python source and test verified before execution.
 
-Offline command in an isolated checkout of this exact PR branch (no secret/env files required):
+- 70 tests in `test_core.py`: editor decisions, immutable candidate and policy pins, source/currency/numeric checks, malformed input, stage E16 integration, event duplicates, synthetic CaseEvak-shaped mandatory-section regression, and metric denominators.
+- 15 tests in `test_stages.py`: structural provenance and event-stage chronology.
+- 12 tests in `test_identity.py`: publication material identity and event metadata pinning.
+
+Run command, **without external provider calls, workflow, database or website access**:
 
     python -B -m unittest discover -s collectors/editor -p "test_*.py" -v
 
-**Execution status as of 2026-11-07:** **27/27 isolated helper tests passed** with Python unittest on exact GitHub blob bytes: 15 in test_stages.py; 12 in test_identity.py. Git blob SHAs: stages.py = 66d092277ed5299803595bf0b4d15bea7a3b1117; test_stages.py = 23b433ed20cf02c4ee0d443b267c40ffd10c2a05; identity.py = 8033b26ffbdaf66fe379f2b4fb329f6b905dfec3; test_identity.py = a52d4d331802bf546fa8be81f0ae2f987d924cca. The additional **70 test_core.py methods are written but NOT RUN** because the isolated execution environment cannot resolve raw.githubusercontent.com and retrieve the complete core/test files. The five new identity integration tests and four E16 integration tests are part of those 70 unrun tests. Prior discovery showed Ran 0 tests / NO TESTS RAN (NOT a pass). No workflow or live provider request was run.
+All eight Python files verified as exact copies of the GitHub `chatgpt/C3-10` branch (snapshot prior to this README-only edit):
+
+| File | Verified Git blob SHA |
+|---|---|
+| `__init__.py` | `ac1e3480c2ed2f9df19c63eac6910e56bcb33f12` |
+| `core.py` | `6c99d487e0416b6b4a72a97bcdbdbe0b2cc9ac77` |
+| `identity.py` | `8033b26ffbdaf66fe379f2b4fb329f6b905dfec3` |
+| `metrics.py` | `b5906429e19e117bf6640af16e599261d4ea98e4` |
+| `stages.py` | `66d092277ed5299803595bf0b4d15bea7a3b1117` |
+| `test_core.py` | `f078fb0c87dd7bcc247a1a40c82ce3e2809f4ce3` |
+| `test_identity.py` | `a52d4d331802bf546fa8be81f0ae2f987d924cca` |
+| `test_stages.py` | `23b433ed20cf02c4ee0d443b267c40ffd10c2a05` |
+
+**Scope:** the 97 tests use synthetic fixtures only; no production data, real article text or independent model check was used. Passing these tests is **not** evidence that the provisional 99%/85%/5%/20% quality targets have been achieved, and not authorization for production publishing. Missing trusted checker, CAS publisher, live source validation and C3-04 integration still block C3-10 acceptance.
 
 ## Remaining C3-10 acceptance gates
 
