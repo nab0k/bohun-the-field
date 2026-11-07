@@ -258,11 +258,12 @@ def review(candidate: PublishCandidate, evidence: EvidenceBundle,
             _hash(asdict(policy)), tuple(reasons))
 
     if (not isinstance(candidate.material_id, str) or not candidate.material_id
-            or candidate.material_type not in TYPES
+            or not isinstance(candidate.material_type, str) or candidate.material_type not in TYPES
             or type(candidate.version) is not int or candidate.version < 1):
         flag("E00", "BLOCK", "invalid_candidate_contract")
-    if (not isinstance(candidate.event_ids, (tuple, list))
-            or not all(isinstance(e, str) and e for e in candidate.event_ids)):
+    candidate_events_ok = (isinstance(candidate.event_ids, (tuple, list))
+                           and all(isinstance(e, str) and e for e in candidate.event_ids))
+    if not candidate_events_ok:
         flag("E00", "BLOCK", "invalid_candidate_events")
     if len(_canonical(candidate.payload).encode("utf-8")) > policy.max_payload_bytes:
         flag("E00", "BLOCK", "payload_too_large")
@@ -286,10 +287,11 @@ def review(candidate: PublishCandidate, evidence: EvidenceBundle,
 
     source_map: dict[str, EvidenceSource] = {}
     span_map: dict[tuple[str, str], str] = {}
-    if (not isinstance(evidence.event_ids, (tuple, list))
-            or not all(isinstance(e, str) and e for e in evidence.event_ids)):
+    evidence_events_ok = (isinstance(evidence.event_ids, (tuple, list))
+                          and all(isinstance(e, str) and e for e in evidence.event_ids))
+    if not evidence_events_ok:
         flag("E03", "BLOCK", "invalid_evidence_event_ids")
-    elif (candidate.event_ids and evidence.event_ids
+    elif (candidate_events_ok and candidate.event_ids and evidence.event_ids
           and not set(candidate.event_ids).intersection(evidence.event_ids)):
         flag("E04", "BLOCK", "evidence_unrelated_to_candidate")
     for src in evidence.sources:
@@ -335,7 +337,9 @@ def review(candidate: PublishCandidate, evidence: EvidenceBundle,
         flag("E01", "REVIEW", "missing_source_manifest")
     else:
         for ref in refs:
-            if not isinstance(ref, Mapping) or ref.get("source_id") not in source_map:
+            if (not isinstance(ref, Mapping)
+                    or not isinstance(ref.get("source_id"), str)
+                    or ref["source_id"] not in source_map):
                 flag("E01", "REVIEW", "unmatched_source_manifest")
             elif ref.get("url") != source_map[ref["source_id"]].url:
                 flag("E01", "BLOCK", "source_url_mismatch")
@@ -355,8 +359,7 @@ def review(candidate: PublishCandidate, evidence: EvidenceBundle,
             flag("E04", "REVIEW", "context_event_not_attributed")
         elif not all(isinstance(e, str) and e for e in linked):
             flag("E04", "BLOCK", "invalid_context_event_ids")
-        elif not set(linked).intersection(
-                candidate.event_ids if isinstance(candidate.event_ids, (tuple, list)) else ()):
+        elif not set(linked).intersection(candidate.event_ids if candidate_events_ok else ()):
             flag("E04", "BLOCK", "unrelated_context")
 
     if candidate.material_type == "signal":
@@ -382,7 +385,7 @@ def review(candidate: PublishCandidate, evidence: EvidenceBundle,
         elif source_urls.intersection(prior.primary_source_urls):
             flag("E18", "REVIEW", "possible_duplicate_shared_source")
 
-    if assessment is None:
+    if not isinstance(assessment, SemanticAssessment):
         flag("E12", "REVIEW", "independent_semantic_assessment_missing")
         checker_model = ""
     else:
@@ -394,9 +397,10 @@ def review(candidate: PublishCandidate, evidence: EvidenceBundle,
         if (not checker_model or checker_model == candidate.author_model_id or
                 not candidate.author_model_id):
             flag("E12", "REVIEW", "checker_not_independent")
-        if assessment.coverage_complete is not True or not assessment.claims:
+        claims = assessment.claims if isinstance(assessment.claims, (tuple, list)) else ()
+        if assessment.coverage_complete is not True or not claims:
             flag("E03", "REVIEW", "semantic_coverage_incomplete")
-        for claim in assessment.claims:
+        for claim in claims:
             if (not isinstance(claim, ClaimCheck)
                     or not isinstance(claim.statement, str) or not claim.statement.strip()
                     or not isinstance(claim.source_id, str)
@@ -417,6 +421,20 @@ def review(candidate: PublishCandidate, evidence: EvidenceBundle,
                 flag("E03", "REVIEW", "claim_span_missing")
             elif not _numbers(claim.statement).issubset(_numbers(span_text)):
                 flag("E02", "BLOCK", "claim_number_or_currency_mismatch")
+        # A checker claiming complete coverage cannot silently omit a visible
+        # numerical assertion. This is a conservative guard, not full atomic
+        # claim coverage, and never proves entailment by itself.
+        visible_fields = ("headline", "what_happened", "why_it_matters",
+                          "bigger_picture", "body", "context", "policy_direction",
+                          "supply_chain")
+        visible_numbers = _numbers(" ".join(
+            candidate.payload.get(field) for field in visible_fields
+            if isinstance(candidate.payload.get(field), str)))
+        checked_numbers = _numbers(" ".join(
+            claim.statement for claim in claims
+            if isinstance(claim, ClaimCheck) and isinstance(claim.statement, str)))
+        if visible_numbers - checked_numbers:
+            flag("E03", "REVIEW", "visible_numbers_not_assessed")
 
     decision = ("BLOCK" if any(r.severity == "BLOCK" for r in reasons)
                 else "REVIEW" if reasons else "PASS")
