@@ -97,6 +97,12 @@ The read-only primary-source investigation in [UNMATCHED_P1_TRIAGE_2026-11-07.md
 
 A **real 25-record private JSON preflight** with `shadow._prepare()` + `checker_probe.prepare_probe()` found `probe_has_no_spans` in **25/25** because the material export has URLs and synthesis texts but does not include source article capture quote spans. A separate 3-claim synthetic reply with all `supported` statuses was accepted as *untrusted structure only*: **no trusted assessment, 0 provider calls, 0 publication permission**. These results do not measure model accuracy or prove any P1 provenance. A 25-record source capture export and independently verified retrieval are still outstanding.
 
+## Real P2 excerpt-to-checker probe (07.11.2026)
+
+The earlier `25/25 probe_has_no_spans` issue is now **resolved for a narrow offline smoke test**: [REAL_P2_SPAN_PROBE_2026-11-07.md](REAL_P2_SPAN_PROBE_2026-11-07.md) documents a **completed 25/25 local replay** with one actual **stored P2 article prefix** (max 115 characters) attached to each synthesis. All 25 produced pinned `checker_probe` requests with **349 provisional sentence segments**, while `core.review` retained **23 REVIEW, 2 BLOCK, 0 PASS**. No LLM was called. The private text-bearing request packets and JSON report were delivered in chat, **not added to public GitHub**.
+
+**Do not confuse a captured prefix with a supporting passage:** this checks data plumbing only, not claim relevance or entailment. All sources remain `retrieval_verified=False`. **0/8 P1 manifest sources** in the frozen 25 are independently linked to event captures. The full 168 offline unit tests passed at the preceding code revision; only a documentation file has been added since then. Real full-article semantic evaluation, complete atomic claim coverage, independently attested retrieval, labeled holdout and C3-04 CAS are still open.
+
 ## Remaining C3-10 acceptance gates
 
 1. **COMPLETE:** 168/168 editor unit tests on exact checked source bytes, with run log and Git blob manifest. **OPEN:** integration tests in a full repo checkout, especially C3-04 publisher compatibility and CAS.
