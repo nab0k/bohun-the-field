@@ -236,7 +236,6 @@ def sanitized_provider_failure(exc: Exception) -> str:
                 else "provider_reply_validation_failed")
     return "provider_unknown_error"
 
-
 def query_candidates(conn, hours: int=24) -> list[dict]:
     _positive_bounded(hours,upper=168,what="lookback_hours")
     conn.execute("SET TRANSACTION READ ONLY")
