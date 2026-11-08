@@ -8,7 +8,7 @@ from unittest.mock import patch
 from collectors.editor.live_factcheck import (
     MAX_MATERIALS, MAX_OUTPUT_TOKENS, MODEL, SQL,
     _date_compatible, _words, call_groq, choose_excerpts,
-    provider_request, query_candidates, run, sanitized_provider_failure,
+    provider_request, query_candidates, run, sanitized_provider_failure, _exit_code,
 )
 
 
@@ -136,6 +136,13 @@ class FactcheckTests(unittest.TestCase):
     def test_run_limit_bounds(self):
         with self.assertRaisesRegex(ValueError,"invalid_limit"):
             run(Db(),"fake",limit=MAX_MATERIALS+1)
+
+    def test_workflow_marks_provider_error_as_failed_after_report(self):
+        self.assertEqual(_exit_code({"results":[{"status":"ERROR"}]}),2)
+
+    def test_workflow_keeps_nonerror_status_success(self):
+        self.assertEqual(_exit_code({"results":[{"status":"PROVISIONAL"}]}),0)
+        self.assertEqual(_exit_code({"results":[{"status":"SKIP"}]}),0)
 
     def test_http_error_code_does_not_leak_remote_sensitive_text(self):
         e=urllib.error.HTTPError("https://example.test/private-secret",401,
