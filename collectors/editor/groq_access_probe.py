@@ -15,6 +15,8 @@ import urllib.request
 
 ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
 MODEL = "openai/gpt-oss-20b"
+# Explicit application identity; the urllib default may trigger client filtering.
+USER_AGENT = "BOHUN-C3-10/1.0"
 # Deliberately low ceiling, including model reasoning. May still use API quota.
 MAX_COMPLETION_TOKENS = 256
 KNOWN_ERROR_CODES = frozenset({
@@ -68,6 +70,7 @@ def request_once(key: str, *, opener=None) -> dict:
     req = urllib.request.Request(ENDPOINT, data=body, method="POST", headers={
         "Authorization": "Bearer " + key,
         "Content-Type": "application/json",
+        "User-Agent": USER_AGENT,
     })
     try:
         with opener(req, timeout=25) as response:
