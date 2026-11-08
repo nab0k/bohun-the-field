@@ -1,12 +1,14 @@
 """Offline synthetic checks for the capped, read-only external fact-check probe."""
+import io
 import json
+import urllib.error
 import unittest
 from unittest.mock import patch
 
 from collectors.editor.live_factcheck import (
     MAX_MATERIALS, MAX_OUTPUT_TOKENS, MODEL, SQL,
     _date_compatible, _words, call_groq, choose_excerpts,
-    provider_request, query_candidates, run,
+    provider_request, query_candidates, run, sanitized_provider_failure, _exit_code,
 )
 
 
@@ -134,6 +136,66 @@ class FactcheckTests(unittest.TestCase):
     def test_run_limit_bounds(self):
         with self.assertRaisesRegex(ValueError,"invalid_limit"):
             run(Db(),"fake",limit=MAX_MATERIALS+1)
+
+    def test_workflow_marks_provider_error_as_failed_after_report(self):
+        self.assertEqual(_exit_code({"results":[{"status":"ERROR"}]}),2)
+
+    def test_workflow_keeps_nonerror_status_success(self):
+        self.assertEqual(_exit_code({"results":[{"status":"PROVISIONAL"}]}),0)
+        self.assertEqual(_exit_code({"results":[{"status":"SKIP"}]}),0)
+
+    def test_http_error_code_does_not_leak_remote_sensitive_text(self):
+        e=urllib.error.HTTPError("https://example.test/private-secret",401,
+                                 "Bearer token confidential",None,
+                                 io.BytesIO(b"secret response body"))
+        code=sanitized_provider_failure(e)
+        self.assertEqual(code,"provider_http_401")
+        self.assertNotIn("secret",code)
+        self.assertNotIn("token",code)
+
+    def test_rate_limit_remains_distinguishable(self):
+        e=urllib.error.HTTPError("https://example.test",429,
+                                 "customer-private-detail",None,None)
+        self.assertEqual(sanitized_provider_failure(e),"provider_http_429")
+
+    def test_unknown_http_code_is_closed(self):
+        e=urllib.error.HTTPError("https://example.test",499,
+                                 "private",None,None)
+        self.assertEqual(sanitized_provider_failure(e),"provider_http_other")
+
+    def test_provider_finish_reason_is_safe_specific_code(self):
+        self.assertEqual(sanitized_provider_failure(
+            ValueError("provider_output_incomplete")),"provider_output_incomplete")
+
+    def test_unlisted_value_error_never_leaks_model_text(self):
+        self.assertEqual(sanitized_provider_failure(
+            ValueError("model output contains private story")),
+            "provider_reply_validation_failed")
+
+    def test_json_decoder_error_has_closed_code(self):
+        error=json.JSONDecodeError("private", "{ not-json", 1)
+        self.assertEqual(sanitized_provider_failure(error),"provider_reply_invalid_json")
+
+    def test_url_error_and_timeout_are_safe(self):
+        self.assertEqual(sanitized_provider_failure(
+            urllib.error.URLError("private source")),"provider_transport_error")
+        self.assertEqual(sanitized_provider_failure(
+            TimeoutError("private network description")),"provider_connection_error")
+
+    @patch("collectors.editor.live_factcheck.prepare")
+    def test_run_http_error_yields_safe_reason_and_no_retry(self,prep):
+        db=Db([(1,2,"2026-11-07")])
+        prep.return_value=(PACKET,{"material_id":"syn-1","version":1})
+        attempts=[]
+        def denied(raw,key):
+            attempts.append(1)
+            raise urllib.error.HTTPError("https://secret.example",400,
+                                         "private quote and key",None,None)
+        out=run(db,"fake",transport=denied)
+        self.assertEqual(len(attempts),1)
+        self.assertEqual(out["results"][0]["reason_code"],"provider_http_400")
+        self.assertNotIn("private",repr(out))
+        self.assertFalse(out["publication_authorized"])
 
     @patch("collectors.editor.live_factcheck.prepare")
     def test_run_provider_error_fails_closed_without_retry(self,prep):

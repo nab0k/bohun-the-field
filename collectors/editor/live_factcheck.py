@@ -13,6 +13,7 @@ from hashlib import sha256
 import json
 import os
 import re
+import urllib.error
 import urllib.request
 
 from .live_shadow import _positive_bounded
@@ -203,6 +204,38 @@ def call_groq(payload: dict, key: str, transport=None) -> dict:
     return result
 
 
+
+# Never include exception messages, remote response bodies, keys, prompts or text in
+# the report. This list is deliberately static, closed and safe to publish.
+_ALLOWED_PROVIDER_VALIDATION_CODES = frozenset({
+    "provider_model_identity_mismatch", "provider_output_incomplete",
+    "provider_output_invalid", "provider_json_not_object",
+    "stale_checker_request", "checker_identity_not_independent",
+    "checker_coverage_incomplete", "checker_citation_not_in_packet",
+    "invalid_checker_claim", "invalid_checker_reply",
+    "ambiguous_probe_claim_ids",
+})
+_PUBLIC_HTTP_CODES = frozenset({400, 401, 403, 404, 408, 413, 422,
+                               429, 500, 502, 503, 504})
+
+
+def sanitized_provider_failure(exc: Exception) -> str:
+    """Closed failure taxonomy, safe for metadata-only reports; no exception text."""
+    if isinstance(exc, urllib.error.HTTPError):
+        return (f"provider_http_{exc.code}" if type(exc.code) is int
+                and exc.code in _PUBLIC_HTTP_CODES else "provider_http_other")
+    if isinstance(exc, (TimeoutError, ConnectionError)):
+        return "provider_connection_error"
+    if isinstance(exc, urllib.error.URLError):
+        return "provider_transport_error"
+    if isinstance(exc, json.JSONDecodeError):
+        return "provider_reply_invalid_json"
+    if isinstance(exc, ValueError):
+        code = str(exc) if type(exc) is ValueError else ""
+        return (code if code in _ALLOWED_PROVIDER_VALIDATION_CODES
+                else "provider_reply_validation_failed")
+    return "provider_unknown_error"
+
 def query_candidates(conn, hours: int=24) -> list[dict]:
     _positive_bounded(hours,upper=168,what="lookback_hours")
     conn.execute("SET TRANSACTION READ ONLY")
@@ -246,9 +279,10 @@ def run(conn, key: str, *, hours: int=24, limit: int=2, transport=None) -> dict:
             results.append({**meta,"status":"PROVISIONAL","counts":report["counts"],
                             "publication_authorized":False,
                             "semantic_assessment_trusted":False})
-        except Exception:
-            # Do not leak remote error body, key, prompt, private captures or answers.
-            results.append({**meta,"status":"ERROR","reason_code":"provider_or_reply_error",
+        except Exception as exc:
+            # Closed metadata-only reason, never include remote text or sensitive data.
+            results.append({**meta,"status":"ERROR",
+                            "reason_code":sanitized_provider_failure(exc),
                             "publication_authorized":False})
             break  # Never retry an ambiguous/billable request.
     return {"schema":"c3-10-independent-shadow-v1","source_basis":"captured_event_linked_P2_only",
@@ -284,7 +318,12 @@ def main(argv=None):
         "count":report["count"],"provider_attempts":report["attempted_calls"],
         "status_counts":dict(Counter(r["status"] for r in report["results"])),
         "publication_authorized":False,"database_writes":0},sort_keys=True))
-    return 0
+    return _exit_code(report)
+
+
+def _exit_code(report: dict) -> int:
+    """Make Actions red for a model failure, while preserving metadata artifact."""
+    return 2 if any(r.get("status") == "ERROR" for r in report["results"]) else 0
 
 
 if __name__=="__main__":
