@@ -1,0 +1,62 @@
+name: BOHUN C3-10 Groq API access probe (manual, no source data)
+run-name: groq-access-probe at ${{ inputs.expected_sha }}
+on:
+  workflow_dispatch:
+    inputs:
+      allow_single_benign_call:
+        description: One API test prompt, no synthesis or source excerpts, may consume quota
+        required: true
+        type: choice
+        options: ['no', 'yes']
+        default: 'no'
+      expected_sha:
+        description: Exact reviewed main SHA (40 lowercase hexadecimal characters)
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: bohun-groq-access-probe
+  cancel-in-progress: false
+jobs:
+  probe:
+    if: github.repository == 'nab0k/bohun-the-field' && github.actor == 'nab0k' && github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Check explicit opt-in and reviewed commit before secrets
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          OPT_IN: ${{ inputs.allow_single_benign_call }}
+        run: |
+          test "$EXPECTED_SHA" = "$GITHUB_SHA"
+          test "$GITHUB_REF" = 'refs/heads/main'
+          test "${#EXPECTED_SHA}" -eq 40
+          case "$EXPECTED_SHA" in *[!0-9a-f]*) exit 1 ;; esac
+          test "$OPT_IN" = yes
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13'
+      - name: Run access probe tests without secrets
+        run: python -B -m unittest collectors.editor.test_groq_access_probe -q
+      - name: One benign model access attempt (no Supabase or synthesis data)
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          python -B -m collectors.editor.groq_access_probe \
+            --allow-single-benign-call \
+            --report "$RUNNER_TEMP/c3-10-groq-access-metadata.json"
+      - name: Keep only sanitized access diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: c3-10-groq-access-metadata
+          path: ${{ runner.temp }}/c3-10-groq-access-metadata.json
+          retention-days: 3
+          if-no-files-found: ignore
