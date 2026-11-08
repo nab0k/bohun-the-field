@@ -7,7 +7,7 @@ import unittest
 import urllib.error
 
 from collectors.editor.groq_access_probe import (
-    ENDPOINT, MAX_COMPLETION_TOKENS, MODEL, _safe_code, benign_payload,
+    ENDPOINT, MAX_COMPLETION_TOKENS, MODEL, USER_AGENT, _safe_code, benign_payload,
     report, request_once,
 )
 
@@ -34,6 +34,8 @@ class ProbeTests(unittest.TestCase):
             calls.append(req)
             self.assertEqual(req.get_method(),"POST")
             self.assertEqual(req.full_url, ENDPOINT)
+            self.assertEqual(req.get_header("User-agent"), USER_AGENT)
+            self.assertEqual(USER_AGENT, "BOHUN-C3-10/1.0")
             self.assertEqual(timeout,25)
             self.assertEqual(json.loads(req.data)["model"],MODEL)
             return Response()
