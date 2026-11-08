@@ -318,7 +318,12 @@ def main(argv=None):
         "count":report["count"],"provider_attempts":report["attempted_calls"],
         "status_counts":dict(Counter(r["status"] for r in report["results"])),
         "publication_authorized":False,"database_writes":0},sort_keys=True))
-    return 0
+    return _exit_code(report)
+
+
+def _exit_code(report: dict) -> int:
+    """Make Actions red for a model failure, while preserving metadata artifact."""
+    return 2 if any(r.get("status") == "ERROR" for r in report["results"]) else 0
 
 
 if __name__=="__main__":
