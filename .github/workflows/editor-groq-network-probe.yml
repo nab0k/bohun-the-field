@@ -1,0 +1,59 @@
+name: BOHUN C3-10 Groq network probe (manual, no credentials)
+run-name: groq-network-noauth at ${{ inputs.expected_sha }}
+on:
+  workflow_dispatch:
+    inputs:
+      allow_unauthenticated_get:
+        description: One unauthenticated GET of models metadata, no key or user content
+        required: true
+        type: choice
+        options: ['no', 'yes']
+        default: 'no'
+      expected_sha:
+        description: Exactly reviewed main commit SHA (40 lowercase hex characters)
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: bohun-c3-10-groq-network-noauth
+  cancel-in-progress: false
+jobs:
+  probe:
+    if: github.repository == 'nab0k/bohun-the-field' && github.actor == 'nab0k' && github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Require reviewed main SHA and opt-in
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          OPT_IN: ${{ inputs.allow_unauthenticated_get }}
+        run: |
+          test "$EXPECTED_SHA" = "$GITHUB_SHA"
+          test "$GITHUB_REF" = 'refs/heads/main'
+          test "${#EXPECTED_SHA}" -eq 40
+          case "$EXPECTED_SHA" in *[!0-9a-f]*) exit 1 ;; esac
+          test "$OPT_IN" = yes
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13'
+      - name: Test editor before any network request
+        run: python -B -m unittest discover -s collectors/editor -t . -p 'test_*.py' -q
+      - name: Inspect ONE unauthenticated Groq HTTP response, no model call
+        run: |
+          python -B -m collectors.editor.groq_network_probe \
+            --report "$RUNNER_TEMP/c3-10-groq-network-metadata.json"
+      - name: Preserve only whitelisted metadata, even on 403
+        if: always()
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: c3-10-groq-network-noauth-metadata
+          path: ${{ runner.temp }}/c3-10-groq-network-metadata.json
+          retention-days: 3
+          if-no-files-found: ignore
