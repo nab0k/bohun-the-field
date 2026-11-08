@@ -19,6 +19,8 @@ import urllib.request
 from .live_shadow import _positive_bounded
 
 MODEL = "openai/gpt-oss-20b"
+# Descriptive client identity, not a simulated browser signature.
+USER_AGENT = "BOHUN-C3-10/1.0"
 ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
 MAX_MATERIALS = 2
 MAX_CLAIMS = 5
@@ -177,6 +179,14 @@ def provider_request(packet: dict) -> dict:
               {"role":"user","content":json.dumps(public,ensure_ascii=False)}]}
 
 
+def _groq_http_request(body: bytes, token: str) -> urllib.request.Request:
+    """Build an identifiable API request; caller alone decides if it is sent."""
+    return urllib.request.Request(ENDPOINT, data=body, method="POST",
+        headers={"Authorization": "Bearer " + token,
+                 "Content-Type": "application/json",
+                 "User-Agent": USER_AGENT})
+
+
 def call_groq(payload: dict, key: str, transport=None) -> dict:
     if not isinstance(key,str) or not key.strip():
         raise ValueError("groq_key_absent")
@@ -185,8 +195,7 @@ def call_groq(payload: dict, key: str, transport=None) -> dict:
         raise ValueError("provider_payload_too_large")
     if transport is None:
         def transport(body: bytes, token: str):
-            req=urllib.request.Request(ENDPOINT,data=body,method="POST",headers={
-                "Authorization":"Bearer "+token,"Content-Type":"application/json"})
+            req=_groq_http_request(body, token)
             with urllib.request.urlopen(req,timeout=45) as resp:
                 return json.load(resp)
     answer=transport(raw,key)

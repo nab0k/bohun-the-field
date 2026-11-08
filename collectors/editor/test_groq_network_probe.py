@@ -8,7 +8,7 @@ import urllib.error
 from email.message import Message
 
 from collectors.editor.groq_network_probe import (
-    READ_CAP, TIMEOUT_SECONDS, URL, _NoRedirect, _classify_body,
+    READ_CAP, TIMEOUT_SECONDS, URL, USER_AGENT, _NoRedirect, _classify_body,
     _safe_headers, probe,
 )
 
@@ -43,6 +43,8 @@ class TestGroqNetworkProbe(unittest.TestCase):
             self.assertEqual(req.full_url, URL)
             self.assertEqual(req.data, None)
             self.assertIsNone(req.get_header("Authorization"))
+            self.assertEqual(req.get_header("User-agent"), USER_AGENT)
+            self.assertEqual(USER_AGENT, "BOHUN-C3-10/1.0")
             self.assertEqual(timeout, TIMEOUT_SECONDS)
             return resp
         out = probe(opener=opener)

@@ -14,6 +14,8 @@ import urllib.error
 import urllib.request
 
 URL = "https://api.groq.com/openai/v1/models"
+# Identifies our application to Groq/Cloudflare instead of Python-urllib default.
+USER_AGENT = "BOHUN-C3-10/1.0"
 READ_CAP = 192
 TIMEOUT_SECONDS = 20
 
@@ -85,7 +87,7 @@ def probe(*, opener=None) -> dict:
     """One bounded GET, no redirects. opener is injectable for offline tests."""
     if opener is None:
         opener = urllib.request.build_opener(_NoRedirect()).open
-    req = urllib.request.Request(URL, method="GET", headers={"Accept": "application/json"})
+    req = urllib.request.Request(URL, method="GET", headers={"Accept": "application/json", "User-Agent": USER_AGENT})
     try:
         with opener(req, timeout=TIMEOUT_SECONDS) as reply:
             result = _response_info(reply.status, reply.headers, reply.read(READ_CAP))

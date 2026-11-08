@@ -9,6 +9,7 @@ from collectors.editor.live_factcheck import (
     MAX_MATERIALS, MAX_OUTPUT_TOKENS, MODEL, SQL,
     _date_compatible, _words, call_groq, choose_excerpts,
     provider_request, query_candidates, run, sanitized_provider_failure, _exit_code,
+    _groq_http_request, USER_AGENT,
 )
 
 
@@ -98,6 +99,13 @@ class FactcheckTests(unittest.TestCase):
             self.assertNotIn(keyword,up)
         self.assertIn("EVENT_DOCUMENT",up)
         self.assertIn("CONTENT_CAPTURE",up)
+
+    def test_groq_request_sets_identifiable_user_agent(self):
+        req = _groq_http_request(b'{"model":"test"}', "fake-test-only")
+        self.assertEqual(req.get_method(), "POST")
+        self.assertEqual(req.get_header("User-agent"), USER_AGENT)
+        self.assertEqual(USER_AGENT, "BOHUN-C3-10/1.0")
+        self.assertEqual(req.get_header("Authorization"), "Bearer fake-test-only")
 
     def test_payload_no_browser_or_tools(self):
         req=provider_request(PACKET)
