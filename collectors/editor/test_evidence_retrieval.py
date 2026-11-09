@@ -33,6 +33,28 @@ class EvidenceRetrievalTests(unittest.TestCase):
         self.assertEqual(len(picked), 2)
         self.assertTrue(any("after review" in q for q in picked))
 
+    def test_qualifying_sentence_retained_across_ten_synthetic_events(self):
+        """Synthetic source caveats are retrieval targets, not verified facts."""
+        cases = [
+            ("Authority awarded forty vehicles to Vesper Industries.", "The Vesper contract of forty vehicles remains unsigned and conditional.", "Vesper awarded forty vehicles", "conditional"),
+            ("Agency announced delivery of thirty radios in October.", "The delivery of thirty radios remains postponed until inspection.", "Agency announced delivery thirty radios", "postponed"),
+            ("Ministry unveiled the Orion drone prototype at a showcase.", "The Orion drone prototype has not passed an operational test.", "Ministry unveiled Orion drone prototype", "not passed"),
+            ("Sable Technologies considered a fifteen percent equity investment.", "The Sable equity investment remains under negotiation and unapproved.", "Sable Technologies equity investment", "unapproved"),
+            ("Procurement office opened a tender for 200 modules.", "The tender for 200 modules is still open with no contract award.", "Procurement tender 200 modules", "no contract"),
+            ("University announced a Helios Systems propellant research program.", "The Helios Systems propellant research has not demonstrated field performance.", "Helios Systems propellant research", "not demonstrated"),
+            ("Trade board described exports of seventy patrol vehicles.", "The seventy patrol vehicles export still requires government licensing.", "Patrol vehicles seventy exports", "still requires"),
+            ("Manufacturer presented an autonomous vehicle prototype at the expo.", "The autonomous vehicle prototype remains experimental and is not deployed.", "Manufacturer autonomous vehicle prototype", "experimental"),
+            ("Committee endorsed a draft airspace regulation during consultation.", "The airspace regulation endorsed by committee is a draft and is not law.", "Committee draft airspace regulation", "not law"),
+            ("Meridian Aerospace announced merger plans with Quasar Defence.", "The Meridian Aerospace merger remains conditional on antitrust approval.", "Meridian Aerospace merger", "conditional"),
+        ]
+        self.assertEqual(len(cases), 10)
+        for lead, caution, claim, qualifier in cases:
+            with self.subTest(claim=claim):
+                source = lead + "\n" + caution
+                selected = select_excerpts(source, [{"text": claim}])
+                self.assertTrue(any(qualifier in q for q in selected))
+                self.assertTrue(all(q in source and len(q) <= 200 for q in selected))
+
     def test_only_literal_bounded_quotes_deterministic(self):
         body = ("The procurement agency confirmed a fresh satellite equipment program with a value of 400 million euros. " * 40)
         claims = [{"text": "Procurement agency confirmed 400 million euros satellite equipment."}] * 5
