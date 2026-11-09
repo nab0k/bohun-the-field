@@ -88,7 +88,9 @@ def select_excerpts(body: str, claims: list[dict], *, max_spans: int = 10) -> li
     return selected
 
 def fit_packet_to_budget(snippets: list[str], build_packet: Callable[[list[str]], dict],
-                         *, max_bytes: int, min_snippets: int) -> tuple[dict, list[str]]:
+                         *, max_bytes: int, min_snippets: int,
+                         request_builder: Callable[[dict], dict] | None = None
+                         ) -> tuple[dict, list[str]]:
     """Drop optional tail excerpts if the *actual serialized* checker packet is large.
 
     The caller marks the initial claim-coverage excerpts as mandatory. Never
@@ -97,6 +99,7 @@ def fit_packet_to_budget(snippets: list[str], build_packet: Callable[[list[str]]
     if (not isinstance(snippets, list) or not 1 <= len(snippets) <= 10
             or any(not isinstance(s, str) or not s or len(s) > 200 for s in snippets)
             or not callable(build_packet)
+            or (request_builder is not None and not callable(request_builder))
             or type(max_bytes) is not int or max_bytes < 1
             or type(min_snippets) is not int
             or not 1 <= min_snippets <= len(snippets)):
@@ -108,8 +111,12 @@ def fit_packet_to_budget(snippets: list[str], build_packet: Callable[[list[str]]
             raise ValueError("invalid_packet_builder_result")
         try:
             packet_size = len(json.dumps(packet, ensure_ascii=False).encode("utf-8"))
+            request = request_builder(packet) if request_builder is not None else packet
+            if not isinstance(request, dict):
+                raise ValueError("invalid_provider_envelope")
+            request_size = len(json.dumps(request, ensure_ascii=False).encode("utf-8"))
         except (TypeError, ValueError, UnicodeError):
             raise ValueError("invalid_packet_serialization") from None
-        if packet_size <= max_bytes:
+        if packet_size <= max_bytes and request_size <= max_bytes:
             return packet, chosen
     raise ValueError("checker_packet_oversized")
