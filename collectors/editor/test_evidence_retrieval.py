@@ -1,7 +1,7 @@
 """Synthetic, no-network checks for bounded two-pass excerpt selection."""
 import unittest
 
-from collectors.editor.evidence_retrieval import select_excerpts
+from collectors.editor.evidence_retrieval import select_excerpts, fit_packet_to_budget
 
 
 class EvidenceRetrievalTests(unittest.TestCase):
@@ -23,6 +23,16 @@ class EvidenceRetrievalTests(unittest.TestCase):
         self.assertEqual(len(result), 2)
         self.assertTrue(any("Parliament" in q for q in result))
 
+    def test_shared_top_quote_does_not_starve_second_claim(self):
+        body = ("Agency awarded forty radios to Orbis under contract, delivery pending approval.\n"
+                "Agency awarded forty radios to Orbis for the exercise.\n"
+                "The Orbis contract delivery remains pending approval after review.")
+        claims = [{"text": "Agency awarded forty radios to Orbis contract."},
+                  {"text": "Orbis contract delivery pending approval review."}]
+        picked = select_excerpts(body, claims, max_spans=2)
+        self.assertEqual(len(picked), 2)
+        self.assertTrue(any("after review" in q for q in picked))
+
     def test_only_literal_bounded_quotes_deterministic(self):
         body = ("The procurement agency confirmed a fresh satellite equipment program with a value of 400 million euros. " * 40)
         claims = [{"text": "Procurement agency confirmed 400 million euros satellite equipment."}] * 5
@@ -36,6 +46,36 @@ class EvidenceRetrievalTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "no_lexically_related_excerpt"):
             select_excerpts("General economics and management of private office staff.",
                             [{"text": "Boreal aircraft launched 938 spacecraft."}])
+
+    def test_packet_budget_discards_optional_tail_only(self):
+        snippets = ["Agency awarded 12 vehicles.",
+                    "Delivery remains subject to audit.",
+                    "The audit may delay the expected delivery."]
+        def builder(values):
+            return {"claims": ["A" * 80], "spans": values}
+        import json
+        size_two = len(json.dumps(builder(snippets[:2]), ensure_ascii=False).encode())
+        packet, kept = fit_packet_to_budget(snippets, builder,
+                                            max_bytes=size_two, min_snippets=2)
+        self.assertEqual(kept, snippets[:2])
+        self.assertEqual(packet["spans"], snippets[:2])
+        self.assertTrue(all(q in snippets for q in kept))
+
+    def test_packet_budget_never_erases_mandatory_evidence(self):
+        snippets = ["Evidence one enough length.", "Evidence two enough length."]
+        with self.assertRaisesRegex(ValueError, "checker_packet_oversized"):
+            fit_packet_to_budget(snippets, lambda q: {"claims": "X" * 1000, "spans": q},
+                                 max_bytes=100, min_snippets=2)
+
+    def test_packet_budget_counts_unicode_bytes_not_codepoints(self):
+        snippets = ["Заявлено пять единиц техники.",
+                    "Поставка пока не подтверждена."]
+        def builder(q): return {"spans": q}
+        import json
+        one = len(json.dumps(builder(snippets[:1]), ensure_ascii=False).encode("utf-8"))
+        _, kept = fit_packet_to_budget(snippets, builder, max_bytes=one, min_snippets=1)
+        self.assertEqual(kept, snippets[:1])
+        self.assertGreater(one, len(json.dumps(builder(snippets[:1]), ensure_ascii=False)))
 
     def test_bad_caps_and_inputs_fail_closed(self):
         for bad in (0, 11, True):
