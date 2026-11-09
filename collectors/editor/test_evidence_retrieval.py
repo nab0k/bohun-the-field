@@ -61,6 +61,18 @@ class EvidenceRetrievalTests(unittest.TestCase):
         self.assertEqual(packet["spans"], snippets[:2])
         self.assertTrue(all(q in snippets for q in kept))
 
+    def test_shared_quote_may_be_only_required_snippet(self):
+        snippets = ["One shared official source quote.",
+                    "Second contextual quote from article.",
+                    "Third contextual quote from article."]
+        def builder(values): return {"spans": values, "claims": ["one", "two", "three"]}
+        import json
+        size_one = len(json.dumps(builder(snippets[:1]), ensure_ascii=False).encode())
+        packet, kept = fit_packet_to_budget(snippets, builder,
+                                            max_bytes=size_one, min_snippets=1)
+        self.assertEqual(kept, snippets[:1])
+        self.assertEqual(packet["spans"], snippets[:1])
+
     def test_packet_budget_never_erases_mandatory_evidence(self):
         snippets = ["Evidence one enough length.", "Evidence two enough length."]
         with self.assertRaisesRegex(ValueError, "checker_packet_oversized"):
