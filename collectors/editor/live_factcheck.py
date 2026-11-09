@@ -108,9 +108,9 @@ def prepare(row: dict) -> tuple[dict, dict]:
         raise ValueError("empty_editorial_claims")
     # Select short lexical excerpts only, and do not claim semantic equivalence.
     snippets = choose_excerpts(row["capture_text"], [{"text": s} for s in segments[:MAX_CLAIMS]])
-    # Extras are optional; retain the first pass's bounded claim coverage
-    # rather than skipping a formerly valid packet when context exceeds 12 KB.
-    # This conservative minimum may include a shared excerpt or a second hit.
+    # When a packet is too large, remove tail context without splitting quotes.
+    # Keep at least ONE literal linked P2 quote; claims lacking support remain
+    # insufficient and no shadow result grants publication authorization.
     from .evidence_retrieval import fit_packet_to_budget
 
     def make_packet(kept: list[str]) -> dict:
@@ -135,12 +135,14 @@ def prepare(row: dict) -> tuple[dict, dict]:
 
     packet, kept = fit_packet_to_budget(
         snippets, make_packet, max_bytes=MAX_PACKET_BYTES,
-        min_snippets=min(len(snippets), len(segments[:MAX_CLAIMS])),
+        min_snippets=1,
     )
     return packet, {"material_id":candidate.material_id,"version":candidate.version,
                     "claims_selected":len(packet["claims"]),
                     "segments_truncated":not packet["full_material_coverage"],
-                    "p2_excerpts":len(kept),"source_item_id":row["item_id"]}
+                    "p2_excerpts":len(kept),
+                    "p2_excerpts_trimmed":len(snippets)-len(kept),
+                    "source_item_id":row["item_id"]}
 
 
 def provider_request(packet: dict) -> dict:
