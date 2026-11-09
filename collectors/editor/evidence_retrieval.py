@@ -5,7 +5,9 @@ The caller must still verify source lineage and treat model output as untrusted.
 """
 from __future__ import annotations
 
+import json
 import re
+from collections.abc import Callable
 
 
 def _words(text: str) -> set[str]:
@@ -59,9 +61,14 @@ def select_excerpts(body: str, claims: list[dict], *, max_spans: int = 10) -> li
     # Coverage-first: choose each claim's best lexical candidate before adding
     # a second snippet for any claim. A shared quote consumes only one span.
     for ranked in ranked_by_claim:
-        if ranked and ranked[0] not in seen:
-            selected.append(ranked[0])
-            seen.add(ranked[0])
+        # A top hit may already be shared with an earlier claim. Search for
+        # a distinct candidate *for this claim* before giving earlier claims
+        # additional context. This matters when remaining slots are scarce.
+        for quote in ranked:
+            if quote not in seen:
+                selected.append(quote)
+                seen.add(quote)
+                break
         if len(selected) >= max_spans:
             return selected
 
@@ -79,3 +86,30 @@ def select_excerpts(body: str, claims: list[dict], *, max_spans: int = 10) -> li
     if not selected:
         raise ValueError("no_lexically_related_excerpt")
     return selected
+
+def fit_packet_to_budget(snippets: list[str], build_packet: Callable[[list[str]], dict],
+                         *, max_bytes: int, min_snippets: int) -> tuple[dict, list[str]]:
+    """Drop optional tail excerpts if the *actual serialized* checker packet is large.
+
+    The caller marks the initial claim-coverage excerpts as mandatory. Never
+    truncate an excerpt itself, relax the byte cap, or use fabricated quotes.
+    """
+    if (not isinstance(snippets, list) or not 1 <= len(snippets) <= 10
+            or any(not isinstance(s, str) or not s or len(s) > 200 for s in snippets)
+            or not callable(build_packet)
+            or type(max_bytes) is not int or max_bytes < 1
+            or type(min_snippets) is not int
+            or not 1 <= min_snippets <= len(snippets)):
+        raise ValueError("invalid_packet_fit_input")
+    for keep in range(len(snippets), min_snippets - 1, -1):
+        chosen = snippets[:keep]
+        packet = build_packet(chosen)
+        if not isinstance(packet, dict):
+            raise ValueError("invalid_packet_builder_result")
+        try:
+            packet_size = len(json.dumps(packet, ensure_ascii=False).encode("utf-8"))
+        except (TypeError, ValueError, UnicodeError):
+            raise ValueError("invalid_packet_serialization") from None
+        if packet_size <= max_bytes:
+            return packet, chosen
+    raise ValueError("checker_packet_oversized")
