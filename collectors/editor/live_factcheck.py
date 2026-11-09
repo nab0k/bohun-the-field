@@ -66,39 +66,9 @@ def _words(s: str) -> set[str]:
 
 
 def choose_excerpts(body: str, claims: list[dict]) -> list[str]:
-    """Retrieval candidates, NOT verified semantic support or atomic claims."""
-    if not isinstance(body, str) or not 30 <= len(body) <= MAX_CAPTURE_CHARS:
-        raise ValueError("invalid_capture_length")
-    # Limit input text. Order ties stably by occurrence, and include numerical overlap.
-    windows = []
-    for p in re.split(r"(?<=[.!?])\s+|\n+", body):
-        p = p.strip()
-        if len(p) >= 35:
-            for start in range(0, len(p), 180):
-                s = p[start:start+200]
-                if s.strip() and len(s) >= 25:
-                    windows.append(s)
-    if not windows:
-        raise ValueError("no_citable_excerpts")
-    chosen = []
-    for claim in claims:
-        query = claim["text"]
-        query_words = _words(query)
-        numerals = set(re.findall(r"\d+(?:[.,]\d+)?", query))
-        scores = []
-        for i, quote in enumerate(windows):
-            common = len(query_words & _words(quote))
-            overlap_numbers = len(numerals & set(re.findall(r"\d+(?:[.,]\d+)?", quote)))
-            scores.append((common+overlap_numbers*3, -i, quote))
-        score, _, best = max(scores)
-        if score >= 2 and best not in chosen:
-            chosen.append(best)
-        if len(chosen) >= MAX_SPANS:
-            break
-    if not chosen:
-        # No excerpt is better than a fake citation.
-        raise ValueError("no_lexically_related_excerpt")
-    return chosen
+    """Retrieve candidates, NOT verified semantic support or atomic claims."""
+    from .evidence_retrieval import select_excerpts
+    return select_excerpts(body, claims, max_spans=MAX_SPANS)
 
 
 def _date_compatible(row: dict) -> bool:
