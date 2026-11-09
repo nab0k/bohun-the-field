@@ -1,0 +1,57 @@
+"""Synthetic, no-network checks for bounded two-pass excerpt selection."""
+import unittest
+
+from collectors.editor.evidence_retrieval import select_excerpts
+
+
+class EvidenceRetrievalTests(unittest.TestCase):
+    def test_two_distinct_passages_for_same_claim(self):
+        body = ("The ministry awarded forty unmanned vehicles to Orbis Systems after a competitive process.\n"
+                "The Orbis Systems forty-vehicle contract has not reached delivery and remains subject to review.")
+        result = select_excerpts(body, [{"text": "The ministry awarded forty vehicles to Orbis Systems."}])
+        self.assertEqual(len(result), 2)
+        self.assertTrue(all(quote in body for quote in result))
+        self.assertTrue(any("not reached delivery" in q for q in result))
+
+    def test_claim_first_priority_before_extra_span(self):
+        body = ("Agency awarded twenty drones for the maritime trial in January.\n"
+                "Agency twenty drones remain under evaluation in January.\n"
+                "Parliament approved the annual technology grant allocation in October.")
+        claims = [{"text": "Agency awarded twenty drones."},
+                  {"text": "Parliament approved technology grant allocation."}]
+        result = select_excerpts(body, claims, max_spans=2)
+        self.assertEqual(len(result), 2)
+        self.assertTrue(any("Parliament" in q for q in result))
+
+    def test_only_literal_bounded_quotes_deterministic(self):
+        body = ("The procurement agency confirmed a fresh satellite equipment program with a value of 400 million euros. " * 40)
+        claims = [{"text": "Procurement agency confirmed 400 million euros satellite equipment."}] * 5
+        first = select_excerpts(body, claims)
+        self.assertEqual(first, select_excerpts(body, claims))
+        self.assertLessEqual(len(first), 10)
+        self.assertEqual(len(first), len(set(first)))
+        self.assertTrue(all(len(q) <= 200 and q in body for q in first))
+
+    def test_no_unrelated_quote(self):
+        with self.assertRaisesRegex(ValueError, "no_lexically_related_excerpt"):
+            select_excerpts("General economics and management of private office staff.",
+                            [{"text": "Boreal aircraft launched 938 spacecraft."}])
+
+    def test_bad_caps_and_inputs_fail_closed(self):
+        for bad in (0, 11, True):
+            with self.subTest(bad=bad), self.assertRaisesRegex(ValueError, "invalid_span_limit"):
+                select_excerpts("The procurement agency submitted a new report.",
+                                [{"text": "procurement report"}], max_spans=bad)
+        for claims in ([], [{"text": "x"}] * 6, [{"bad": "x"}]):
+            with self.subTest(claims=claims), self.assertRaisesRegex(ValueError, "invalid_claims"):
+                select_excerpts("The procurement agency submitted a new report.", claims)
+
+    def test_duplicate_capture_passage_does_not_waste_spans(self):
+        body = ("The authority announced a contract for twenty radios to supplier Caldera.\n"
+                "The authority announced a contract for twenty radios to supplier Caldera.")
+        result = select_excerpts(body, [{"text": "Authority contract twenty radios Caldera."}])
+        self.assertEqual(len(result), 1)
+
+
+if __name__ == "__main__":
+    unittest.main()
