@@ -61,6 +61,26 @@ class EvidenceRetrievalTests(unittest.TestCase):
         self.assertEqual(packet["spans"], snippets[:2])
         self.assertTrue(all(q in snippets for q in kept))
 
+    def test_actual_provider_envelope_must_fit_as_well(self):
+        import json
+        snippets = ["Alpha source says x." * 5,
+                    "Bravo source says y." * 5,
+                    "Charlie source says z." * 5]
+        def builder(items): return {"claims": ["alpha", "bravo", "charlie"], "spans": items}
+        def envelope(packet):
+            return {"model": "test", "messages": [
+                {"role": "system", "content": "S" * 100},
+                {"role": "user", "content": json.dumps(packet, ensure_ascii=False)}]}
+        def n(value): return len(json.dumps(value, ensure_ascii=False).encode())
+        cap = n(envelope(builder(snippets[:2])))
+        self.assertLessEqual(n(builder(snippets)), cap)  # inner JSON alone fits
+        self.assertGreater(n(envelope(builder(snippets))), cap)  # outgoing does not
+        packet, kept = fit_packet_to_budget(
+            snippets, builder, max_bytes=cap, min_snippets=1, request_builder=envelope)
+        self.assertEqual(kept, snippets[:2])
+        self.assertEqual(packet["spans"], kept)
+        self.assertLessEqual(n(envelope(packet)), cap)
+
     def test_shared_quote_may_be_only_required_snippet(self):
         snippets = ["One shared official source quote.",
                     "Second contextual quote from article.",
