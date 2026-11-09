@@ -135,7 +135,7 @@ def prepare(row: dict) -> tuple[dict, dict]:
 
     packet, kept = fit_packet_to_budget(
         snippets, make_packet, max_bytes=MAX_PACKET_BYTES,
-        min_snippets=1,
+        min_snippets=1, request_builder=provider_request,
     )
     return packet, {"material_id":candidate.material_id,"version":candidate.version,
                     "claims_selected":len(packet["claims"]),
