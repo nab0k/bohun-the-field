@@ -108,28 +108,39 @@ def prepare(row: dict) -> tuple[dict, dict]:
         raise ValueError("empty_editorial_claims")
     # Select short lexical excerpts only, and do not claim semantic equivalence.
     snippets = choose_excerpts(row["capture_text"], [{"text": s} for s in segments[:MAX_CLAIMS]])
-    new_sources = []
-    for source in evidence.sources:
-        if source.url == row["item_url"]:
-            spans = tuple(EvidenceSpan("p2-"+sha256(t.encode()).hexdigest()[:20],t) for t in snippets)
-            new_sources.append(replace(source, spans=spans, retrieval_verified=False))
-        else:
-            new_sources.append(source)
-    bundle = EvidenceBundle(sources=tuple(new_sources), event_ids=evidence.event_ids)
-    original = prepare_probe(candidate, bundle)
-    partial = len(original["claims"]) > MAX_CLAIMS
-    packet = dict(original)
-    packet["claims"] = original["claims"][:MAX_CLAIMS]
-    packet["selection"] = "first_five_provisional_segments_not_atomic"
-    packet["full_material_coverage"] = not partial
-    packet["independent_p1_attested"] = False
-    packet.pop("request_hash", None)
-    packet["request_hash"] = _hash(packet)
-    if len(json.dumps(packet, ensure_ascii=False).encode("utf-8")) > MAX_PACKET_BYTES:
-        raise ValueError("checker_packet_oversized")
+    # Extras are optional; retain the first pass's bounded claim coverage
+    # rather than skipping a formerly valid packet when context exceeds 12 KB.
+    # This conservative minimum may include a shared excerpt or a second hit.
+    from .evidence_retrieval import fit_packet_to_budget
+
+    def make_packet(kept: list[str]) -> dict:
+        new_sources = []
+        for source in evidence.sources:
+            if source.url == row["item_url"]:
+                spans = tuple(EvidenceSpan("p2-"+sha256(t.encode()).hexdigest()[:20],t) for t in kept)
+                new_sources.append(replace(source, spans=spans, retrieval_verified=False))
+            else:
+                new_sources.append(source)
+        bundle = EvidenceBundle(sources=tuple(new_sources), event_ids=evidence.event_ids)
+        original = prepare_probe(candidate, bundle)
+        partial = len(original["claims"]) > MAX_CLAIMS
+        packet = dict(original)
+        packet["claims"] = original["claims"][:MAX_CLAIMS]
+        packet["selection"] = "first_five_provisional_segments_not_atomic"
+        packet["full_material_coverage"] = not partial
+        packet["independent_p1_attested"] = False
+        packet.pop("request_hash", None)
+        packet["request_hash"] = _hash(packet)
+        return packet
+
+    packet, kept = fit_packet_to_budget(
+        snippets, make_packet, max_bytes=MAX_PACKET_BYTES,
+        min_snippets=min(len(snippets), len(segments[:MAX_CLAIMS])),
+    )
     return packet, {"material_id":candidate.material_id,"version":candidate.version,
-                    "claims_selected":len(packet["claims"]),"segments_truncated":partial,
-                    "p2_excerpts":len(snippets),"source_item_id":row["item_id"]}
+                    "claims_selected":len(packet["claims"]),
+                    "segments_truncated":not packet["full_material_coverage"],
+                    "p2_excerpts":len(kept),"source_item_id":row["item_id"]}
 
 
 def provider_request(packet: dict) -> dict:
