@@ -62,7 +62,7 @@ def synthetic_capture_row():
         "context_sources": [], "item_id": 909, "item_url": url,
         "item_day": "2026-11-08", "manifest_day": "2026-11-08",
         "capture_text": (
-            "The agency reported procurement of forty coastal radio sets after a tender.\\n"
+            "The agency reported procurement of forty coastal radio sets after a tender.\n"
             "The forty coastal radio sets are not yet delivered and acceptance is pending."
         ),
     }
