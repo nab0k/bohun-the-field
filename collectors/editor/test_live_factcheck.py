@@ -81,7 +81,7 @@ class FactcheckTests(unittest.TestCase):
         self.assertLessEqual(meta["p2_excerpts"], 10)
         self.assertEqual(len(packet["claims"]), meta["claims_selected"])
         self.assertFalse(packet["independent_p1_attested"])
-        self.assertFalse(packet["full_material_coverage"] is None)
+        self.assertTrue(packet["full_material_coverage"])
         self.assertTrue(all(len(span["quote"]) <= 200 and
                             span["quote"] in row["capture_text"]
                             for span in packet["spans"]))
@@ -102,6 +102,12 @@ class FactcheckTests(unittest.TestCase):
         })
         self.assertFalse(report["publication_authorized"])
         self.assertFalse(report["semantic_assessment_trusted"])
+
+    def test_preparation_fails_closed_when_even_one_quote_exceeds_budget(self):
+        row = synthetic_capture_row()
+        with patch("collectors.editor.live_factcheck.MAX_PACKET_BYTES", 128):
+            with self.assertRaisesRegex(ValueError, "checker_packet_oversized"):
+                prepare(row)
 
     def test_preparation_refuses_bad_manifest_date_before_packet(self):
         row = synthetic_capture_row()
