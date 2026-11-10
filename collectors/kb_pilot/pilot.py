@@ -76,36 +76,57 @@ def load_events(cur, day_from, day_to):
     return items
 
 
-def load_items(cur, day_from, day_to, min_body=300, new_only=False, item_ids=None):
+def load_items(cur, day_from, day_to, min_body=300, new_only=False, item_ids=None, *, exclusions=None):
     """All news items of the window with a captured body; no relevance or importance filter (D-…-COST).
 
     new_only (the daily chain, D-20261030-DAILY-CHAIN): skip items this pilot already processed and reprints whose
     first source it already processed, so two runs a day over overlapping windows never write a story twice."""
     end = (date.fromisoformat(day_to) + timedelta(days=1)).isoformat()
     scope = ""
-    params = (day_from, end, min_body, new_only, PILOT_VERSION)
+    params = (day_from, end)
     if item_ids is not None:
         from .cohort import checked_ids
         item_ids = checked_ids(item_ids)
         scope = " AND i.id = ANY(%s)"
         params = (item_ids,) + params
-    cur.execute("""SELECT i.id, i.title, i.url, i.published_at, i.raw_data, eb.text_sha256, eb.origin_method
-                     FROM intelligence.items i
-                LEFT JOIN knowledge.item_embedding eb ON eb.item_id=i.id
-                    WHERE TRUE""" + scope + """ AND i.published_at >= %s::date AND i.published_at < %s::date
-                      AND (length(i.raw_data->'content_capture'->>'text') >= %s
-                           OR i.raw_data->'publisher_capture' IS NOT NULL)
-                      AND (NOT %s OR NOT EXISTS (
-                            SELECT 1 FROM knowledge.item_processing p
-                             WHERE p.pipeline_version = %s
-                               AND p.item_id IN (i.id, (SELECT e.origin_item_id FROM knowledge.item_embedding e
-                                                         WHERE e.item_id = i.id))))
-                 ORDER BY i.published_at, i.id""", params)
+    columns = "i.id, i.title, i.url, i.published_at, i.raw_data, eb.text_sha256, eb.origin_method"
+    window = """ FROM intelligence.items i
+                 LEFT JOIN knowledge.item_embedding eb ON eb.item_id = i.id
+                 WHERE TRUE""" + scope + """
+                   AND i.published_at >= %s::date AND i.published_at < %s::date"""
+    has_capture = """(length(i.raw_data->'content_capture'->>'text') >= %s
+                      OR i.raw_data->'publisher_capture' IS NOT NULL)"""
+    unprocessed = """(NOT %s OR NOT EXISTS (
+                          SELECT 1 FROM knowledge.item_processing p
+                           WHERE p.pipeline_version = %s
+                             AND p.item_id IN (i.id, (SELECT e.origin_item_id FROM knowledge.item_embedding e
+                                                       WHERE e.item_id = i.id))))"""
+    gates = (min_body, new_only, PILOT_VERSION)
+    if exclusions is None:
+        cur.execute(f"""SELECT {columns} {window} AND {has_capture} AND {unprocessed}
+                        ORDER BY i.published_at, i.id""", params + gates)
+    else:
+        cur.execute(f"""WITH classified AS (
+                          SELECT {columns}, CASE
+                              WHEN {has_capture} IS NOT TRUE THEN 'insufficient_capture'
+                              WHEN {unprocessed} IS NOT TRUE THEN 'already_processed_source'
+                          END AS reason
+                          {window}
+                        )
+                        SELECT id, title, url, published_at, CASE WHEN reason IS NULL THEN raw_data END,
+                               text_sha256, origin_method, reason
+                          FROM classified ORDER BY published_at, id""", gates + params)
     out, skipped = [], {}
-    for iid, title, url, published, raw, emb_hash, origin in cur.fetchall():
+    for row in cur.fetchall():
+        iid, title, url, published, raw, emb_hash, origin = row[:7]
+        if exclusions is not None and row[7] is not None:
+            exclusions.append({"item_id": iid, "reason": row[7]})
+            continue
         selected = ready_body(raw, url, title, emb_hash, origin, min_body)
         if selected.text is None:
             skipped[selected.reason] = skipped.get(selected.reason, 0) + 1
+            if exclusions is not None:
+                exclusions.append({"item_id": iid, "reason": selected.reason})
             continue
         body = selected.text
         out.append({"event_id": None, "type": None, "topic": None, "item_id": iid, "title": title, "url": url,
@@ -114,6 +135,34 @@ def load_items(cur, day_from, day_to, min_body=300, new_only=False, item_ids=Non
                     "body_source_kind": selected.source_kind, "body_text_sha256": selected.text_sha256})
     print('KB_BODY_SELECTION ' + json.dumps({'consumer': 'pilot', 'skipped': skipped}, sort_keys=True))
     return out
+
+def select_input(cur, args, report_path):
+    exclusions = [] if report_path is not None else None
+    if args.source == "events":
+        items = load_events(cur, args.day_from, args.day_to)
+    elif exclusions is None:
+        items = load_items(cur, args.day_from, args.day_to, new_only=args.new_only)
+    else:
+        items = load_items(cur, args.day_from, args.day_to, new_only=args.new_only, exclusions=exclusions)
+    if args.limit:
+        if exclusions is not None:
+            exclusions.extend({"item_id": item["item_id"], "reason": "deferred_by_limit"}
+                              for item in items[args.limit:])
+        items = items[:args.limit]
+    if exclusions is not None:
+        counts = {}
+        for row in exclusions:
+            counts[row["reason"]] = counts.get(row["reason"], 0) + 1
+        summary = {"day_from": args.day_from, "day_to": args.day_to, "new_only": args.new_only,
+                   "limit": args.limit, "window_items": len(items) + len(exclusions),
+                   "selected_count": len(items), "excluded_by_reason": counts}
+        payload = {**summary, "selected_item_ids": [item["item_id"] for item in items], "exclusions": exclusions}
+        fd = os.open(report_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as report:
+            json.dump(payload, report, indent=1, sort_keys=True)
+            report.write("\n")
+        print("KB_INPUT_AUDIT " + canonical(summary))
+    return items
 
 
 def mark_processed(cur, events):
@@ -842,8 +891,26 @@ def main(argv=None):
                         help="write CANDIDATEs to the feed tables as HOLD owner_review (not public)")
     parser.add_argument("--run-ref", default=os.environ.get("GITHUB_RUN_ID"))
     parser.add_argument("--schema-mode", choices=["schema", "text"], default="text")  # kept for the workflow input
-    parser.add_argument("--out", required=True)
+    parser.add_argument("--out")
+    parser.add_argument("--input-audit", type=Path, metavar="PRIVATE_JSON",
+                        help="write selection reasons to a new private file outside --out")
+    parser.add_argument("--audit-input-only", action="store_true",
+                        help="read input in a read-only transaction and exit")
     args = parser.parse_args(argv)
+    if not args.out and not args.audit_input_only:
+        parser.error("--out is required")
+    if args.audit_input_only and args.input_audit is None:
+        parser.error("--audit-input-only requires --input-audit")
+    if args.input_audit is not None and args.source != "items":
+        parser.error("--input-audit requires --source items")
+    report_path = args.input_audit.resolve() if args.input_audit else None
+    if report_path is not None and args.out and report_path.is_relative_to(Path(args.out).resolve()):
+        parser.error("--input-audit must be outside --out")
+    if args.audit_input_only:
+        with connect() as conn, conn.cursor() as cur:
+            cur.execute("SET TRANSACTION READ ONLY")
+            select_input(cur, args, report_path)
+        return 0
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     doctrine_records = json.loads(DOCTRINE.read_text(encoding="utf-8"))["records"]
@@ -852,12 +919,7 @@ def main(argv=None):
     cheap = FreeModel(model)  # free model when CLOUDFLARE_* secrets exist, Gemini otherwise
     with connect() as conn:
         with conn.cursor() as cur:
-            if args.source == "events":
-                items = load_events(cur, args.day_from, args.day_to)
-            else:
-                items = load_items(cur, args.day_from, args.day_to, new_only=args.new_only)
-            if args.limit:
-                items = items[:args.limit]
+            items = select_input(cur, args, report_path)
             by_event = {it["event_id"]: confirmed_companies(cur, [it["event_id"]]) for it in items if it["event_id"]}
             conn.commit()
             store = DbStore(cur)
