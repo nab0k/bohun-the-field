@@ -64,8 +64,8 @@ def evaluate_provisional_holdout(holdout: Mapping, predictions: Mapping) -> dict
         if (not isinstance(cid, str) or cid not in ground or cid in observed
                 or type(status) is not str or status not in LABELS
                 or not isinstance(refs, list)
-                or len(refs) != len(set(refs))
-                or any(not isinstance(ref, str) or not ref for ref in refs)):
+                or any(not isinstance(ref, str) or not ref for ref in refs)
+                or len(refs) != len(set(refs))):
             raise ValueError("invalid_prediction_case")
         if (status != "insufficient" and not refs
                 or not set(refs).issubset(ground[cid]["quoted_span_ids"])):
