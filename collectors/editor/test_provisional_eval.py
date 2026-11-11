@@ -145,6 +145,24 @@ class ProvisionalEvaluatorTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "prediction_citation_not_in_case"):
             evaluate_provisional_holdout(data, pred)
 
+    def test_alternate_span_from_same_material_is_valid_citation(self):
+        data = fixture()
+        alternate = deepcopy(data["spans"][0])
+        alternate["span_id"] = "span-alternate"
+        alternate["text"] = "The original purchase remains subject to review."
+        alternate["end_char_exclusive"] = (
+            alternate["start_char_0"] + len(alternate["text"]))
+        alternate["text_sha256"] = sha256(alternate["text"].encode()).hexdigest()
+        data["spans"].append(alternate)
+        # The annotator's case still cites only span-1. The model may correctly
+        # cite another quote from the same supplied material instead.
+        self.assertEqual(data["cases"][0]["quoted_span_ids"], ["span-1"])
+        pred = responses(data)
+        pred["cases"][0]["cited_span_ids"] = ["span-alternate"]
+        report = evaluate_provisional_holdout(data, pred)
+        self.assertEqual(report["cases_count"], 3)
+        self.assertFalse(report["publication_authorized"])
+
     def test_supported_without_any_citation_fails_closed(self):
         data = fixture()
         pred = responses(data)
