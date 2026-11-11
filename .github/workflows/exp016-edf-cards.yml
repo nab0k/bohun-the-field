@@ -24,7 +24,7 @@ jobs:
       github.ref == 'refs/heads/main' &&
       inputs.confirmation == 'EDF_CARDS_ONE_RUN'
     runs-on: ubuntu-24.04
-    timeout-minutes: 180
+    timeout-minutes: 240
     env:
       EXPECTED_SHA: ${{ inputs.expected_sha }}
       CARDS_CONFIRMATION: ${{ inputs.confirmation }}
@@ -80,5 +80,5 @@ jobs:
           name: exp016-edf-cards-cms
           path: ${{ runner.temp }}/exp016-edf-cards/result.cms
           if-no-files-found: warn
-          retention-days: 3
+          retention-days: 14
           compression-level: 0
