@@ -13,6 +13,7 @@ import urllib.parse
 import urllib.request
 import urllib.robotparser
 import xml.etree.ElementTree as ET
+from collections import Counter
 from html.parser import HTMLParser
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -149,12 +150,15 @@ def discover(source, robots):
     return candidates, failures
 
 
+def enabled_channels(source, channels):
+    return [c for c in channels if c.get("enabled") and c.get("source") == source["name"]]
+
+
 def discover_channels(source, robots, channels):
     """Discover candidates from explicitly configured publication listings, not global sitemaps."""
     found = {}
     failures = []
-    active = [c for c in channels if c.get("enabled") and c.get("source") == source["name"]]
-    for channel in active:
+    for channel in enabled_channels(source, channels):
         url = channel["url"]
         if not same_site(url, source["url"]):
             failures.append("channel_off_host")
@@ -421,14 +425,15 @@ def main():
             for item in candidates:
                 print("CANDIDATE " + json.dumps({"source": source["name"], **item}, ensure_ascii=False), flush=True)
         print(json.dumps({"name": source["name"], "candidates": len(candidates),
-                          "inserted": new, "warnings": failures, "quality": {k: sum(x["quality"] == k for x in candidates) for k in ("possible_article", "review", "index")}}, ensure_ascii=False), flush=True)
+                          "inserted": new, "warnings": failures,
+                          "channel_configured": args.discovery_mode != "channels" or bool(enabled_channels(source, channels)),
+                          "quality": {k: sum(x["quality"] == k for x in candidates) for k in ("possible_article", "review", "index")}}, ensure_ascii=False), flush=True)
         return
 
     enabled = [(i, src) for i, src in enumerate(sources) if src.get("enabled") and (not args.country or src.get("country") == args.country)]
-    errors = 0
+    coverage_gaps = Counter()
     total = 0
     found = 0
-    verified = 0
     for index, source in enabled:
         command = [sys.executable, str(Path(__file__).resolve()), "--sources", args.sources,
                    "--source-index", str(index), "--channels", args.channels,
@@ -441,7 +446,7 @@ def main():
             proc = subprocess.run(command, capture_output=True, text=True,
                                   timeout=args.per_source_timeout, check=False)
             if proc.returncode != 0:
-                errors += 1
+                coverage_gaps["worker_failed"] += 1
                 print(f"SOURCE {source['name']}: ERROR=worker_exit_{proc.returncode} "
                       f"detail={proc.stderr[-300:].strip()!r}", flush=True)
                 continue
@@ -460,13 +465,23 @@ def main():
             print(f"SOURCE {source['name']}: candidates={count} inserted={result['inserted']} "
                   f"quality={result.get('quality', {})} warnings={','.join(result['warnings']) or 'none'}", flush=True)
             if not count:
-                errors += 1
+                warnings = result["warnings"]
+                if not result["channel_configured"]:
+                    reason = "no_enabled_channel"
+                elif warnings:
+                    reason = "source_error"
+                else:
+                    reason = "no_candidates"
+                coverage_gaps[reason] += 1
+                print(f"SOURCE_COVERAGE {source['name']}: {reason}", flush=True)
         except subprocess.TimeoutExpired:
-            errors += 1
+            coverage_gaps["source_timeout"] += 1
             print(f"SOURCE {source['name']}: ERROR=source_timeout_{args.per_source_timeout}s", flush=True)
         except (ValueError, KeyError, IndexError) as exc:
-            errors += 1
+            coverage_gaps["invalid_worker_result"] += 1
             print(f"SOURCE {source['name']}: ERROR=invalid_worker_result_{type(exc).__name__}", flush=True)
+    errors = sum(coverage_gaps.values())
+    print("COVERAGE_GAPS " + json.dumps(coverage_gaps, sort_keys=True), flush=True)
     print(f"SUMMARY sources_checked={len(enabled)} candidates={found} inserted={total} "
           f"sources_without_candidates_or_failed={errors} "
           f"mode={'apply' if args.apply else 'dry-run'} discovery={args.discovery_mode}", flush=True)
