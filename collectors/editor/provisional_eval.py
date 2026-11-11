@@ -54,6 +54,12 @@ def evaluate_provisional_holdout(holdout: Mapping, predictions: Mapping) -> dict
         raise ValueError("prediction_coverage_incomplete")
 
     ground = {c["case_id"]: c for c in holdout["cases"]}
+    # Model receives all bounded quotes for one material. Citation validation
+    # must enforce material lineage, not demand an annotator's one chosen span.
+    # Alternate citations may be valid; label agreement is scored separately.
+    material_spans: dict[str, set[str]] = {}
+    for span in holdout["spans"]:
+        material_spans.setdefault(span["material_id"], set()).add(span["span_id"])
     observed: dict[str, str] = {}
     for row in rows:
         if not isinstance(row, Mapping) or set(row) != {
@@ -68,7 +74,7 @@ def evaluate_provisional_holdout(holdout: Mapping, predictions: Mapping) -> dict
                 or len(refs) != len(set(refs))):
             raise ValueError("invalid_prediction_case")
         if (status != "insufficient" and not refs
-                or not set(refs).issubset(ground[cid]["quoted_span_ids"])):
+                or not set(refs).issubset(material_spans[ground[cid]["material_id"]])):
             raise ValueError("prediction_citation_not_in_case")
         observed[cid] = status
     if set(observed) != set(ground):
