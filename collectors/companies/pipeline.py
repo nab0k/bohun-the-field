@@ -8,6 +8,7 @@ import traceback
 
 from . import ownership, resolve
 from .store import now
+from .normalize import name_norm
 from .taxonomy import best_layer
 
 MAX_FAILURES = 3
@@ -26,7 +27,8 @@ def recompute_layer(store, company_id):
 def run_source(store, adapter, http, limit):
     state = store.source_state(adapter.source)
     stats = dict(source=adapter.source, started_at=now(), cursor_in=state["cursor"], fetched=0,
-                 new_observations=0, new_companies=0, matched=0, candidates=0, skipped=0)
+                 new_observations=0, new_companies=0, matched=0, candidates=0, skipped=0,
+                 discoveries=0, candidate_existing=0, holds=0)
     if state["disabled"]:
         store.save_run(**stats, finished_at=now(), cursor_out=state["cursor"], status="skipped_disabled")
         store.commit()
@@ -35,11 +37,40 @@ def run_source(store, adapter, http, limit):
         records, cursor_out = adapter.fetch(http, state["cursor"], limit)
         touched = set()
         for rec in records:
+            if getattr(adapter, "discovery_only", False):
+                if rec.source != adapter.source or rec.mentions or not rec.discoveries:
+                    raise ValueError("discovery-only source must yield discoveries without mentions")
             stats["fetched"] += 1
+            if getattr(adapter, "discovery_only", False) and store.seen_discovery_source_key(
+                    rec.source, rec.source_key):
+                # A changed WordPress HTML snapshot still causes a full source pass,
+                # but an unchanged exhibitor-country pair is NOT a new observation.
+                # Preserve immutable earlier observation and its source provenance.
+                continue
             obs_id, is_new = store.add_observation(rec.source, rec.source_key, rec.payload)
             if not is_new:
                 continue  # same content already processed (AC1)
             stats["new_observations"] += 1
+            for discovery in rec.discoveries:
+                norm = name_norm(discovery.name)
+                matches = store.companies_by_discovery_name(norm) if norm else []
+                if not norm:
+                    status, reason, matched_id = "hold", "unusable_normalized_name", None
+                elif not matches:
+                    status, reason, matched_id = "discovered", None, None
+                elif len(matches) == 1:
+                    status, reason, matched_id = "candidate_existing", "exact_normalized_name_only", matches[0]
+                else:
+                    status, reason, matched_id = "hold", "multiple_exact_normalized_name_matches", None
+                    for cid in matches:
+                        store.add_match_candidate(obs_id, cid, reason, discovery.name)
+                store.add_discovery_candidate(obs_id, discovery, status, matched_id, reason)
+                # Total accepted new discovery candidates, INCLUDING exact matches and holds.
+                stats["discoveries"] += 1
+                if status == "candidate_existing":
+                    stats["candidate_existing"] += 1
+                elif status == "hold":
+                    stats["holds"] += 1
             for mention in rec.mentions:
                 cid, outcome = resolve.resolve(store, mention, obs_id)
                 key = {"matched": "matched", "new": "new_companies", "candidate": "candidates"}.get(outcome, "skipped")
