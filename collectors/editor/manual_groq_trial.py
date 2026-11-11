@@ -101,8 +101,8 @@ def check_staged(raw: bytes, expected_sha256: str) -> tuple[dict, list[dict], di
                 or system["role"] != "system" or not isinstance(system["content"], str)
                 or not isinstance(message, dict) or set(message) != {"role", "content"}
                 or message["role"] != "user" or not isinstance(message["content"], str)
-                or "only supplied P2" not in system["content"]
-                or "Return valid JSON" not in system["content"]):
+                or "only supplied p2" not in system["content"].casefold()
+                or "return valid json" not in system["content"].casefold()):
             raise ValueError("unsafe_provider_messages")
         try:
             user = json.loads(message["content"])
