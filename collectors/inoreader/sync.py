@@ -70,7 +70,12 @@ def request_json(url, *, headers=None, form=None, admission=None):
                 continue
             raise RuntimeError(
                 f"HTTP request failed: stage={stage}, status={exc.code}"
+                + ("; refresh token rejected or OAuth configuration mismatch" if stage == "oauth_token" and exc.code in (400, 401) else "")
             ) from None
+
+
+class OAuthTokenRotated(RuntimeError):
+    """Refresh token rotated; no persistent token store is configured."""
 
 
 def access_token():
@@ -88,7 +93,7 @@ def access_token():
         raise RuntimeError("Inoreader token refresh did not return access_token")
     # Some OAuth providers rotate refresh tokens. Never print returned credentials.
     if response.get("refresh_token") and response["refresh_token"] != values["INOREADER_REFRESH_TOKEN"]:
-        print("WARNING: refresh token rotated; update INOREADER_REFRESH_TOKEN secret", file=sys.stderr)
+        raise OAuthTokenRotated("OAUTH_ROTATED: new refresh token was returned but cannot be persisted; stop collection and reauthorize securely")
     return response["access_token"]
 
 
