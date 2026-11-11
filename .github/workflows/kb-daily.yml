@@ -101,11 +101,55 @@ jobs:
           LIMIT: '400'
         run: '"$RUNNER_TEMP/bohun-kb/bin/python" -B -m collectors.kb_pilot | tee "$RUNNER_TEMP/kb-daily/embed.log"'
       - name: Pilot on new items, CANDIDATEs held for admission
+        id: pilot
         if: github.event_name != 'workflow_dispatch' || (inputs.verify_fulltext_cohort != true && inputs.resume_stored_cohort != true)
         shell: bash
         env:
           KB_MODE: pilot-publish
-        run: '"$RUNNER_TEMP/bohun-kb/bin/python" -B -m collectors.kb_pilot --day-from "$DAY_FROM" --day-to "$DAY_TO" --limit 80 --source items --new-only --publish-hold --batch --out "$RUNNER_TEMP/kb-daily/pilot" | tee "$RUNNER_TEMP/kb-daily/pilot.log"'
+        run: |
+          umask 077
+          audit_args=()
+          if mkdir -m 700 "$RUNNER_TEMP/kb-input-audit" && echo "audit_requested=true" >> "$GITHUB_OUTPUT"; then
+            audit_args=(--input-audit "$RUNNER_TEMP/kb-input-audit/report.json")
+          else
+            echo "::warning::Input audit directory unavailable"
+          fi
+          "$RUNNER_TEMP/bohun-kb/bin/python" -B -m collectors.kb_pilot --day-from "$DAY_FROM" --day-to "$DAY_TO" --limit 80 --source items --new-only --publish-hold --batch --out "$RUNNER_TEMP/kb-daily/pilot" "${audit_args[@]}" | tee "$RUNNER_TEMP/kb-daily/pilot.log"
+      - name: Encrypt the input audit
+        id: input_audit
+        if: "!cancelled() && steps.pilot.outputs.audit_requested == 'true' && (steps.pilot.outcome == 'success' || steps.pilot.outcome == 'failure')"
+        shell: bash
+        env:
+          AUDIT_CERT_PEM: ${{ vars.KB_INPUT_AUDIT_CERT_PEM }}
+          AUDIT_CERT_SHA256: ${{ vars.KB_INPUT_AUDIT_CERT_SHA256 }}
+        run: |
+          umask 077
+          audit="$RUNNER_TEMP/kb-input-audit"
+          if [[ ! -f "$audit/report.json" ]]; then
+            echo "::warning::Input audit unavailable"
+            exit 0
+          fi
+          trap 'rm -f "$audit/report.json" "$audit/recipient.pem" "$audit/report.partial"' EXIT
+          printf '%s\n' "$AUDIT_CERT_PEM" > "$audit/recipient.pem"
+          if ! openssl x509 -in "$audit/recipient.pem" -checkend 300 -noout >/dev/null 2>&1 ||
+             ! fingerprint=$(openssl x509 -in "$audit/recipient.pem" -outform DER | sha256sum) ||
+             [[ "${fingerprint%% *}" != "$AUDIT_CERT_SHA256" ]] ||
+             ! openssl cms -encrypt -binary -aes-256-gcm -in "$audit/report.json" -outform DER -out "$audit/report.partial" "$audit/recipient.pem"; then
+            echo "::warning::Input audit encryption failed"
+            exit 0
+          fi
+          mv "$audit/report.partial" "$audit/report.der"
+          echo "encrypted=true" >> "$GITHUB_OUTPUT"
+      - name: Upload the encrypted input audit
+        id: input_audit_upload
+        if: "!cancelled() && steps.input_audit.outputs.encrypted == 'true'"
+        continue-on-error: true
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: kb-daily-input-audit-encrypted
+          path: ${{ runner.temp }}/kb-input-audit/report.der
+          retention-days: 1
+          if-no-files-found: error
       - name: Automatic admission (checks, second model, self-correction)
         if: "!cancelled() && (github.event_name != 'workflow_dispatch' || (inputs.verify_fulltext_cohort != true && inputs.resume_stored_cohort != true))"
         continue-on-error: true
@@ -130,12 +174,18 @@ jobs:
           gh workflow run automatic-synthesis-feed.yml -R nab0k/bohundefense --ref main
       - name: Summary
         if: always()
+        env:
+          INPUT_AUDIT_UPLOAD_OUTCOME: ${{ steps.input_audit_upload.outcome }}
         run: |
           {
             echo "### BOHUN daily syntheses $DAY_FROM..$DAY_TO"
             for f in contract embed pilot admit extract; do
               echo "- **$f**: \`$(grep -ho 'KB_[A-Z_]* .*' "$RUNNER_TEMP/kb-daily/$f.log" 2>/dev/null | tail -1 | cut -c1-600)\`"
             done
+            if [[ -f "$RUNNER_TEMP/kb-daily/pilot.log" ]]; then
+              grep -E '^KB_INPUT_AUDIT ' "$RUNNER_TEMP/kb-daily/pilot.log" || true
+              echo "- Encrypted input audit: ${INPUT_AUDIT_UPLOAD_OUTCOME:-unavailable}"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Keep the result for review
         if: always()
