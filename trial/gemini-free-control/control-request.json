@@ -11,6 +11,50 @@
   "generationConfig": {
     "temperature": 0,
     "maxOutputTokens": 1024,
-    "responseMimeType": "application/json"
+    "responseMimeType": "application/json",
+    "responseSchema": {
+      "type": "OBJECT",
+      "required": [
+        "stages"
+      ],
+      "properties": {
+        "stages": {
+          "type": "ARRAY",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "OBJECT",
+            "required": [
+              "stage",
+              "published",
+              "buyer",
+              "target",
+              "document_id",
+              "evidence"
+            ],
+            "properties": {
+              "stage": {
+                "type": "STRING"
+              },
+              "published": {
+                "type": "STRING"
+              },
+              "buyer": {
+                "type": "STRING"
+              },
+              "target": {
+                "type": "STRING"
+              },
+              "document_id": {
+                "type": "STRING"
+              },
+              "evidence": {
+                "type": "STRING"
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
