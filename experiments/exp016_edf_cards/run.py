@@ -21,7 +21,7 @@ if str(ROOT) not in sys.path:
 
 from experiments.exp016_edf_cards import cards as cd  # noqa: E402
 from experiments.exp016_edf_cards.fetch import Budget, fetch_home  # noqa: E402
-from experiments.exp016_live_pilot import live_extract as lx  # noqa: E402
+from experiments.exp016_live_pilot import live_extract as lx, live_sources  # noqa: E402
 from experiments.exp016_live_pilot.live_seal import seal, sha  # noqa: E402
 
 CONFIRMATION = 'EDF_CARDS_ONE_RUN'
@@ -55,6 +55,21 @@ def load_packet(env, pin):
     return packet
 
 
+RETRY_CODES = {'MODEL_HTTP_503', 'MODEL_HTTP_500', 'MODEL_HTTP_502', 'MODEL_HTTP_504'}
+RETRY_DELAY = 20.0
+
+
+def ask(transport, prompt, budget):
+    """One delayed second attempt only after an overloaded-server answer. Quota and key refusals stop at once."""
+    try:
+        return transport(prompt)
+    except lx.ModelFailed as exc:
+        if str(exc) not in RETRY_CODES:
+            raise
+        budget.sleep(RETRY_DELAY)
+        return transport(prompt)
+
+
 def run(packet, *, transport, budget, fetch=None):
     fetch = fetch or (lambda url: fetch_home(url, budget))
     out, stopped = [], None
@@ -73,7 +88,7 @@ def run(packet, *, transport, budget, fetch=None):
             continue
         text = page['text'][:cd.MAX_TEXT_CHARS]
         try:
-            data, dropped = cd.check(cd.parse(transport(cd.prompt_for(company['name'], text))), text)
+            data, dropped = cd.check(cd.parse(ask(transport, cd.prompt_for(company['name'], text), budget)), text)
             out.append(cd.build(company, page, data, dropped))
         except (lx.ModelStopped, lx.LimitReached) as exc:
             stopped = str(exc)
@@ -123,6 +138,7 @@ def main(argv=None):
         guard()
         plan = json.loads((HERE / 'plan.json').read_text())
         packet = load_packet(os.environ, plan['packet_sha256'])
+        live_sources.MAX_SECONDS = plan['limits']['seconds']
         budget = Budget(max_documents=plan['limits']['documents'], max_posts=plan['limits']['model_posts'],
                         interval=plan['limits']['post_interval_seconds'])
         transport = lx.GeminiTransport(lx.free_key(), budget)

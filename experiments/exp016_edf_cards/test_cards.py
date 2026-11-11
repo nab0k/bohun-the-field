@@ -145,6 +145,18 @@ class Run(unittest.TestCase):
         cards, stopped = r.run(self.packet(3), transport=self.transport([json.dumps(GOOD)] * 3, b), budget=b, fetch=self.fetch(b))
         self.assertEqual((stopped, cards[1]['site_status']), ('DOCUMENT_LIMIT', 'NOT_RUN_DOCUMENT_LIMIT'))
 
+    def test_overloaded_model_gets_one_delayed_retry(self):
+        b = Budget(sleep=lambda s: None)
+        busy = urllib.error.HTTPError('x', 503, 'x', {}, None)
+        cards, stopped = r.run(self.packet(2), transport=self.transport([busy, json.dumps(GOOD), busy, busy], b), budget=b, fetch=self.fetch(b))
+        self.assertEqual(([c['model_status'] for c in cards], b.posts, stopped), (['OK', 'MODEL_HTTP_503'], 4, None))
+
+    def test_quota_is_not_retried(self):
+        b = Budget(sleep=lambda s: None)
+        quota = urllib.error.HTTPError('x', 429, 'x', {}, None)
+        cards, stopped = r.run(self.packet(2), transport=self.transport([quota, json.dumps(GOOD)], b), budget=b, fetch=self.fetch(b))
+        self.assertEqual((b.posts, stopped), (1, 'MODEL_HTTP_429'))
+
     def test_report_escapes_page_text(self):
         hostile = {**GOOD, 'summary': [item('<script>x</script>', 'Arbit develops data diodes')]}
         card = cd.build(COMPANY, {'status': 'CAPTURED'}, cd.check(hostile, TEXT)[0])
@@ -187,6 +199,7 @@ class Boundary(unittest.TestCase):
         self.assertNotIn('SUPABASE', text)
         self.assertLess(text.index('verify'), text.index('secrets.'))
         self.assertRegex(text, r'upload-artifact@[0-9a-f]{40}')
+        self.assertIn('retention-days: 14', text)
 
 
 if __name__ == '__main__':
