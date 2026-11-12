@@ -160,7 +160,7 @@ def main(argv: list[str] | None = None) -> int:
         report = evaluate(labels, predictions)
         report["labels_sha256"] = label_digest
         report["predictions_sha256"] = prediction_digest
-    except (ValueError, OSError, json.JSONDecodeError) as exc:
+    except (ValueError, UnicodeError, OSError, json.JSONDecodeError) as exc:
         print(json.dumps({"status": "error", "reason": str(exc)[:200]}))
         return 2
     print(json.dumps(report, ensure_ascii=False, sort_keys=True))
