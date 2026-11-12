@@ -261,7 +261,8 @@
       "outcome_status": "REQUIRES_INDEPENDENT_LABEL_AND_ARCHIVE",
       "historical_archive_verified": false,
       "independent_ground_truth": false,
-      "label_status": "UNLABELED_RESEARCH_LEAD"
+      "label_status": "UNLABELED_RESEARCH_LEAD",
+      "later_date_note": "Event date reported retrospectively in DOD FY2025 document; publication/first-seen date of the PDF not audited."
     },
     {
       "lead_id": "C4-11-R16",
@@ -272,13 +273,14 @@
       "cutoff_evidence_url": "https://www.gao.gov/products/gao-23-105554",
       "cutoff_evidence_date": "2023-04-17",
       "later_evidence_url": "https://www.gao.gov/products/gao-23-105554",
-      "later_evidence_date": "2025-05-01",
+      "later_evidence_date": null,
       "known_public_fact": "Обновление статуса GAO сообщает, что в мае 2025 Army отказалась продолжать effort по production FTUAS; дата внутри мая не установлена.",
       "trap": "planned_production_not_actual",
       "outcome_status": "REQUIRES_INDEPENDENT_LABEL_AND_ARCHIVE",
       "historical_archive_verified": false,
       "independent_ground_truth": false,
-      "label_status": "UNLABELED_RESEARCH_LEAD"
+      "label_status": "UNLABELED_RESEARCH_LEAD",
+      "later_evidence_month": "2025-05"
     },
     {
       "lead_id": "C4-11-R17",
@@ -289,13 +291,14 @@
       "cutoff_evidence_url": "https://www.gao.gov/products/gao-23-105554",
       "cutoff_evidence_date": "2023-04-17",
       "later_evidence_url": "https://www.gao.gov/products/gao-23-105554",
-      "later_evidence_date": "2024-07-01",
+      "later_evidence_date": null,
       "known_public_fact": "GAO сообщает об одобрении старта system development FLRAA в июле 2024, при этом не были продемонстрированы все критические технологии.",
       "trap": "development_is_not_fielding",
       "outcome_status": "REQUIRES_INDEPENDENT_LABEL_AND_ARCHIVE",
       "historical_archive_verified": false,
       "independent_ground_truth": false,
-      "label_status": "UNLABELED_RESEARCH_LEAD"
+      "label_status": "UNLABELED_RESEARCH_LEAD",
+      "later_evidence_month": "2024-07"
     },
     {
       "lead_id": "C4-11-R18",
@@ -306,13 +309,14 @@
       "cutoff_evidence_url": "https://www.gao.gov/products/gao-24-106792",
       "cutoff_evidence_date": "2024-07-29",
       "later_evidence_url": "https://www.gao.gov/products/gao-24-106792",
-      "later_evidence_date": "2024-11-01",
+      "later_evidence_date": null,
       "known_public_fact": "Обновление GAO 2025 сообщает, что в ноябре 2024 Navy отозвала planned solicitation, effort фактически отменён до capability; точная дата не установлена.",
       "trap": "planned_solicitation_not_capability",
       "outcome_status": "REQUIRES_INDEPENDENT_LABEL_AND_ARCHIVE",
       "historical_archive_verified": false,
       "independent_ground_truth": false,
-      "label_status": "UNLABELED_RESEARCH_LEAD"
+      "label_status": "UNLABELED_RESEARCH_LEAD",
+      "later_evidence_month": "2024-11"
     },
     {
       "lead_id": "C4-11-R19",
@@ -323,13 +327,14 @@
       "cutoff_evidence_url": "https://www.gao.gov/products/gao-24-106546",
       "cutoff_evidence_date": "2024-05-29",
       "later_evidence_url": "https://www.gao.gov/products/gao-24-106546",
-      "later_evidence_date": "2025-11-01",
+      "later_evidence_date": null,
       "known_public_fact": "GAO 2024 описывает план до 20 фрегатов и задержки; обновление GAO сообщает о сокращении до двух в ноябре 2025, точная дата не установлена.",
       "trap": "plans_not_procurement",
       "outcome_status": "REQUIRES_INDEPENDENT_LABEL_AND_ARCHIVE",
       "historical_archive_verified": false,
       "independent_ground_truth": false,
-      "label_status": "UNLABELED_RESEARCH_LEAD"
+      "label_status": "UNLABELED_RESEARCH_LEAD",
+      "later_evidence_month": "2025-11"
     },
     {
       "lead_id": "C4-11-R20",
@@ -346,7 +351,9 @@
       "outcome_status": "REQUIRES_INDEPENDENT_LABEL_AND_ARCHIVE",
       "historical_archive_verified": false,
       "independent_ground_truth": false,
-      "label_status": "UNLABELED_RESEARCH_LEAD"
+      "label_status": "UNLABELED_RESEARCH_LEAD",
+      "later_source_publication_date": "2026-02-18"
     }
-  ]
+  ],
+  "provenance_warning": "later_evidence_date describes a reported EVENT date, not necessarily the earliest public publication date. Current web pages can contain later edits. Never copy these fields directly into backtest predictions."
 }
