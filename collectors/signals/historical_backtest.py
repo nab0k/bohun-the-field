@@ -6,6 +6,8 @@ module neither creates historical cases nor makes a prediction. No network/DB.
 from __future__ import annotations
 
 import argparse
+import hashlib
+import hmac
 from collections import Counter
 from datetime import date
 import json
@@ -128,20 +130,36 @@ def evaluate(labels: object, predictions: object, *, min_cases: int = MIN_CASES)
     }
 
 
-def _read(path: str) -> object:
+def _read_with_digest(path: str) -> tuple[object, str]:
+    """Hash the exact input bytes, not a re-serialized JSON representation."""
     p = Path(path)
-    if p.stat().st_size > 2 * 1024 * 1024:
+    with p.open("rb") as stream:
+        raw = stream.read(2 * 1024 * 1024 + 1)
+    if len(raw) > 2 * 1024 * 1024:
         raise ValueError("input exceeds 2 MiB")
-    return json.loads(p.read_text(encoding="utf-8"))
+    digest = hashlib.sha256(raw).hexdigest()
+    return json.loads(raw.decode("utf-8")), digest
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--labels", required=True, help="locked human outcomes JSON")
     parser.add_argument("--predictions", required=True, help="model decision provenance JSON")
+    parser.add_argument("--expected-labels-sha256", required=True,
+                        help="SHA-256 of the pre-registered raw labels JSON file; "
+                             "must come from a separate trusted record")
     args = parser.parse_args(argv)
     try:
-        report = evaluate(_read(args.labels), _read(args.predictions))
+        expected = args.expected_labels_sha256.lower()
+        if len(expected) != 64 or any(ch not in "0123456789abcdef" for ch in expected):
+            raise ValueError("expected-labels-sha256 must be a 64-character hex digest")
+        labels, label_digest = _read_with_digest(args.labels)
+        if not hmac.compare_digest(label_digest, expected):
+            raise ValueError("labels SHA-256 does not match the pre-registered digest")
+        predictions, prediction_digest = _read_with_digest(args.predictions)
+        report = evaluate(labels, predictions)
+        report["labels_sha256"] = label_digest
+        report["predictions_sha256"] = prediction_digest
     except (ValueError, OSError, json.JSONDecodeError) as exc:
         print(json.dumps({"status": "error", "reason": str(exc)[:200]}))
         return 2
