@@ -1,9 +1,15 @@
 """C4-11 offline tests: no HTTP, database or live signal inference."""
 from copy import deepcopy
+import contextlib
+import hashlib
+import io
+import json
+from pathlib import Path
+import tempfile
 from datetime import date, timedelta
 import unittest
 
-from collectors.signals.historical_backtest import evaluate
+from collectors.signals.historical_backtest import evaluate, main
 
 
 def panel(n=20):
@@ -131,6 +137,53 @@ class HistoricalBacktestTests(unittest.TestCase):
         preds["predictions"][0]["rule_version"] = ""
         with self.assertRaisesRegex(ValueError, "rule_version"):
             evaluate(labels, preds)
+
+
+    def test_cli_requires_precommitted_hash(self):
+        labels, preds = panel()
+        with tempfile.TemporaryDirectory() as tmp:
+            lp, pp = Path(tmp) / "labels.json", Path(tmp) / "predictions.json"
+            lp.write_text(json.dumps(labels), encoding="utf-8")
+            pp.write_text(json.dumps(preds), encoding="utf-8")
+            digest = hashlib.sha256(lp.read_bytes()).hexdigest()
+            buffer = io.StringIO()
+            with contextlib.redirect_stdout(buffer):
+                code = main(["--labels", str(lp), "--predictions", str(pp),
+                             "--expected-labels-sha256", digest])
+            self.assertEqual(code, 0)
+            result = json.loads(buffer.getvalue())
+            self.assertEqual(result["labels_sha256"], digest)
+            self.assertEqual(result["predictions_sha256"],
+                             hashlib.sha256(pp.read_bytes()).hexdigest())
+
+    def test_cli_detects_changed_labels_after_registration(self):
+        labels, preds = panel()
+        with tempfile.TemporaryDirectory() as tmp:
+            lp, pp = Path(tmp) / "labels.json", Path(tmp) / "predictions.json"
+            lp.write_text(json.dumps(labels), encoding="utf-8")
+            digest = hashlib.sha256(lp.read_bytes()).hexdigest()
+            labels["cases"][0]["outcome"] = "no_signal"
+            lp.write_text(json.dumps(labels), encoding="utf-8")
+            pp.write_text(json.dumps(preds), encoding="utf-8")
+            buffer = io.StringIO()
+            with contextlib.redirect_stdout(buffer):
+                code = main(["--labels", str(lp), "--predictions", str(pp),
+                             "--expected-labels-sha256", digest])
+            self.assertEqual(code, 2)
+            self.assertIn("does not match", buffer.getvalue())
+
+    def test_cli_rejects_malformed_expected_hash(self):
+        labels, preds = panel()
+        with tempfile.TemporaryDirectory() as tmp:
+            lp, pp = Path(tmp) / "labels.json", Path(tmp) / "predictions.json"
+            lp.write_text(json.dumps(labels), encoding="utf-8")
+            pp.write_text(json.dumps(preds), encoding="utf-8")
+            buffer = io.StringIO()
+            with contextlib.redirect_stdout(buffer):
+                code = main(["--labels", str(lp), "--predictions", str(pp),
+                             "--expected-labels-sha256", "not-a-digest"])
+            self.assertEqual(code, 2)
+            self.assertIn("64-character hex", buffer.getvalue())
 
 
 if __name__ == "__main__":
