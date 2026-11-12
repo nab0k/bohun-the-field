@@ -23,7 +23,13 @@
       "outcome_status": "GROUP_SIGNATURE_EXPLICITLY_MENTIONED",
       "historical_archive_verified": false,
       "independent_ground_truth": false,
-      "label_status": "UNLABELED_RESEARCH_LEAD"
+      "label_status": "UNLABELED_RESEARCH_LEAD",
+      "case_selection_mode": "retrospective_after_outcome",
+      "historical_snapshot_status": "NOT_VERIFIED",
+      "ground_truth_status": "NOT_INDEPENDENTLY_LABELLED",
+      "backtest_eligible": false,
+      "future_data_excluded_from_model": false,
+      "dependencies_group": "edf2022-tech-challenge"
     },
     {
       "lead_id": "C4-11-R02",
@@ -40,7 +46,13 @@
       "outcome_status": "GROUP_SIGNATURE_EXPLICITLY_MENTIONED",
       "historical_archive_verified": false,
       "independent_ground_truth": false,
-      "label_status": "UNLABELED_RESEARCH_LEAD"
+      "label_status": "UNLABELED_RESEARCH_LEAD",
+      "case_selection_mode": "retrospective_after_outcome",
+      "historical_snapshot_status": "NOT_VERIFIED",
+      "ground_truth_status": "NOT_INDEPENDENTLY_LABELLED",
+      "backtest_eligible": false,
+      "future_data_excluded_from_model": false,
+      "dependencies_group": "edf2022-tech-challenge"
     },
     {
       "lead_id": "C4-11-R03",
@@ -57,7 +69,13 @@
       "outcome_status": "GROUP_SIGNATURE_EXPLICITLY_MENTIONED",
       "historical_archive_verified": false,
       "independent_ground_truth": false,
-      "label_status": "UNLABELED_RESEARCH_LEAD"
+      "label_status": "UNLABELED_RESEARCH_LEAD",
+      "case_selection_mode": "retrospective_after_outcome",
+      "historical_snapshot_status": "NOT_VERIFIED",
+      "ground_truth_status": "NOT_INDEPENDENTLY_LABELLED",
+      "backtest_eligible": false,
+      "future_data_excluded_from_model": false,
+      "dependencies_group": "edf2022-tech-challenge"
     },
     {
       "lead_id": "C4-11-R04",
@@ -74,7 +92,13 @@
       "outcome_status": "GROUP_SIGNATURE_EXPLICITLY_MENTIONED",
       "historical_archive_verified": false,
       "independent_ground_truth": false,
-      "label_status": "UNLABELED_RESEARCH_LEAD"
+      "label_status": "UNLABELED_RESEARCH_LEAD",
+      "case_selection_mode": "retrospective_after_outcome",
+      "historical_snapshot_status": "NOT_VERIFIED",
+      "ground_truth_status": "NOT_INDEPENDENTLY_LABELLED",
+      "backtest_eligible": false,
+      "future_data_excluded_from_model": false,
+      "dependencies_group": "edf2022-tech-challenge"
     },
     {
       "lead_id": "C4-11-R05",
@@ -91,7 +115,13 @@
       "outcome_status": "GROUP_SIGNATURE_EXPLICITLY_MENTIONED",
       "historical_archive_verified": false,
       "independent_ground_truth": false,
-      "label_status": "UNLABELED_RESEARCH_LEAD"
+      "label_status": "UNLABELED_RESEARCH_LEAD",
+      "case_selection_mode": "retrospective_after_outcome",
+      "historical_snapshot_status": "NOT_VERIFIED",
+      "ground_truth_status": "NOT_INDEPENDENTLY_LABELLED",
+      "backtest_eligible": false,
+      "future_data_excluded_from_model": false,
+      "dependencies_group": "edf2022-tech-challenge"
     },
     {
       "lead_id": "C4-11-R06",
@@ -108,7 +138,13 @@
       "outcome_status": "UNKNOWN_PROJECT_LEVEL",
       "historical_archive_verified": false,
       "independent_ground_truth": false,
-      "label_status": "UNLABELED_RESEARCH_LEAD"
+      "label_status": "UNLABELED_RESEARCH_LEAD",
+      "case_selection_mode": "retrospective_after_outcome",
+      "historical_snapshot_status": "NOT_VERIFIED",
+      "ground_truth_status": "NOT_INDEPENDENTLY_LABELLED",
+      "backtest_eligible": false,
+      "future_data_excluded_from_model": false,
+      "dependencies_group": "edf2022-tech-challenge"
     },
     {
       "lead_id": "C4-11-R07",
@@ -125,7 +161,13 @@
       "outcome_status": "DATED_STAGE_TRANSITION_CONFIRMED",
       "historical_archive_verified": false,
       "independent_ground_truth": false,
-      "label_status": "UNLABELED_RESEARCH_LEAD"
+      "label_status": "UNLABELED_RESEARCH_LEAD",
+      "case_selection_mode": "retrospective_after_outcome",
+      "historical_snapshot_status": "NOT_VERIFIED",
+      "ground_truth_status": "NOT_INDEPENDENTLY_LABELLED",
+      "backtest_eligible": false,
+      "future_data_excluded_from_model": false,
+      "dependencies_group": "EU-chips-legislation"
     },
     {
       "lead_id": "C4-11-R08",
@@ -142,7 +184,13 @@
       "outcome_status": "DATED_STAGE_TRANSITION_CONFIRMED",
       "historical_archive_verified": false,
       "independent_ground_truth": false,
-      "label_status": "UNLABELED_RESEARCH_LEAD"
+      "label_status": "UNLABELED_RESEARCH_LEAD",
+      "case_selection_mode": "retrospective_after_outcome",
+      "historical_snapshot_status": "NOT_VERIFIED",
+      "ground_truth_status": "NOT_INDEPENDENTLY_LABELLED",
+      "backtest_eligible": false,
+      "future_data_excluded_from_model": false,
+      "dependencies_group": "EU-ai-legislation"
     },
     {
       "lead_id": "C4-11-R09",
@@ -159,7 +207,13 @@
       "outcome_status": "DATED_STAGE_TRANSITION_CONFIRMED",
       "historical_archive_verified": false,
       "independent_ground_truth": false,
-      "label_status": "UNLABELED_RESEARCH_LEAD"
+      "label_status": "UNLABELED_RESEARCH_LEAD",
+      "case_selection_mode": "retrospective_after_outcome",
+      "historical_snapshot_status": "NOT_VERIFIED",
+      "ground_truth_status": "NOT_INDEPENDENTLY_LABELLED",
+      "backtest_eligible": false,
+      "future_data_excluded_from_model": false,
+      "dependencies_group": "EU-edip-legislation"
     },
     {
       "lead_id": "C4-11-R10",
@@ -177,7 +231,13 @@
       "additional_official_timeline_url": "https://www.consilium.europa.eu/en/policies/eu-solidarity-ukraine/timeline-russia-military-aggression-against-ukraine/",
       "historical_archive_verified": false,
       "independent_ground_truth": false,
-      "label_status": "UNLABELED_RESEARCH_LEAD"
+      "label_status": "UNLABELED_RESEARCH_LEAD",
+      "case_selection_mode": "retrospective_after_outcome",
+      "historical_snapshot_status": "NOT_VERIFIED",
+      "ground_truth_status": "NOT_INDEPENDENTLY_LABELLED",
+      "backtest_eligible": false,
+      "future_data_excluded_from_model": false,
+      "dependencies_group": "EU-asap-legislation"
     },
     {
       "lead_id": "C4-11-R11",
@@ -194,7 +254,13 @@
       "outcome_status": "DATED_STAGE_TRANSITION_CONFIRMED",
       "historical_archive_verified": false,
       "independent_ground_truth": false,
-      "label_status": "UNLABELED_RESEARCH_LEAD"
+      "label_status": "UNLABELED_RESEARCH_LEAD",
+      "case_selection_mode": "retrospective_after_outcome",
+      "historical_snapshot_status": "NOT_VERIFIED",
+      "ground_truth_status": "NOT_INDEPENDENTLY_LABELLED",
+      "backtest_eligible": false,
+      "future_data_excluded_from_model": false,
+      "dependencies_group": "EU-edirpa-legislation"
     },
     {
       "lead_id": "C4-11-R12",
@@ -211,7 +277,13 @@
       "outcome_status": "DATED_STAGE_TRANSITION_CONFIRMED",
       "historical_archive_verified": false,
       "independent_ground_truth": false,
-      "label_status": "UNLABELED_RESEARCH_LEAD"
+      "label_status": "UNLABELED_RESEARCH_LEAD",
+      "case_selection_mode": "retrospective_after_outcome",
+      "historical_snapshot_status": "NOT_VERIFIED",
+      "ground_truth_status": "NOT_INDEPENDENTLY_LABELLED",
+      "backtest_eligible": false,
+      "future_data_excluded_from_model": false,
+      "dependencies_group": "EU-epf-funding"
     },
     {
       "lead_id": "C4-11-R13",
@@ -228,7 +300,13 @@
       "outcome_status": "PRIMARY_NEWS_MILESTONE_CONFIRMED_NOT_SIGNAL_LABEL",
       "historical_archive_verified": false,
       "independent_ground_truth": false,
-      "label_status": "UNLABELED_RESEARCH_LEAD"
+      "label_status": "UNLABELED_RESEARCH_LEAD",
+      "case_selection_mode": "retrospective_after_outcome",
+      "historical_snapshot_status": "NOT_VERIFIED",
+      "ground_truth_status": "NOT_INDEPENDENTLY_LABELLED",
+      "backtest_eligible": false,
+      "future_data_excluded_from_model": false,
+      "dependencies_group": "nato-july2022-accession"
     },
     {
       "lead_id": "C4-11-R14",
@@ -245,7 +323,13 @@
       "outcome_status": "PRIMARY_NEWS_MILESTONE_CONFIRMED_NOT_SIGNAL_LABEL",
       "historical_archive_verified": false,
       "independent_ground_truth": false,
-      "label_status": "UNLABELED_RESEARCH_LEAD"
+      "label_status": "UNLABELED_RESEARCH_LEAD",
+      "case_selection_mode": "retrospective_after_outcome",
+      "historical_snapshot_status": "NOT_VERIFIED",
+      "ground_truth_status": "NOT_INDEPENDENTLY_LABELLED",
+      "backtest_eligible": false,
+      "future_data_excluded_from_model": false,
+      "dependencies_group": "nato-july2022-accession"
     },
     {
       "lead_id": "C4-11-R15",
@@ -263,7 +347,13 @@
       "historical_archive_verified": false,
       "independent_ground_truth": false,
       "label_status": "UNLABELED_RESEARCH_LEAD",
-      "later_date_note": "Event date reported retrospectively in DOD FY2025 document; publication/first-seen date of the PDF not audited."
+      "later_date_note": "Event date reported retrospectively in DOD FY2025 document; publication/first-seen date of the PDF not audited.",
+      "case_selection_mode": "retrospective_after_outcome",
+      "historical_snapshot_status": "NOT_VERIFIED",
+      "ground_truth_status": "NOT_INDEPENDENTLY_LABELLED",
+      "backtest_eligible": false,
+      "future_data_excluded_from_model": false,
+      "dependencies_group": "gao-future-vertical-lift"
     },
     {
       "lead_id": "C4-11-R16",
@@ -281,7 +371,13 @@
       "historical_archive_verified": false,
       "independent_ground_truth": false,
       "label_status": "UNLABELED_RESEARCH_LEAD",
-      "later_evidence_month": "2025-05"
+      "later_evidence_month": "2025-05",
+      "case_selection_mode": "retrospective_after_outcome",
+      "historical_snapshot_status": "NOT_VERIFIED",
+      "ground_truth_status": "NOT_INDEPENDENTLY_LABELLED",
+      "backtest_eligible": false,
+      "future_data_excluded_from_model": false,
+      "dependencies_group": "gao-future-vertical-lift"
     },
     {
       "lead_id": "C4-11-R17",
@@ -299,7 +395,13 @@
       "historical_archive_verified": false,
       "independent_ground_truth": false,
       "label_status": "UNLABELED_RESEARCH_LEAD",
-      "later_evidence_month": "2024-07"
+      "later_evidence_month": "2024-07",
+      "case_selection_mode": "retrospective_after_outcome",
+      "historical_snapshot_status": "NOT_VERIFIED",
+      "ground_truth_status": "NOT_INDEPENDENTLY_LABELLED",
+      "backtest_eligible": false,
+      "future_data_excluded_from_model": false,
+      "dependencies_group": "gao-future-vertical-lift"
     },
     {
       "lead_id": "C4-11-R18",
@@ -317,7 +419,13 @@
       "historical_archive_verified": false,
       "independent_ground_truth": false,
       "label_status": "UNLABELED_RESEARCH_LEAD",
-      "later_evidence_month": "2024-11"
+      "later_evidence_month": "2024-11",
+      "case_selection_mode": "retrospective_after_outcome",
+      "historical_snapshot_status": "NOT_VERIFIED",
+      "ground_truth_status": "NOT_INDEPENDENTLY_LABELLED",
+      "backtest_eligible": false,
+      "future_data_excluded_from_model": false,
+      "dependencies_group": "GAO-HALO"
     },
     {
       "lead_id": "C4-11-R19",
@@ -335,7 +443,13 @@
       "historical_archive_verified": false,
       "independent_ground_truth": false,
       "label_status": "UNLABELED_RESEARCH_LEAD",
-      "later_evidence_month": "2025-11"
+      "later_evidence_month": "2025-11",
+      "case_selection_mode": "retrospective_after_outcome",
+      "historical_snapshot_status": "NOT_VERIFIED",
+      "ground_truth_status": "NOT_INDEPENDENTLY_LABELLED",
+      "backtest_eligible": false,
+      "future_data_excluded_from_model": false,
+      "dependencies_group": "GAO-Constellation-frigate"
     },
     {
       "lead_id": "C4-11-R20",
@@ -353,8 +467,15 @@
       "historical_archive_verified": false,
       "independent_ground_truth": false,
       "label_status": "UNLABELED_RESEARCH_LEAD",
-      "later_source_publication_date": "2026-02-18"
+      "later_source_publication_date": "2026-02-18",
+      "case_selection_mode": "retrospective_after_outcome",
+      "historical_snapshot_status": "NOT_VERIFIED",
+      "ground_truth_status": "NOT_INDEPENDENTLY_LABELLED",
+      "backtest_eligible": false,
+      "future_data_excluded_from_model": false,
+      "dependencies_group": "GAO-Sentinel-ICBM"
     }
   ],
-  "provenance_warning": "Every initial and later URL was researched after its eventual outcome. Publication date visible today does NOT establish that today's text existed unchanged at cutoff; archive replay and independent selection required."
+  "provenance_warning": "Every initial and later URL was researched after its eventual outcome. Publication date visible today does NOT establish that today's text existed unchanged at cutoff; archive replay and independent selection required.",
+  "cohort_note": "20 dated retrospective research questions are NOT 20 independent observations: EDF challenge five share an announcement; NATO countries share one accession announcement; FARA/FTUAS/FLRAA share a portfolio. Policy dossiers overlap across EU institutions. The panel cannot be used as blind held-out score."
 }
