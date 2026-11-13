@@ -1,0 +1,70 @@
+name: EXP-016 C2-10 descriptions batch, manual only
+"on":
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact separately approved full commit SHA
+        required: true
+        type: string
+      mode:
+        description: dry_run, write or rollback
+        required: true
+        type: choice
+        options: [dry_run, write, rollback]
+      confirmation:
+        description: The confirmation phrase for this mode
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: exp016-descriptions-import
+  cancel-in-progress: false
+jobs:
+  batch:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.repository == 'nab0k/bohun-the-field' &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      EXPECTED_SHA: ${{ inputs.expected_sha }}
+      IMPORT_MODE: ${{ inputs.mode }}
+      IMPORT_CONFIRMATION: ${{ inputs.confirmation }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Validate the approved SHA before checkout
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$GITHUB_SHA" == "$EXPECTED_SHA" ]]
+          [[ "$GITHUB_WORKFLOW_SHA" == "$EXPECTED_SHA" ]]
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ inputs.expected_sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13.17'
+          check-latest: false
+      - name: Install the pinned driver
+        run: python -B experiments/exp016_descriptions_import/run.py install
+      - name: Full cycle on a throwaway database, no production credential
+        env:
+          EXP016_DESCRIPTIONS_PACKET_1: ${{ secrets.EXP016_DESCRIPTIONS_PACKET_1 }}
+          EXP016_DESCRIPTIONS_PACKET_2: ${{ secrets.EXP016_DESCRIPTIONS_PACKET_2 }}
+          EXP016_DESCRIPTIONS_PACKET_3: ${{ secrets.EXP016_DESCRIPTIONS_PACKET_3 }}
+          EXP016_DESCRIPTIONS_PACKET_4: ${{ secrets.EXP016_DESCRIPTIONS_PACKET_4 }}
+        run: python -B experiments/exp016_descriptions_import/run.py rehearse
+      - name: The approved mode on the working database
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          EXP016_DESCRIPTIONS_PACKET_1: ${{ secrets.EXP016_DESCRIPTIONS_PACKET_1 }}
+          EXP016_DESCRIPTIONS_PACKET_2: ${{ secrets.EXP016_DESCRIPTIONS_PACKET_2 }}
+          EXP016_DESCRIPTIONS_PACKET_3: ${{ secrets.EXP016_DESCRIPTIONS_PACKET_3 }}
+          EXP016_DESCRIPTIONS_PACKET_4: ${{ secrets.EXP016_DESCRIPTIONS_PACKET_4 }}
+        run: python -B experiments/exp016_descriptions_import/run.py production
