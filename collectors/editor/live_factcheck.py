@@ -137,7 +137,11 @@ def prepare(row: dict) -> tuple[dict, dict]:
         snippets, make_packet, max_bytes=MAX_PACKET_BYTES,
         min_snippets=1, request_builder=provider_request,
     )
-    return packet, {"material_id":candidate.material_id,"version":candidate.version,
+    # Offline P2-only flags; never enter packet/request_hash or provider payload.
+    # Other evidence-source spans are excluded before diagnostic evaluation.
+    from .p2_guard_integration import assess_p2_packet
+    guard = assess_p2_packet(packet, expected_p2_url=row["item_url"])
+    return packet, {"p2_guard":guard, "material_id":candidate.material_id,"version":candidate.version,
                     "claims_selected":len(packet["claims"]),
                     "segments_truncated":not packet["full_material_coverage"],
                     "p2_excerpts":len(kept),
