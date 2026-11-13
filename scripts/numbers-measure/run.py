@@ -74,7 +74,7 @@ class Router:
                     time.sleep(GAP)
                     return out, name
                 except urllib.error.HTTPError as exc:
-                    self.log.append(f"{name}:{exc.code}")
+                    self.log.append(f"{name}:{exc.code}:" + exc.read(300).decode("utf-8", "replace").replace(self.keys[name], "[key]"))
                     if exc.code not in RETRY:
                         break
                     time.sleep(WAIT)
@@ -125,7 +125,8 @@ def main():
         entry.update(passed=passed, dropped=dropped)
         if not passed:
             continue
-        verdict, vby = router.ask(["groq", "gemini"], CAPACITY_VERIFY_SYSTEM, json.dumps(verify_packet(passed)), 2000)
+        verify_system = CAPACITY_VERIFY_SYSTEM + '\n\nAnswer JSON only: {"verdicts":[{"n":<row number>,"ok":true or false}]}'
+        verdict, vby = router.ask(["groq", "gemini"], verify_system, json.dumps(verify_packet(passed)), 2000)
         kept, removed = soft_verdicts(passed, verdict)
         entry.update(verify_by=vby, kept=kept, removed_by_checker=removed)
         print(doc, state, by, "passed", len(passed), "dropped", len(dropped), "kept", len(kept))
