@@ -1,0 +1,146 @@
+{
+ "version": "c4-04-v1",
+ "note": "No labels here.",
+ "claims": [
+  {
+   "id": "C01",
+   "node": [
+    2238
+   ],
+   "claim": "Boeing's T-7A remained in the US Navy UJTS competition through 2026."
+  },
+  {
+   "id": "C02",
+   "node": [
+    9
+   ],
+   "claim": "By October 2026 all 16 contracted Protector air vehicles had been delivered into service."
+  },
+  {
+   "id": "C03",
+   "node": [
+    2418
+   ],
+   "claim": "Estonia completed 28 pilot bunkers for the Baltic Defence Line."
+  },
+  {
+   "id": "C04",
+   "node": [
+    964
+   ],
+   "claim": "Eutelsat's IRIS2 low-orbit component contracts awarded in 2026 total less than 1 billion euros."
+  },
+  {
+   "id": "C05",
+   "node": [
+    86
+   ],
+   "claim": "Germany became a full partner of GCAP in 2026."
+  },
+  {
+   "id": "C06",
+   "node": [
+    1403
+   ],
+   "claim": "Greece reduced its FDI frigate order to two ships in 2025."
+  },
+  {
+   "id": "C07",
+   "node": [
+    70
+   ],
+   "claim": "In 2026 Vulcan flew its national-security missions on schedule without interruption."
+  },
+  {
+   "id": "C08",
+   "node": [
+    1880
+   ],
+   "claim": "In 2026 the US Navy awarded Raytheon a contract modification of about 833 million dollars for more ESSM Block 2 missiles."
+  },
+  {
+   "id": "C09",
+   "node": [
+    73
+   ],
+   "claim": "Leonardo selected Shield AI to integrate Hivemind autonomy into Proteus."
+  },
+  {
+   "id": "C10",
+   "node": [
+    1403
+   ],
+   "claim": "Naval Group delivered the second FDI frigate, HS Nearchos, to the Hellenic Navy in 2026."
+  },
+  {
+   "id": "C11",
+   "node": [
+    2238
+   ],
+   "claim": "Northrop Grumman pulled out of the team bidding for the US Navy UJTS trainer."
+  },
+  {
+   "id": "C12",
+   "node": [
+    2289
+   ],
+   "claim": "Poland received a first batch of 28 K2 tanks under the second executive contract."
+  },
+  {
+   "id": "C13",
+   "node": [
+    2289
+   ],
+   "claim": "Poland's second executive contract for K2 tanks covers 360 tanks."
+  },
+  {
+   "id": "C14",
+   "node": [
+    1006
+   ],
+   "claim": "Spain's first F110 frigate, Bonifaz, was launched behind schedule."
+  },
+  {
+   "id": "C15",
+   "node": [
+    1332
+   ],
+   "claim": "The Defense Logistics Agency committed the full 2 billion dollars of the National Defense Stockpile allocation."
+  },
+  {
+   "id": "C16",
+   "node": [
+    985
+   ],
+   "claim": "The European Commission opened a second SAFE funding round worth about 21 billion euros."
+  },
+  {
+   "id": "C17",
+   "node": [
+    73
+   ],
+   "claim": "The Proteus uncrewed helicopter had not flown by mid-2026."
+  },
+  {
+   "id": "C18",
+   "node": [
+    1370
+   ],
+   "claim": "The US Army HADES Prototype 1 completed its first flight in October 2026."
+  },
+  {
+   "id": "C19",
+   "node": [
+    87
+   ],
+   "claim": "The third Pohjanmaa-class corvette was launched in October 2026."
+  },
+  {
+   "id": "C20",
+   "node": [
+    65
+   ],
+   "claim": "UK Boxer vehicle deliveries ran on schedule throughout 2025."
+  }
+ ]
+}
