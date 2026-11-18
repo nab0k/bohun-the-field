@@ -61,7 +61,7 @@ class Tests(unittest.TestCase):
 
     def fetch(self,url,*_args,**_kwargs):
         self.calls.append(url)
-        return {'status':200,'url':url,'body': b'User-agent: *\nAllow: /' if url.endswith('robots.txt') else b'article'}
+        return {'status':200,'url':url,'body': b'User-agent: *\nAllow: /' if url.endswith('robots.txt') else b'<h1>Title</h1>'}
 
     def run_write(self, rows=None, **conn_kwargs):
         rows = rows or [row()]; m,h = manifest(rows); current = {r['item_id']:r for r in rows}

@@ -20,6 +20,8 @@ from urllib.parse import urlsplit
 
 from ..synthesis.contracts import canonical
 from . import transport
+from .article_identity import compare_headline_rule, lead_merge
+from .completeness import assess as assess_completeness
 from .body_selection import CAPTURE, MAX_TEXT_BYTES, select_body
 
 USER_AGENT = "BOHUN-Evidence/1.0"  # the transport sends this agent; robots rules are read for it
@@ -38,7 +40,8 @@ def pending(cur, day_from, day_to, limit):
                                              'publisher_capture', i.raw_data->'publisher_capture'),
                           i.raw_data ? 'content_capture', i.raw_data ? 'publisher_capture',
                           e.item_id IS NOT NULL,
-                          EXISTS (SELECT 1 FROM knowledge.item_processing p WHERE p.item_id=i.id)
+                          EXISTS (SELECT 1 FROM knowledge.item_processing p WHERE p.item_id=i.id),
+                          coalesce(i.title,'')
                      FROM intelligence.items i
                      JOIN intelligence.sources s ON s.id=i.source_id
                 LEFT JOIN knowledge.item_embedding e ON e.item_id=i.id
@@ -49,10 +52,10 @@ def pending(cur, day_from, day_to, limit):
                       AND i.url LIKE 'https://%%'
                  ORDER BY i.published_at DESC, i.id DESC LIMIT %s""", (day_from, day_to, MIN_TEXT, limit))
     items = []
-    for iid, source_id, url, raw, provider_present, publisher_present, embedded, processed in cur.fetchall():
+    for iid, source_id, url, raw, provider_present, publisher_present, embedded, processed, title in cur.fetchall():
         provider = raw.get('content_capture') if isinstance(raw, dict) else None
         text = provider.get('text') if isinstance(provider, dict) else None
-        items.append({'item_id': iid, 'source_id': source_id, 'url': url, 'raw': raw,
+        items.append({'item_id': iid, 'source_id': source_id, 'url': url, 'title': title, 'raw': raw,
                       'provider_chars': len(text) if isinstance(text, str) else 0,
                       'provider_present': provider_present, 'publisher_present': publisher_present,
                       'embedded': embedded, 'processed': processed})
@@ -67,7 +70,8 @@ WRITE_SQL = """UPDATE intelligence.items i
    AND coalesce(i.raw_data->'publisher_capture','null'::jsonb)=%s::jsonb
    AND NOT EXISTS (SELECT 1 FROM knowledge.item_processing p WHERE p.item_id=i.id)
    AND NOT EXISTS (SELECT 1 FROM knowledge.item_embedding e WHERE e.item_id=i.id)
-   AND EXISTS (SELECT 1 FROM intelligence.sources s WHERE s.id=i.source_id AND s.name='Inoreader BOHUN')"""
+   AND EXISTS (SELECT 1 FROM intelligence.sources s WHERE s.id=i.source_id AND s.name='Inoreader BOHUN')
+   AND coalesce(i.title,'')=%s"""
 
 
 def write_capture(conn, item, capture):
@@ -84,7 +88,7 @@ def write_capture(conn, item, capture):
             cur.execute(WRITE_SQL, (json.dumps(capture, ensure_ascii=False), item['item_id'], item['source_id'],
                                    item['url'], item['provider_present'], item['publisher_present'],
                                    json.dumps(raw.get('content_capture'), ensure_ascii=False),
-                                   json.dumps(raw.get('publisher_capture'), ensure_ascii=False)))
+                                   json.dumps(raw.get('publisher_capture'), ensure_ascii=False), item.get('title', '')))
             updated = cur.rowcount
             if updated not in (0, 1):
                 raise RuntimeError('UNEXPECTED_ROW_COUNT')
@@ -158,6 +162,11 @@ def read_one(item, robots, fetch, extract, pace):
         return "extract_failed", None
     if not isinstance(text, str):
         return "extract_shape_invalid", None
+    # A5TC-02 v2: some sites keep the lead paragraph outside the article body (Ukrinform: 45/45 pages in two
+    # shadow samples). If the page shows the provider's own lead and the extractor dropped it, put it first.
+    provider = (item.get("raw") or {}).get("content_capture") if isinstance(item.get("raw"), dict) else None
+    teaser = provider.get("text") if isinstance(provider, dict) and isinstance(provider.get("text"), str) else ""
+    text, lead_source = lead_merge(teaser, text, page["body"])
     try:
         text_bytes = text.encode("utf-8")
     except UnicodeError:
@@ -168,12 +177,18 @@ def read_one(item, robots, fetch, extract, pace):
         return "text_too_short", None
     if len(text) <= item["provider_chars"]:
         return "not_longer_than_provider", None
+    identity, identity_rule = compare_headline_rule(item.get("title"), page["body"])
+    if identity != "ok":
+        return identity, None
+    quality = assess_completeness(item.get("title") or "", text, page["body"], identity, teaser)
     return "ok", {"source_kind": "publisher_article", "capture": CAPTURE, "url": url,
                   "received_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "http_status": 200,
                   "html_sha256": hashlib.sha256(page["body"]).hexdigest(),
                   "text_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
                   "extractor": "trafilatura", "extractor_version": "2.3.1",
-                  "requested_url": url, "final_url": page["url"], "text_bytes": len(text_bytes), "characters": len(text), "completeness": "UNKNOWN", "text": text}
+                  "requested_url": url, "final_url": page["url"], "text_bytes": len(text_bytes), "characters": len(text), "completeness": "UNKNOWN", "text": text,
+                  "identity_rule": identity_rule, "lead_source": lead_source,
+                  "quality": {"rules": "a5tc-v2", "state": quality["state"], "reasons": quality["reasons"]}}
 
 
 class Pacer:
