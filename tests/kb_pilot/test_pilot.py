@@ -1152,7 +1152,7 @@ class FulltextTest(unittest.TestCase):
     def test_robots_rules_and_outcomes(self):
         from collectors.kb_pilot import fulltext
         pages = {"https://a.example/robots.txt": "User-agent: *\nDisallow: /private/\n",
-                 "https://a.example/news/1": "<html>article</html>",
+                 "https://a.example/news/1": "<h1>Title</h1>",
                  "https://b.example/robots.txt": "ERR:HTTP_404",
                  "https://b.example/x": "ERR:HTTP_301",
                  "https://c.example/robots.txt": "ERR:HTTP_503"}
@@ -1160,7 +1160,7 @@ class FulltextTest(unittest.TestCase):
         robots = fulltext.Robots(fetch)
         extract = lambda body, url: self.ARTICLE
         pace = lambda host: None
-        item = lambda u, n=0: {"item_id": 1, "url": u, "provider_chars": n}
+        item = lambda u, n=0: {"item_id": 1, "url": u, "provider_chars": n, "title": "Title"}
         reason, cap = fulltext.read_one(item("https://a.example/news/1", 120), robots, fetch, extract, pace)
         self.assertEqual(reason, "ok")
         self.assertEqual((cap["source_kind"], cap["characters"]), ("publisher_article", len(self.ARTICLE)))
@@ -1176,7 +1176,7 @@ class FulltextTest(unittest.TestCase):
 
     def test_measure_writes_nothing_and_reports_by_host(self):
         from collectors.kb_pilot import fulltext
-        fetch, _ = self.fetcher({"https://a.example/robots.txt": "ERR:HTTP_404", "https://a.example/n/1": "<p>x</p>"})
+        fetch, _ = self.fetcher({"https://a.example/robots.txt": "ERR:HTTP_404", "https://a.example/n/1": "<h1>Title</h1><p>x</p>"})
 
         class Cur:
             sql = []
@@ -1185,8 +1185,8 @@ class FulltextTest(unittest.TestCase):
                 self.sql.append(" ".join(sql.split())[:30])
 
             def fetchall(self):
-                return [(1, 2, "https://a.example/n/1", provider_fixture("x" * 50), True, False, False, False),
-                        (2, 2, "https://a.example/n/1?x", provider_fixture(""), True, False, False, False)]
+                return [(1, 2, "https://a.example/n/1", provider_fixture("x" * 50), True, False, False, False, "Title"),
+                        (2, 2, "https://a.example/n/1?x", provider_fixture(""), True, False, False, False, "Title")]
 
             def __enter__(self):
                 return self

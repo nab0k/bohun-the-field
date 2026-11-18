@@ -71,7 +71,7 @@ def target_item(row):
     raw = row['raw']
     p = raw.get('content_capture') or {}
     text = p.get('text') or ''
-    return {'item_id': row['item_id'], 'source_id': row['source_id'], 'url': row['url'],
+    return {'item_id': row['item_id'], 'source_id': row['source_id'], 'url': row['url'], 'title': row.get('title', ''),
             'raw': copy.deepcopy(raw), 'provider_chars': len(text),
             'provider_present': bool(row['provider_present']), 'publisher_present': bool(row['publisher_present']),
             'embedded': row['embedded'], 'processed': row['processed']}

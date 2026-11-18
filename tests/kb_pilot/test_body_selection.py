@@ -30,7 +30,7 @@ def capture(text=TEXT):
 
 
 def item(raw=None):
-    return {'item_id': 1, 'source_id': 2, 'url': URL, 'raw': raw or {'content_capture': provider('short')},
+    return {'item_id': 1, 'source_id': 2, 'url': URL, 'title': 'Title', 'raw': raw or {'content_capture': provider('short')},
             'provider_chars': 5, 'provider_present': True, 'publisher_present': False,
             'processed': False, 'embedded': False}
 
@@ -143,8 +143,8 @@ class Integration(unittest.TestCase):
         paced, calls = [], []
         def fetch(url, *_a, **_kw):
             calls.append(url)
-            return {'status': 200, 'url': url, 'body': b'User-agent: *\nAllow: /' if url.endswith('/robots.txt') else b'page'}
-        r = Cursor([(1, 2, URL, {'content_capture': provider('short')}, True, False, False, False)])
+            return {'status': 200, 'url': url, 'body': b'User-agent: *\nAllow: /' if url.endswith('/robots.txt') else b'<h1>Title</h1>'}
+        r = Cursor([(1, 2, URL, {'content_capture': provider('short')}, True, False, False, False, 'Title')])
         result = f.run(Connection(r), '2026-11-01', '2026-11-01', fetch=fetch,
                        extract=lambda *_: TEXT, pace=paced.append)
         self.assertEqual(paced, ['publisher.example', 'publisher.example'])
@@ -154,7 +154,7 @@ class Integration(unittest.TestCase):
         self.assertIn("s.name='Inoreader BOHUN'", r.calls[0][0])
 
     def test_utf8_bytes_are_not_silently_truncated(self):
-        def fetch(url, *_a, **_kw): return {'status': 200, 'url': url, 'body': b'page'}
+        def fetch(url, *_a, **_kw): return {'status': 200, 'url': url, 'body': b'<h1>Title</h1>'}
         for text, wanted in [('я' * 65536, 'ok'), ('я' * 65537, 'text_bytes_exceeded')]:
             with self.subTest(wanted=wanted):
                 robots = f.Robots(lambda *_a, **_kw: {'body': b'User-agent: *\nAllow: /'})
@@ -173,7 +173,10 @@ class Integration(unittest.TestCase):
                              "? 'publisher_capture'", 'knowledge.item_processing', 'knowledge.item_embedding'):
                 self.assertIn(required, sql)
             self.assertEqual(args[3], URL)
-            self.assertEqual(json.loads(args[-2]), source['raw']['content_capture'])
+            self.assertIn("coalesce(i.title,'')=%s", sql)
+            self.assertEqual(sql.count("coalesce(i.title"), 1)
+            self.assertEqual(args[-1], source['title'])
+            self.assertEqual(json.loads(args[-3]), source['raw']['content_capture'])
         self.assertEqual(source, original)
         conn = Connection(Cursor(error=True))
         with self.assertRaisesRegex(RuntimeError, '^PUBLISHER_WRITE_FAILED$'):
@@ -205,14 +208,14 @@ class Integration(unittest.TestCase):
     def test_existing_or_invalid_capture_does_not_trigger_http_repair(self):
         for cap in (capture(), {'text': 'invalid'}):
             raw = {'content_capture': provider('short'), 'publisher_capture': cap}
-            conn = Connection(Cursor([(1, 2, URL, raw, True, True, False, False)]))
+            conn = Connection(Cursor([(1, 2, URL, raw, True, True, False, False, 'Title')]))
             with patch.object(f.transport, 'fetch', side_effect=AssertionError('NO FETCH')) as fetch:
                 stats = f.run(conn, '2026-11-01', '2026-11-01', write=True, fetch=fetch)
             self.assertEqual((stats['written'], stats['http_attempts']), (0, 0))
             fetch.assert_not_called()
 
     def test_partial_commit_has_explicit_stop_and_no_hidden_retry(self):
-        rows = [(i, 2, URL + str(i), {'content_capture': provider('short')}, True, False, False, False)
+        rows = [(i, 2, URL + str(i), {'content_capture': provider('short')}, True, False, False, False, 'Title')
                 for i in (1, 2, 3)]
         class FailingCursor(Cursor):
             updates = 0
@@ -224,7 +227,7 @@ class Integration(unittest.TestCase):
                 super().execute(sql, args)
         conn = Connection(FailingCursor(rows))
         def fetch(url, *_a, **_kw):
-            return {'status': 200, 'url': url, 'body': b'User-agent: *\nAllow: /' if url.endswith('robots.txt') else b'page'}
+            return {'status': 200, 'url': url, 'body': b'User-agent: *\nAllow: /' if url.endswith('robots.txt') else b'<h1>Title</h1>'}
         stats = f.run(conn, '2026-11-01', '2026-11-01', write=True, fetch=fetch,
                       extract=lambda *_: TEXT, pace=lambda *_: None)
         self.assertEqual((stats['written'], stats['stop'], stats['not_attempted']), (1, 'PUBLISHER_WRITE_FAILED', 1))
@@ -247,7 +250,7 @@ class Integration(unittest.TestCase):
             self.assertEqual(conn.cur.calls, [])
 
     def test_deadline_at_last_item_is_not_reported_as_success(self):
-        conn = Connection(Cursor([(1, 2, URL, {'content_capture': provider('short')}, True, False, False, False)]))
+        conn = Connection(Cursor([(1, 2, URL, {'content_capture': provider('short')}, True, False, False, False, 'Title')]))
         clock = iter((0, 0, f.RUN_DEADLINE_SECONDS + 1))
         stats = f.run(conn, '2026-11-01', '2026-11-01', clock=lambda: next(clock),
                       fetch=lambda *_a, **_kw: self.fail('deadline must prevent HTTP'), pace=lambda *_: None)
