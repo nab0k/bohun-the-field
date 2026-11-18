@@ -111,7 +111,7 @@ class Tests(unittest.TestCase):
         self.assertIn('default: false',workflow)
         self.assertIn("cron: '20 6 * * *'",workflow);self.assertIn("cron: '20 15 * * *'",workflow)
         self.assertLess(workflow.index('One manual fulltext cohort'),workflow.index('Embeddings of new items'))
-        self.assertEqual(workflow.count("inputs.verify_fulltext_cohort != true"),4)
+        self.assertEqual(workflow.count("inputs.verify_fulltext_cohort != true"),5)
         self.assertIn('path: ${{ runner.temp }}/kb-daily',workflow)
         self.assertNotIn('a11-private-',workflow)
 

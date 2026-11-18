@@ -32,8 +32,18 @@ HOST_GAP_SECONDS = 2.0
 RUN_DEADLINE_SECONDS = 15 * 60
 
 
-def pending(cur, day_from, day_to, limit):
-    """Only reviewed source/news scope; preserve a pre-fetch compare-and-set receipt."""
+NEW_ONLY_SQL = """
+                      AND e.item_id IS NULL AND jsonb_typeof(i.raw_data)='object'
+                      AND NOT (i.raw_data ? 'publisher_capture')
+                      AND NOT EXISTS (SELECT 1 FROM knowledge.item_processing p WHERE p.item_id=i.id)"""
+
+
+def pending(cur, day_from, day_to, limit, new_only=False):
+    """Only reviewed source/news scope; preserve a pre-fetch compare-and-set receipt.
+
+    new_only (daily write): only items the writer may still fill, so already embedded or processed items do not
+    take the page budget of the run.
+    """
     cur.execute("""SELECT i.id, i.source_id, i.url,
                           jsonb_build_object('_raw_object',jsonb_typeof(i.raw_data)='object',
                                              'content_capture', i.raw_data->'content_capture',
@@ -49,7 +59,7 @@ def pending(cur, day_from, day_to, limit):
                       AND i.published_at >= %s::date AND i.published_at < %s::date + 1
                       AND length(coalesce(i.raw_data->'content_capture'->>'text','')) < %s
                       AND (e.item_id IS NULL OR e.origin_method='self')
-                      AND i.url LIKE 'https://%%'
+                      AND i.url LIKE 'https://%%'""" + (NEW_ONLY_SQL if new_only else "") + """
                  ORDER BY i.published_at DESC, i.id DESC LIMIT %s""", (day_from, day_to, MIN_TEXT, limit))
     items = []
     for iid, source_id, url, raw, provider_present, publisher_present, embedded, processed, title in cur.fetchall():
@@ -205,13 +215,15 @@ class Pacer:
 
 
 def run(conn, day_from, day_to, limit=MAX_PAGES, write=False, fetch=transport.fetch, extract=extract_text,
-        clock=time.monotonic, pace=None):
+        clock=time.monotonic, pace=None, write_states=None, new_only=False):
+    """write_states: if set, only captures whose A5TC-02 quality state is in it are written (daily: {'full'})."""
     if type(limit) is not int or not 1 <= limit <= MAX_PAGES:
         raise ValueError('limit must be 1..60')
     stats = {"capture": CAPTURE, "mode": "write" if write else "measure", "items": 0, "ok": 0, "written": 0,
-             "reasons": Counter(), "by_host": defaultdict(Counter), "chars_gained": 0, "stop": None}
+             "reasons": Counter(), "by_host": defaultdict(Counter), "chars_gained": 0, "stop": None,
+             "quality": Counter(), "held_by_quality": 0}
     with conn.cursor() as cur:
-        todo = pending(cur, day_from, day_to, limit)
+        todo = pending(cur, day_from, day_to, limit, new_only=new_only)
     stats["items"] = len(todo)
     pace = pace or Pacer()
     started = clock()
@@ -248,7 +260,11 @@ def run(conn, day_from, day_to, limit=MAX_PAGES, write=False, fetch=transport.fe
         if capture:
             stats['ok'] += 1
             stats['chars_gained'] += capture['characters'] - item['provider_chars']
-            if write:
+            state = capture.get('quality', {}).get('state')
+            stats['quality'][state] += 1
+            if write and write_states is not None and state not in write_states:
+                stats['held_by_quality'] += 1
+            elif write:
                 try:
                     outcome = write_capture(conn, item, capture)
                 except RuntimeError:
@@ -265,6 +281,7 @@ def run(conn, day_from, day_to, limit=MAX_PAGES, write=False, fetch=transport.fe
             stats['not_attempted'] = len(todo) - index - 1
             break
     stats["reasons"] = dict(stats["reasons"])
+    stats["quality"] = dict(stats["quality"])
     stats["by_host"] = {h: dict(c) for h, c in sorted(stats["by_host"].items(), key=lambda kv: -sum(kv[1].values()))}
     return stats
 
@@ -280,7 +297,9 @@ def main(argv=None):
     if args.limit < 0:
         parser.error("--limit must be 0..60")
     with connect() as conn:
-        stats = run(conn, args.day_from, args.day_to, min(args.limit or MAX_PAGES, MAX_PAGES), write=write)
+        # A5TC-02 daily (D-20261118-A5TC-02-ENABLE): only new unprocessed items, only texts assessed full.
+        stats = run(conn, args.day_from, args.day_to, min(args.limit or MAX_PAGES, MAX_PAGES), write=write,
+                    write_states={"full"} if write else None, new_only=write)
     print("KB_FULLTEXT_RESULT " + canonical(stats))
     return 1 if stats["stop"] else 0
 
