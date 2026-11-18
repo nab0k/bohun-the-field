@@ -193,7 +193,7 @@ class Tests(unittest.TestCase):
         self.assertNotIn('pip install',text[start:end])
         self.assertLess(text.index('Validate exclusive manual verification inputs'),start)
         self.assertIn("os.environ['EXPECTED_SHA'] != os.environ['GITHUB_SHA']",text)
-        self.assertEqual(text.count('inputs.resume_stored_cohort != true'),4)
+        self.assertEqual(text.count('inputs.resume_stored_cohort != true'),5)
         self.assertEqual(text.count('cron:'),2)
         self.assertIn('unittest discover -s tests/kb_pilot -t .',text)
 

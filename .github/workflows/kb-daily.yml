@@ -92,6 +92,17 @@ jobs:
           A11_MANUAL_RESUME: 'true'
           A11_EXPECTED_SHA: ${{ inputs.expected_sha }}
         run: '"$RUNNER_TEMP/bohun-kb/bin/python" -B -m collectors.kb_pilot.cohort_daily --apply --resume-stored'
+      - name: Publisher full text for new short items (A5TC-02; before embeddings, never stops the chain)
+        # D-20261118-A5TC-02-ENABLE: Inoreader items without usable text, not yet embedded or processed; at most
+        # 60 pages and 15 minutes; only texts assessed full go to raw_data.publisher_capture (Inoreader's text stays).
+        if: github.event_name != 'workflow_dispatch' || (inputs.verify_fulltext_cohort != true && inputs.resume_stored_cohort != true)
+        continue-on-error: true
+        env:
+          KB_MODE: fulltext
+          KB_FULLTEXT_WRITE: '1'
+        run: |
+          "$RUNNER_TEMP/bohun-kb/bin/python" -m pip install --disable-pip-version-check 'trafilatura==2.3.1'
+          "$RUNNER_TEMP/bohun-kb/bin/python" -B -m collectors.kb_pilot --day-from "$DAY_FROM" --day-to "$DAY_TO" --limit 60 | tee "$RUNNER_TEMP/kb-daily/fulltext.log"
       - name: Embeddings of new items (Cloudflare; without them search falls back to words)
         if: github.event_name != 'workflow_dispatch' || (inputs.verify_fulltext_cohort != true && inputs.resume_stored_cohort != true)
         continue-on-error: true
@@ -185,7 +196,7 @@ jobs:
         run: |
           {
             echo "### BOHUN daily syntheses $DAY_FROM..$DAY_TO"
-            for f in contract embed pilot admit extract; do
+            for f in contract fulltext embed pilot admit extract; do
               echo "- **$f**: \`$(grep -ho 'KB_[A-Z_]* .*' "$RUNNER_TEMP/kb-daily/$f.log" 2>/dev/null | tail -1 | cut -c1-600)\`"
             done
             if [[ -f "$RUNNER_TEMP/kb-daily/pilot.log" ]]; then
