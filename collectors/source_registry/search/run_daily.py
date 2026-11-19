@@ -33,7 +33,9 @@ def daily_limits(tavily):
     else:
         quotas = {"types": 16, "layer1": 16, "layer3": 8, "section": 0}
         gemini = dict(quotas)
-    quotas.update(gdelt=12, wikidata=2)   # open bases, no key (D-20261119-A1SD-OPEN-BASES)
+    # open bases, no key (D-20261119-A1SD-OPEN-BASES). GDELT answered 429 from the Mac and from GitHub (cloud run 3,
+    # 19.11): off by default, SEARCH_GDELT_PER_DAY turns it back on.
+    quotas.update(gdelt=int(os.environ.get("SEARCH_GDELT_PER_DAY", "0")), wikidata=2)
     limits = {"tavily": sum(v for k, v in quotas.items() if k not in ("gdelt", "wikidata")) - sum(gemini.values()),
               "gemini": sum(gemini.values()), "gdelt": quotas["gdelt"], "wikidata": quotas["wikidata"],
               "http": int(os.environ.get("SEARCH_HTTP_LIMIT", "600")), "new": int(os.environ.get("SEARCH_NEW_LIMIT", "54"))}
@@ -106,6 +108,9 @@ def main():
             return
         known = C.known_hosts(conn, ctx["known"])
         Budget, HTTP = C.network_parts()
+        import judge as J
+        import observer as O
+        O.JUDGE = J.Judge() if os.environ.get("SEARCH_JUDGE", "1") == "1" else None
         budget = Budget({"max_requests": C.LIMITS["http"], "max_seconds": 1800, "max_bytes": 200_000_000})
         http = HTTP(budget, enabled=True)
         engines = C.Engines(tavily=PR.tavily_api, gemini=lambda job: PR.gemini_grounded(job["query"]))
@@ -117,7 +122,9 @@ def main():
             recheck={A.registry.canonical_url(c["url"]) for c in again})
         trace.update(http_requests=budget.requests, seconds=round(time.time() - t0),
                      engines_used=dict(engines.used), engines_off=sorted(engines.off),
-                     engine_errors=dict(engines.errors))
+                     engine_errors=dict(engines.errors),
+                     judge_used=dict(O.JUDGE.used) if O.JUDGE else {}, judge_errors=dict(O.JUDGE.errors) if O.JUDGE else {},
+                     judge_off=sorted(O.JUDGE.off) if O.JUDGE else [])
         measure = C.measure_cycle(cands, found, results, known)
         measure["disputed_total"] = len(A.disputed_batch(conn))
         run = {"run_id": run_id, "started_at": started.isoformat(),
@@ -128,9 +135,11 @@ def main():
     # public log: counts only
     print(json.dumps({"trace": {k: trace.get(k) for k in ("queries", "failed", "http_requests", "seconds",
                                                           "engines_used", "engines_off", "engine_errors", "stop",
-                                                          "network_recovered")},
+                                                          "network_recovered", "judge_used", "judge_errors",
+                                                          "judge_off")},
                       "decisions": counts, "written": written,
                       "measure": {k: measure.get(k) for k in ("candidates", "n_countries", "n_types", "accepted_share",
+                                                              "accepted_share_search", "accepted_share_layer2",
                                                               "accepted_share_incl_general", "disputed_for_owner",
                                                               "known_reissued", "saturation", "a1sd_cycle_ok")}}))
 

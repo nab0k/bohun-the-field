@@ -153,14 +153,32 @@ GENERAL_SHARE = 0.10   # half of the admission threshold (0.20): borderline site
 GENERAL_MIN_LINKS = 10
 
 
-def home_general(candidate, url, body):
-    """Cheap first stage: on the home page, what share of headline-like links (4+ words) is about defence.
-    Official hosts and sites whose own name says defence always get the full check."""
+JUDGE = None  # judge.Judge set by the daily runner (19.11, owner "отлично, давай"); None -> keyword rule only
+
+
+def home_general(candidate, url, body, site_name=None, obs=None):
+    """Cheap first stage on the home page. Official hosts and sites whose own name says defence always get the full
+    check. Otherwise the free-model judge (when available) reads the headlines: specialised -> full check; a defence
+    section -> that section is checked instead; neither -> general outlet. Without a judge: share of defence words."""
     import admission as A
     host = urlsplit(url).hostname or ""
     if OFFICIAL_HOST.search(host) or (candidate.get("found_via") or {}).get("focus"):
         return None
-    labels = [label for _, label in cycle.html_links(body).links if len(label.split()) >= 4]
+    links = cycle.html_links(body).links
+    labels = [label for _, label in links if len(label.split()) >= 4]
+    if JUDGE:
+        heads = [(cycle.safe_link(url, h), lbl) for h, lbl in links if len(lbl.split()) >= 4][:25]
+        navs = [(cycle.safe_link(url, h), lbl) for h, lbl in links if 1 <= len(lbl.split()) <= 3][:15]
+        verdict = JUDGE(host, site_name, heads + navs)
+        if verdict:
+            if obs is not None:
+                obs["judge"] = verdict
+            if verdict["specialised"]:
+                return None
+            section = verdict.get("defence_section")
+            if section and (urlsplit(section).hostname or "").removeprefix("www.") == host.removeprefix("www."):
+                return {"section": section}
+            return {"judge": verdict["by"], "home_links": len(labels)}
     share, n = A.topic_share(labels[:200])
     if n >= GENERAL_MIN_LINKS and share < GENERAL_SHARE:
         return {"home_share": round(share, 3), "home_links": n}
@@ -201,7 +219,8 @@ def observe(candidate, http, max_targets=3, use_feedsearch=False):
     page = PublicationPage(home.body)
     obs["html_lang"] = page.lang or page.metadata.get("og:locale", "").replace("_", "-")
     obs["site_name"] = (page.metadata.get("og:site_name") or page.title or "").strip()[:200]
-    general = home_general(candidate, final, home.body) if candidate.get("prefilter") else None
+    general = home_general(candidate, final, home.body, obs.get("site_name"), obs) if candidate.get("prefilter") else None
+    judged_section = general.pop("section", None) if general and "section" in general else None
     if general:  # D-20261118-A1SD-RETRO-PLAN-G2: a general outlet costs one page, not a feed hunt
         obs["general_outlet"] = general
         return obs
@@ -212,6 +231,17 @@ def observe(candidate, http, max_targets=3, use_feedsearch=False):
     undated = None
     root = "https://" + urlsplit(final).netloc
     targets = sorted(section_links(final, home.body), key=lambda t: t[1] != "feed")[:max_targets]
+    if judged_section:  # the judge saw a defence section on a general site: that section is the source to check
+        obs["judged_section"] = judged_section
+        targets = [(judged_section, "page")]
+        try:  # the section's own feed, when its page announces one, comes first
+            sec = http.request(judged_section, robots=True, limit=HOME_LIMIT)
+            if sec.status == 200 and _mime(sec) == "text/html":
+                feeds = [(u, r) for u, r in section_links(cycle.channel_url(sec.url), sec.body) if r == "feed"]
+                targets = feeds[:2] + targets
+        except Problem as exc:
+            if str(exc) in STOP:
+                raise
     if not any(route == "page" for _, route in targets):
         targets += [(root + g, "section_guess") for g in SECTION_GUESSES]
     targets += [(root + g, "guess") for g in FEED_GUESSES]
