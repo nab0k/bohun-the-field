@@ -227,6 +227,14 @@ def wikidata_jobs(countries, done=()):
     return [j for j in jobs if job_key(j) not in asked]
 
 
+def similar_jobs(accepted, done=()):
+    """A1SD-03: "sites like the ones we accepted" (Exa). accepted: [(site, country)]; one job per site, ever."""
+    asked = {k for k in done if k.startswith("similar|")}
+    jobs = [{"layer": "similar", "engine": "exa", "country": cc, "lang": "en", "type_hint": "media", "site": site,
+             "query": f"sites like {site}", "site_url": f"https://{site}/"} for site, cc in accepted]
+    return [j for j in jobs if job_key(j) not in asked]
+
+
 def type_jobs(cat, countries, done=(), names=None):
     """One job per (source type, country); not-yet-asked first, type-major so a partial quota covers all types."""
     asked = {k for k in done if k.startswith("types|")}

@@ -18,7 +18,9 @@ import urllib.request
 
 USER_AGENT = "bohun-source-search/1.0 (+https://github.com/nab0k/bohun-the-field)"
 OFF_AFTER_RATE_LIMITS = 5      # consecutive 429s that switch a provider off for the run
-PACE = {"groq": 2.0, "mistral": 3.0, "gemini": 2.0}  # seconds between calls to one provider (free per-minute limits)
+# seconds between calls to one provider (free per-minute limits); manual run 19.11: Groq answered 429 after 26 calls
+# 2 s apart, so 4 s
+PACE = {"groq": 4.0, "mistral": 3.0, "gemini": 2.0}
 TYPES = ("media", "company_news", "agency", "procurement", "grants", "investment", "company_registry",
          "association", "exhibition", "research")
 PROMPT = """You classify a website as a source for a defence-industry news monitor (Europe, Ukraine, NATO).
