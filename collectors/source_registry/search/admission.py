@@ -199,6 +199,14 @@ def guess_type(candidate, host, delivery_url, site_name=None):
     return "media", "default"
 
 
+def judged_type(obs, stype, type_basis):
+    """The free-model judge's type replaces only a guess by default (no evidence in host, name or our base)."""
+    verdict = obs.get("judge") or {}
+    if type_basis in ("default", "found_via_company_website") and verdict.get("type") in TYPES:
+        return verdict["type"], "judge:" + str(verdict.get("by"))
+    return stype, type_basis
+
+
 def decide(obs, known, now=None):
     """obs: one observation; known: callable(canonical_url, host) -> ('same'|'same_host'|None, channel_id)."""
     now = now or now_utc()
@@ -252,6 +260,7 @@ def decide(obs, known, now=None):
         site = registry.canonical_url(fetch.get("final_url") or cand["url"])
         country, _ = detect_country(registry.host_of(site), cand.get("guessed_country"), obs.get("page_country"))
         stype, type_basis = guess_type(cand, registry.host_of(site), site, obs.get("site_name"))
+        stype, type_basis = judged_type(obs, stype, type_basis)
         return out("general", "general_outlet_home", delivery_url=site, delivery=None, type=stype,
                    type_basis=type_basis, country=country,
                    language=(obs.get("html_lang") or "").split("-")[0].lower() or None)
@@ -264,6 +273,7 @@ def decide(obs, known, now=None):
         checks.append({"check": 3, "result": "hold", "basis": "no_delivery_found"})
         site = registry.canonical_url(fetch.get("final_url") or cand["url"])
         stype, type_basis = guess_type(cand, registry.host_of(site), site, obs.get("site_name"))
+        stype, type_basis = judged_type(obs, stype, type_basis)
         country, _ = detect_country(registry.host_of(site), cand.get("guessed_country"), obs.get("page_country"))
         return out("hold", "no_news_site", delivery_url=site, delivery=None, type=stype, type_basis=type_basis,
                    country=country, language=(obs.get("html_lang") or "").split("-")[0].lower() or None)
@@ -276,6 +286,7 @@ def decide(obs, known, now=None):
     sample = [{"title": i["title"][:200], "date": i.get("date")} for i in items[:5]]
     host = registry.host_of(delivery_url)
     stype, type_basis = guess_type(cand, host, delivery_url, obs.get("site_name"))
+    stype, type_basis = judged_type(obs, stype, type_basis)
     base = {"delivery": delivery, "delivery_url": canon, "type": stype, "type_basis": type_basis, "sample_items": sample}
     # 4 language
     lang, lang_basis = detect_language(titles, obs.get("html_lang"))

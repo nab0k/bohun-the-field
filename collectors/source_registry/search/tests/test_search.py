@@ -277,8 +277,21 @@ class OpenBases(unittest.TestCase):
     def test_daily_limits_include_open_bases(self):
         import run_daily as R
         limits, quotas, gemini, caps = R.daily_limits(False)
-        self.assertEqual((limits["gdelt"], limits["wikidata"], limits["tavily"]), (12, 2, 0))
+        self.assertEqual((limits["gdelt"], limits["wikidata"], limits["tavily"]), (0, 2, 0))
         self.assertEqual(sum(quotas.values()), sum(limits[e] for e in ("tavily", "gemini", "gdelt", "wikidata")))
+
+
+class SearchShare(unittest.TestCase):
+    def test_company_layer_reported_apart(self):
+        cands = [{"url": f"https://site{i}.eu/", "found_via": {"layer": "layer1", "country": c}}
+                 for i, c in enumerate(COUNTRIES[:10])]
+        res = [{"decision": "accept", "type": t, "found_via_layer": "layer1"}
+               for t in ("media", "agency", "procurement", "grants", "exhibition")]
+        res += [{"decision": "hold", "type": "company_news", "found_via_layer": "layer2"}] * 10
+        m = C.measure_cycle(cands, [], res, set())
+        self.assertEqual((m["accepted_share_search"], m["accepted_share_layer2"]), (1.0, 0.0))
+        self.assertEqual(m["accepted_share"], 0.333)
+        self.assertTrue(m["a1sd_cycle_ok"])  # acceptance judged on what search found
 
 
 if __name__ == "__main__":

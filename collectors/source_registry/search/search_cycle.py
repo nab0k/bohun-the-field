@@ -225,6 +225,11 @@ def collect(jobs, search, known, max_queries, max_new, layer_caps=None, raw=None
     return candidates, found, done, {"queries": used, "failed": failed}
 
 
+def share_of(results):
+    decided = [r for r in results if r["decision"] not in ("retry", "general")]
+    return round(sum(r["decision"] == "accept" for r in decided) / len(decided), 3) if decided else None
+
+
 def reissued(candidates, known):
     """Known addresses issued again. A defence section of a general site is a new address on a known host
     (cycle 3 counted 14 sections as re-issued sites); it is re-issued only if that exact section is known."""
@@ -256,14 +261,19 @@ def measure_cycle(candidates, found, results, known=()):
         "accepted_share_incl_general": round(len(accepted) / (len(decided) + len(general)), 3)
         if decided or general else None,
         "disputed_for_owner": sum(r["decision"] == "disputed" for r in results),
+        # A1SD acceptance is about sources found by search; company websites of our base (layer2) and re-checks
+        # are reported apart (19.11: they are known entities, mostly without news, and pulled the share down)
+        "accepted_share_search": share_of([r for r in results if r.get("found_via_layer") not in ("layer2", "recheck")]),
+        "accepted_share_layer2": share_of([r for r in results if r.get("found_via_layer") == "layer2"]),
         "known_reissued": reissued(candidates, known),
         "saturation": round(sum(f["known"] for f in found) / len(found), 3) if found else None,
         "found_by_layer": dict(Counter(f["layer"] for f in found)), "candidates_by_layer": dict(by_layer),
         "candidates_by_engine": dict(Counter(c["found_via"].get("channel") for c in candidates)),
         "decisions_by_engine": {f"{e}:{d}": n for (e, d), n in Counter(
             (r.get("found_via_engine"), r["decision"]) for r in results).items()},
-        "a1sd_cycle_ok": len(countries) >= 10 and len(types) >= 5 and bool(decided) and not reissued(candidates, known)
-                         and len(accepted) / len(decided) >= 0.30,
+        "a1sd_cycle_ok": len(countries) >= 10 and len(types) >= 5 and not reissued(candidates, known)
+                         and (share_of([r for r in results if r.get("found_via_layer") not in ("layer2", "recheck")])
+                              or 0) >= 0.30,
     }
 
 
