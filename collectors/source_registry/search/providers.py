@@ -15,7 +15,9 @@ from pathlib import Path
 
 KEY_DIR = Path(os.environ["BOHUN_KEY_DIR"]).expanduser() if os.environ.get("BOHUN_KEY_DIR") else None
 KEY_ENV = {"Ollama.txt": "OLLAMA_API_KEY", "AI GEMINI GOOGLE.txt": "GEMINI_SEARCH_API_KEY"}
-UA = "SourceDiscoveryResearch/1.0 (non-commercial, low volume)"
+# Wikimedia and GDELT ask automated clients to name a contact; the owner approved the public repository URL (19.11).
+CONTACT = os.environ.get("SEARCH_CONTACT_URL", "https://github.com/nab0k/bohun-the-field")
+UA = f"BOHUN-SourceSearch/1.0 (+{CONTACT}; low volume, non-commercial)"
 _last = {}
 
 

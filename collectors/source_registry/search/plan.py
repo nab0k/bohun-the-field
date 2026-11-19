@@ -184,6 +184,40 @@ TYPE_QUERIES = {
 }
 
 
+GDELT_COUNTRY = {"UA": "ukraine", "PL": "poland", "DE": "germany", "FR": "france", "ES": "spain", "IT": "italy",
+                 "NL": "netherlands", "SE": "sweden", "FI": "finland", "CZ": "czechrepublic", "RO": "romania",
+                 "GB": "unitedkingdom"}
+WIKIDATA_COUNTRY = {"UA": "Q212", "PL": "Q36", "DE": "Q183", "FR": "Q142", "ES": "Q29", "IT": "Q38", "NL": "Q55",
+                    "SE": "Q34", "FI": "Q33", "CZ": "Q213", "RO": "Q218", "GB": "Q145"}
+
+
+def gdelt_jobs(cat, countries, done=()):
+    """Open news base GDELT: English category term + source country (GDELT searches its translated coverage).
+    Gap categories first, country-major rotation; a job already asked is skipped."""
+    asked = {k for k in done if k.startswith("gdelt|")}
+    order = priority(cat)
+    rows = []
+    for slot, cid in enumerate(order):
+        for i, cc in enumerate(countries):
+            if cc not in GDELT_COUNTRY or cc not in cat["categories"][cid].get("countries", [cc]):
+                continue
+            job = {"layer": "gdelt", "engine": "gdelt", "country": cc, "category": cid, "lang": "en",
+                   "type_hint": cat["categories"][cid]["default_type"], "query": cat["categories"][cid]["terms"]["en"],
+                   "gdelt_country": GDELT_COUNTRY[cc]}
+            if job_key(job) not in asked:
+                rows.append((slot, i, job))
+    return [r[2] for r in sorted(rows, key=lambda r: (r[0], r[1]))]
+
+
+def wikidata_jobs(countries, done=()):
+    """Official bodies of a country (ministries, agencies, parliament bodies) with their websites, once per country."""
+    asked = {k for k in done if k.startswith("wikidata|")}
+    jobs = [{"layer": "wikidata", "engine": "wikidata", "country": cc, "lang": "en", "type_hint": "agency",
+             "query": f"official defence bodies {cc}", "qid": WIKIDATA_COUNTRY[cc]}
+            for cc in countries if cc in WIKIDATA_COUNTRY]
+    return [j for j in jobs if job_key(j) not in asked]
+
+
 def type_jobs(cat, countries, done=()):
     """One job per (source type, country); not-yet-asked first, type-major so a partial quota covers all types."""
     asked = {k for k in done if k.startswith("types|")}

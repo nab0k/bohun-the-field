@@ -245,5 +245,41 @@ class TypesLayer(unittest.TestCase):
         self.assertEqual(sum(C.QUOTAS.values()), C.LIMITS["tavily"] + C.LIMITS["gemini"])
 
 
+class OpenBases(unittest.TestCase):
+    def test_gdelt_and_wikidata_jobs(self):
+        g = P.gdelt_jobs(CAT, COUNTRIES)
+        self.assertEqual({j["engine"] for j in g}, {"gdelt"})
+        self.assertEqual((g[0]["category"], g[0]["gdelt_country"]), ("arctic", "sweden"))  # gap category first
+        self.assertTrue(all(j["query"] and " " not in j["gdelt_country"] for j in g))
+        later = P.gdelt_jobs(CAT, COUNTRIES, {P.job_key(j) for j in g[:12]})
+        self.assertEqual(len(later), len(g) - 12)
+        w = P.wikidata_jobs(COUNTRIES)
+        self.assertEqual(len(w), 12)
+        self.assertEqual(P.wikidata_jobs(COUNTRIES, {P.job_key(w[0])})[0]["country"], w[1]["country"])
+
+    def test_open_bases_keep_their_engine_and_dispatch(self):
+        todo = [{"layer": "gdelt", "engine": "gdelt", "query": "electronic warfare", "gdelt_country": "poland"},
+                {"layer": "wikidata", "engine": "wikidata", "qid": "Q36"}, {"layer": "layer1"}]
+        C.assign_engines(todo, {"layer1": 1})
+        self.assertEqual([j["engine"] for j in todo], ["gdelt", "wikidata", "gemini"])
+        e = C.Engines(tavily=lambda j: {"results": []}, gemini=lambda j: {"results": []})
+        calls = []
+        e.fn["gdelt"] = lambda j: calls.append(("gdelt", j["gdelt_country"])) or {"results": []}
+        e.fn["wikidata"] = lambda j: calls.append(("wikidata", j["qid"])) or {"results": []}
+        for j in todo[:2]:
+            e(j)
+        self.assertEqual(calls, [("gdelt", "poland"), ("wikidata", "Q36")])
+
+    def test_contact_in_user_agent(self):
+        import providers as PR
+        self.assertIn("github.com/nab0k/bohun-the-field", PR.UA)
+
+    def test_daily_limits_include_open_bases(self):
+        import run_daily as R
+        limits, quotas, gemini, caps = R.daily_limits(False)
+        self.assertEqual((limits["gdelt"], limits["wikidata"], limits["tavily"]), (12, 2, 0))
+        self.assertEqual(sum(quotas.values()), sum(limits[e] for e in ("tavily", "gemini", "gdelt", "wikidata")))
+
+
 if __name__ == "__main__":
     unittest.main()

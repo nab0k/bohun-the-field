@@ -73,6 +73,9 @@ def assign_engines(todo, gemini_share):
     for job in todo:
         layer = job["layer"]
         want, left = gemini_share.get(layer, 0) - given[layer], total[layer] - seen[layer]
+        if job.get("engine") in ("gdelt", "wikidata"):  # open bases: the layer fixes the engine
+            seen[layer] += 1
+            continue
         job["engine"] = "gemini" if want > 0 and (seen[layer] % 2 == 0 or want >= left) else "tavily"
         given[layer] += job["engine"] == "gemini"
         seen[layer] += 1
@@ -85,7 +88,9 @@ class Engines:
 
     def __init__(self, tavily=None, gemini=None):
         import providers as PR
-        self.fn = {"tavily": tavily or tavily_cli, "gemini": gemini or (lambda job: PR.gemini_grounded(job["query"]))}
+        self.fn = {"tavily": tavily or tavily_cli, "gemini": gemini or (lambda job: PR.gemini_grounded(job["query"])),
+                   "gdelt": lambda job: PR.gdelt(job["query"], job.get("gdelt_country")),
+                   "wikidata": lambda job: PR.wikidata_officials(job["qid"])}
         self.streak, self.off, self.used, self.errors = Counter(), set(), Counter(), Counter()
 
     def __call__(self, job):
@@ -308,7 +313,7 @@ def network_up(waits=3, pause=60, hosts=("www.wikipedia.org", "www.google.com", 
 def execute(todo, search, http, conn, known, raw=None, use_feedsearch=False, network_pause=60, extra=(), recheck=()):
     """One cycle without files: search -> candidates -> observe (stops at a cap or a network outage) -> admit."""
     import observer as O
-    candidates, found, done, trace = collect(todo, search, known, LIMITS["tavily"] + LIMITS.get("gemini", 0),
+    candidates, found, done, trace = collect(todo, search, known, sum(LIMITS.get(e, 0) for e in ("tavily", "gemini", "gdelt", "wikidata")),
                                              LIMITS["new"], NEW_CAPS, raw)
     if isinstance(search, Engines):
         trace.update(engines_used=dict(search.used), engines_off=sorted(search.off))
