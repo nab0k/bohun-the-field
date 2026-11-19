@@ -111,6 +111,17 @@ class Daily(unittest.TestCase):
                              (url, "hold", '["%s"]' % reason, "{}", "a2sa-shadow-0.5", old))
             again = R.recheck_candidates(conn, n=5)
             self.assertEqual([c["url"] for c in again], ["https://stale.example/"])  # no-news sites wait for their own pass
+            # 0.6: no_judge holds come back after hours, first in line; a fresh one and a recent stale one wait
+            for url, reason, hours in (("https://nojudge.example/", "no_judge", 8), ("https://fresh.example/", "no_judge", 1),
+                                       ("https://recent.example/", "stale", 8)):
+                at = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=hours)).isoformat()
+                conn.execute("INSERT INTO candidate_seen VALUES (?,?,?,?,?)", (url, "hold", at, 0, None))
+                conn.execute("INSERT INTO admission_decision(candidate_url, decision, reasons_json, record_json, "
+                             "rules_version, decided_at) VALUES (?,?,?,?,?,?)",
+                             (url, "hold", '["%s"]' % reason, "{}", "a2sa-shadow-0.6", at))
+            self.assertEqual([c["url"] for c in R.recheck_candidates(conn, n=5)],
+                             ["https://nojudge.example/", "https://stale.example/"])
+            self.assertTrue(all(c["prefilter"] for c in R.recheck_candidates(conn, n=5)))
             obs = {"candidate": again[0], "fetch": {"status": 404}, "robots": {}}
             counts, _ = A.admit(conn, [obs])
             self.assertEqual(counts["skipped_decided"], 1)            # without recheck: skipped

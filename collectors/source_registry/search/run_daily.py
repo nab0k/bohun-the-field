@@ -47,6 +47,9 @@ def daily_limits(tavily):
 COMPANY_PER_DAY = int(os.environ.get("SEARCH_COMPANY_PER_DAY", "12"))
 RECHECK_PER_DAY = int(os.environ.get("SEARCH_RECHECK_PER_DAY", "8"))
 RECHECK_AFTER_DAYS = 14
+# 0.6: a site held only because the judge gave no verdict waits for the next daily run, not two weeks (owner 19.11
+# "Да, ускорь"); the judge is usually back by then
+NO_JUDGE_AFTER_HOURS = 6
 
 
 def company_candidates(ctx, known, n=COMPANY_PER_DAY):
@@ -67,14 +70,19 @@ def company_candidates(ctx, known, n=COMPANY_PER_DAY):
     return out
 
 
-def recheck_candidates(conn, n=RECHECK_PER_DAY, days=RECHECK_AFTER_DAYS):
-    """On-hold sources (stale, too few titles, undated) whose last check is older than `days`: checked again."""
-    cutoff = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=days)).isoformat()
+def recheck_candidates(conn, n=RECHECK_PER_DAY, days=RECHECK_AFTER_DAYS, no_judge_hours=NO_JUDGE_AFTER_HOURS):
+    """On-hold sources (stale, too few titles, undated) whose last check is older than `days`: checked again.
+    Sites held for want of a judge verdict (no_judge) come back after `no_judge_hours` and go first."""
+    now = dt.datetime.now(dt.timezone.utc)
+    cutoff = (now - dt.timedelta(days=days)).isoformat()
+    quick = (now - dt.timedelta(hours=no_judge_hours)).isoformat()
     rows = conn.execute(
-        "SELECT s.candidate_url FROM candidate_seen s WHERE s.last_decision='hold' AND s.decided_at < ? AND "
-        "(SELECT d.reasons_json FROM admission_decision d WHERE d.candidate_url=s.candidate_url "
-        " ORDER BY d.decision_id DESC LIMIT 1) NOT LIKE '%no_news_site%' ORDER BY s.decided_at LIMIT ?",
-        (cutoff, n)).fetchall()
+        "SELECT candidate_url FROM (SELECT s.candidate_url, s.decided_at, (SELECT d.reasons_json FROM admission_decision d "
+        " WHERE d.candidate_url=s.candidate_url ORDER BY d.decision_id DESC LIMIT 1) reasons FROM candidate_seen s "
+        " WHERE s.last_decision='hold') WHERE reasons NOT LIKE '%no_news_site%' AND "
+        "(decided_at < ? OR (reasons LIKE '%no_judge%' AND decided_at < ?)) "
+        "ORDER BY (reasons LIKE '%no_judge%') DESC, decided_at LIMIT ?",
+        (cutoff, quick, n)).fetchall()
     # prefilter: a recheck goes through the judge again (0.6: a no_judge hold must not pass on keywords alone)
     return [{"url": u, "pool_group": "recheck", "prefilter": True, "found_via": {"channel": "recheck", "layer": "recheck"}}
             for (u,) in rows]
