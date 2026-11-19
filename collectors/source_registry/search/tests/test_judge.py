@@ -143,5 +143,59 @@ class FirstStage(unittest.TestCase):
         self.assertEqual(o["judge"]["specialised"], True)
 
 
+class NoJudge(unittest.TestCase):
+    """0.6: a site found by search that the judge did not assess is held, not accepted on keywords alone."""
+    FEED_PAGE = (200, HTML, ('<html lang="en"><link rel="alternate" type="application/rss+xml" href="/rss">'
+                             + "".join(f'<a href="/n/{i}">{t}</a>' for i, t in enumerate(DEF[:3])) + "</html>").encode())
+
+    def tearDown(self):
+        O.JUDGE = None
+
+    def run_with(self, judge, layer="layer1"):
+        O.JUDGE = judge
+        pages = {"https://jobs.example.org/": self.FEED_PAGE,
+                 "https://jobs.example.org/rss": (200, RSS, rss("jobs.example.org", DEF))}
+        o = O.observe({"url": "https://jobs.example.org/", "prefilter": True, "found_via": {"layer": layer}},
+                      FakeHTTP(pages))
+        return o, A.decide(o, lambda c, h: (None, None))
+
+    def test_too_few_headlines_for_judge_is_held(self):
+        o, r = self.run_with(judge_says('{"specialised": true, "type": "media", "defence_section": null}'))
+        self.assertTrue(o.get("judge_missing"))
+        self.assertEqual((r["decision"], r["reason_codes"]), ("hold", ["no_judge"]))
+
+    def test_all_models_off_is_held(self):
+        j = judge_says("x")
+        j.off.add("fake")
+        _, r = self.run_with(j)
+        self.assertEqual(r["reason_codes"], ["no_judge"])
+
+    def test_company_site_from_base_and_no_judge_at_all_keep_keyword_rule(self):
+        _, r = self.run_with(judge_says("x"), layer="layer2")
+        self.assertEqual(r["decision"], "accept")
+        _, r = self.run_with(None)
+        self.assertEqual(r["decision"], "accept")
+
+    def test_defence_word_in_name_no_longer_skips_the_judge(self):
+        O.JUDGE = judge_says('{"specialised": false, "type": "media", "defence_section": null, "confidence": 0.9}')
+        pages = {"https://aerojobs.example.org/": (200, HTML, page(DEF * 2))}
+        o = O.observe({"url": "https://aerojobs.example.org/", "prefilter": True,
+                       "found_via": {"layer": "layer1", "focus": 1}}, FakeHTTP(pages))
+        self.assertIn("general_outlet", o)
+        O.JUDGE = judge_says("x")  # judge silent: the name still earns the full check
+        o = O.observe({"url": "https://aerojobs.example.org/", "prefilter": True,
+                       "found_via": {"layer": "layer1", "focus": 1}}, FakeHTTP(pages))
+        self.assertNotIn("general_outlet", o)
+        self.assertNotIn("judge_missing", o)
+
+    def test_verdict_is_kept_in_the_record(self):
+        O.JUDGE = judge_says('{"specialised": true, "type": "media", "defence_section": null, "confidence": 0.8}')
+        pages = {"https://news.example.org/": (200, HTML, page(DEF * 2))}
+        o = O.observe({"url": "https://news.example.org/", "prefilter": True, "found_via": {"layer": "layer1"}},
+                      FakeHTTP(pages))
+        r = A.decide(o, lambda c, h: (None, None))
+        self.assertEqual(r["judge"]["by"], "fake")
+
+
 if __name__ == "__main__":
     unittest.main()

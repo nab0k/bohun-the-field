@@ -30,6 +30,7 @@ NOT_PUBLISHERS = {"youtube.com", "linkedin.com", "twitter.com", "x.com", "facebo
 
 AGGREGATORS = NOT_PUBLISHERS | {"news.yahoo.com", "flipboard.com", "newsbreak.com", "ground.news", "inoreader.com",
                                 "feedly.com", "bing.com", "google.com", "duckduckgo.com", "archive.org", "scribd.com"}
+# Mac shadow cycle defaults; the daily cloud run replaces LIMITS/QUOTAS/NEW_CAPS with run_daily.daily_limits()
 LIMITS = {"tavily": 60, "gemini": 60, "http": 900, "new": 120}   # cycle 4 (D-20261119-A1SD-SEARCH-CYCLE-4)
 QUOTAS = {"types": 48, "layer1": 36, "layer3": 24, "section": 12}   # = 120 queries (cycle 5: + types layer)
 NEW_CAPS = {"types": 48, "layer1": 36, "layer3": 24, "section": 12}  # = 120 new candidates, in proportion

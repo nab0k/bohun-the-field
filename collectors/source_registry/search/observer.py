@@ -159,13 +159,21 @@ JUDGE = None  # judge.Judge set by the daily runner (19.11, owner "отличн�
 def home_general(candidate, url, body, site_name=None, obs=None):
     """Cheap first stage on the home page. Official hosts and sites whose own name says defence always get the full
     check. Otherwise the free-model judge (when available) reads the headlines: specialised -> full check; a defence
-    section -> that section is checked instead; neither -> general outlet. Without a judge: share of defence words."""
+    section -> that section is checked instead; neither -> general outlet. Without a judge: share of defence words.
+
+    0.6 (Antigravity review 19.11, owner "Да, исправляй"): when the daily run has a judge but it gave no verdict (too few
+    headlines, every model failed), a site found by search is marked judge_missing and admission holds it instead of
+    accepting it on keywords alone (laerorecrute.fr and ruavia.su were accepted that way). Company sites from our base
+    (layer2) keep the keyword rule. Both sites had a defence/aviation word in their host ("aero", "avia") and so skipped
+    the judge: such a site now goes to the judge too; only when the judge is silent does the name still let it through."""
     import admission as A
     host = urlsplit(url).hostname or ""
-    if OFFICIAL_HOST.search(host) or (candidate.get("found_via") or {}).get("focus"):
+    if OFFICIAL_HOST.search(host):
         return None
+    named = bool((candidate.get("found_via") or {}).get("focus"))
     links = cycle.html_links(body).links
     labels = [label for _, label in links if len(label.split()) >= 4]
+    verdict = None
     if JUDGE:
         heads = [(cycle.safe_link(url, h), lbl) for h, lbl in links if len(lbl.split()) >= 4][:25]
         navs = [(cycle.safe_link(url, h), lbl) for h, lbl in links if 1 <= len(lbl.split()) <= 3][:15]
@@ -179,6 +187,10 @@ def home_general(candidate, url, body, site_name=None, obs=None):
             if section and (urlsplit(section).hostname or "").removeprefix("www.") == host.removeprefix("www."):
                 return {"section": section}
             return {"judge": verdict["by"], "home_links": len(labels)}
+    if named:  # no verdict: a defence word in the name still earns the full check, as before 0.6
+        return None
+    if JUDGE is not None and obs is not None and (candidate.get("found_via") or {}).get("layer") != "layer2":
+        obs["judge_missing"] = True
     share, n = A.topic_share(labels[:200])
     if n >= GENERAL_MIN_LINKS and share < GENERAL_SHARE:
         return {"home_share": round(share, 3), "home_links": n}
