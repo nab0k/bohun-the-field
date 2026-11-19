@@ -86,10 +86,27 @@ def load(pg, sqlite_path):
                 "jsonb_array_elements_text(coalesce(plan->'seed_known_hosts', '[]'::jsonb)) h")
     row = cur.fetchone()
     known |= set(row[0] if row and row[0] else [])
+    # A1SD-03: what earlier runs learned, their outcome, and accepted sources by country and type (gaps first)
+    cur.execute("select to_regclass('source_discovery.learning') is not null")
+    learning = []
+    if cur.fetchone()[0]:
+        cur.execute("select at, layer, country, type_hint, new_sites, accepted from source_discovery.learning "
+                    "where at > now() - interval '30 days'")
+        learning = [{"at": r[0], "layer": r[1], "country": r[2], "type_hint": r[3], "new_sites": r[4],
+                     "accepted": r[5]} for r in cur.fetchall()]
+    cur.execute("select started_at, (measure->>'a1sd_cycle_ok')::boolean, (measure->>'accepted_share_search')::float "
+                "from source_discovery.cycle_run where measure ? 'a1sd_cycle_ok' order by started_at desc limit 14")
+    runs = [{"at": r[0], "ok": bool(r[1]), "share": r[2]} for r in cur.fetchall()]
+    cur.execute("select country, type, count(*) from source_discovery.source_state where status='accepted' group by 1, 2")
+    by_country, by_type = {}, {}
+    for country, stype, n in cur.fetchall():
+        by_country[country] = by_country.get(country, 0) + n
+        by_type[stype] = by_type.get(stype, 0) + n
     cur.execute(EVENTS_SQL)
     events = [{"id": r[0], "title": r[1], "topic": r[2], "known_hosts": r[3] or []} for r in cur.fetchall()]
     return conn, {"done": list(done), "company": company, "rnd": rnd, "company_country": company_country,
-                  "known": known, "events": events,
+                  "known": known, "events": events, "learning": learning, "runs": runs,
+                  "accepted_by_country": by_country, "accepted_by_type": by_type,
                   "loaded_max_decision": loaded_max, "state_rows": len(rows)}
 
 
@@ -118,8 +135,14 @@ def save(pg, conn, ctx, run):
             cur.execute("insert into source_discovery.candidate_seen values (%s,%s,%s,%s,%s) on conflict (candidate_url) "
                         "do update set last_decision=excluded.last_decision, decided_at=excluded.decided_at, "
                         "transient=excluded.transient, channel_id=excluded.channel_id", r)
+        for r in run.get("learning", []):
+            cur.execute("insert into source_discovery.learning(run_id, job_key, layer, engine, country, type_hint, results,"
+                        " new_sites, accepted, disputed, general, held, rejected) values "
+                        "(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                        (r["run_id"], r["job_key"], r["layer"], r["engine"], r["country"], r["type_hint"], r["results"],
+                         r["new_sites"], r["accepted"], r["disputed"], r["general"], r["held"], r["rejected"]))
         cur.execute("insert into source_discovery.cycle_run(run_id, started_at, finished_at, where_run, plan, trace,"
                     " measure, done_jobs) values (%s,%s,%s,%s,%s,%s,%s,%s)",
                     (run["run_id"], run["started_at"], run["finished_at"], run["where_run"], Jsonb(run["plan"]),
                      Jsonb(run["trace"]), Jsonb(run["measure"]), Jsonb(run["done_jobs"])))
-    return {"decisions": len(new), "states": len(states), "seen": len(seen)}
+    return {"decisions": len(new), "states": len(states), "seen": len(seen), "learning": len(run.get("learning", []))}

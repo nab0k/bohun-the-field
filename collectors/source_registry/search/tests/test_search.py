@@ -100,7 +100,11 @@ class Collect(unittest.TestCase):
         sites = [c["url"] for c in cands]
         self.assertNotIn("https://www.defence24.com/", sites)
         self.assertEqual(sites.count("https://new-mag.example.pl/"), 1)
+        stats = trace.pop("job_stats")
         self.assertEqual(trace, {"queries": 3, "failed": 1})
+        self.assertEqual(len(stats), 2)  # asked and answered jobs only
+        self.assertEqual(sum(s["new"] for s in stats.values()), len(cands))
+        self.assertTrue(all(c["found_via"]["job"] in stats for c in cands))
         self.assertEqual(len(done), 2)
         self.assertTrue(all(c["found_via"]["channel"] == "tavily" for c in cands))
         self.assertEqual(sum(f["known"] for f in found), 2)  # defence24 seen twice (skeleton PL + layer3)
@@ -254,14 +258,22 @@ class OpenBases(unittest.TestCase):
         later = P.gdelt_jobs(CAT, COUNTRIES, {P.job_key(j) for j in g[:12]})
         self.assertEqual(len(later), len(g) - 12)
         w = P.wikidata_jobs(COUNTRIES)
-        self.assertEqual(len(w), 12)
-        self.assertEqual(P.wikidata_jobs(COUNTRIES, {P.job_key(w[0])})[0]["country"], w[1]["country"])
+        self.assertEqual(len(w), 24)  # A1SD-03: officials and companies per country
+        self.assertEqual([(j["country"], j["role"]) for j in w[:2]], [(COUNTRIES[0], ""), (COUNTRIES[0], "companies")])
+        # officials asked before 0.6 (no role in the key) are not asked again
+        old = "wikidata|%s|||en|" % COUNTRIES[0]
+        self.assertEqual(P.job_key(w[0]), old)
+        self.assertEqual(P.wikidata_jobs(COUNTRIES, {old})[0]["role"], "companies")
+        eu = P.europe()
+        self.assertEqual(len(eu), 50)
+        self.assertTrue(set(COUNTRIES) <= set(eu))
 
     def test_open_bases_keep_their_engine_and_dispatch(self):
         todo = [{"layer": "gdelt", "engine": "gdelt", "query": "electronic warfare", "gdelt_country": "poland"},
-                {"layer": "wikidata", "engine": "wikidata", "qid": "Q36"}, {"layer": "layer1"}]
+                {"layer": "wikidata", "engine": "wikidata", "qid": "Q36"}, {"layer": "layer1"},
+                {"layer": "wikidata", "engine": "wikidata", "iso": "PL", "role": "companies"}]
         C.assign_engines(todo, {"layer1": 1})
-        self.assertEqual([j["engine"] for j in todo], ["gdelt", "wikidata", "gemini"])
+        self.assertEqual([j["engine"] for j in todo], ["gdelt", "wikidata", "gemini", "wikidata"])
         e = C.Engines(tavily=lambda j: {"results": []}, gemini=lambda j: {"results": []})
         calls = []
         e.fn["gdelt"] = lambda j: calls.append(("gdelt", j["gdelt_country"])) or {"results": []}
@@ -269,6 +281,15 @@ class OpenBases(unittest.TestCase):
         for j in todo[:2]:
             e(j)
         self.assertEqual(calls, [("gdelt", "poland"), ("wikidata", "Q36")])
+        import providers as PR
+        real, PR._wikidata = PR._wikidata, lambda sparql: {"results": [], "sparql": sparql}
+        try:
+            e2 = C.Engines(tavily=lambda j: {"results": []}, gemini=lambda j: {"results": []})
+            q = e2(todo[3])["sparql"]
+        finally:
+            PR._wikidata = real
+        self.assertIn('wdt:P297 "PL"', q)
+        self.assertIn("wd:Q392933", q)  # arms industry, checked on Wikidata 19.11
 
     def test_contact_in_user_agent(self):
         import providers as PR
@@ -277,7 +298,9 @@ class OpenBases(unittest.TestCase):
     def test_daily_limits_include_open_bases(self):
         import run_daily as R
         limits, quotas, gemini, caps = R.daily_limits(False)
-        self.assertEqual((limits["gdelt"], limits["wikidata"], limits["tavily"]), (0, 2, 0))
+        self.assertEqual((limits["gdelt"], limits["wikidata"], limits["tavily"]), (0, 20, 0))
+        self.assertEqual(caps["wikidata"], R.WIKIDATA_NEW)
+        self.assertLessEqual(sum(v for k, v in caps.items() if k != "wikidata"), limits["new"] - R.WIKIDATA_NEW + 2)
         self.assertEqual(sum(quotas.values()), sum(limits[e] for e in ("tavily", "gemini", "gdelt", "wikidata")))
 
 
