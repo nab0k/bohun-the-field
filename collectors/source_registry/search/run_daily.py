@@ -33,8 +33,10 @@ def daily_limits(tavily):
     else:
         quotas = {"types": 16, "layer1": 16, "layer3": 8, "section": 0}
         gemini = dict(quotas)
-    limits = {"tavily": sum(quotas.values()) - sum(gemini.values()), "gemini": sum(gemini.values()),
-              "http": int(os.environ.get("SEARCH_HTTP_LIMIT", "500")), "new": int(os.environ.get("SEARCH_NEW_LIMIT", "40"))}
+    quotas.update(gdelt=12, wikidata=2)   # open bases, no key (D-20261119-A1SD-OPEN-BASES)
+    limits = {"tavily": sum(v for k, v in quotas.items() if k not in ("gdelt", "wikidata")) - sum(gemini.values()),
+              "gemini": sum(gemini.values()), "gdelt": quotas["gdelt"], "wikidata": quotas["wikidata"],
+              "http": int(os.environ.get("SEARCH_HTTP_LIMIT", "600")), "new": int(os.environ.get("SEARCH_NEW_LIMIT", "54"))}
     total = sum(quotas.values())
     caps = {k: round(limits["new"] * v / total) for k, v in quotas.items()}
     return limits, quotas, gemini, caps
@@ -91,7 +93,9 @@ def main():
         jobs = {"layer1": P.layer1_jobs(cat, countries, None, ctx["done"]),
                 "layer3": P.layer3_jobs(cat, ctx["events"], 50, ctx["done"]),
                 "section": P.section_jobs(C.general_sites(conn)) if tavily else [],
-                "types": P.type_jobs(cat, countries, ctx["done"])}
+                "types": P.type_jobs(cat, countries, ctx["done"]),
+                "gdelt": P.gdelt_jobs(cat, countries, ctx["done"]),
+                "wikidata": P.wikidata_jobs(countries, ctx["done"])}
         todo = C.assign_engines(P.plan_cycle(jobs, C.QUOTAS, ctx["done"]), C.GEMINI_SHARE)
         plan = {"planned": dict(Counter(j["layer"] for j in todo)),
                 "engines": dict(Counter(j["engine"] for j in todo)), "limits": C.LIMITS,
