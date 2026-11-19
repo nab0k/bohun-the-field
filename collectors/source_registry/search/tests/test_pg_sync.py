@@ -34,7 +34,7 @@ class Cursor:
         elif "jsonb_array_elements_text" in s:
             self.rows = [(["layer1|PL|ew||pl|"],)]
         elif "from companies.company" in s:
-            self.rows = [(True, "tno.nl"), (False, "saab.com"), (False, None)]
+            self.rows = [(True, "tno.nl", "NL"), (False, "saab.com", "SE "), (False, None, None)]
         elif "intelligence.sources" in s:
             self.rows = [("defence24.com",)]
         elif "knowledge.event" in s:
@@ -73,6 +73,7 @@ class Sync(unittest.TestCase):
             conn, ctx = pg_sync.load(pg, Path(tmp) / "r.sqlite")
             self.assertEqual((ctx["company"], ctx["rnd"], ctx["known"]), ({"saab.com"}, {"tno.nl"}, {"defence24.com", "seen-on-mac.example"}))
             self.assertEqual(ctx["done"], ["layer1|PL|ew||pl|"])
+            self.assertEqual(ctx["company_country"]["saab.com"], "SE")
             self.assertEqual(ctx["events"][0]["known_hosts"], ["a.com"])
             self.assertEqual(ctx["loaded_max_decision"], 1)
             start = dt.datetime.now(dt.timezone.utc)
@@ -88,6 +89,31 @@ class Sync(unittest.TestCase):
             self.assertTrue(any("source_discovery.admission_decision" in k for k in kinds))
             self.assertTrue(any("source_discovery.cycle_run" in k for k in kinds))
             self.assertFalse(any("intelligence" in s[1] or "companies" in s[1] for s in pg.sql))  # never writes product
+            conn.close()
+
+
+class Daily(unittest.TestCase):
+    def test_company_layer_and_recheck(self):
+        import run_daily as R
+        ctx = {"company": {"saab.com", "known.example"}, "rnd": {"tno.nl"}, "company_country": {"saab.com": "SE"}}
+        cands = R.company_candidates(ctx, {"known.example"}, n=5)
+        self.assertEqual([c["url"] for c in cands], ["https://saab.com/", "https://tno.nl/"])
+        self.assertEqual(cands[0]["found_via"]["country"], "SE")
+        with tempfile.TemporaryDirectory() as tmp:
+            conn = A.open_db(str(Path(tmp) / "r.sqlite"))
+            old = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=20)).isoformat()
+            for url, reason in (("https://stale.example/", "stale"), ("https://plain.example/", "no_news_site")):
+                conn.execute("INSERT INTO candidate_seen VALUES (?,?,?,?,?)", (url, "hold", old, 0, None))
+                conn.execute("INSERT INTO admission_decision(candidate_url, decision, reasons_json, record_json, "
+                             "rules_version, decided_at) VALUES (?,?,?,?,?,?)",
+                             (url, "hold", '["%s"]' % reason, "{}", "a2sa-shadow-0.5", old))
+            again = R.recheck_candidates(conn, n=5)
+            self.assertEqual([c["url"] for c in again], ["https://stale.example/"])  # no-news sites wait for their own pass
+            obs = {"candidate": again[0], "fetch": {"status": 404}, "robots": {}}
+            counts, _ = A.admit(conn, [obs])
+            self.assertEqual(counts["skipped_decided"], 1)            # without recheck: skipped
+            counts, _ = A.admit(conn, [obs], recheck={"https://stale.example/"})
+            self.assertEqual(counts["reject"], 1)                     # with recheck: decided again
             conn.close()
 
 

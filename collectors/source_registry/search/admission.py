@@ -383,7 +383,7 @@ def known_in(conn):
     return known
 
 
-def admit(conn, observations, now=None, redecide=()):
+def admit(conn, observations, now=None, redecide=(), recheck=()):
     """One cycle. One transaction per decision; a candidate rejected less than 90 days ago is not re-decided."""
     now = now or now_utc()
     counts = {"accept": 0, "reject": 0, "disputed": 0, "hold": 0, "general": 0, "retry": 0, "skipped_recent_reject": 0,
@@ -402,6 +402,8 @@ def admit(conn, observations, now=None, redecide=()):
             (curl,)).fetchone()
         if seen and seen[0] in redecide and old_rules and old_rules[0] != RULES_VERSION:
             pass  # decided under older rules (e.g. 0.4 disputed) -> decide again under the current ones
+        elif seen and seen[0] == "hold" and curl in recheck:
+            pass  # on hold (stale, few titles, undated) and due for its next check
         elif seen and seen[0] in ("accept", "disputed", "hold", "general"):
             counts["skipped_decided"] += 1
             continue
@@ -415,7 +417,7 @@ def admit(conn, observations, now=None, redecide=()):
                 channel = registry.channel_id_for(rec["delivery_url"])
                 conn.execute("INSERT INTO source_state VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(channel_id) DO UPDATE SET "
                              "status=excluded.status, since=excluded.since, rules_version=excluded.rules_version "
-                             "WHERE source_state.status='candidate'",
+                             "WHERE source_state.status IN ('candidate', 'on_hold')",
                              (channel, rec["delivery_url"], status_of(rec), rec.get("type"), rec.get("delivery"),
                               rec.get("country"), rec.get("language"), stamp, RULES_VERSION))
             transient = (seen[2] if seen else 0) + (1 if rec["decision"] == "retry" else 0)

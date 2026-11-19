@@ -27,7 +27,7 @@ select id, title, topic, hosts from e order by first_published_at desc limit 300
 """
 COMPANY_SQL = """
 select coalesce(supply_role, '') = 'RND',
-       lower(regexp_replace(substring(website from '^(?:https?://)?([^/:]+)'), '^www\\.', ''))
+       lower(regexp_replace(substring(website from '^(?:https?://)?([^/:]+)'), '^www\\.', '')), country
 from companies.company where website is not null and status is distinct from 'excluded'
 """
 KNOWN_SQL = """
@@ -74,10 +74,11 @@ def load(pg, sqlite_path):
                 "jsonb_array_elements_text(done_jobs) j")
     done = cur.fetchone()[0] or []
     cur.execute(COMPANY_SQL)
-    company, rnd = set(), set()
-    for is_rnd, host in cur.fetchall():
+    company, rnd, company_country = set(), set(), {}
+    for is_rnd, host, country in cur.fetchall():
         if host:
             (rnd if is_rnd else company).add(host)
+            company_country.setdefault(host, (country or "").strip().upper() or None)
     cur.execute(KNOWN_SQL)
     known = {h for (h,) in cur.fetchall() if h}
     # sites already seen by the Mac shadow cycles 1-5 (seed row), so the cloud does not issue them again
@@ -87,7 +88,8 @@ def load(pg, sqlite_path):
     known |= set(row[0] if row and row[0] else [])
     cur.execute(EVENTS_SQL)
     events = [{"id": r[0], "title": r[1], "topic": r[2], "known_hosts": r[3] or []} for r in cur.fetchall()]
-    return conn, {"done": list(done), "company": company, "rnd": rnd, "known": known, "events": events,
+    return conn, {"done": list(done), "company": company, "rnd": rnd, "company_country": company_country,
+                  "known": known, "events": events,
                   "loaded_max_decision": loaded_max, "state_rows": len(rows)}
 
 
@@ -111,7 +113,7 @@ def save(pg, conn, ctx, run):
                         "on conflict (channel_id) do update set status=excluded.status, since=excluded.since, "
                         "rules_version=excluded.rules_version, type=excluded.type, delivery=excluded.delivery, "
                         "country=excluded.country, language=excluded.language "
-                        "where source_discovery.source_state.status = 'candidate'", r)
+                        "where source_discovery.source_state.status in ('candidate', 'on_hold')", r)
         for r in seen:
             cur.execute("insert into source_discovery.candidate_seen values (%s,%s,%s,%s,%s) on conflict (candidate_url) "
                         "do update set last_decision=excluded.last_decision, decided_at=excluded.decided_at, "

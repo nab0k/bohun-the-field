@@ -34,10 +34,44 @@ def daily_limits(tavily):
         quotas = {"types": 16, "layer1": 16, "layer3": 8, "section": 0}
         gemini = dict(quotas)
     limits = {"tavily": sum(quotas.values()) - sum(gemini.values()), "gemini": sum(gemini.values()),
-              "http": int(os.environ.get("SEARCH_HTTP_LIMIT", "400")), "new": int(os.environ.get("SEARCH_NEW_LIMIT", "40"))}
+              "http": int(os.environ.get("SEARCH_HTTP_LIMIT", "500")), "new": int(os.environ.get("SEARCH_NEW_LIMIT", "40"))}
     total = sum(quotas.values())
     caps = {k: round(limits["new"] * v / total) for k, v in quotas.items()}
     return limits, quotas, gemini, caps
+
+
+COMPANY_PER_DAY = int(os.environ.get("SEARCH_COMPANY_PER_DAY", "12"))
+RECHECK_PER_DAY = int(os.environ.get("SEARCH_RECHECK_PER_DAY", "8"))
+RECHECK_AFTER_DAYS = 14
+
+
+def company_candidates(ctx, known, n=COMPANY_PER_DAY):
+    """Layer 2 of the design: websites of companies and research bodies in our base, not yet seen, a few a day.
+    No search query is spent; the first stage still sets aside a site that is not about defence."""
+    out = []
+    for host in sorted(ctx["company"] | ctx["rnd"]):
+        site = A.site_of(host)
+        if not site or site in known or site in C.AGGREGATORS:
+            continue
+        known.add(site)
+        out.append({"url": f"https://{host}/", "pool_group": "layer2", "prefilter": True,
+                    "found_via": {"channel": "base_company", "layer": "layer2",
+                                  "country": ctx["company_country"].get(host), "type_hint": "company_news"}})
+        if len(out) >= n:
+            break
+    return out
+
+
+def recheck_candidates(conn, n=RECHECK_PER_DAY, days=RECHECK_AFTER_DAYS):
+    """On-hold sources (stale, too few titles, undated) whose last check is older than `days`: checked again."""
+    cutoff = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=days)).isoformat()
+    rows = conn.execute(
+        "SELECT s.candidate_url FROM candidate_seen s WHERE s.last_decision='hold' AND s.decided_at < ? AND "
+        "(SELECT d.reasons_json FROM admission_decision d WHERE d.candidate_url=s.candidate_url "
+        " ORDER BY d.decision_id DESC LIMIT 1) NOT LIKE '%no_news_site%' ORDER BY s.decided_at LIMIT ?",
+        (cutoff, n)).fetchall()
+    return [{"url": u, "pool_group": "recheck", "found_via": {"channel": "recheck", "layer": "recheck"}}
+            for (u,) in rows]
 
 
 def main():
@@ -71,8 +105,11 @@ def main():
         http = HTTP(budget, enabled=True)
         engines = C.Engines(tavily=PR.tavily_api, gemini=lambda job: PR.gemini_grounded(job["query"]))
         t0 = time.time()
+        again = recheck_candidates(conn)
+        extra = company_candidates(ctx, known) + again
         cands, found, done, trace, _obs, counts, results = C.execute(
-            todo, engines, http, conn, known, use_feedsearch=True)
+            todo, engines, http, conn, known, use_feedsearch=True, extra=extra,
+            recheck={A.registry.canonical_url(c["url"]) for c in again})
         trace.update(http_requests=budget.requests, seconds=round(time.time() - t0),
                      engines_used=dict(engines.used), engines_off=sorted(engines.off))
         measure = C.measure_cycle(cands, found, results, known)

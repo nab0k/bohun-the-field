@@ -303,13 +303,14 @@ def network_up(waits=3, pause=60, hosts=("www.wikipedia.org", "www.google.com", 
     return False
 
 
-def execute(todo, search, http, conn, known, raw=None, use_feedsearch=False, network_pause=60):
+def execute(todo, search, http, conn, known, raw=None, use_feedsearch=False, network_pause=60, extra=(), recheck=()):
     """One cycle without files: search -> candidates -> observe (stops at a cap or a network outage) -> admit."""
     import observer as O
     candidates, found, done, trace = collect(todo, search, known, LIMITS["tavily"] + LIMITS.get("gemini", 0),
                                              LIMITS["new"], NEW_CAPS, raw)
     if isinstance(search, Engines):
         trace.update(engines_used=dict(search.used), engines_off=sorted(search.off))
+    candidates = candidates + list(extra)  # company websites of our base, on-hold sources due again (no search)
     observations, streak, queue, again = [], 0, list(candidates), []
     while queue:
         cand = queue.pop(0)
@@ -332,7 +333,7 @@ def execute(todo, search, http, conn, known, raw=None, use_feedsearch=False, net
             queue += [c for c in again if c not in queue][: len(failed)]
             trace["network_recovered"] = trace.get("network_recovered", 0) + 1
             streak = 0
-    counts, results = A.admit(conn, observations)
+    counts, results = A.admit(conn, observations, recheck=set(recheck))
     layer_of = {A.registry.canonical_url(c["url"]): c["found_via"] for c in candidates}
     for r in results:
         fv = layer_of.get(A.registry.canonical_url(r["candidate_url"])) or {}
