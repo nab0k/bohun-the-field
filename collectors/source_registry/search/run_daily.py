@@ -48,12 +48,13 @@ RECHECK_AFTER_DAYS = 14
 def company_candidates(ctx, known, n=COMPANY_PER_DAY):
     """Layer 2 of the design: websites of companies and research bodies in our base, not yet seen, a few a day.
     No search query is spent; the first stage still sets aside a site that is not about defence."""
-    out = []
+    out, taken = [], set()
     for host in sorted(ctx["company"] | ctx["rnd"]):
         site = A.site_of(host)
-        if not site or site in known or site in C.AGGREGATORS:
+        # cloud run 1: adding these to `known` made the measure count all 12 as re-issued known addresses
+        if not site or site in known or site in taken or site in C.AGGREGATORS:
             continue
-        known.add(site)
+        taken.add(site)
         out.append({"url": f"https://{host}/", "pool_group": "layer2", "prefilter": True,
                     "found_via": {"channel": "base_company", "layer": "layer2",
                                   "country": ctx["company_country"].get(host), "type_hint": "company_news"}})
@@ -111,7 +112,8 @@ def main():
             todo, engines, http, conn, known, use_feedsearch=True, extra=extra,
             recheck={A.registry.canonical_url(c["url"]) for c in again})
         trace.update(http_requests=budget.requests, seconds=round(time.time() - t0),
-                     engines_used=dict(engines.used), engines_off=sorted(engines.off))
+                     engines_used=dict(engines.used), engines_off=sorted(engines.off),
+                     engine_errors=dict(engines.errors))
         measure = C.measure_cycle(cands, found, results, known)
         measure["disputed_total"] = len(A.disputed_batch(conn))
         run = {"run_id": run_id, "started_at": started.isoformat(),
@@ -121,7 +123,8 @@ def main():
         written = pg_sync.save(pg, conn, ctx, run)
     # public log: counts only
     print(json.dumps({"trace": {k: trace.get(k) for k in ("queries", "failed", "http_requests", "seconds",
-                                                          "engines_used", "engines_off", "stop", "network_recovered")},
+                                                          "engines_used", "engines_off", "engine_errors", "stop",
+                                                          "network_recovered")},
                       "decisions": counts, "written": written,
                       "measure": {k: measure.get(k) for k in ("candidates", "n_countries", "n_types", "accepted_share",
                                                               "accepted_share_incl_general", "disputed_for_owner",

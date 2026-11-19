@@ -43,7 +43,7 @@ jobs:
       - name: Search cycle (shadow)
         env:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          GEMINI_SEARCH_API_KEY: ${{ secrets.GEMINI_FREE_API_KEY }}
+          GEMINI_SEARCH_API_KEY: ${{ secrets.GEMINI_SEARCH_API_KEY || secrets.GEMINI_FREE_API_KEY }}
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
         run: |
