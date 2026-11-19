@@ -1,0 +1,514 @@
+{
+ "version": "categories-0.1",
+ "prepared": "18.11.2026 Claude, по базе (14 тем, типы событий) — переводы подготовлены заранее, без модели в цикле; носителями не проверены, проверка — доля результатов на ожидаемом языке после первого цикла",
+ "base_counts_at": "2026-11-18 SELECT: события по главной теме, без повторов по заголовку (в базе 1 495 событий, 983 разных заголовка)",
+ "countries": {
+  "UA": {
+   "name_en": "Ukraine",
+   "lang": "uk",
+   "name_local": "Україна"
+  },
+  "PL": {
+   "name_en": "Poland",
+   "lang": "pl",
+   "name_local": "Polska"
+  },
+  "DE": {
+   "name_en": "Germany",
+   "lang": "de",
+   "name_local": "Deutschland"
+  },
+  "FR": {
+   "name_en": "France",
+   "lang": "fr",
+   "name_local": "France"
+  },
+  "ES": {
+   "name_en": "Spain",
+   "lang": "es",
+   "name_local": "España"
+  },
+  "IT": {
+   "name_en": "Italy",
+   "lang": "it",
+   "name_local": "Italia"
+  },
+  "NL": {
+   "name_en": "Netherlands",
+   "lang": "nl",
+   "name_local": "Nederland"
+  },
+  "SE": {
+   "name_en": "Sweden",
+   "lang": "sv",
+   "name_local": "Sverige"
+  },
+  "FI": {
+   "name_en": "Finland",
+   "lang": "fi",
+   "name_local": "Suomi"
+  },
+  "CZ": {
+   "name_en": "Czech Republic",
+   "lang": "cs",
+   "name_local": "Česko"
+  },
+  "RO": {
+   "name_en": "Romania",
+   "lang": "ro",
+   "name_local": "România"
+  },
+  "GB": {
+   "name_en": "United Kingdom",
+   "lang": "en",
+   "name_local": "UK"
+  }
+ },
+ "categories": {
+  "uncrewed": {
+   "kind": "tech",
+   "base_topic": "uncrewed-systems",
+   "base_events": 103,
+   "default_type": "media",
+   "terms": {
+    "en": "military drones",
+    "uk": "військові дрони",
+    "pl": "drony wojskowe",
+    "de": "Militärdrohnen",
+    "fr": "drones militaires",
+    "es": "drones militares",
+    "it": "droni militari",
+    "nl": "militaire drones",
+    "sv": "militära drönare",
+    "fi": "sotilasdroonit",
+    "cs": "vojenské drony",
+    "ro": "drone militare"
+   }
+  },
+  "naval": {
+   "kind": "tech",
+   "base_topic": "naval-shipbuilding",
+   "base_events": 116,
+   "default_type": "media",
+   "terms": {
+    "en": "naval shipbuilding",
+    "uk": "військове суднобудування",
+    "pl": "budowa okrętów",
+    "de": "Marineschiffbau",
+    "fr": "construction navale militaire",
+    "es": "construcción naval militar",
+    "it": "cantieristica navale militare",
+    "nl": "marinescheepsbouw",
+    "sv": "örlogsfartyg varv",
+    "fi": "sota-alusten rakentaminen",
+    "cs": "válečné lodě loděnice",
+    "ro": "construcții navale militare"
+   }
+  },
+  "c4isr": {
+   "kind": "tech",
+   "base_topic": "c4isr-sensors-communications",
+   "base_events": 50,
+   "default_type": "media",
+   "terms": {
+    "en": "military radar communications",
+    "uk": "військовий радар зв'язок",
+    "pl": "radar wojskowy łączność",
+    "de": "Militärradar Kommunikation",
+    "fr": "radar militaire communications",
+    "es": "radar militar comunicaciones",
+    "it": "radar militare comunicazioni",
+    "nl": "militaire radar communicatie",
+    "sv": "militär radar kommunikation",
+    "fi": "sotilastutka viestintä",
+    "cs": "vojenský radar komunikace",
+    "ro": "radar militar comunicații"
+   }
+  },
+  "munitions": {
+   "kind": "tech",
+   "base_topic": "us-munitions-ramp-up",
+   "base_events": 39,
+   "default_type": "media",
+   "terms": {
+    "en": "ammunition production",
+    "uk": "виробництво боєприпасів",
+    "pl": "produkcja amunicji",
+    "de": "Munitionsproduktion",
+    "fr": "production de munitions",
+    "es": "producción de munición",
+    "it": "produzione di munizioni",
+    "nl": "munitieproductie",
+    "sv": "ammunitionsproduktion",
+    "fi": "ammustuotanto",
+    "cs": "výroba munice",
+    "ro": "producție de muniție"
+   }
+  },
+  "aircraft": {
+   "kind": "tech",
+   "base_topic": "combat-aircraft-and-helicopters",
+   "base_events": 79,
+   "default_type": "media",
+   "terms": {
+    "en": "military aircraft helicopters",
+    "uk": "військові літаки гелікоптери",
+    "pl": "samoloty wojskowe śmigłowce",
+    "de": "Kampfflugzeuge Hubschrauber",
+    "fr": "avions militaires hélicoptères",
+    "es": "aviones militares helicópteros",
+    "it": "aerei militari elicotteri",
+    "nl": "gevechtsvliegtuigen helikopters",
+    "sv": "stridsflygplan helikoptrar",
+    "fi": "hävittäjät helikopterit",
+    "cs": "vojenská letadla vrtulníky",
+    "ro": "avioane militare elicoptere"
+   }
+  },
+  "space": {
+   "kind": "tech",
+   "base_topic": "space-tech-funding",
+   "base_events": 46,
+   "default_type": "media",
+   "terms": {
+    "en": "military space satellites",
+    "uk": "військові супутники",
+    "pl": "satelity wojskowe",
+    "de": "Militärsatelliten",
+    "fr": "satellites militaires",
+    "es": "satélites militares",
+    "it": "satelliti militari",
+    "nl": "militaire satellieten",
+    "sv": "militära satelliter",
+    "fi": "sotilassatelliitit",
+    "cs": "vojenské satelity",
+    "ro": "sateliți militari"
+   }
+  },
+  "land_systems": {
+   "kind": "tech",
+   "base_topic": "land-systems",
+   "base_events": 36,
+   "default_type": "media",
+   "terms": {
+    "en": "armoured vehicles",
+    "uk": "бронетехніка",
+    "pl": "pojazdy opancerzone",
+    "de": "Panzerfahrzeuge",
+    "fr": "véhicules blindés",
+    "es": "vehículos blindados",
+    "it": "veicoli blindati",
+    "nl": "pantservoertuigen",
+    "sv": "pansarfordon",
+    "fi": "panssariajoneuvot",
+    "cs": "obrněná vozidla",
+    "ro": "vehicule blindate"
+   }
+  },
+  "air_defence": {
+   "kind": "tech",
+   "base_topic": "european-air-missile-defence",
+   "base_events": 34,
+   "default_type": "media",
+   "terms": {
+    "en": "air and missile defence",
+    "uk": "протиповітряна оборона",
+    "pl": "obrona powietrzna",
+    "de": "Luftverteidigung",
+    "fr": "défense aérienne",
+    "es": "defensa aérea",
+    "it": "difesa aerea",
+    "nl": "luchtverdediging",
+    "sv": "luftvärn",
+    "fi": "ilmatorjunta",
+    "cs": "protivzdušná obrana",
+    "ro": "apărare antiaeriană"
+   }
+  },
+  "artillery": {
+   "kind": "tech",
+   "base_topic": "land-fires-rockets-artillery",
+   "base_events": 25,
+   "default_type": "media",
+   "terms": {
+    "en": "artillery rockets",
+    "uk": "артилерія ракети",
+    "pl": "artyleria rakiety",
+    "de": "Artillerie Raketen",
+    "fr": "artillerie roquettes",
+    "es": "artillería cohetes",
+    "it": "artiglieria razzi",
+    "nl": "artillerie raketten",
+    "sv": "artilleri raketer",
+    "fi": "tykistö raketit",
+    "cs": "dělostřelectvo rakety",
+    "ro": "artilerie rachete"
+   }
+  },
+  "training": {
+   "kind": "tech",
+   "base_topic": "nato-training-simulation",
+   "base_events": 30,
+   "default_type": "media",
+   "terms": {
+    "en": "military exercise simulation",
+    "uk": "військові навчання",
+    "pl": "ćwiczenia wojskowe",
+    "de": "Militärübung",
+    "fr": "exercice militaire",
+    "es": "ejercicio militar",
+    "it": "esercitazione militare",
+    "nl": "militaire oefening",
+    "sv": "militärövning",
+    "fi": "sotaharjoitus",
+    "cs": "vojenské cvičení",
+    "ro": "exercițiu militar"
+   }
+  },
+  "ew": {
+   "kind": "tech",
+   "base_topic": "electronic-warfare",
+   "base_events": 11,
+   "default_type": "media",
+   "terms": {
+    "en": "electronic warfare",
+    "uk": "радіоелектронна боротьба",
+    "pl": "walka elektroniczna",
+    "de": "elektronische Kampfführung",
+    "fr": "guerre électronique",
+    "es": "guerra electrónica",
+    "it": "guerra elettronica",
+    "nl": "elektronische oorlogvoering",
+    "sv": "telekrigföring",
+    "fi": "elektroninen sodankäynti",
+    "cs": "elektronický boj",
+    "ro": "război electronic"
+   }
+  },
+  "critical_materials": {
+   "kind": "tech",
+   "base_topic": "critical-materials-supply",
+   "base_events": 3,
+   "default_type": "media",
+   "terms": {
+    "en": "critical raw materials defence",
+    "uk": "критична сировина оборона",
+    "pl": "surowce krytyczne obronność",
+    "de": "kritische Rohstoffe Verteidigung",
+    "fr": "matières premières critiques défense",
+    "es": "materias primas críticas defensa",
+    "it": "materie prime critiche difesa",
+    "nl": "kritieke grondstoffen defensie",
+    "sv": "kritiska råvaror försvar",
+    "fi": "kriittiset raaka-aineet puolustus",
+    "cs": "kritické suroviny obrana",
+    "ro": "materii prime critice apărare"
+   }
+  },
+  "arctic": {
+   "kind": "tech",
+   "base_topic": "ca-arctic-connectivity",
+   "base_events": 1,
+   "default_type": "media",
+   "terms": {
+    "en": "Arctic defence surveillance",
+    "uk": "Арктика оборона",
+    "pl": "Arktyka obronność",
+    "de": "Arktis Verteidigung",
+    "fr": "Arctique défense",
+    "es": "Ártico defensa",
+    "it": "Artico difesa",
+    "nl": "Arctisch gebied defensie",
+    "sv": "Arktis försvar",
+    "fi": "arktinen puolustus",
+    "cs": "Arktida obrana",
+    "ro": "Arctica apărare"
+   },
+   "countries": [
+    "SE",
+    "FI",
+    "GB"
+   ]
+  },
+  "industrial_policy": {
+   "kind": "deal",
+   "base_topic": "defence-industrial-policy",
+   "base_events": 88,
+   "default_type": "agency",
+   "terms": {
+    "en": "defence industry policy",
+    "uk": "оборонно-промислова політика",
+    "pl": "polityka przemysłu obronnego",
+    "de": "Rüstungspolitik",
+    "fr": "politique industrielle de défense",
+    "es": "política industrial de defensa",
+    "it": "politica industriale della difesa",
+    "nl": "defensie-industrie beleid",
+    "sv": "försvarsindustri politik",
+    "fi": "puolustusteollisuus politiikka",
+    "cs": "obranný průmysl politika",
+    "ro": "politica industriei de apărare"
+   }
+  },
+  "contract": {
+   "kind": "deal",
+   "base_topic": null,
+   "base_events": 201,
+   "default_type": "media",
+   "terms": {
+    "en": "defence contract awarded",
+    "uk": "оборонний контракт",
+    "pl": "kontrakt zbrojeniowy",
+    "de": "Rüstungsauftrag",
+    "fr": "contrat de défense",
+    "es": "contrato de defensa",
+    "it": "contratto difesa",
+    "nl": "defensiecontract",
+    "sv": "försvarskontrakt",
+    "fi": "puolustushankinta sopimus",
+    "cs": "zbrojní zakázka",
+    "ro": "contract de apărare"
+   }
+  },
+  "procurement": {
+   "kind": "deal",
+   "base_topic": null,
+   "base_events": null,
+   "default_type": "procurement",
+   "terms": {
+    "en": "defence procurement tender",
+    "uk": "оборонні закупівлі тендер",
+    "pl": "przetarg zbrojeniowy",
+    "de": "Rüstungsbeschaffung Ausschreibung",
+    "fr": "appel d'offres défense",
+    "es": "licitación defensa",
+    "it": "gara appalto difesa",
+    "nl": "defensie aanbesteding",
+    "sv": "försvarsupphandling",
+    "fi": "puolustushankinnat tarjouskilpailu",
+    "cs": "veřejná zakázka obrana",
+    "ro": "achiziții apărare licitație"
+   }
+  },
+  "production": {
+   "kind": "deal",
+   "base_topic": null,
+   "base_events": 112,
+   "default_type": "media",
+   "terms": {
+    "en": "defence factory production",
+    "uk": "оборонне виробництво завод",
+    "pl": "fabryka zbrojeniowa produkcja",
+    "de": "Rüstungsfabrik Produktion",
+    "fr": "usine défense production",
+    "es": "fábrica defensa producción",
+    "it": "stabilimento difesa produzione",
+    "nl": "defensie fabriek productie",
+    "sv": "försvarsfabrik produktion",
+    "fi": "puolustusteollisuus tehdas",
+    "cs": "zbrojovka výroba",
+    "ro": "fabrică apărare producție"
+   }
+  },
+  "partnership": {
+   "kind": "deal",
+   "base_topic": null,
+   "base_events": 50,
+   "default_type": "media",
+   "terms": {
+    "en": "defence industry partnership joint venture",
+    "uk": "оборонне спільне підприємство",
+    "pl": "partnerstwo przemysł obronny",
+    "de": "Rüstung Joint Venture Partnerschaft",
+    "fr": "coentreprise défense partenariat",
+    "es": "empresa conjunta defensa",
+    "it": "joint venture difesa",
+    "nl": "defensie joint venture",
+    "sv": "försvarsindustri samarbetsavtal",
+    "fi": "puolustus yhteisyritys",
+    "cs": "obranný průmysl partnerství",
+    "ro": "parteneriat industrie de apărare"
+   }
+  },
+  "funding": {
+   "kind": "deal",
+   "base_topic": null,
+   "base_events": 49,
+   "default_type": "investment",
+   "terms": {
+    "en": "defence startup funding",
+    "uk": "оборонний стартап інвестиції",
+    "pl": "inwestycje startup obronny",
+    "de": "Verteidigung Startup Finanzierung",
+    "fr": "financement start-up défense",
+    "es": "financiación startup defensa",
+    "it": "finanziamento startup difesa",
+    "nl": "defensie startup financiering",
+    "sv": "försvar startup finansiering",
+    "fi": "puolustus startup rahoitus",
+    "cs": "obranný startup investice",
+    "ro": "finanțare startup apărare"
+   }
+  },
+  "export": {
+   "kind": "deal",
+   "base_topic": null,
+   "base_events": 15,
+   "default_type": "agency",
+   "terms": {
+    "en": "arms export licence",
+    "uk": "експорт зброї",
+    "pl": "eksport uzbrojenia",
+    "de": "Rüstungsexport",
+    "fr": "exportations d'armes",
+    "es": "exportación de armas",
+    "it": "esportazione armi",
+    "nl": "wapenexport",
+    "sv": "vapenexport",
+    "fi": "asevienti",
+    "cs": "vývoz zbraní",
+    "ro": "export de armament"
+   }
+  },
+  "exhibition": {
+   "kind": "deal",
+   "base_topic": null,
+   "base_events": null,
+   "default_type": "exhibition",
+   "terms": {
+    "en": "defence exhibition",
+    "uk": "оборонна виставка",
+    "pl": "targi zbrojeniowe",
+    "de": "Rüstungsmesse",
+    "fr": "salon défense",
+    "es": "feria de defensa",
+    "it": "fiera difesa",
+    "nl": "defensiebeurs",
+    "sv": "försvarsmässa",
+    "fi": "puolustusmessut",
+    "cs": "veletrh obranné techniky",
+    "ro": "expoziție apărare"
+   }
+  },
+  "appointment": {
+   "kind": "deal",
+   "base_topic": null,
+   "base_events": null,
+   "default_type": "company_news",
+   "terms": {
+    "en": "defence company appoints CEO",
+    "uk": "оборонна компанія призначила директора",
+    "pl": "nowy prezes spółki zbrojeniowej",
+    "de": "Rüstungskonzern neuer Chef",
+    "fr": "nomination directeur défense",
+    "es": "nombramiento director defensa",
+    "it": "nomina amministratore delegato difesa",
+    "nl": "defensiebedrijf benoemt directeur",
+    "sv": "försvarsföretag ny vd",
+    "fi": "puolustusyhtiö uusi toimitusjohtaja",
+    "cs": "zbrojní firma nový ředitel",
+    "ro": "numire director companie apărare"
+   }
+  }
+ }
+}
