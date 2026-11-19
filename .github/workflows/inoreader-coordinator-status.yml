@@ -1,0 +1,28 @@
+name: Inoreader coordinator status (read-only, manual)
+# 19.11: the collector answers HOLD since 18.11 18:55 UTC. One POST /v1/status to the shared state Worker: changes
+# nothing, prints only lease/revision/generation and OAuth metadata (no endpoint, token or credential). Manual only.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  status:
+    if: github.repository == 'nab0k/bohun-the-field' && github.actor == 'nab0k'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13'
+      - name: Offline test
+        run: python -B -m unittest tests.test_inoreader_coordinator_status
+      - name: Status (read-only)
+        env:
+          SOURCE_DISCOVERY_CONFIG: ${{ secrets.SOURCE_DISCOVERY_CONFIG }}
+          SOURCE_DISCOVERY_STATE_TOKEN: ${{ secrets.SOURCE_DISCOVERY_STATE_TOKEN }}
+        run: |
+          set +x
+          python -B -I scripts/inoreader-coordinator-status.py
