@@ -60,17 +60,37 @@ def _is_feed(response):
         response.body.lstrip()[:200].lower().startswith((b"<?xml", b"<rss", b"<feed"))
 
 
+# 0.7 (review of the 95 accepted, 19.11): never a delivery - a comments feed (dutchdefencepress.com/comments/feed),
+# an address with a session id (ukdefenceforum.net ...?sid=), partner adverts (meta-defense.fr/.../annonces-partenaires)
+# or an events-only section (thedefender.media/.../events)
+BAD_DELIVERY = re.compile(r"(^|/)comments?(/|$)|[?&](sid|phpsessid|sessionid|jsessionid)=|partenaire|sponsor|"
+                          r"advertor|annonces|(^|/)(events?|agenda|evenements|veranstaltungen)(/|$)", re.I)
+
+
+def bad_delivery(url):
+    parts = urlsplit(url or "")
+    return bool(BAD_DELIVERY.search(parts.path + ("?" + parts.query if parts.query else "")))
+
+
+def in_section(url, section):
+    """A delivery for a judged defence section must lie inside it (aerospacetestinginternational.com: the section
+    /news/defense announced the whole-site /feed, which was accepted at a 0.20 defence share)."""
+    a, b = urlsplit(url), urlsplit(section)
+    return a.hostname.removeprefix("www.") == (b.hostname or "").removeprefix("www.") and \
+        a.path.rstrip("/").startswith(b.path.rstrip("/"))
+
+
 def section_links(home, body):
     page = cycle.html_links(body)
     host = urlsplit(home).hostname.removeprefix("www.")
     out, later = [], []
     for href in page.alternates:
         url = cycle.safe_link(home, href)
-        if url and urlsplit(url).hostname.removeprefix("www.") == host:
+        if url and urlsplit(url).hostname.removeprefix("www.") == host and not bad_delivery(url):
             out.append((url, "feed"))
     for href, label in page.links:
         url = cycle.safe_link(home, href)
-        if not url or url == home or urlsplit(url).hostname.removeprefix("www.") != host:
+        if not url or url == home or urlsplit(url).hostname.removeprefix("www.") != host or bad_delivery(url):
             continue
         if SECTION.search(folded(label).lower()):
             out.append((url, "page"))
@@ -249,14 +269,16 @@ def observe(candidate, http, max_targets=3, use_feedsearch=False):
         try:  # the section's own feed, when its page announces one, comes first
             sec = http.request(judged_section, robots=True, limit=HOME_LIMIT)
             if sec.status == 200 and _mime(sec) == "text/html":
-                feeds = [(u, r) for u, r in section_links(cycle.channel_url(sec.url), sec.body) if r == "feed"]
+                feeds = [(u, r) for u, r in section_links(cycle.channel_url(sec.url), sec.body)
+                         if r == "feed" and in_section(u, judged_section)]
                 targets = feeds[:2] + targets
         except Problem as exc:
             if str(exc) in STOP:
                 raise
-    if not any(route == "page" for _, route in targets):
-        targets += [(root + g, "section_guess") for g in SECTION_GUESSES]
-    targets += [(root + g, "guess") for g in FEED_GUESSES]
+    if not judged_section:  # 0.7: guesses at the site root would deliver the whole general site
+        if not any(route == "page" for _, route in targets):
+            targets += [(root + g, "section_guess") for g in SECTION_GUESSES]
+        targets += [(root + g, "guess") for g in FEED_GUESSES]
     for target, route in targets:
         try:
             r = http.request(target, robots=True, limit=HOME_LIMIT)
@@ -269,6 +291,8 @@ def observe(candidate, http, max_targets=3, use_feedsearch=False):
         turl = cycle.channel_url(r.url)
         if urlsplit(turl).hostname.removeprefix("www.") != urlsplit(final).hostname.removeprefix("www."):
             continue
+        if bad_delivery(turl) or (judged_section and not in_section(turl, judged_section)):
+            continue
         if _is_feed(r):
             items = feed_items(r, turl)
             if len(items) >= 2:
@@ -280,13 +304,13 @@ def observe(candidate, http, max_targets=3, use_feedsearch=False):
                 obs.update(delivery="page", delivery_url=turl, items=items)
                 return obs
             undated = undated or (turl, undated_section_items(r.body, turl))
-    if _ready is not None and use_feedsearch:  # feedsearch-crawler: own fetches, robots respected, 1 at a time
+    if _ready is not None and use_feedsearch and not judged_section:  # feedsearch-crawler: own fetches, robots, 1 at a time
         try:
             found = _ready.find_feeds(final)
         except Exception:  # noqa: BLE001 - the crawler failing must not stop the cycle
             found = []
         obs["feedsearch"] = len(found)
-        for feed_url, _score in found[:2]:
+        for feed_url, _score in [f for f in found if not bad_delivery(f[0])][:2]:
             if urlsplit(feed_url).hostname.removeprefix("www.") != urlsplit(final).hostname.removeprefix("www."):
                 continue
             try:

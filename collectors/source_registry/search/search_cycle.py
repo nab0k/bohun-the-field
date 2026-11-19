@@ -278,7 +278,9 @@ def measure_cycle(candidates, found, results, known=()):
         "disputed_for_owner": sum(r["decision"] == "disputed" for r in results),
         # A1SD acceptance is about sources found by search; company websites of our base (layer2) and re-checks
         # are reported apart (19.11: they are known entities, mostly without news, and pulled the share down)
-        "accepted_share_search": share_of([r for r in results if r.get("found_via_layer") not in ("layer2", "recheck")]),
+        "accepted_share_search": share_of([r for r in results
+                                           if r.get("found_via_layer") not in ("layer2", "recheck", "audit")]),
+        "audit": dict(Counter(r["decision"] for r in results if r.get("found_via_layer") == "audit")),
         "accepted_share_layer2": share_of([r for r in results if r.get("found_via_layer") == "layer2"]),
         "known_reissued": reissued(candidates, known),
         "saturation": round(sum(f["known"] for f in found) / len(found), 3) if found else None,
@@ -287,7 +289,7 @@ def measure_cycle(candidates, found, results, known=()):
         "decisions_by_engine": {f"{e}:{d}": n for (e, d), n in Counter(
             (r.get("found_via_engine"), r["decision"]) for r in results).items()},
         "a1sd_cycle_ok": len(countries) >= 10 and len(types) >= 5 and not reissued(candidates, known)
-                         and (share_of([r for r in results if r.get("found_via_layer") not in ("layer2", "recheck")])
+                         and (share_of([r for r in results if r.get("found_via_layer") not in ("layer2", "recheck", "audit")])
                               or 0) >= 0.30,
     }
 
@@ -335,7 +337,8 @@ def network_up(waits=3, pause=60, hosts=("www.wikipedia.org", "www.google.com", 
     return False
 
 
-def execute(todo, search, http, conn, known, raw=None, use_feedsearch=False, network_pause=60, extra=(), recheck=()):
+def execute(todo, search, http, conn, known, raw=None, use_feedsearch=False, network_pause=60, extra=(), recheck=(),
+            audit=()):
     """One cycle without files: search -> candidates -> observe (stops at a cap or a network outage) -> admit."""
     import observer as O
     candidates, found, done, trace = collect(todo, search, known, sum(LIMITS.get(e, 0) for e in ("tavily", "gemini", "gdelt", "wikidata", "jina", "exa")),
@@ -365,7 +368,7 @@ def execute(todo, search, http, conn, known, raw=None, use_feedsearch=False, net
             queue += [c for c in again if c not in queue][: len(failed)]
             trace["network_recovered"] = trace.get("network_recovered", 0) + 1
             streak = 0
-    counts, results = A.admit(conn, observations, recheck=set(recheck))
+    counts, results = A.admit(conn, observations, recheck=set(recheck), audit=set(audit))
     layer_of = {A.registry.canonical_url(c["url"]): c["found_via"] for c in candidates}
     for r in results:
         fv = layer_of.get(A.registry.canonical_url(r["candidate_url"])) or {}
