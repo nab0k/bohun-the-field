@@ -2,6 +2,7 @@
 import datetime as dt
 import sys
 import unittest
+import urllib.error
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent.parent
@@ -70,6 +71,41 @@ class Parse(unittest.TestCase):
             self.assertEqual(j("s.example", "S", pairs)["by"], "good")
         self.assertEqual(calls.count("bad"), 2)
         self.assertEqual(j.off, {"bad"})
+
+    def test_rate_limit_waits_access_denied_switches_off_at_once(self):
+        def http_error(code):
+            return urllib.error.HTTPError("https://x", code, "x", {}, None)
+        answers = {"limited": [http_error(429)] * 3 + [None], "denied": [http_error(403)]}
+        calls = []
+
+        def ask(p, prompt):
+            calls.append(p[0])
+            seq = answers.get(p[0])
+            exc = seq.pop(0) if seq else None
+            if exc:
+                raise exc
+            return '{"specialised": true, "type": "media", "defence_section": null, "confidence": 0.9}'
+        j = J.Judge(providers=[("denied", None, "k", "m"), ("limited", None, "k", "m"), ("good", None, "k", "m")],
+                    ask=ask, pause=0)
+        pairs = [(f"https://s.example/{i}", f"Headline number {i} here") for i in range(6)]
+        by = [j("s.example", "S", pairs)["by"] for _ in range(4)]
+        self.assertEqual(by, ["good", "good", "good", "limited"])
+        self.assertEqual(calls.count("denied"), 1)
+        self.assertEqual(j.off, {"denied"})
+
+    def test_named_user_agent_is_sent(self):
+        seen = {}
+
+        def fake_urlopen(req, timeout=0):
+            seen.update(req.header_items())
+            raise urllib.error.URLError("offline")
+        real, J.urllib.request.urlopen = J.urllib.request.urlopen, fake_urlopen
+        try:
+            with self.assertRaises(urllib.error.URLError):
+                J._ask(("groq", "https://api.groq.com/openai/v1/chat/completions", "k", "m"), "p")
+        finally:
+            J.urllib.request.urlopen = real
+        self.assertTrue(seen.get("User-agent", "").startswith("bohun-source-search/"))
 
 
 class FirstStage(unittest.TestCase):
