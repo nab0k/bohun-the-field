@@ -27,7 +27,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import registry  # noqa: E402
 
-RULES_VERSION = "a2sa-shadow-0.6"  # 0.2: fixes after the 18.11 shadow run; 0.3: no-news sites kept (D-20261118-A1SD-NO-NEWS-KEEP)
+RULES_VERSION = "a2sa-shadow-0.7"  # 0.2: fixes after the 18.11 shadow run; 0.3: no-news sites kept (D-20261118-A1SD-NO-NEWS-KEEP)
 FRESH_DAYS = 60
 REJECT_COOLDOWN_DAYS = 90
 TOPIC_MIN_SHARE = 0.20
@@ -50,6 +50,20 @@ CCTLD = {"ua": "UA", "pl": "PL", "de": "DE", "fr": "FR", "uk": "GB", "it": "IT",
          "ca": "CA", "au": "AU", "nz": "NZ", "jp": "JP", "kr": "KR", "tr": "TR", "il": "IL", "in": "IN", "si": "SI",
          "hr": "HR", "md": "MD", "ge": "GE", "lu": "LU", "is": "IS", "rs": "RS", "br": "BR", "mx": "MX", "sg": "SG",
          "tw": "TW", "za": "ZA", "ae": "AE", "sa": "SA", "ru": "RU", "cn": "CN", "by": "BY"}
+# 0.7 (review of the 95 accepted, 19.11): a national language says the country when host and hints say nothing
+# (adriadefense.com, defensehere.com/tr were "international"). English, French, Spanish, German, Russian are spoken in
+# many countries and say nothing.
+LANG_COUNTRY = {"uk": "UA", "pl": "PL", "cs": "CZ", "sk": "SK", "ro": "RO", "it": "IT", "nl": "NL", "sv": "SE",
+                "fi": "FI", "da": "DK", "no": "NO", "nb": "NO", "et": "EE", "lv": "LV", "lt": "LT", "hu": "HU",
+                "bg": "BG", "el": "GR", "hr": "HR", "sl": "SI", "sr": "RS", "tr": "TR", "pt": "PT", "ka": "GE",
+                "hy": "AM", "is": "IS", "mk": "MK", "sq": "AL", "be": "BY"}
+# 0.7: official defence hosts that the gov/mil pattern misses (defensie.nl, defmin.fi were typed "media")
+OFFICIAL_SITES = {"defensie.nl", "defmin.fi", "mapn.ro", "bmvg.de", "bundeswehr.de", "defense.gouv.fr", "difesa.it",
+                  "defensa.gob.es", "mod.gov.ua", "mil.by", "army.cz", "mo.gov.cz", "forsvarsmakten.se",
+                  "puolustusvoimat.fi", "forsvaret.no", "fmn.dk", "mil.gov.ua", "rnbo.gov.ua", "mon.gov.pl",
+                  "mod.gov.uk", "defence.gouv.fr", "mindef.nl", "defensie.be", "mil.be", "bundesheer.at", "vtg.admin.ch",
+                  "kam.lt", "mod.gov.lv", "mod.gov.ee", "mod.gov.ro", "mod.bg", "morh.hr", "mors.si", "mosr.sk",
+                  "honvedelem.hu", "mod.mil.gr", "defesa.gov.pt", "msb.gov.tr", "ssb.gov.tr"}
 STOPWORDS = {
     "en": {"the", "and", "of", "to", "for", "in", "on", "with", "new", "is"},
     "pl": {"i", "w", "na", "z", "do", "się", "dla", "nie", "oraz", "jest"},
@@ -128,7 +142,7 @@ def _detect_language_rules(titles, html_lang):
     return (tag, "tag_only") if tag else (None, "unknown")
 
 
-def detect_country(host, guessed, page_country):
+def detect_country(host, guessed, page_country, lang=None):
     tld = (host or "").rsplit(".", 1)[-1]
     hints = {h for h in (CCTLD.get(tld), (guessed or "").upper() or None, (page_country or "").upper() or None) if h}
     hints = {h for h in hints if h not in registry.INTERNATIONAL}
@@ -136,6 +150,8 @@ def detect_country(host, guessed, page_country):
         return hints.pop(), "single_basis"
     if len(hints) > 1:
         return "international", "several_countries"
+    if lang in LANG_COUNTRY:
+        return LANG_COUNTRY[lang], "language"
     return "international", "no_single_country"
 
 
@@ -161,8 +177,11 @@ def guess_type(candidate, host, delivery_url, site_name=None):
     if t in TYPES:
         return t, "candidate"
     h, path = host or "", urlsplit(delivery_url or "").path.lower()
-    if re.search(r"(^|\.)(gov|mil|gouv|gob|bund|mod)\.|\.gov(\.[a-z]{2})?$|\.mil$", h):
+    if re.search(r"(^|\.)(gov|mil|gouv|gob|bund|mod)\.|\.gov(\.[a-z]{2})?$|\.mil$", h) or site_of(h) in OFFICIAL_SITES:
         return "agency", "host"
+    site = site_of(h)
+    if site in BASE["company"] or h in BASE["company"]:  # 0.7: our base before name words (saab.com was "media")
+        return "company_news", "base_company"
     if re.search(r"tender|procure|zamowien|vergabe|marches", h + path):
         return "procurement", "host_or_path"
     if re.search(r"grant|funding", h + path):
@@ -177,14 +196,15 @@ def guess_type(candidate, host, delivery_url, site_name=None):
                  r"think tank|marshall fund|council on|centre for|center for|war on the rocks|stiftung|fondation|"
                  r"\bresearch\b|foundation for research|forschungsgesellschaft", name):
         return "research", "site_name"
-    if re.search(r"ministry|ministerstvo|ministerstwo|ministère|ministerio|ministero|ministerium|ministeerium|"
+    # 0.7: a journal/magazine/news site named after the army is media, not the agency (bundeswehr-journal.de)
+    if not re.search(r"journal|magazin|news|zeitung|times|post\b|media|blog|revue|rivista|gazet|tidning|lehti", name) \
+            and re.search(r"ministry|ministerstvo|ministerstwo|ministère|ministerio|ministero|ministerium|ministeerium|"
                  r"ministerie|departement|department of defen|armed forces|bundeswehr|agency|agentur|agence|agencia|"
                  r"keskus|centre for defence|defence materiel|procurement|zamówień|beschaffung|direction générale", name):
         return "agency", "site_name"
     if re.search(r"association|federation|federacja|asociaci|associazione|verband|chamber|izba|cluster|"
                  r"\bunion\b|syndicat|gifas|asd-europe|bdsv", h + " " + name):
         return "association", "host_or_site_name"
-    site = site_of(h)  # 18.11 after cycle 2: our own company base is evidence, a query is not
     if site in BASE["rnd"] or h in BASE["rnd"]:
         return "research", "base_rnd"
     # cycle 5: "expo" matched "export" (forsvarsexport.se); "worlddefenseshow" was missed
@@ -297,7 +317,7 @@ def decide(obs, known, now=None):
         return out("disputed", "language_uncertain", **base)
     checks.append({"check": 4, "result": "pass", "language": lang, "basis": lang_basis})
     # 5 country: never a rejection
-    country, country_basis = detect_country(host, cand.get("guessed_country"), obs.get("page_country"))
+    country, country_basis = detect_country(host, cand.get("guessed_country"), obs.get("page_country"), lang)
     checks.append({"check": 5, "result": "pass", "country": country, "basis": country_basis})
     base.update(language=lang, country=country)
     # 6 duplicate
@@ -401,8 +421,13 @@ def known_in(conn):
     return known
 
 
-def admit(conn, observations, now=None, redecide=(), recheck=()):
-    """One cycle. One transaction per decision; a candidate rejected less than 90 days ago is not re-decided."""
+def admit(conn, observations, now=None, redecide=(), recheck=(), audit=()):
+    """One cycle. One transaction per decision; a candidate rejected less than 90 days ago is not re-decided.
+    audit (0.7, owner 19.11 "Да, чисти"): accepted sources checked again under the current rules and the judge. Their
+    own channel does not count as "already known"; when the new decision is not to accept that same channel, the old
+    channel leaves the accepted list (general outlet, on hold ...; a wrong delivery replaced by a better one on the same
+    site is "rejected" as a delivery - no new status, so the shadow schema stays as it is).
+    A transient failure keeps the source as it was."""
     now = now or now_utc()
     counts = {"accept": 0, "reject": 0, "disputed": 0, "hold": 0, "general": 0, "retry": 0, "skipped_recent_reject": 0,
               "skipped_decided": 0}
@@ -422,11 +447,21 @@ def admit(conn, observations, now=None, redecide=(), recheck=()):
             pass  # decided under older rules (e.g. 0.4 disputed) -> decide again under the current ones
         elif seen and seen[0] == "hold" and curl in recheck:
             pass  # on hold (stale, few titles, undated) and due for its next check
+        elif seen and seen[0] == "accept" and curl in audit:
+            pass  # accepted under older rules or without the judge: checked again
         elif seen and seen[0] in ("accept", "disputed", "hold", "general"):
             counts["skipped_decided"] += 1
             continue
         obs = {**obs, "prior_transient": seen[2] if seen else 0}
-        rec = decide(obs, known, now)
+        old = None
+        if curl in audit and seen:
+            old = conn.execute("SELECT channel_id FROM candidate_seen WHERE candidate_url=?", (curl,)).fetchone()[0]
+        rec = decide(obs, (lambda c, h, _o=old: (None, None) if _o and known(c, h)[1] == _o else known(c, h))
+                     if old else known, now)
+        if old and rec["decision"] == "retry":
+            counts["retry"] += 1
+            results.append(rec)
+            continue  # 0.7: a site that did not answer today keeps its accepted channel
         counts[rec["decision"]] += 1
         stamp = now.isoformat()
         with transaction(conn):
@@ -434,10 +469,16 @@ def admit(conn, observations, now=None, redecide=(), recheck=()):
             if rec["decision"] in STATUS and rec.get("delivery_url"):
                 channel = registry.channel_id_for(rec["delivery_url"])
                 conn.execute("INSERT INTO source_state VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(channel_id) DO UPDATE SET "
-                             "status=excluded.status, since=excluded.since, rules_version=excluded.rules_version "
-                             "WHERE source_state.status IN ('candidate', 'on_hold')",
+                             "status=excluded.status, since=excluded.since, rules_version=excluded.rules_version, "
+                             "type=excluded.type, country=excluded.country, language=excluded.language "
+                             "WHERE source_state.status IN ('candidate', 'on_hold') OR source_state.channel_id=?",
                              (channel, rec["delivery_url"], status_of(rec), rec.get("type"), rec.get("delivery"),
-                              rec.get("country"), rec.get("language"), stamp, RULES_VERSION))
+                              rec.get("country"), rec.get("language"), stamp, RULES_VERSION, old))
+            if old and old != channel:  # the audited source's old channel leaves the accepted list
+                conn.execute("UPDATE source_state SET status=?, since=?, rules_version=? WHERE channel_id=? AND "
+                             "status='accepted'", ("rejected" if rec["decision"] == "accept" else
+                                                   status_of(rec) if rec["decision"] in STATUS else "candidate",
+                                                   stamp, RULES_VERSION, old))
             transient = (seen[2] if seen else 0) + (1 if rec["decision"] == "retry" else 0)
             conn.execute("INSERT INTO candidate_seen VALUES (?,?,?,?,?) ON CONFLICT(candidate_url) DO UPDATE SET "
                          "last_decision=excluded.last_decision, decided_at=excluded.decided_at, "

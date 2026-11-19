@@ -86,6 +86,27 @@ def accepted_sites(conn):
     return out
 
 
+AUDIT_PER_DAY = int(os.environ.get("SEARCH_AUDIT_PER_DAY", "25"))
+
+
+def audit_candidates(conn, n=AUDIT_PER_DAY):
+    """0.7 (owner 19.11 "Да, чисти"): accepted sources decided under older rules or without the judge's verdict are
+    checked again, oldest first; the owner's own accepts stay. Returns [(candidate, old_channel)]."""
+    rows = conn.execute(
+        "SELECT s.candidate_url, s.channel_id, d.rules_version, d.record_json, d.reasons_json FROM candidate_seen s "
+        "JOIN admission_decision d ON d.decision_id=(SELECT max(decision_id) FROM admission_decision x "
+        "WHERE x.candidate_url=s.candidate_url) WHERE s.last_decision='accept' ORDER BY s.decided_at").fetchall()
+    out = []
+    for url, channel, rules, record, reasons in rows:
+        if "owner_accept" in (reasons or "") or (rules == A.RULES_VERSION and '"judge"' in (record or "")):
+            continue
+        out.append(({"url": url, "pool_group": "audit", "prefilter": True,
+                     "found_via": {"channel": "audit", "layer": "audit"}}, channel))
+        if len(out) >= n:
+            break
+    return out
+
+
 COMPANY_PER_DAY = int(os.environ.get("SEARCH_COMPANY_PER_DAY", "12"))
 RECHECK_PER_DAY = int(os.environ.get("SEARCH_RECHECK_PER_DAY", "8"))
 RECHECK_AFTER_DAYS = 14
@@ -183,10 +204,12 @@ def main():
         engines = C.Engines(tavily=PR.tavily_api, gemini=lambda job: PR.gemini_grounded(job["query"]))
         t0 = time.time()
         again = recheck_candidates(conn)
-        extra = company_candidates(ctx, known) + again
+        audit = audit_candidates(conn)
+        extra = company_candidates(ctx, known) + again + [c for c, _ in audit]
         cands, found, done, trace, _obs, counts, results = C.execute(
             todo, engines, http, conn, known, use_feedsearch=True, extra=extra,
-            recheck={A.registry.canonical_url(c["url"]) for c in again})
+            recheck={A.registry.canonical_url(c["url"]) for c in again},
+            audit={A.registry.canonical_url(c["url"]) for c, _ in audit})
         trace.update(http_requests=budget.requests, seconds=round(time.time() - t0),
                      engines_used=dict(engines.used), engines_off=sorted(engines.off),
                      engine_errors=dict(engines.errors),
@@ -201,7 +224,8 @@ def main():
                "finished_at": dt.datetime.now(dt.timezone.utc).isoformat(), "where_run": "github" if
                os.environ.get("GITHUB_RUN_ID") else "local", "plan": plan, "trace": trace,
                "measure": measure, "done_jobs": done,
-               "learning": L.rows_for_run(run_id, job_stats, results)}
+               "learning": L.rows_for_run(run_id, job_stats, results),
+               "audited_channels": [ch for _, ch in audit if ch]}
         written = pg_sync.save(pg, conn, ctx, run)
     # public log: counts only
     print(json.dumps({"trace": {k: trace.get(k) for k in ("queries", "failed", "http_requests", "seconds",
@@ -213,7 +237,7 @@ def main():
                                                               "accepted_share_search", "accepted_share_layer2",
                                                               "accepted_share_incl_general", "disputed_for_owner",
                                                               "known_reissued", "saturation", "a1sd_cycle_ok",
-                                                              "a1sd_streak")},
+                                                              "a1sd_streak", "audit")},
                       "learning": {k: plan["learning"].get(k) for k in ("mode", "window_jobs", "asleep", "quotas")}}))
 
 

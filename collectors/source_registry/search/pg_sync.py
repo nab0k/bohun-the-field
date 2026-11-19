@@ -130,7 +130,8 @@ def save(pg, conn, ctx, run):
                         "on conflict (channel_id) do update set status=excluded.status, since=excluded.since, "
                         "rules_version=excluded.rules_version, type=excluded.type, delivery=excluded.delivery, "
                         "country=excluded.country, language=excluded.language "
-                        "where source_discovery.source_state.status in ('candidate', 'on_hold')", r)
+                        "where source_discovery.source_state.status in ('candidate', 'on_hold') "
+                        "or source_discovery.source_state.channel_id = any(%s)", (*r, run.get("audited_channels", [])))
         for r in seen:
             cur.execute("insert into source_discovery.candidate_seen values (%s,%s,%s,%s,%s) on conflict (candidate_url) "
                         "do update set last_decision=excluded.last_decision, decided_at=excluded.decided_at, "
