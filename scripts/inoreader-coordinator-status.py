@@ -22,6 +22,9 @@ def request_status(document, token, opener=urllib.request.urlopen):
     if not ENDPOINT.fullmatch(endpoint):
         raise ValueError("endpoint")
     req = urllib.request.Request(endpoint + "/v1/status", data=b"{}", method="POST", headers={
+        # run 44630120368: Cloudflare answered 403 to the default Python agent (the Worker itself never says 403);
+        # the coordinator's own transport sends this agent (collectors/source_registry/discovery/radars.py)
+        "User-Agent": "BOHUN-Source-Discovery/1.0",
         "Authorization": "Bearer " + token, "Content-Type": "application/json",
         "X-Deployment": document["runtime"]["deployment_id"], "X-Code-Sha256": document["code_sha256"],
         "X-Policy-Sha256": document["policy_sha256"]})
