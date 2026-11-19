@@ -1,0 +1,55 @@
+name: BOHUN source search (A1SD-02, shadow)
+# D-20261119-A1SD-DAILY-CLOUD: one bounded search cycle a day into the shadow registry (Supabase schema
+# source_discovery). Nothing reaches product tables, collection or Inoreader. Manual only for now: the daily
+# schedule is switched on by a separate owner decision. Public repository: the log carries counts only.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Read the state and plan only: no search, no site, no write'
+        type: boolean
+        default: true
+        required: false
+  # schedule:
+  #   - cron: '40 4 * * *'
+permissions:
+  contents: read
+concurrency:
+  group: bohun-source-search
+  cancel-in-progress: false
+jobs:
+  search:
+    if: github.repository == 'nab0k/bohun-the-field' && (github.event_name == 'schedule' || github.actor == 'nab0k')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13'
+      - name: Pinned dependencies (feeds, language, feed finder, PostgreSQL driver)
+        run: |
+          python -m venv "$RUNNER_TEMP/search"
+          "$RUNNER_TEMP/search/bin/python" -m pip install --disable-pip-version-check --only-binary=:all: 'psycopg[binary]==3.3.6'
+          "$RUNNER_TEMP/search/bin/python" -m pip install --disable-pip-version-check \
+            'feedparser==6.0.14' 'lingua-language-detector==2.2.0' 'feedsearch-crawler==2.1.8'
+      - name: Offline tests (no network, no database)
+        run: |
+          for t in collectors/source_registry/search/tests/test_*.py; do "$RUNNER_TEMP/search/bin/python" -I "$t"; done
+      - name: Search cycle (shadow)
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          GEMINI_SEARCH_API_KEY: ${{ secrets.GEMINI_FREE_API_KEY }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+        run: |
+          set +x
+          if [ "$DRY_RUN" = "true" ]; then
+            "$RUNNER_TEMP/search/bin/python" -I collectors/source_registry/search/run_daily.py --dry-run
+          else
+            "$RUNNER_TEMP/search/bin/python" -I collectors/source_registry/search/run_daily.py
+          fi
