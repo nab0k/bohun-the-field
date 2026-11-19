@@ -66,19 +66,25 @@ def general_sites(conn):
     return out
 
 
-def assign_engines(todo, gemini_share):
-    """Inside each layer alternate Gemini and Tavily until the layer's Gemini share is used: both engines see the
-    same kinds of questions (comparison 19.11: they barely overlap, so each finds what the other misses)."""
-    total = Counter(j["layer"] for j in todo)
+FIXED_ENGINES = ("gdelt", "wikidata", "exa")  # the layer fixes the engine
+
+
+def assign_engines(todo, gemini_share, jina_share=None):
+    """Inside each layer rotate Gemini, Jina and Tavily until each engine's share of the layer is used: the engines
+    see the same kinds of questions (comparison 19.11: they barely overlap, so each finds what the other misses)."""
+    shares = {"gemini": gemini_share, "jina": jina_share or {}}
+    total = Counter(j["layer"] for j in todo if j.get("engine") not in FIXED_ENGINES)
     seen, given = Counter(), Counter()
     for job in todo:
-        layer = job["layer"]
-        want, left = gemini_share.get(layer, 0) - given[layer], total[layer] - seen[layer]
-        if job.get("engine") in ("gdelt", "wikidata"):  # open bases: the layer fixes the engine
-            seen[layer] += 1
+        if job.get("engine") in FIXED_ENGINES:
             continue
-        job["engine"] = "gemini" if want > 0 and (seen[layer] % 2 == 0 or want >= left) else "tavily"
-        given[layer] += job["engine"] == "gemini"
+        layer = job["layer"]
+        left = total[layer] - seen[layer]
+        need = {e: max(0, s.get(layer, 0) - given[(e, layer)]) for e, s in shares.items()}
+        need["tavily"] = max(0, left - sum(need.values()))
+        active = [e for e in ("gemini", "jina", "tavily") if need[e] > 0] or ["tavily"]
+        job["engine"] = active[seen[layer] % len(active)]
+        given[(job["engine"], layer)] += 1
         seen[layer] += 1
     return todo
 
@@ -90,6 +96,8 @@ class Engines:
     def __init__(self, tavily=None, gemini=None):
         import providers as PR
         self.fn = {"tavily": tavily or tavily_cli, "gemini": gemini or (lambda job: PR.gemini_grounded(job["query"])),
+                   "jina": lambda job: PR.jina_search(job["query"]),
+                   "exa": lambda job: PR.exa_similar(job["site_url"]),
                    "gdelt": lambda job: PR.gdelt(job["query"], job.get("gdelt_country")),
                    "wikidata": lambda job: (PR.wikidata_companies if job.get("role") == "companies"
                                             else PR.wikidata_officials)(job.get("iso") or job["qid"])}
@@ -330,7 +338,7 @@ def network_up(waits=3, pause=60, hosts=("www.wikipedia.org", "www.google.com", 
 def execute(todo, search, http, conn, known, raw=None, use_feedsearch=False, network_pause=60, extra=(), recheck=()):
     """One cycle without files: search -> candidates -> observe (stops at a cap or a network outage) -> admit."""
     import observer as O
-    candidates, found, done, trace = collect(todo, search, known, sum(LIMITS.get(e, 0) for e in ("tavily", "gemini", "gdelt", "wikidata")),
+    candidates, found, done, trace = collect(todo, search, known, sum(LIMITS.get(e, 0) for e in ("tavily", "gemini", "gdelt", "wikidata", "jina", "exa")),
                                              LIMITS["new"], NEW_CAPS, raw)
     if isinstance(search, Engines):
         trace.update(engines_used=dict(search.used), engines_off=sorted(search.off))

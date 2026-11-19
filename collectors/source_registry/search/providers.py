@@ -7,6 +7,7 @@ never printed, logged or stored (the reports keep hosts and titles only). Plain 
 """
 import json
 import os
+import re
 import time
 import urllib.error
 import urllib.parse
@@ -14,7 +15,8 @@ import urllib.request
 from pathlib import Path
 
 KEY_DIR = Path(os.environ["BOHUN_KEY_DIR"]).expanduser() if os.environ.get("BOHUN_KEY_DIR") else None
-KEY_ENV = {"Ollama.txt": "OLLAMA_API_KEY", "AI GEMINI GOOGLE.txt": "GEMINI_SEARCH_API_KEY"}
+KEY_ENV = {"Ollama.txt": "OLLAMA_API_KEY", "AI GEMINI GOOGLE.txt": "GEMINI_SEARCH_API_KEY", "EXA.txt": "EXA_API_KEY",
+           "Jina.txt": "JINA_API_KEY"}
 # Wikimedia and GDELT ask automated clients to name a contact; the owner approved the public repository URL (19.11).
 CONTACT = os.environ.get("SEARCH_CONTACT_URL", "https://github.com/nab0k/bohun-the-field")
 UA = f"BOHUN-SourceSearch/1.0 (+{CONTACT}; low volume, non-commercial)"
@@ -25,11 +27,18 @@ def _key(filename):
     """Key from the environment (GitHub secret) or, on the owner's Mac, from his key folder (BOHUN_KEY_DIR)."""
     env = os.environ.get(KEY_ENV.get(filename, ""), "").strip()
     if env:
-        return env
+        return key_line(env)  # 19.11: the EXA secret was set from the whole file, notes included
     if KEY_DIR is None:
         raise RuntimeError("KEY_MISSING")
-    lines = [l.strip() for l in (KEY_DIR / filename).read_text().splitlines() if l.strip()]
-    return max(lines, key=len)  # the file may carry a label line next to the key
+    return key_line((KEY_DIR / filename).read_text())
+
+
+def key_line(text):
+    """The key out of a key file or secret that may carry a label and usage notes (19.11: EXA.txt's longest line was
+    a note, not the key): the one line of 20+ letters, digits, dots, dashes or underscores; else the longest line."""
+    lines = [l.strip() for l in text.splitlines() if l.strip()]
+    keys = [l for l in lines if re.fullmatch(r"[\w.-]{20,}", l)]
+    return keys[0] if len(keys) == 1 else max(lines, key=len)
 
 
 def tavily_api(job):
@@ -145,6 +154,25 @@ SELECT DISTINCT ?item ?label ?site WHERE {{
   FILTER(REGEX(LCASE(?label), "{DEFENCE_LABEL}"))
 }} LIMIT 60"""
     return _wikidata(sparql)
+
+
+def exa_similar(site_url, n=15):
+    """Exa: news sites similar to one we accepted (19.11 probe: by the home page with category "news" -
+    bundeswehr-journal.de gave bmvg.de, bundesheer.com, dwj.de; without the category it gave pages about the site
+    itself). About $0.004 a call from the owner's free credits."""
+    data = _post("https://api.exa.ai/findSimilar", {"url": site_url, "numResults": n, "excludeSourceDomain": True,
+                                                    "category": "news"}, {"x-api-key": _key("EXA.txt")})
+    return {"results": [{"url": r.get("url"), "title": r.get("title")} for r in data.get("results", [])]}
+
+
+def jina_search(query):
+    """Jina search (s.jina.ai): web results without page text; 10 000 of the free 10M tokens a call
+    (19.11 probe: "Poland defence industry news" gave defence24.com, defence-industry.eu, gov.pl/web/national-defence)."""
+    _pace("jina", 1)
+    data = _get("https://s.jina.ai/?" + urllib.parse.urlencode({"q": query}),
+                {"Authorization": "Bearer " + _key("Jina.txt"), "Accept": "application/json",
+                 "X-Respond-With": "no-content"}, timeout=60)
+    return {"results": [{"url": r.get("url"), "title": r.get("title")} for r in data.get("data") or []]}
 
 
 def ollama(query, max_results=10):

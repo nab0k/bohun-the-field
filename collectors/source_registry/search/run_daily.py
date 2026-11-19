@@ -26,7 +26,17 @@ import providers as PR  # noqa: E402
 import search_cycle as C  # noqa: E402
 
 
-def daily_limits(tavily):
+OPEN_LAYERS = ("gdelt", "wikidata", "similar")  # layers whose engine is fixed (not Gemini/Jina/Tavily)
+# A1SD-03 (owner 19.11 "Да, подключай"): Jina ~10M free tokens once, 10 000 a search -> ~1 000 searches: 10 a day,
+# added to the types and layer1 layers; Exa free credits, ~$0.004 a call: 15 "similar to accepted" a day
+JINA_SHARE = {"types": 5, "layer1": 5}
+
+
+def tavily_left(quotas, gemini, jina):
+    return sum(v for k, v in quotas.items() if k not in OPEN_LAYERS) - sum(gemini.values()) - sum(jina.values())
+
+
+def daily_limits(tavily, jina=False, exa=False):
     """Free quotas: Gemini grounding ~5 000/month -> 40/day; Tavily ~1 000/month -> 20/day when its key exists."""
     if tavily:
         quotas = {"types": 18, "layer1": 24, "layer3": 10, "section": 8}
@@ -40,11 +50,16 @@ def daily_limits(tavily):
     # sites have their own cap so the search layers keep theirs
     quotas.update(gdelt=int(os.environ.get("SEARCH_GDELT_PER_DAY", "0")),
                   wikidata=int(os.environ.get("SEARCH_WIKIDATA_PER_DAY", "20")))
+    jina_share = dict(JINA_SHARE) if jina else {}
+    for layer, n in jina_share.items():
+        quotas[layer] += n
+    quotas["similar"] = int(os.environ.get("SEARCH_EXA_PER_DAY", "15")) if exa else 0
     new_search = int(os.environ.get("SEARCH_NEW_LIMIT", "54"))
-    limits = {"tavily": sum(v for k, v in quotas.items() if k not in ("gdelt", "wikidata")) - sum(gemini.values()),
-              "gemini": sum(gemini.values()), "gdelt": quotas["gdelt"], "wikidata": quotas["wikidata"],
-              "http": int(os.environ.get("SEARCH_HTTP_LIMIT", "600")), "new": new_search + WIKIDATA_NEW}
-    return limits, quotas, gemini, caps_for(quotas, new_search)
+    limits = {"tavily": tavily_left(quotas, gemini, jina_share), "gemini": sum(gemini.values()),
+              "jina": sum(jina_share.values()), "exa": quotas["similar"], "gdelt": quotas["gdelt"],
+              "wikidata": quotas["wikidata"], "http": int(os.environ.get("SEARCH_HTTP_LIMIT", "600")),
+              "new": new_search + WIKIDATA_NEW}
+    return limits, quotas, gemini, caps_for(quotas, new_search), jina_share
 
 
 WIKIDATA_NEW = int(os.environ.get("SEARCH_WIKIDATA_NEW", "12"))
@@ -57,6 +72,18 @@ def caps_for(quotas, new_search):
     caps = {k: round(new_search * v / total) for k, v in search.items()}
     caps["wikidata"] = WIKIDATA_NEW if quotas.get("wikidata") else 0
     return caps
+
+
+def accepted_sites(conn):
+    """Accepted sources of the shadow registry as (site, country), for "similar" (one site once)."""
+    out, seen = [], set()
+    for url, country in conn.execute("SELECT canonical_url, country FROM source_state WHERE status='accepted' "
+                                     "ORDER BY since DESC").fetchall():
+        site = A.site_of(A.registry.host_of(url) or "")
+        if site and site not in seen:
+            seen.add(site)
+            out.append((site, country if country and country != "international" else None))
+    return out
 
 
 COMPANY_PER_DAY = int(os.environ.get("SEARCH_COMPANY_PER_DAY", "12"))
@@ -108,7 +135,8 @@ def main():
     ap.add_argument("--dry-run", action="store_true", help="read the state and plan; no search, no site, no write")
     a = ap.parse_args()
     tavily = bool(os.environ.get("TAVILY_API_KEY", "").strip())
-    C.LIMITS, C.QUOTAS, C.GEMINI_SHARE, C.NEW_CAPS = daily_limits(tavily)
+    jina, exa = (bool(os.environ.get(k, "").strip()) for k in ("JINA_API_KEY", "EXA_API_KEY"))
+    C.LIMITS, C.QUOTAS, C.GEMINI_SHARE, C.NEW_CAPS, jina_share = daily_limits(tavily, jina, exa)
     new_search = C.LIMITS["new"] - WIKIDATA_NEW
     started = dt.datetime.now(dt.timezone.utc)
     run_id = "gh-" + os.environ.get("GITHUB_RUN_ID", "local") + "-" + started.strftime("%Y%m%dT%H%M")
@@ -122,8 +150,10 @@ def main():
         C.QUOTAS, C.GEMINI_SHARE, learned = L.adapt(C.QUOTAS, C.GEMINI_SHARE, ctx["learning"],
                                                     [(r["at"], r["share"]) for r in ctx["runs"]])
         C.NEW_CAPS = caps_for(C.QUOTAS, new_search)
+        jina_share = {k: min(v, C.QUOTAS.get(k, 0) - C.GEMINI_SHARE.get(k, 0)) for k, v in jina_share.items()}
         C.LIMITS["gemini"] = sum(C.GEMINI_SHARE.values())
-        C.LIMITS["tavily"] = sum(v for k, v in C.QUOTAS.items() if k not in ("gdelt", "wikidata")) - C.LIMITS["gemini"]
+        C.LIMITS["jina"] = sum(jina_share.values())
+        C.LIMITS["tavily"] = tavily_left(C.QUOTAS, C.GEMINI_SHARE, jina_share)
         asleep = L.sleeping_cells(ctx["learning"])
         gaps = lambda js: L.order_by_gaps(js, ctx["accepted_by_country"], ctx["accepted_by_type"], asleep)  # noqa: E731
         names = {cc: c["name_en"] for cc, c in europe.items()}
@@ -132,8 +162,9 @@ def main():
                 "section": P.section_jobs(C.general_sites(conn)) if tavily else [],
                 "types": gaps(P.type_jobs(cat, list(europe), ctx["done"], names=names)),
                 "gdelt": P.gdelt_jobs(cat, countries, ctx["done"]),
-                "wikidata": gaps(P.wikidata_jobs(list(europe), ctx["done"]))}
-        todo = C.assign_engines(P.plan_cycle(jobs, C.QUOTAS, ctx["done"]), C.GEMINI_SHARE)
+                "wikidata": gaps(P.wikidata_jobs(list(europe), ctx["done"])),
+                "similar": gaps(P.similar_jobs(accepted_sites(conn), ctx["done"])) if exa else []}
+        todo = C.assign_engines(P.plan_cycle(jobs, C.QUOTAS, ctx["done"]), C.GEMINI_SHARE, jina_share)
         plan = {"planned": dict(Counter(j["layer"] for j in todo)),
                 "engines": dict(Counter(j["engine"] for j in todo)), "limits": C.LIMITS,
                 "rules_version": A.RULES_VERSION, "categories_version": cat["version"],

@@ -214,6 +214,56 @@ class Layer3Rotation(unittest.TestCase):
         self.assertEqual([j["event_id"] for j in second], [2, 3])
 
 
+class MoreEngines(unittest.TestCase):
+    """A1SD-03: Jina in the rotation, Exa "similar to accepted", keys from the owner's files."""
+
+    def test_rotation_uses_every_share_exactly(self):
+        todo = [{"layer": "types"} for _ in range(10)] + [{"layer": "similar", "engine": "exa", "site_url": "x"}]
+        C.assign_engines(todo, {"types": 4}, {"types": 3})
+        engines = [j["engine"] for j in todo[:10]]
+        self.assertEqual((engines.count("gemini"), engines.count("jina"), engines.count("tavily")), (4, 3, 3))
+        self.assertEqual(engines[:3], ["gemini", "jina", "tavily"])
+        self.assertEqual(todo[10]["engine"], "exa")
+
+    def test_daily_limits_with_jina_and_exa(self):
+        import run_daily as R
+        limits, quotas, gemini, caps, jina = R.daily_limits(True, jina=True, exa=True)
+        self.assertEqual((limits["jina"], limits["exa"], quotas["similar"]), (10, 15, 15))
+        self.assertEqual(limits["tavily"], 20)  # Tavily's share does not grow with Jina
+        self.assertEqual(sum(v for k, v in quotas.items() if k not in R.OPEN_LAYERS),
+                         limits["tavily"] + limits["gemini"] + limits["jina"])
+        limits0, quotas0, _, _, jina0 = R.daily_limits(True)
+        self.assertEqual((limits0["jina"], limits0["exa"], quotas0["similar"], jina0), (0, 0, 0, {}))
+
+    def test_similar_jobs_once_per_site_and_dispatch(self):
+        jobs = P.similar_jobs([("bundeswehr-journal.de", "DE"), ("defensescoop.com", None)])
+        self.assertEqual([j["site_url"] for j in jobs], ["https://bundeswehr-journal.de/", "https://defensescoop.com/"])
+        self.assertEqual(len(P.similar_jobs([("bundeswehr-journal.de", "DE")], {P.job_key(jobs[0])})), 0)
+        e = C.Engines(tavily=lambda j: {"results": []}, gemini=lambda j: {"results": []})
+        calls = []
+        e.fn["exa"] = lambda j: calls.append(j["site_url"]) or {"results": []}
+        e(jobs[0])
+        self.assertEqual(calls, ["https://bundeswehr-journal.de/"])
+
+    def test_key_line_is_picked_from_a_noted_file(self):
+        import os
+        import tempfile
+        import providers as PR
+        with tempfile.TemporaryDirectory() as d:
+            Path(d, "EXA.txt").write_text("Exa\n0123abcd-0123-4567-89ab-0123456789ab\n\nUse the key with care in the header\n")
+            real_dir, PR.KEY_DIR = PR.KEY_DIR, Path(d)
+            old = os.environ.pop("EXA_API_KEY", None)
+            try:
+                self.assertEqual(PR._key("EXA.txt"), "0123abcd-0123-4567-89ab-0123456789ab")
+                os.environ["EXA_API_KEY"] = "Exa\n0123abcd-0123-4567-89ab-0123456789ab\n\nUse the key with care\n"
+                self.assertEqual(PR._key("EXA.txt"), "0123abcd-0123-4567-89ab-0123456789ab")  # whole file as secret
+                os.environ.pop("EXA_API_KEY")
+            finally:
+                PR.KEY_DIR = real_dir
+                if old is not None:
+                    os.environ["EXA_API_KEY"] = old
+
+
 class TwoEngines(unittest.TestCase):
     def test_share_and_alternation(self):
         todo = [{"layer": "layer1"} for _ in range(6)] + [{"layer": "section"} for _ in range(2)]
@@ -297,7 +347,7 @@ class OpenBases(unittest.TestCase):
 
     def test_daily_limits_include_open_bases(self):
         import run_daily as R
-        limits, quotas, gemini, caps = R.daily_limits(False)
+        limits, quotas, gemini, caps, jina = R.daily_limits(False)
         self.assertEqual((limits["gdelt"], limits["wikidata"], limits["tavily"]), (0, 20, 0))
         self.assertEqual(caps["wikidata"], R.WIKIDATA_NEW)
         self.assertLessEqual(sum(v for k, v in caps.items() if k != "wikidata"), limits["new"] - R.WIKIDATA_NEW + 2)
