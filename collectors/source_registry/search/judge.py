@@ -4,6 +4,10 @@ defence source, what kind of source it is, and whether it has a defence section 
 The judge only advises: admission rules still decide. Free models already used by FIELD (collectors/kb_pilot/free.py):
 Groq (openai/gpt-oss-120b), Mistral (mistral-small-latest), Gemini (gemini-3.5-flash-lite) - first that answers.
 A provider failing twice in a row is switched off for the run. Only headlines, the host and the site name are sent.
+
+Cloud run 4 (19.11): Groq answered 403 to every call - its front blocks the default Python User-Agent (error 1010,
+as collectors/kb_pilot/free.py notes), so a named agent is sent. Mistral answered 429 twice and was switched off: a
+rate limit is a reason to wait and pass the site on, not to drop the provider; 401/403 still switch it off at once.
 """
 import json
 import os
@@ -12,6 +16,9 @@ import time
 import urllib.error
 import urllib.request
 
+USER_AGENT = "bohun-source-search/1.0 (+https://github.com/nab0k/bohun-the-field)"
+OFF_AFTER_RATE_LIMITS = 5      # consecutive 429s that switch a provider off for the run
+PACE = {"groq": 2.0, "mistral": 3.0, "gemini": 2.0}  # seconds between calls to one provider (free per-minute limits)
 TYPES = ("media", "company_news", "agency", "procurement", "grants", "investment", "company_registry",
          "association", "exhibition", "research")
 PROMPT = """You classify a website as a source for a defence-industry news monitor (Europe, Ukraine, NATO).
@@ -45,7 +52,7 @@ def _providers():
 
 def _post(url, body, headers, timeout=60):
     req = urllib.request.Request(url, data=json.dumps(body).encode(), method="POST",
-                                 headers={"Content-Type": "application/json", **headers})
+                                 headers={"Content-Type": "application/json", "User-Agent": USER_AGENT, **headers})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.loads(r.read().decode("utf-8", "replace"))
 
@@ -58,7 +65,8 @@ def _ask(provider, prompt):
                       "generationConfig": {"temperature": 0.1, "responseMimeType": "application/json"}},
                      {"x-goog-api-key": key})
         return data["candidates"][0]["content"]["parts"][0]["text"]
-    data = _post(url, {"model": model, "temperature": 0.1, "max_tokens": 300,
+    # openai/gpt-oss-120b reasons first; a small cap cut the answer before the JSON (kb_pilot uses 8 000)
+    data = _post(url, {"model": model, "temperature": 0.1, "max_tokens": 2000,
                        "response_format": {"type": "json_object"},
                        "messages": [{"role": "user", "content": prompt}]}, {"Authorization": "Bearer " + key})
     return data["choices"][0]["message"]["content"]
@@ -85,11 +93,11 @@ def parse(text, links):
 
 
 class Judge:
-    def __init__(self, providers=None, ask=_ask, pause=2.0):
+    def __init__(self, providers=None, ask=_ask, pause=None):
         self.providers = list(providers if providers is not None else _providers())
-        self.ask, self.pause, self.streak, self.off = ask, pause, {}, set()
+        self.ask, self.pause, self.streak, self.limited, self.off = ask, pause, {}, {}, set()
         self.used, self.errors = {}, {}
-        self._last = 0.0
+        self._last = {}
 
     def __bool__(self):
         return any(p[0] not in self.off for p in self.providers)
@@ -105,21 +113,32 @@ class Judge:
         for p in self.providers:
             if p[0] in self.off:
                 continue
-            wait = self._last + self.pause - time.time()
+            gap = self.pause if self.pause is not None else PACE.get(p[0], 2.0)
+            wait = self._last.get(p[0], 0.0) + gap - time.time()
             if wait > 0:
                 time.sleep(wait)
-            self._last = time.time()
+            self._last[p[0]] = time.time()
             self.used[p[0]] = self.used.get(p[0], 0) + 1
             try:
                 verdict = parse(self.ask(p, prompt), links)
             except (urllib.error.URLError, OSError, KeyError, IndexError, ValueError, TypeError) as exc:
-                kind = f"{p[0]}:{type(exc).__name__}:{getattr(exc, 'code', '')}"
+                code = getattr(exc, "code", "")
+                kind = f"{p[0]}:{type(exc).__name__}:{code}"
                 self.errors[kind] = self.errors.get(kind, 0) + 1
+                if code == 429:
+                    self.limited[p[0]] = self.limited.get(p[0], 0) + 1
+                    if self.limited[p[0]] >= OFF_AFTER_RATE_LIMITS:
+                        self.off.add(p[0])
+                    continue
+                if code in (401, 403):
+                    self.off.add(p[0])
+                    continue
                 self.streak[p[0]] = self.streak.get(p[0], 0) + 1
                 if self.streak[p[0]] >= 2:
                     self.off.add(p[0])
                 continue
             self.streak[p[0]] = 0
+            self.limited[p[0]] = 0
             if verdict:
                 return {**verdict, "by": p[0]}
         return None
