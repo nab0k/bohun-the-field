@@ -40,6 +40,7 @@ class Probe(unittest.TestCase):
         self.assertEqual(len(seen), 1)
         self.assertEqual((seen[0][0], seen[0][1], seen[0][2]), (DOC["state_endpoint"] + "/v1/status", "POST", b"{}"))
         self.assertEqual(seen[0][3]["X-deployment"], "dep-1")
+        self.assertEqual(seen[0][3]["User-agent"], "BOHUN-Source-Discovery/1.0")
         for secret in ("SECRET", "state-token", "workers.dev", "dep-1"):
             self.assertNotIn(secret, out)
         s = probe.safe(status, data)
