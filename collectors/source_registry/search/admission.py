@@ -27,7 +27,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import registry  # noqa: E402
 
-RULES_VERSION = "a2sa-shadow-0.5"  # 0.2: fixes after the 18.11 shadow run; 0.3: no-news sites kept (D-20261118-A1SD-NO-NEWS-KEEP)
+RULES_VERSION = "a2sa-shadow-0.6"  # 0.2: fixes after the 18.11 shadow run; 0.3: no-news sites kept (D-20261118-A1SD-NO-NEWS-KEEP)
 FRESH_DAYS = 60
 REJECT_COOLDOWN_DAYS = 90
 TOPIC_MIN_SHARE = 0.20
@@ -217,6 +217,8 @@ def decide(obs, known, now=None):
         rec = {"decision": decision, "reason_codes": [reason] if reason else [], "checks": checks,
                "rules_version": RULES_VERSION, "candidate_url": cand["url"]}
         rec.update(extra)
+        if obs.get("judge"):  # 0.6: the judge's verdict is kept so every accept can be explained
+            rec["judge"] = obs["judge"]
         return rec
 
     fetch = obs.get("fetch") or {}
@@ -333,6 +335,11 @@ def decide(obs, known, now=None):
             # pass over its defence sections (decision 2 of the 18.11 review), never accepted, not the owner's
             return out("general", "topic_below_threshold", **base)
         checks.append({"check": 8, "result": "pass", "share": round(share, 3), "sample": n})
+    if obs.get("judge_missing"):
+        # 0.6: found by search, not judged (too few headlines or no model answered): keywords alone do not admit it;
+        # it waits for the next check (recheck after RECHECK_AFTER_DAYS, with the judge)
+        checks.append({"check": 8, "result": "doubt", "basis": "no_judge"})
+        return out("hold", "no_judge", **base)
     return out("accept", None, **base)
 
 

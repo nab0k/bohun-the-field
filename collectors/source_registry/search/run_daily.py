@@ -75,7 +75,8 @@ def recheck_candidates(conn, n=RECHECK_PER_DAY, days=RECHECK_AFTER_DAYS):
         "(SELECT d.reasons_json FROM admission_decision d WHERE d.candidate_url=s.candidate_url "
         " ORDER BY d.decision_id DESC LIMIT 1) NOT LIKE '%no_news_site%' ORDER BY s.decided_at LIMIT ?",
         (cutoff, n)).fetchall()
-    return [{"url": u, "pool_group": "recheck", "found_via": {"channel": "recheck", "layer": "recheck"}}
+    # prefilter: a recheck goes through the judge again (0.6: a no_judge hold must not pass on keywords alone)
+    return [{"url": u, "pool_group": "recheck", "prefilter": True, "found_via": {"channel": "recheck", "layer": "recheck"}}
             for (u,) in rows]
 
 
