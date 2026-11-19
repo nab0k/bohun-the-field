@@ -13,6 +13,11 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 CATEGORIES = HERE / "categories.json"
+EUROPE = HERE / "countries_europe.json"   # A1SD-03 wave 1: 50 countries (Wikidata and the types layer)
+
+
+def europe():
+    return json.loads(EUROPE.read_text(encoding="utf-8"))["countries"]
 
 # Official skeleton (design): ministry, procurement agency, parliament committee, export control, defence funds,
 # statistics/registries. English queries: official bodies are usually indexed with English names too.
@@ -210,22 +215,27 @@ def gdelt_jobs(cat, countries, done=()):
 
 
 def wikidata_jobs(countries, done=()):
-    """Official bodies of a country (ministries, agencies, parliament bodies) with their websites, once per country."""
+    """Per country, once: official bodies (ministries, agencies, parliament bodies) and companies of the arms and
+    aerospace industry, with their websites. Countries by ISO code (A1SD-03); officials keep the old key (role "")
+    so the 12 countries asked before are not asked again."""
     asked = {k for k in done if k.startswith("wikidata|")}
-    jobs = [{"layer": "wikidata", "engine": "wikidata", "country": cc, "lang": "en", "type_hint": "agency",
-             "query": f"official defence bodies {cc}", "qid": WIKIDATA_COUNTRY[cc]}
-            for cc in countries if cc in WIKIDATA_COUNTRY]
+    jobs = []
+    for cc in countries:  # country-major: both kinds of a country together
+        for role, type_hint in (("", "agency"), ("companies", "company_news")):
+            jobs.append({"layer": "wikidata", "engine": "wikidata", "country": cc, "lang": "en", "role": role,
+                         "type_hint": type_hint, "query": f"wikidata {role or 'officials'} {cc}", "iso": cc})
     return [j for j in jobs if job_key(j) not in asked]
 
 
-def type_jobs(cat, countries, done=()):
+def type_jobs(cat, countries, done=(), names=None):
     """One job per (source type, country); not-yet-asked first, type-major so a partial quota covers all types."""
     asked = {k for k in done if k.startswith("types|")}
     rows = []
     for t, template in TYPE_QUERIES.items():
         for i, cc in enumerate(countries):
             job = {"layer": "types", "country": cc, "role": t, "lang": "en", "type_hint": t,
-                   "query": template.format(country=cat["countries"][cc]["name_en"]), "topic": "general",
+                   "query": template.format(country=(names or {}).get(cc) or cat["countries"][cc]["name_en"]),
+                   "topic": "general",
                    "time_range": None, "max_results": 8}
             if job_key(job) not in asked:
                 rows.append((i, list(TYPE_QUERIES).index(t), job))

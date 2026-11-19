@@ -18,3 +18,13 @@ Workflow `.github/workflows/source-search-daily.yml`: manual only, dry run by de
 owner decision. The repository is public: logs carry counts only.
 
 Offline tests: `for t in collectors/source_registry/search/tests/test_*.py; do python -I "$t"; done`
+
+## A1SD-03 wave 1: Europe and self-improvement (19.11)
+
+- `countries_europe.json` — 50 countries of Europe; Wikidata (officials, arms and aerospace companies, by ISO code) and
+  the types layer cover them. Layers 1 and 3 keep the 12 countries of `categories.json`.
+- `learning.py` + table `source_discovery.learning` (`migration_source_discovery_learning.sql`): one row per asked job.
+  The next run sets layer quotas by yield (10% floor, same total), puts gap countries and types first, lets a
+  cell with three empty jobs sleep 30 days and falls back to the defaults if the search share halves.
+- `a1sd_streak` in the run measure: successful runs in a row (acceptance: 3).
+- A run changes numbers in the database only; code changes go through a PR by the owner's word.

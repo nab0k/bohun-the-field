@@ -91,7 +91,8 @@ class Engines:
         import providers as PR
         self.fn = {"tavily": tavily or tavily_cli, "gemini": gemini or (lambda job: PR.gemini_grounded(job["query"])),
                    "gdelt": lambda job: PR.gdelt(job["query"], job.get("gdelt_country")),
-                   "wikidata": lambda job: PR.wikidata_officials(job["qid"])}
+                   "wikidata": lambda job: (PR.wikidata_companies if job.get("role") == "companies"
+                                            else PR.wikidata_officials)(job.get("iso") or job["qid"])}
         self.streak, self.off, self.used, self.errors = Counter(), set(), Counter(), Counter()
 
     def __call__(self, job):
@@ -172,6 +173,7 @@ def collect(jobs, search, known, max_queries, max_new, layer_caps=None, raw=None
     the first layers filled the 150 and layer 3 got none). The query's country and type are kept in found_via only:
     they are hints, not evidence (cycle 1: a think tank found by "procurement agency" skipped the topic check)."""
     found, seen, done, used, failed = [], {}, [], 0, 0
+    stats = {}  # A1SD-03: per asked job, for the learning table
     for order, job in enumerate(jobs):
         if used >= max_queries:
             break
@@ -182,6 +184,8 @@ def collect(jobs, search, known, max_queries, max_new, layer_caps=None, raw=None
             failed += 1
             continue
         done.append(P.job_key(job))
+        stats[P.job_key(job)] = {"layer": job["layer"], "engine": job.get("engine", "tavily"), "country": job.get("country"),
+                                 "type_hint": job.get("type_hint"), "results": len(data.get("results", [])), "new": 0}
         exclude = {A.site_of(h) for h in job.get("exclude_hosts", [])}
         for r in data.get("results", []):
             host = A.registry.host_of(r.get("url") or "")
@@ -208,7 +212,7 @@ def collect(jobs, search, known, max_queries, max_new, layer_caps=None, raw=None
                 "found_via": {"channel": job.get("engine", "tavily"), "layer": job["layer"], "query": job["query"],
                               "country": job.get("country"), "type_hint": job["type_hint"],
                               "category": job.get("category"), "role": job.get("role"), "lang": job["lang"],
-                              "event_id": job.get("event_id"), "result_url": r["url"]}})
+                              "event_id": job.get("event_id"), "result_url": r["url"], "job": P.job_key(job)}})
     ranked = sorted(seen.items(), key=lambda kv: (-(len(kv[1]["queries"]) + 2 * focus(kv[0])), kv[1]["order"]))
     candidates, per_layer = [], Counter()
     for site, info in ranked:
@@ -223,7 +227,9 @@ def collect(jobs, search, known, max_queries, max_new, layer_caps=None, raw=None
         cand["found_via"].update(hits=len(info["queries"]), focus=focus(site))
         cand["prefilter"] = cand["found_via"]["layer"] != "section"  # first stage; a section is already narrowed
         candidates.append(cand)
-    return candidates, found, done, {"queries": used, "failed": failed}
+        if cand["found_via"].get("job") in stats:
+            stats[cand["found_via"]["job"]]["new"] += 1
+    return candidates, found, done, {"queries": used, "failed": failed, "job_stats": stats}
 
 
 def share_of(results):
@@ -355,7 +361,7 @@ def execute(todo, search, http, conn, known, raw=None, use_feedsearch=False, net
     layer_of = {A.registry.canonical_url(c["url"]): c["found_via"] for c in candidates}
     for r in results:
         fv = layer_of.get(A.registry.canonical_url(r["candidate_url"])) or {}
-        r["found_via_layer"], r["found_via_engine"] = fv.get("layer"), fv.get("channel")
+        r["found_via_layer"], r["found_via_engine"], r["found_via_job"] = fv.get("layer"), fv.get("channel"), fv.get("job")
     return candidates, found, done, trace, observations, counts, results
 
 

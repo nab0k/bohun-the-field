@@ -97,16 +97,12 @@ DEFENCE_LABEL = ("defen|militar|armed forces|army|navy|air force|procurement|arm
                  "ejército|esercito|krijgsmacht|export control")
 
 
-def wikidata_officials(country_qid):
-    """Government bodies of a country whose label says defence/military/procurement, with their official websites."""
-    sparql = f"""
-SELECT DISTINCT ?item ?label ?site WHERE {{
-  ?item wdt:P17 wd:{country_qid}; wdt:P856 ?site;
-        wdt:P31/wdt:P279* ?kind .
-  VALUES ?kind {{ wd:Q327333 wd:Q192350 wd:Q2659904 }}
-  ?item rdfs:label ?label .
-  FILTER(REGEX(LCASE(?label), "{DEFENCE_LABEL}"))
-}} LIMIT 60"""
+def _country(country):
+    """A country by Wikidata id (Q...) or by ISO code through P297 (A1SD-03: 50 countries without a QID table)."""
+    return f"wd:{country}" if country.startswith("Q") else "?c", "" if country.startswith("Q") else f'?c wdt:P297 "{country}". '
+
+
+def _wikidata(sparql):
     url = "https://query.wikidata.org/sparql?" + urllib.parse.urlencode({"query": sparql, "format": "json"})
     _pace("wikidata", 6)
     data = _get(url, {"Accept": "application/sparql-results+json"}, timeout=70)
@@ -115,8 +111,40 @@ SELECT DISTINCT ?item ?label ?site WHERE {{
         site = b["site"]["value"]
         if site not in seen:
             seen.add(site)
-            out.append({"url": site, "title": b["label"]["value"]})
+            out.append({"url": site, "title": (b.get("label") or {}).get("value", "")})
     return {"results": out}
+
+
+# Checked on Wikidata 19.11 (read-only): Q392933 = arms industry, Q3477363 = aerospace industry; a company query by
+# industry answered in 7-32 s (PL 27, DE 76 sites). Trade associations by label timed out (504) twice: associations
+# stay with the search layer "types".
+DEFENCE_INDUSTRIES = ("Q392933", "Q3477363")
+
+
+def wikidata_companies(country):
+    """Companies of a country in the arms or aerospace industry (P452) with their official websites."""
+    c, bind = _country(country)
+    inds = " ".join("wd:" + q for q in DEFENCE_INDUSTRIES)
+    return _wikidata(f"""
+SELECT DISTINCT ?item ?label ?site WHERE {{
+  {bind}?item wdt:P17 {c}; wdt:P856 ?site; wdt:P452 ?ind.
+  VALUES ?ind {{ {inds} }}
+  OPTIONAL {{ ?item rdfs:label ?label FILTER(lang(?label) = "en") }}
+}} LIMIT 200""")
+
+
+def wikidata_officials(country):
+    """Government bodies of a country whose label says defence/military/procurement, with their official websites."""
+    c, bind = _country(country)
+    sparql = f"""
+SELECT DISTINCT ?item ?label ?site WHERE {{
+  {bind}?item wdt:P17 {c}; wdt:P856 ?site;
+        wdt:P31/wdt:P279* ?kind .
+  VALUES ?kind {{ wd:Q327333 wd:Q192350 wd:Q2659904 }}
+  ?item rdfs:label ?label .
+  FILTER(REGEX(LCASE(?label), "{DEFENCE_LABEL}"))
+}} LIMIT 60"""
+    return _wikidata(sparql)
 
 
 def ollama(query, max_results=10):

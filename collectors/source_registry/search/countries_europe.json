@@ -1,0 +1,156 @@
+{
+ "version": "europe-1",
+ "wave": "A1SD-03 wave 1 (D-20261119-A1SD-SELF-IMPROVE-G2): 50 countries of Europe",
+ "countries": {
+  "AL": {
+   "name_en": "Albania"
+  },
+  "AD": {
+   "name_en": "Andorra"
+  },
+  "AM": {
+   "name_en": "Armenia"
+  },
+  "AT": {
+   "name_en": "Austria"
+  },
+  "AZ": {
+   "name_en": "Azerbaijan"
+  },
+  "BY": {
+   "name_en": "Belarus"
+  },
+  "BE": {
+   "name_en": "Belgium"
+  },
+  "BA": {
+   "name_en": "Bosnia and Herzegovina"
+  },
+  "BG": {
+   "name_en": "Bulgaria"
+  },
+  "HR": {
+   "name_en": "Croatia"
+  },
+  "CY": {
+   "name_en": "Cyprus"
+  },
+  "CZ": {
+   "name_en": "Czech Republic"
+  },
+  "DK": {
+   "name_en": "Denmark"
+  },
+  "EE": {
+   "name_en": "Estonia"
+  },
+  "FI": {
+   "name_en": "Finland"
+  },
+  "FR": {
+   "name_en": "France"
+  },
+  "GE": {
+   "name_en": "Georgia"
+  },
+  "DE": {
+   "name_en": "Germany"
+  },
+  "GR": {
+   "name_en": "Greece"
+  },
+  "HU": {
+   "name_en": "Hungary"
+  },
+  "IS": {
+   "name_en": "Iceland"
+  },
+  "IE": {
+   "name_en": "Ireland"
+  },
+  "IT": {
+   "name_en": "Italy"
+  },
+  "XK": {
+   "name_en": "Kosovo"
+  },
+  "LV": {
+   "name_en": "Latvia"
+  },
+  "LI": {
+   "name_en": "Liechtenstein"
+  },
+  "LT": {
+   "name_en": "Lithuania"
+  },
+  "LU": {
+   "name_en": "Luxembourg"
+  },
+  "MT": {
+   "name_en": "Malta"
+  },
+  "MD": {
+   "name_en": "Moldova"
+  },
+  "MC": {
+   "name_en": "Monaco"
+  },
+  "ME": {
+   "name_en": "Montenegro"
+  },
+  "NL": {
+   "name_en": "Netherlands"
+  },
+  "MK": {
+   "name_en": "North Macedonia"
+  },
+  "NO": {
+   "name_en": "Norway"
+  },
+  "PL": {
+   "name_en": "Poland"
+  },
+  "PT": {
+   "name_en": "Portugal"
+  },
+  "RO": {
+   "name_en": "Romania"
+  },
+  "RU": {
+   "name_en": "Russia"
+  },
+  "SM": {
+   "name_en": "San Marino"
+  },
+  "RS": {
+   "name_en": "Serbia"
+  },
+  "SK": {
+   "name_en": "Slovakia"
+  },
+  "SI": {
+   "name_en": "Slovenia"
+  },
+  "ES": {
+   "name_en": "Spain"
+  },
+  "SE": {
+   "name_en": "Sweden"
+  },
+  "CH": {
+   "name_en": "Switzerland"
+  },
+  "TR": {
+   "name_en": "Turkey"
+  },
+  "UA": {
+   "name_en": "Ukraine"
+  },
+  "GB": {
+   "name_en": "United Kingdom"
+  },
+  "VA": {
+   "name_en": "Vatican City"
+  }
+ }
+}

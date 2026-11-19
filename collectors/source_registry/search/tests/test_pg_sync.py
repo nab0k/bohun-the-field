@@ -22,7 +22,15 @@ class Cursor:
     def execute(self, sql, params=None):
         self.pg.sql.append((sql.strip().split()[0].lower(), " ".join(sql.split())[:80], params))
         s = " ".join(sql.split())
-        if "from source_discovery.source_state" in s:
+        if "to_regclass" in s:
+            self.rows = [(True,)]
+        elif "from source_discovery.learning" in s:
+            self.rows = [(T, "types", "PL", "procurement", 2, 1)]
+        elif "measure ? 'a1sd_cycle_ok'" in s:
+            self.rows = [(T, True, 0.4)]
+        elif "group by 1, 2" in s:
+            self.rows = [("PL", "media", 3), ("DE", "media", 1), ("PL", "agency", 2)]
+        elif "from source_discovery.source_state" in s:
             self.rows = [("ch1", "https://old.example.org/feed", "accepted", "media", "feed", "PL", "pl", T, "a2sa-shadow-0.5")]
         elif "from source_discovery.candidate_seen" in s:
             self.rows = [("https://old.example.org/", "accept", T, 0, "ch1")]
@@ -76,6 +84,9 @@ class Sync(unittest.TestCase):
             self.assertEqual(ctx["company_country"]["saab.com"], "SE")
             self.assertEqual(ctx["events"][0]["known_hosts"], ["a.com"])
             self.assertEqual(ctx["loaded_max_decision"], 1)
+            self.assertEqual((ctx["accepted_by_country"], ctx["accepted_by_type"]),
+                             ({"PL": 5, "DE": 1}, {"media": 4, "agency": 2}))
+            self.assertEqual((ctx["learning"][0]["layer"], ctx["runs"][0]["ok"]), ("types", True))
             start = dt.datetime.now(dt.timezone.utc)
             new_obs = {"candidate": {"url": "https://new.example.org/", "found_via": {"layer": "types"}},
                        "fetch": {"status": 404}, "robots": {}}
@@ -83,8 +94,14 @@ class Sync(unittest.TestCase):
             pg.sql.clear()
             out = pg_sync.save(pg, conn, ctx, {"run_id": "r1", "started_at": start.isoformat(),
                                                "finished_at": start.isoformat(), "where_run": "test", "plan": {},
-                                               "trace": {}, "measure": {}, "done_jobs": ["types|PL||procurement|en|"]})
-            self.assertEqual(out, {"decisions": 1, "states": 0, "seen": 1})
+                                               "trace": {}, "measure": {}, "done_jobs": ["types|PL||procurement|en|"],
+                                               "learning": [{"run_id": "r1", "job_key": "types|PL||procurement|en|",
+                                                             "layer": "types", "engine": "tavily", "country": "PL",
+                                                             "type_hint": "procurement", "results": 5, "new_sites": 1,
+                                                             "accepted": 0, "disputed": 0, "general": 0, "held": 0,
+                                                             "rejected": 1}]})
+            self.assertEqual(out, {"decisions": 1, "states": 0, "seen": 1, "learning": 1})
+            self.assertTrue(any("source_discovery.learning" in s[1] for s in pg.sql))
             kinds = [s[1].split(" (")[0] for s in pg.sql]
             self.assertTrue(any("source_discovery.admission_decision" in k for k in kinds))
             self.assertTrue(any("source_discovery.cycle_run" in k for k in kinds))
