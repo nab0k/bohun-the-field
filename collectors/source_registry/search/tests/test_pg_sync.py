@@ -96,7 +96,9 @@ class Daily(unittest.TestCase):
     def test_company_layer_and_recheck(self):
         import run_daily as R
         ctx = {"company": {"saab.com", "known.example"}, "rnd": {"tno.nl"}, "company_country": {"saab.com": "SE"}}
-        cands = R.company_candidates(ctx, {"known.example"}, n=5)
+        known = {"known.example"}
+        cands = R.company_candidates(ctx, known, n=5)
+        self.assertEqual(known, {"known.example"})  # the measure must not see them as known
         self.assertEqual([c["url"] for c in cands], ["https://saab.com/", "https://tno.nl/"])
         self.assertEqual(cands[0]["found_via"]["country"], "SE")
         with tempfile.TemporaryDirectory() as tmp:

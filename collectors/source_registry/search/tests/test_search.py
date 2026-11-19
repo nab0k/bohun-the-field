@@ -232,6 +232,7 @@ class TwoEngines(unittest.TestCase):
         self.assertEqual(len(calls), 2)            # third and fourth never reach the provider
         self.assertEqual(e({"engine": "tavily"}), {"results": []})
         self.assertEqual(e.off, {"gemini"})
+        self.assertEqual(e.errors, {"gemini:OSError:": 2})
 
 
 class TypesLayer(unittest.TestCase):

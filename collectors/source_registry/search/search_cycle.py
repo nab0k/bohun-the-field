@@ -86,7 +86,7 @@ class Engines:
     def __init__(self, tavily=None, gemini=None):
         import providers as PR
         self.fn = {"tavily": tavily or tavily_cli, "gemini": gemini or (lambda job: PR.gemini_grounded(job["query"]))}
-        self.streak, self.off, self.used = Counter(), set(), Counter()
+        self.streak, self.off, self.used, self.errors = Counter(), set(), Counter(), Counter()
 
     def __call__(self, job):
         engine = job.get("engine", "tavily")
@@ -96,6 +96,8 @@ class Engines:
         try:
             data = self.fn[engine](job)
         except Exception as exc:  # noqa: BLE001
+            # cloud run 1 (19.11): Gemini switched off with no visible reason; keep the error kind, never the message
+            self.errors[f"{engine}:{type(exc).__name__}:{getattr(exc, 'code', '')}"] += 1
             self.streak[engine] += 1
             if self.streak[engine] >= 2:
                 self.off.add(engine)
