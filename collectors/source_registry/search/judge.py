@@ -25,8 +25,8 @@ Answer with one JSON object only:
   "type": one of {types},
   "defence_section": "<a link from the list that leads to a defence/military/security section or tag>" or null,
   "confidence": number 0..1}}
-A general news site, a business or tech portal, or a company that is not mainly in defence is NOT specialised; it may
-still have a defence section. Use only links that appear in the list."""
+A general news site, a business or tech portal, a job or recruitment board, a shop, or a company that is not mainly in
+defence is NOT specialised; it may still have a defence section. Use only links that appear in the list."""
 
 
 def _providers():

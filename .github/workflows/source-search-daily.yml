@@ -1,7 +1,7 @@
 name: BOHUN source search (A1SD-02, shadow)
 # D-20261119-A1SD-DAILY-CLOUD: one bounded search cycle a day into the shadow registry (Supabase schema
-# source_discovery). Nothing reaches product tables, collection or Inoreader. Manual only for now: the daily
-# schedule is switched on by a separate owner decision. Public repository: the log carries counts only.
+# source_discovery). Nothing reaches product tables, collection or Inoreader. Daily at 04:40 UTC since 19.11 (owner
+# decision); a manual run stays available, dry run by default. Public repository: the log carries counts only.
 on:
   workflow_dispatch:
     inputs:
@@ -10,8 +10,9 @@ on:
         type: boolean
         default: true
         required: false
-  # schedule:
-  #   - cron: '40 4 * * *'
+  # D-20261119-A1SD-DAILY-SCHEDULE-PR: daily, shadow registry only (no product tables, collection or Inoreader)
+  schedule:
+    - cron: '40 4 * * *'
 permissions:
   contents: read
 concurrency:
