@@ -19,6 +19,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import admission as A  # noqa: E402
+import health as H  # noqa: E402
 import learning as L  # noqa: E402
 import pg_sync  # noqa: E402
 import plan as P  # noqa: E402
@@ -147,20 +148,24 @@ def company_candidates(ctx, known, n=COMPANY_PER_DAY):
 
 def recheck_candidates(conn, n=RECHECK_PER_DAY, days=RECHECK_AFTER_DAYS, no_judge_hours=NO_JUDGE_AFTER_HOURS):
     """On-hold sources (stale, too few titles, undated) whose last check is older than `days`: checked again.
-    Sites held for want of a judge verdict (no_judge) come back after `no_judge_hours` and go first."""
+    Sites held for want of a judge verdict (no_judge) come back after `no_judge_hours` and go first.
+    0.8 (owner 20.11 "решай сам"): sources left disputed by older rules come first and are decided again."""
     now = dt.datetime.now(dt.timezone.utc)
     cutoff = (now - dt.timedelta(days=days)).isoformat()
     quick = (now - dt.timedelta(hours=no_judge_hours)).isoformat()
-    rows = conn.execute(
+    disputed = [u for (u,) in conn.execute("SELECT candidate_url FROM candidate_seen WHERE last_decision='disputed' "
+                                           "ORDER BY decided_at LIMIT ?", (n,)).fetchall()]
+    held = [u for (u,) in conn.execute(
         "SELECT candidate_url FROM (SELECT s.candidate_url, s.decided_at, (SELECT d.reasons_json FROM admission_decision d "
         " WHERE d.candidate_url=s.candidate_url ORDER BY d.decision_id DESC LIMIT 1) reasons FROM candidate_seen s "
         " WHERE s.last_decision='hold') WHERE reasons NOT LIKE '%no_news_site%' AND "
         "(decided_at < ? OR (reasons LIKE '%no_judge%' AND decided_at < ?)) "
         "ORDER BY (reasons LIKE '%no_judge%') DESC, decided_at LIMIT ?",
-        (cutoff, quick, n)).fetchall()
+        (cutoff, quick, n)).fetchall()]
+    urls = (disputed + [u for u in held if u not in disputed])[:n]
     # prefilter: a recheck goes through the judge again (0.6: a no_judge hold must not pass on keywords alone)
     return [{"url": u, "pool_group": "recheck", "prefilter": True, "found_via": {"channel": "recheck", "layer": "recheck"}}
-            for (u,) in rows]
+            for u in urls]
 
 
 def main():
@@ -174,6 +179,9 @@ def main():
     started = dt.datetime.now(dt.timezone.utc)
     run_id = "gh-" + os.environ.get("GITHUB_RUN_ID", "local") + "-" + started.strftime("%Y%m%dT%H%M")
     with pg_sync.connect() as pg, tempfile.TemporaryDirectory() as tmp:
+        # A6SH-02: health and usefulness first, so failing/silent sources leave the accepted list before the run
+        health = {} if a.dry_run else H.update(pg)
+        useful = H.useful_by_layer(pg)
         conn, ctx = pg_sync.load(pg, Path(tmp) / "registry.sqlite")
         A.set_base(ctx["company"], ctx["rnd"])
         cat = P.load()
@@ -181,7 +189,7 @@ def main():
         europe = P.europe()
         # A1SD-03: learn from earlier runs - quotas by yield (or defaults / reset), gaps first, sleeping cells last
         C.QUOTAS, C.GEMINI_SHARE, learned = L.adapt(C.QUOTAS, C.GEMINI_SHARE, ctx["learning"],
-                                                    [(r["at"], r["share"]) for r in ctx["runs"]])
+                                                    [(r["at"], r["share"]) for r in ctx["runs"]], useful=useful)
         C.NEW_CAPS = caps_for(C.QUOTAS, new_search)
         jina_share = {k: min(v, C.QUOTAS.get(k, 0) - C.GEMINI_SHARE.get(k, 0)) for k, v in jina_share.items()}
         C.LIMITS["gemini"] = sum(C.GEMINI_SHARE.values())
@@ -204,7 +212,7 @@ def main():
                 "rules_version": A.RULES_VERSION, "categories_version": cat["version"],
                 "learning": {**learned, "quotas": C.QUOTAS, "asleep": len(asleep)},
                 "state_rows": ctx["state_rows"], "events": len(ctx["events"])}
-        print(json.dumps({"run": run_id, **plan}))
+        print(json.dumps({"run": run_id, **plan, "health": health}))
         if a.dry_run:
             return
         known = C.known_hosts(conn, ctx["known"])

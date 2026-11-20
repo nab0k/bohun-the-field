@@ -47,7 +47,7 @@ class Decide(unittest.TestCase):
     def test_check1_unreachable_and_foreign_redirect(self):
         self.assertEqual(self.d(obs(fetch={"status": 404}))["reason_codes"], ["unreachable"])
         r = self.d(obs(fetch={"status": 200, "final_url": "https://other.example.com/"}))
-        self.assertEqual((r["decision"], r["reason_codes"]), ("disputed", ["redirect_other_domain"]))
+        self.assertEqual((r["decision"], r["reason_codes"]), ("hold", ["redirect_other_domain"]))  # 0.8: nothing goes to the owner
         self.assertEqual(self.d(obs(fetch={"status": "http_only"}))["reason_codes"], ["http_only"])
         same_site = self.d(obs(fetch={"status": 200, "final_url": "https://www.news.example.org/en/"}))
         self.assertEqual(same_site["decision"], "accept")
@@ -71,8 +71,9 @@ class Decide(unittest.TestCase):
             o["site_name"] = name
             self.assertEqual(self.d(o)["type"], want, name)
 
-    def test_page_too_large_is_disputed(self):
-        self.assertEqual(self.d(obs(fetch={"status": "RESPONSE_SIZE"}))["reason_codes"], ["page_too_large"])
+    def test_page_too_large_is_held(self):
+        r = self.d(obs(fetch={"status": "RESPONSE_SIZE"}))
+        self.assertEqual((r["decision"], r["reason_codes"]), ("hold", ["page_too_large"]))
 
     def test_type_research_from_site_name(self):
         o = obs(candidate={"url": "https://news.example.org/", "found_via": {"channel": "company_website"}})
@@ -84,12 +85,12 @@ class Decide(unittest.TestCase):
         r = self.d(obs(delivery=None, delivery_url=None))
         self.assertEqual((r["decision"], r["reason_codes"], r["delivery_url"]), ("hold", ["no_news_site"], "https://news.example.org/"))
         r = self.d(obs(items=items(DEF[:1])))
-        self.assertEqual((r["decision"], r["reason_codes"]), ("disputed", ["delivery_without_items"]))
+        self.assertEqual((r["decision"], r["reason_codes"]), ("hold", ["delivery_without_items"]))
 
     def test_check4_language(self):
         r = self.d(obs(html_lang="de"))
         if A._ready is None:  # our rules: titles vs page tag disagree -> a person decides
-            self.assertEqual((r["decision"], r["reason_codes"]), ("disputed", ["language_uncertain"]))
+            self.assertEqual((r["decision"], r["reason_codes"]), ("hold", ["language_uncertain"]))
         else:  # Lingua is confident about the titles; the page tag is only recorded
             self.assertEqual((r["decision"], r["language"]), ("accept", "en"))
             self.assertIn("tag:de", [c for c in r["checks"] if c["check"] == 4][0]["basis"])
@@ -111,7 +112,8 @@ class Decide(unittest.TestCase):
         host = lambda c, h: ("same_host", "ch_2")
         self.assertEqual(self.d(obs(), same)["reason_codes"], ["duplicate"])
         self.assertEqual(self.d(obs(), same)["decision"], "reject")
-        self.assertEqual(self.d(obs(), host)["decision"], "disputed")
+        self.assertEqual(self.d(obs(), host)["decision"], "accept")  # 0.8: another section of a known site
+        self.assertEqual(self.d(obs(), host)["checks"][5]["basis"], "same_host_other_section")
 
     def test_check7_freshness(self):
         self.assertEqual(self.d(obs(items=items(DEF, days_ago=90)))["reason_codes"], ["stale"])
@@ -153,7 +155,7 @@ class Cycle(unittest.TestCase):
                  obs("https://known.example.org/news/", delivery_url="https://known.example.org/news/feed"),
                  obs("https://down.example.org/", fetch={"status": 404})]
         counts, _ = A.admit(self.conn, batch, NOW)
-        self.assertEqual((counts["accept"], counts["general"], counts["disputed"], counts["reject"]), (1, 1, 1, 2))
+        self.assertEqual((counts["accept"], counts["general"], counts["disputed"], counts["reject"]), (2, 1, 0, 2))
         states = dict(self.conn.execute("SELECT canonical_url, status FROM source_state").fetchall())
         self.assertEqual(states["https://news.example.org/feed"], "accepted")
         self.assertEqual(states["https://civil.example.org/feed"], "general_outlet")  # rules 0.5
@@ -182,16 +184,13 @@ class Cycle(unittest.TestCase):
         self.assertEqual(self.conn.execute("SELECT status FROM source_state").fetchone()[0], "no_news")
         self.assertEqual(A.disputed_batch(self.conn), [])
         again, _ = A.admit(self.conn, [obs("https://plain.example.org/", delivery=None, delivery_url=None)], NOW)
-        self.assertEqual(again["skipped_decided"], 1)
+        self.assertEqual(again["accept"] + again["disputed"], 0)  # nothing decided twice
 
     def test_disputed_batch_for_owner(self):
         A.admit(self.conn, [obs("https://civil.example.org/", items=items(CIVIL))], NOW)
         self.assertEqual(A.disputed_batch(self.conn), [])  # rules 0.5: a general outlet is not the owner's
         A.admit(self.conn, [obs("https://lang.example.org/", items=items(["x y z", "a b", "1 2"] * 2))], NOW)
-        batch = A.disputed_batch(self.conn)
-        self.assertEqual(len(batch), 1)
-        self.assertEqual(len(batch[0]["sample_items"]), 5)
-        json.dumps(batch)
+        self.assertEqual(A.disputed_batch(self.conn), [])  # 0.8: uncertain language is held, not the owner's
 
     def test_failed_write_leaves_no_partial_state(self):
         class Boom(Exception):
@@ -220,7 +219,7 @@ class Rules05(unittest.TestCase):
         undated = [{"url": f"https://news.example.org/{i}", "title": t, "date": None} for i, t in enumerate(DEF)]
         self.assertEqual(self.d(obs(items=undated))["decision"], "hold")
         official = obs("https://www.mod.example.gov/", items=undated, delivery_url="https://www.mod.example.gov/news")
-        self.assertEqual(self.d(official)["decision"], "disputed")
+        self.assertEqual(self.d(official)["decision"], "hold")  # 0.8: waits for the page collector
         self.assertEqual(A.status_of({"decision": "hold", "reason_codes": ["stale"]}), "on_hold")
         self.assertEqual(A.status_of({"decision": "hold", "reason_codes": ["no_news_site"]}), "no_news")
 
@@ -234,6 +233,29 @@ class NewLanguages(unittest.TestCase):
         civil = ["Νέα στρατηγική για τον τουρισμό", "Védelmi tanács a vízügyben", "Football results of the weekend"]
         self.assertEqual(A.topic_share(defence)[0], 1.0)
         self.assertEqual(A.topic_share(civil)[0], 0.0)
+
+
+class Rules08(unittest.TestCase):
+    """Owner 20.11 "Не нужно, решай сам": no disputed decision; the judge settles an uncertain language."""
+
+    def test_uncertain_language_accepted_when_judge_says_specialised(self):
+        o = obs(items=items(["x y z", "a b", "1 2"] * 2))
+        o["judge"] = {"specialised": True, "by": "fake"}
+        o["items"] = [{**i, "title": "Army drones radar missile " + i["title"]} for i in o["items"]]
+        r = A.decide(o, lambda c, h: (None, None), NOW)
+        self.assertNotEqual(r["decision"], "disputed")
+        self.assertEqual(r["checks"][3]["basis"], "judge_specialised")
+
+    def test_old_disputed_are_rechecked_first(self):
+        import run_daily as R
+        with tempfile.TemporaryDirectory() as d:
+            conn = A.open_db(str(Path(d) / "r.sqlite"))
+            conn.execute("INSERT INTO candidate_seen VALUES (?,?,?,?,?)", ("https://d.example/", "disputed", NOW.isoformat(), 0, None))
+            self.assertEqual([c["url"] for c in R.recheck_candidates(conn)], ["https://d.example/"])
+            o = obs("https://d.example/", fetch={"status": "http_only"})
+            counts, _ = A.admit(conn, [o], NOW, recheck={"https://d.example/"})
+            self.assertEqual(counts["hold"], 1)
+            conn.close()
 
 
 if __name__ == "__main__":
