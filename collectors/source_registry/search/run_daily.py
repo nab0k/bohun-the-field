@@ -190,7 +190,8 @@ def main():
         asleep = L.sleeping_cells(ctx["learning"])
         gaps = lambda js: L.order_by_gaps(js, ctx["accepted_by_country"], ctx["accepted_by_type"], asleep)  # noqa: E731
         names = {cc: c["name_en"] for cc, c in europe.items()}
-        jobs = {"layer1": gaps(P.layer1_jobs(cat, countries, None, ctx["done"])),
+        cat1 = P.with_europe(cat)  # layer 1 over Europe (20.11), the 12 original countries keep their languages
+        jobs = {"layer1": gaps(P.layer1_jobs(cat1, list(cat1["countries"]), None, ctx["done"])),
                 "layer3": P.layer3_jobs(cat, ctx["events"], 50, ctx["done"]),
                 "section": P.section_jobs(C.general_sites(conn)) if tavily else [],
                 "types": gaps(P.type_jobs(cat, list(europe), ctx["done"], names=names)),
