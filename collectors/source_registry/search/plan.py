@@ -23,7 +23,12 @@ def europe():
 # 20.11 (A1SD-03 wave 1): layer 1 covered only the 12 countries of categories.json and its cheap finds ran out (search
 # share 19-26%). The other countries of Europe join it in a language the dictionary already has, else in English.
 # Micro-states without a defence industry stay out to save the free quota.
-EXTRA_LANG = {"AT": ("de", "Österreich"), "CH": ("de", "Schweiz"), "BE": ("fr", "Belgique"), "LU": ("fr", "Luxembourg")}
+EXTRA_LANG = {"AT": ("de", "Österreich"), "CH": ("de", "Schweiz"), "BE": ("fr", "Belgique"), "LU": ("fr", "Luxembourg"),
+              # categories-0.2 (20.11): ten more languages; Croatian terms also serve BA, ME, RS (Latin script)
+              "NO": ("no", "Norge"), "DK": ("da", "Danmark"), "GR": ("el", "Ελλάδα"), "CY": ("el", "Κύπρος"),
+              "HU": ("hu", "Magyarország"), "PT": ("pt", "Portugal"), "BG": ("bg", "България"),
+              "HR": ("hr", "Hrvatska"), "BA": ("hr", "Bosna i Hercegovina"), "ME": ("hr", "Crna Gora"),
+              "RS": ("hr", "Srbija"), "LT": ("lt", "Lietuva"), "LV": ("lv", "Latvija"), "EE": ("et", "Eesti")}
 LAYER1_SKIP = {"AD", "LI", "MC", "SM", "VA"}
 
 
@@ -34,6 +39,8 @@ def with_europe(cat, countries=None):
         if cc in out["countries"] or cc in LAYER1_SKIP:
             continue
         lang, local = EXTRA_LANG.get(cc, ("en", c["name_en"]))
+        if any(lang not in k["terms"] for k in cat["categories"].values()):
+            lang, local = "en", c["name_en"]  # a language the dictionary does not fully have falls back to English
         out["countries"][cc] = {"name_en": c["name_en"], "lang": lang, "name_local": local}
     return out
 

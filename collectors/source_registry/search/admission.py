@@ -41,6 +41,14 @@ DELIVERIES = ("feed", "api", "page", "dataset")
 
 _POLICY = HERE.parent / "discovery/policy.proposed.json"
 DOMAIN_TERMS = [t.casefold() for t in json.loads(_POLICY.read_text(encoding="utf-8"))["rules"]["domain"]]
+# categories-0.2 (20.11): defence words of the ten languages added to the search. The policy file above is pinned by
+# the shared Inoreader coordinator and cannot change; these live here. Stems are kept narrow (Greek "στρατιωτ", not
+# "στρατ", which also matches "strategy"; Hungarian "honvéd"/"katonai", not the civil-protection "védelmi").
+EXTRA_DOMAIN_TERMS = ["militær", "våpen", "våben", "άμυν", "στρατιωτ", "ένοπλ", "πολεμικ", "honvéd", "katonai",
+                      "hadsereg", "hadiipar", "fegyver", "defesa", "forças armadas", "exército", "marinha", "armamento",
+                      "отбран", "военн", "въоръж", "армия", "obran", "odbran", "vojn", "vojsk", "oružj", "karin",
+                      "ginkl", "militār", "bruņot", "armij", "sõjav", "relvaj", "relvast", "kaitseväe"]
+DOMAIN_TERMS += [t for t in EXTRA_DOMAIN_TERMS if t not in DOMAIN_TERMS]
 # Terms that are too broad alone for a source's theme (space/cyber/satellite news is often civil).
 WEAK_TERMS = {"space", "satellite", "cyber", "aerospace", "radar", "mod "}
 
