@@ -47,7 +47,13 @@ DOMAIN_TERMS = [t.casefold() for t in json.loads(_POLICY.read_text(encoding="utf
 EXTRA_DOMAIN_TERMS = ["militær", "våpen", "våben", "άμυν", "στρατιωτ", "ένοπλ", "πολεμικ", "honvéd", "katonai",
                       "hadsereg", "hadiipar", "fegyver", "defesa", "forças armadas", "exército", "marinha", "armamento",
                       "отбран", "военн", "въоръж", "армия", "obran", "odbran", "vojn", "vojsk", "oružj", "karin",
-                      "ginkl", "militār", "bruņot", "armij", "sõjav", "relvaj", "relvast", "kaitseväe"]
+                      "ginkl", "militār", "bruņot", "armij", "sõjav", "relvaj", "relvast", "kaitseväe",
+                      # categories-0.3 (20.11, waves 2-4). Korean "군" alone also means "county" and is left out.
+                      "savunma", "askeri", "mühimmat", "silahlı kuvvet", "عسكري", "الدفاع", "دفاعي", "الجيش",
+                      "ذخيرة", "ביטחוני", "צבאי", "צה\"ל", "תחמושת", "防衛", "軍事", "自衛隊", "兵器", "弾薬", "국방",
+                      "방산", "방위산업", "군사", "무기", "国防", "军事", "军工", "武器", "军队", "防务", "pertahanan",
+                      "militer", "alutsista", "quốc phòng", "quân sự", "quân đội", "vũ khí", "กลาโหม", "ทหาร",
+                      "อาวุธ"]
 DOMAIN_TERMS += [t for t in EXTRA_DOMAIN_TERMS if t not in DOMAIN_TERMS]
 # Terms that are too broad alone for a source's theme (space/cyber/satellite news is often civil).
 WEAK_TERMS = {"space", "satellite", "cyber", "aerospace", "radar", "mod "}
@@ -57,14 +63,17 @@ CCTLD = {"ua": "UA", "pl": "PL", "de": "DE", "fr": "FR", "uk": "GB", "it": "IT",
          "ro": "RO", "bg": "BG", "hu": "HU", "at": "AT", "ch": "CH", "pt": "PT", "gr": "GR", "ie": "IE", "us": "US",
          "ca": "CA", "au": "AU", "nz": "NZ", "jp": "JP", "kr": "KR", "tr": "TR", "il": "IL", "in": "IN", "si": "SI",
          "hr": "HR", "md": "MD", "ge": "GE", "lu": "LU", "is": "IS", "rs": "RS", "br": "BR", "mx": "MX", "sg": "SG",
-         "tw": "TW", "za": "ZA", "ae": "AE", "sa": "SA", "ru": "RU", "cn": "CN", "by": "BY"}
+         "tw": "TW", "za": "ZA", "ae": "AE", "sa": "SA", "ru": "RU", "cn": "CN", "by": "BY",
+         # waves 2-4 (20.11); generic-use domains (.co .tv .fm .ws .me .io) are left out on purpose
+         "hk": "HK", "id": "ID", "my": "MY", "vn": "VN", "th": "TH", "ph": "PH", "pk": "PK", "bd": "BD", "qa": "QA", "kw": "KW", "jo": "JO", "om": "OM", "bh": "BH", "lb": "LB", "iq": "IQ", "ir": "IR", "af": "AF", "kz": "KZ", "kg": "KG", "tj": "TJ", "tm": "TM", "uz": "UZ", "mn": "MN", "lk": "LK", "np": "NP", "mm": "MM", "kh": "KH", "la": "LA", "bn": "BN", "mo": "MO", "ps": "PS", "sy": "SY", "ye": "YE", "ar": "AR", "cl": "CL", "pe": "PE", "ve": "VE", "ec": "EC", "bo": "BO", "py": "PY", "uy": "UY", "gt": "GT", "hn": "HN", "sv": "SV", "ni": "NI", "cr": "CR", "pa": "PA", "cu": "CU", "do": "DO", "gy": "GY", "sr": "SR", "pg": "PG", "fj": "FJ", "sb": "SB", "vu": "VU", "to": "TO", "ki": "KI", "mh": "MH", "pw": "PW", "nr": "NR"}
 # 0.7 (review of the 95 accepted, 19.11): a national language says the country when host and hints say nothing
 # (adriadefense.com, defensehere.com/tr were "international"). English, French, Spanish, German, Russian are spoken in
 # many countries and say nothing.
 LANG_COUNTRY = {"uk": "UA", "pl": "PL", "cs": "CZ", "sk": "SK", "ro": "RO", "it": "IT", "nl": "NL", "sv": "SE",
                 "fi": "FI", "da": "DK", "no": "NO", "nb": "NO", "et": "EE", "lv": "LV", "lt": "LT", "hu": "HU",
                 "bg": "BG", "el": "GR", "hr": "HR", "sl": "SI", "sr": "RS", "tr": "TR", "pt": "PT", "ka": "GE",
-                "hy": "AM", "is": "IS", "mk": "MK", "sq": "AL", "be": "BY"}
+                "hy": "AM", "is": "IS", "mk": "MK", "sq": "AL", "be": "BY",
+                "tr": "TR", "he": "IL", "ja": "JP", "ko": "KR", "vi": "VN", "th": "TH"}
 # 0.7: official defence hosts that the gov/mil pattern misses (defensie.nl, defmin.fi were typed "media")
 OFFICIAL_SITES = {"defensie.nl", "defmin.fi", "mapn.ro", "bmvg.de", "bundeswehr.de", "defense.gouv.fr", "difesa.it",
                   "defensa.gob.es", "mod.gov.ua", "mil.by", "army.cz", "mo.gov.cz", "forsvarsmakten.se",
