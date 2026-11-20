@@ -116,7 +116,7 @@ jobs:
           set +x
           API_CAP=60
           if [ "$EVENT_NAME" = 'workflow_dispatch' ]; then API_CAP=2; fi
-          command=("$RUNNER_TEMP/bohun-inoreader-body/bin/python" -B -m collectors.inoreader.shared_runtime --config "$RUNNER_TEMP/inoreader-shared-config.json" --allow-live --max-api-attempts "$API_CAP" --)
+          command=("$RUNNER_TEMP/bohun-inoreader-body/bin/python" -B -m collectors.inoreader.shared_runtime_diag --config "$RUNNER_TEMP/inoreader-shared-config.json" --allow-live --max-api-attempts "$API_CAP" --)
           if [ "$EVENT_NAME" = 'workflow_dispatch' ]; then
             if [ "$SHARED_DRY_RUN" = 'true' ]; then
               "${command[@]}" --dry-run --max-pages 1 --max-items 12
