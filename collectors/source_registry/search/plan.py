@@ -19,6 +19,24 @@ EUROPE = HERE / "countries_europe.json"   # A1SD-03 wave 1: 50 countries (Wikida
 def europe():
     return json.loads(EUROPE.read_text(encoding="utf-8"))["countries"]
 
+
+# 20.11 (A1SD-03 wave 1): layer 1 covered only the 12 countries of categories.json and its cheap finds ran out (search
+# share 19-26%). The other countries of Europe join it in a language the dictionary already has, else in English.
+# Micro-states without a defence industry stay out to save the free quota.
+EXTRA_LANG = {"AT": ("de", "Österreich"), "CH": ("de", "Schweiz"), "BE": ("fr", "Belgique"), "LU": ("fr", "Luxembourg")}
+LAYER1_SKIP = {"AD", "LI", "MC", "SM", "VA"}
+
+
+def with_europe(cat, countries=None):
+    """A copy of the dictionary whose countries also hold the rest of Europe (language from EXTRA_LANG, else en)."""
+    out = {**cat, "countries": dict(cat["countries"])}
+    for cc, c in (countries or europe()).items():
+        if cc in out["countries"] or cc in LAYER1_SKIP:
+            continue
+        lang, local = EXTRA_LANG.get(cc, ("en", c["name_en"]))
+        out["countries"][cc] = {"name_en": c["name_en"], "lang": lang, "name_local": local}
+    return out
+
 # Official skeleton (design): ministry, procurement agency, parliament committee, export control, defence funds,
 # statistics/registries. English queries: official bodies are usually indexed with English names too.
 SKELETON = {

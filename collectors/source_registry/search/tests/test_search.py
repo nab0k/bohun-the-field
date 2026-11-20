@@ -367,5 +367,22 @@ class SearchShare(unittest.TestCase):
         self.assertTrue(m["a1sd_cycle_ok"])  # acceptance judged on what search found
 
 
+class Layer1Europe(unittest.TestCase):
+    def test_layer1_covers_europe_in_known_languages(self):
+        ext = P.with_europe(CAT)
+        self.assertEqual(ext["countries"]["PL"], CAT["countries"]["PL"])          # originals unchanged
+        self.assertEqual(ext["countries"]["AT"]["lang"], "de")
+        self.assertEqual(ext["countries"]["LT"], {"name_en": "Lithuania", "lang": "en", "name_local": "Lithuania"})
+        self.assertNotIn("VA", ext["countries"])
+        self.assertEqual(len(ext["countries"]), 45)
+        jobs = P.layer1_jobs(ext, list(ext["countries"]))
+        self.assertTrue({"LT", "AT", "GR"} <= {j["country"] for j in jobs})
+        at = [j for j in jobs if j["country"] == "AT" and j["lang"] == "de"]
+        self.assertTrue(at and at[0]["query"].endswith("Österreich"))
+        self.assertTrue(all(j["query"] and j["lang"] in CAT["categories"][j["category"]]["terms"] for j in jobs))
+        self.assertNotIn("countries", CAT.get("_mutated", {}))  # the original dictionary is not modified
+        self.assertNotIn("LT", CAT["countries"])
+
+
 if __name__ == "__main__":
     unittest.main()
