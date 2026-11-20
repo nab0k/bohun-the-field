@@ -55,7 +55,7 @@ def pending(cur, day_from, day_to, limit, new_only=False):
                      FROM intelligence.items i
                      JOIN intelligence.sources s ON s.id=i.source_id
                 LEFT JOIN knowledge.item_embedding e ON e.item_id=i.id
-                    WHERE s.name='Inoreader BOHUN' AND i.item_type='news'
+                    WHERE s.name IN ('Inoreader BOHUN', 'BOHUN feeds (A1SD)') AND i.item_type='news'
                       AND i.published_at >= %s::date AND i.published_at < %s::date + 1
                       AND length(coalesce(i.raw_data->'content_capture'->>'text','')) < %s
                       AND (e.item_id IS NULL OR e.origin_method='self')
@@ -80,7 +80,8 @@ WRITE_SQL = """UPDATE intelligence.items i
    AND coalesce(i.raw_data->'publisher_capture','null'::jsonb)=%s::jsonb
    AND NOT EXISTS (SELECT 1 FROM knowledge.item_processing p WHERE p.item_id=i.id)
    AND NOT EXISTS (SELECT 1 FROM knowledge.item_embedding e WHERE e.item_id=i.id)
-   AND EXISTS (SELECT 1 FROM intelligence.sources s WHERE s.id=i.source_id AND s.name='Inoreader BOHUN')
+   AND EXISTS (SELECT 1 FROM intelligence.sources s WHERE s.id=i.source_id
+               AND s.name IN ('Inoreader BOHUN', 'BOHUN feeds (A1SD)'))  -- A4SC-05 own feeds (20.11)
    AND coalesce(i.title,'')=%s"""
 
 

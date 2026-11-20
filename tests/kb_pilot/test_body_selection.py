@@ -151,7 +151,7 @@ class Integration(unittest.TestCase):
         self.assertEqual((result['http_attempts'], result['robots_attempts']), (2, 1))
         self.assertEqual(result['written'], 0)
         self.assertIn("i.item_type='news'", r.calls[0][0])
-        self.assertIn("s.name='Inoreader BOHUN'", r.calls[0][0])
+        self.assertIn("s.name IN ('Inoreader BOHUN', 'BOHUN feeds (A1SD)')", r.calls[0][0])  # A4SC-05 own feeds
 
     def test_utf8_bytes_are_not_silently_truncated(self):
         def fetch(url, *_a, **_kw): return {'status': 200, 'url': url, 'body': b'<h1>Title</h1>'}
