@@ -255,10 +255,15 @@ def reissued(candidates, known):
 
 def measure_cycle(candidates, found, results, known=()):
     """A1SD acceptance per cycle: >= 10 countries and >= 5 types among candidates, no known address re-issued,
-    accepted share >= 30%; plus saturation (share of already known among everything found)."""
+    accepted share >= 30%; plus saturation (share of already known among everything found).
+    20.11: re-checks and the audit of accepted sources are known by definition - they are not this run's finds, so
+    they count neither as re-issued known addresses (runs of 19.11 counted 15 and 5) nor for countries and types."""
+    again = ("recheck", "audit")
+    all_candidates, candidates = candidates, [c for c in candidates if c["found_via"].get("layer") not in again]
+    new_results = [r for r in results if r.get("found_via_layer") not in again]
     countries = {c["found_via"].get("country") for c in candidates if c["found_via"].get("country")}
-    countries |= {r.get("country") for r in results if r.get("country") and r.get("country") != "international"}
-    types = {r.get("type") for r in results if r.get("type")}
+    countries |= {r.get("country") for r in new_results if r.get("country") and r.get("country") != "international"}
+    types = {r.get("type") for r in new_results if r.get("type")}
     general = [r for r in results if r["decision"] == "general"]
     decided = [r for r in results if r["decision"] not in ("retry", "general")]
     accepted = [r for r in decided if r["decision"] == "accept"]
@@ -267,7 +272,8 @@ def measure_cycle(candidates, found, results, known=()):
     for r in accepted:
         acc_layer[r.get("found_via_layer") or "?"] += 1
     return {
-        "candidates": len(candidates), "countries": sorted(countries), "n_countries": len(countries),
+        "candidates": len(candidates), "rechecked_or_audited": len(all_candidates) - len(candidates),
+        "countries": sorted(countries), "n_countries": len(countries),
         "types": sorted(types), "n_types": len(types),
         "decisions": dict(Counter(r["decision"] for r in results)),
         "accepted_share": round(len(accepted) / len(decided), 3) if decided else None,
@@ -368,7 +374,8 @@ def execute(todo, search, http, conn, known, raw=None, use_feedsearch=False, net
             queue += [c for c in again if c not in queue][: len(failed)]
             trace["network_recovered"] = trace.get("network_recovered", 0) + 1
             streak = 0
-    counts, results = A.admit(conn, observations, recheck=set(recheck), audit=set(audit))
+    counts, results = A.admit(conn, observations, recheck=set(recheck),
+                              audit=dict(audit) if isinstance(audit, dict) else set(audit))
     layer_of = {A.registry.canonical_url(c["url"]): c["found_via"] for c in candidates}
     for r in results:
         fv = layer_of.get(A.registry.canonical_url(r["candidate_url"])) or {}

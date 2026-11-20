@@ -447,15 +447,18 @@ def admit(conn, observations, now=None, redecide=(), recheck=(), audit=()):
             pass  # decided under older rules (e.g. 0.4 disputed) -> decide again under the current ones
         elif seen and seen[0] == "hold" and curl in recheck:
             pass  # on hold (stale, few titles, undated) and due for its next check
-        elif seen and seen[0] == "accept" and curl in audit:
-            pass  # accepted under older rules or without the judge: checked again
+        elif curl in audit and (not seen or seen[0] == "accept"):
+            pass  # accepted under older rules or without the judge (or seeded with no record of how): checked again
         elif seen and seen[0] in ("accept", "disputed", "hold", "general"):
             counts["skipped_decided"] += 1
             continue
         obs = {**obs, "prior_transient": seen[2] if seen else 0}
         old = None
-        if curl in audit and seen:
-            old = conn.execute("SELECT channel_id FROM candidate_seen WHERE candidate_url=?", (curl,)).fetchone()[0]
+        if curl in audit:
+            # 20.11: audit may name the accepted channel itself (sources seeded from the Mac have no candidate_seen row)
+            old = audit.get(curl) if isinstance(audit, dict) else None
+            if old is None and seen:
+                old = conn.execute("SELECT channel_id FROM candidate_seen WHERE candidate_url=?", (curl,)).fetchone()[0]
         rec = decide(obs, (lambda c, h, _o=old: (None, None) if _o and known(c, h)[1] == _o else known(c, h))
                      if old else known, now)
         if old and rec["decision"] == "retry":

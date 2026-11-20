@@ -96,15 +96,27 @@ def audit_candidates(conn, n=AUDIT_PER_DAY):
         "SELECT s.candidate_url, s.channel_id, d.rules_version, d.record_json, d.reasons_json FROM candidate_seen s "
         "JOIN admission_decision d ON d.decision_id=(SELECT max(decision_id) FROM admission_decision x "
         "WHERE x.candidate_url=s.candidate_url) WHERE s.last_decision='accept' ORDER BY s.decided_at").fetchall()
-    out = []
+    # 20.11: 86 accepted sources were seeded from the Mac cycles with no candidate_seen row and no decision; they are
+    # audited through their site root, oldest first, before the rest
+    seeded = conn.execute(
+        "SELECT canonical_url, channel_id FROM source_state s WHERE status='accepted' AND NOT EXISTS "
+        "(SELECT 1 FROM candidate_seen c WHERE c.channel_id=s.channel_id) AND NOT EXISTS "
+        "(SELECT 1 FROM admission_decision d WHERE d.channel_id=s.channel_id) ORDER BY since").fetchall()
+    out, taken = [], set()
+    for url, channel in seeded:
+        host = A.registry.host_of(url)
+        root = A.registry.canonical_url(f"https://{host}/") if host else None
+        if root and root not in taken:
+            taken.add(root)
+            out.append((root, channel))
     for url, channel, rules, record, reasons in rows:
         if "owner_accept" in (reasons or "") or (rules == A.RULES_VERSION and '"judge"' in (record or "")):
             continue
-        out.append(({"url": url, "pool_group": "audit", "prefilter": True,
-                     "found_via": {"channel": "audit", "layer": "audit"}}, channel))
-        if len(out) >= n:
-            break
-    return out
+        if url not in taken:
+            taken.add(url)
+            out.append((url, channel))
+    return [({"url": url, "pool_group": "audit", "prefilter": True,
+              "found_via": {"channel": "audit", "layer": "audit"}}, channel) for url, channel in out[:n]]
 
 
 COMPANY_PER_DAY = int(os.environ.get("SEARCH_COMPANY_PER_DAY", "12"))
@@ -209,7 +221,7 @@ def main():
         cands, found, done, trace, _obs, counts, results = C.execute(
             todo, engines, http, conn, known, use_feedsearch=True, extra=extra,
             recheck={A.registry.canonical_url(c["url"]) for c in again},
-            audit={A.registry.canonical_url(c["url"]) for c, _ in audit})
+            audit={A.registry.canonical_url(c["url"]): ch for c, ch in audit})
         trace.update(http_requests=budget.requests, seconds=round(time.time() - t0),
                      engines_used=dict(engines.used), engines_off=sorted(engines.off),
                      engine_errors=dict(engines.errors),

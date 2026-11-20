@@ -112,5 +112,39 @@ class Audit(unittest.TestCase):
             conn.close()
 
 
+class SeededAudit(unittest.TestCase):
+    """20.11: 86 accepted sources were seeded from the Mac with no candidate_seen row and no decision."""
+
+    def test_seeded_accepted_source_is_audited_through_its_root(self):
+        import run_daily as R
+        with tempfile.TemporaryDirectory() as d:
+            conn = A.open_db(str(Path(d) / "r.sqlite"))
+            conn.execute("INSERT INTO source_state VALUES (?,?,?,?,?,?,?,?,?)",
+                         ("ch-seed", "https://seed.example/comments/feed", "accepted", "media", "feed", "NL", "nl",
+                          "2026-11-18T10:00:00+00:00", "a2sa-shadow-0.5"))
+            got = R.audit_candidates(conn)
+            self.assertEqual([(c["url"], ch) for c, ch in got], [("https://seed.example/", "ch-seed")])
+            # the judge says general now: the seeded channel leaves the accepted list, nothing "already known"
+            gen = {"candidate": got[0][0], "fetch": {"status": 200, "final_url": "https://seed.example/"},
+                   "robots": {"state": "rules", "allowed": True}, "general_outlet": {"judge": "fake"}, "items": []}
+            counts, _ = A.admit(conn, [gen], audit={"https://seed.example/": "ch-seed"})
+            self.assertEqual(counts["general"], 1)
+            st = dict(conn.execute("SELECT canonical_url, status FROM source_state").fetchall())
+            self.assertNotEqual(st["https://seed.example/comments/feed"], "accepted")
+            self.assertEqual(R.audit_candidates(conn), [])  # decided now: not audited again
+            conn.close()
+
+    def test_measure_ignores_rechecks_and_audit(self):
+        import search_cycle as C
+        cands = [{"url": f"https://new{i}.example/", "found_via": {"layer": "types", "country": "PL"}} for i in range(3)]
+        cands += [{"url": "https://known.example/", "found_via": {"layer": "audit"}},
+                  {"url": "https://held.example/", "found_via": {"layer": "recheck"}}]
+        results = [{"decision": "accept", "type": "media", "country": "PL", "found_via_layer": "types"},
+                   {"decision": "accept", "type": "agency", "country": "DE", "found_via_layer": "audit"}]
+        m = C.measure_cycle(cands, [], results, known={"known.example", "held.example"})
+        self.assertEqual((m["known_reissued"], m["candidates"], m["rechecked_or_audited"]), (0, 3, 2))
+        self.assertEqual((m["countries"], m["types"]), (["PL"], ["media"]))
+
+
 if __name__ == "__main__":
     unittest.main()
