@@ -22,6 +22,14 @@ test("inoreader every 4 hours by default, configurable, never more often than th
   assert.deepEqual(jobs({})[0].inputs, {scheduled_relay: "true", shared_dry_run: "false"});
 });
 
+test("own feed collector every 2 hours at :25 in write mode", () => {
+  const feeds = jobs({}).find(j => j.workflow === "feed-collect.yml");
+  assert.equal(feeds.at.length, 12);
+  assert.deepEqual(feeds.inputs, {mode: "write"});
+  assert.deepEqual(names(due(at("14:25"))), ["feed-collect.yml"]);
+  assert.deepEqual(names(due(at("15:25"))), []);
+});
+
 test("dispatch sends one workflow_dispatch on main with the inputs", async () => {
   const calls = [];
   const fake = async (url, init) => { calls.push([url, init]); return {status: 204}; };
