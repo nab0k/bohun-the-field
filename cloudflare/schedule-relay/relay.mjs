@@ -13,6 +13,9 @@ export function jobs(env = {}) {
   if (!Number.isInteger(every) || every < 1 || every > 24 || 24 % every) throw new Error("INOREADER_EVERY_HOURS");
   const inoreader = [];
   for (let h = 0; h < 24; h += every) inoreader.push(`${String(h).padStart(2, "0")}:07`);
+  // A4SC-05 own feed collector (20.11, owner "Да, добавляй"): every 2 hours at :25, writing to the base
+  const feeds = [];
+  for (let h = 0; h < 24; h += 2) feeds.push(`${String(h).padStart(2, "0")}:25`);
   return [
     {workflow: "inoreader-cloud.yml", at: inoreader, inputs: {scheduled_relay: "true", shared_dry_run: "false"}},
     {workflow: "source-search-daily.yml", at: ["04:40"], inputs: {dry_run: "false"}},
@@ -20,6 +23,7 @@ export function jobs(env = {}) {
     {workflow: "kb-daily.yml", at: ["06:20", "15:20"]},
     {workflow: "ted-daily.yml", at: ["07:15"]},
     {workflow: "opportunities-grants-us.yml", at: ["07:45"]},
+    {workflow: "feed-collect.yml", at: feeds, inputs: {mode: "write"}},
   ];
 }
 
