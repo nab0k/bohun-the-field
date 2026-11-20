@@ -1,5 +1,5 @@
 {
- "version": "categories-0.2",
+ "version": "categories-0.3",
  "prepared": "18.11.2026 Claude, по базе (14 тем, типы событий) — переводы подготовлены заранее, без модели в цикле; носителями не проверены, проверка — доля результатов на ожидаемом языке после первого цикла",
  "base_counts_at": "2026-11-18 SELECT: события по главной теме, без повторов по заголовку (в базе 1 495 событий, 983 разных заголовка)",
  "countries": {
@@ -92,7 +92,16 @@
     "hr": "vojni dronovi",
     "lt": "kariniai dronai",
     "lv": "militārie droni",
-    "et": "sõjalised droonid"
+    "et": "sõjalised droonid",
+    "tr": "askeri dronlar",
+    "ar": "طائرات مسيرة عسكرية",
+    "he": "רחפנים צבאיים",
+    "ja": "軍用ドローン",
+    "ko": "군용 드론",
+    "zh": "军用无人机",
+    "id": "drone militer",
+    "vi": "máy bay không người lái quân sự",
+    "th": "โดรนทางทหาร"
    }
   },
   "naval": {
@@ -122,7 +131,16 @@
     "hr": "vojna brodogradnja",
     "lt": "karinių laivų statyba",
     "lv": "karakuģu būve",
-    "et": "sõjalaevade ehitus"
+    "et": "sõjalaevade ehitus",
+    "tr": "savaş gemisi inşası",
+    "ar": "بناء السفن الحربية",
+    "he": "בניית ספינות מלחמה",
+    "ja": "艦艇建造",
+    "ko": "군함 건조",
+    "zh": "军舰建造",
+    "id": "pembangunan kapal perang",
+    "vi": "đóng tàu chiến",
+    "th": "ต่อเรือรบ"
    }
   },
   "c4isr": {
@@ -152,7 +170,16 @@
     "hr": "vojni radari komunikacije",
     "lt": "kariniai radarai ryšiai",
     "lv": "militārie radari sakari",
-    "et": "sõjalised radarid side"
+    "et": "sõjalised radarid side",
+    "tr": "askeri radar haberleşme",
+    "ar": "رادارات واتصالات عسكرية",
+    "he": "רדאר צבאי תקשורת",
+    "ja": "軍用レーダー 通信",
+    "ko": "군용 레이더 통신",
+    "zh": "军用雷达 通信",
+    "id": "radar militer komunikasi",
+    "vi": "radar quân sự thông tin liên lạc",
+    "th": "เรดาร์ทางทหาร การสื่อสาร"
    }
   },
   "munitions": {
@@ -182,7 +209,16 @@
     "hr": "proizvodnja streljiva",
     "lt": "šaudmenų gamyba",
     "lv": "munīcijas ražošana",
-    "et": "laskemoona tootmine"
+    "et": "laskemoona tootmine",
+    "tr": "mühimmat üretimi",
+    "ar": "إنتاج الذخيرة",
+    "he": "ייצור תחמושת",
+    "ja": "弾薬生産",
+    "ko": "탄약 생산",
+    "zh": "弹药生产",
+    "id": "produksi amunisi",
+    "vi": "sản xuất đạn dược",
+    "th": "ผลิตกระสุน"
    }
   },
   "aircraft": {
@@ -212,7 +248,16 @@
     "hr": "vojni zrakoplovi helikopteri",
     "lt": "kariniai lėktuvai sraigtasparniai",
     "lv": "militārās lidmašīnas helikopteri",
-    "et": "sõjalennukid helikopterid"
+    "et": "sõjalennukid helikopterid",
+    "tr": "askeri uçak helikopter",
+    "ar": "طائرات ومروحيات عسكرية",
+    "he": "מטוסים ומסוקים צבאיים",
+    "ja": "軍用機 ヘリコプター",
+    "ko": "군용기 헬기",
+    "zh": "军用飞机 直升机",
+    "id": "pesawat militer helikopter",
+    "vi": "máy bay quân sự trực thăng",
+    "th": "เครื่องบินทหาร เฮลิคอปเตอร์"
    }
   },
   "space": {
@@ -242,7 +287,16 @@
     "hr": "vojni sateliti",
     "lt": "kariniai palydovai",
     "lv": "militārie satelīti",
-    "et": "sõjalised satelliidid"
+    "et": "sõjalised satelliidid",
+    "tr": "askeri uydular",
+    "ar": "أقمار صناعية عسكرية",
+    "he": "לוויינים צבאיים",
+    "ja": "軍事衛星",
+    "ko": "군사위성",
+    "zh": "军事卫星",
+    "id": "satelit militer",
+    "vi": "vệ tinh quân sự",
+    "th": "ดาวเทียมทางทหาร"
    }
   },
   "land_systems": {
@@ -272,7 +326,16 @@
     "hr": "oklopna vozila",
     "lt": "šarvuotos transporto priemonės",
     "lv": "bruņumašīnas",
-    "et": "soomukid"
+    "et": "soomukid",
+    "tr": "zırhlı araçlar",
+    "ar": "مركبات مدرعة",
+    "he": "רכבים משוריינים",
+    "ja": "装甲車両",
+    "ko": "장갑차",
+    "zh": "装甲车辆",
+    "id": "kendaraan lapis baja",
+    "vi": "xe bọc thép",
+    "th": "ยานเกราะ"
    }
   },
   "air_defence": {
@@ -302,7 +365,16 @@
     "hr": "protuzračna proturaketna obrana",
     "lt": "oro ir priešraketinė gynyba",
     "lv": "pretgaisa pretraķešu aizsardzība",
-    "et": "õhu- ja raketikaitse"
+    "et": "õhu- ja raketikaitse",
+    "tr": "hava ve füze savunması",
+    "ar": "الدفاع الجوي والصاروخي",
+    "he": "הגנה אווירית וטילים",
+    "ja": "防空 ミサイル防衛",
+    "ko": "방공 미사일 방어",
+    "zh": "防空反导",
+    "id": "pertahanan udara rudal",
+    "vi": "phòng không phòng thủ tên lửa",
+    "th": "ป้องกันภัยทางอากาศ ขีปนาวุธ"
    }
   },
   "artillery": {
@@ -332,7 +404,16 @@
     "hr": "topništvo rakete",
     "lt": "artilerija raketos",
     "lv": "artilērija raķetes",
-    "et": "suurtükivägi raketid"
+    "et": "suurtükivägi raketid",
+    "tr": "topçu roketler",
+    "ar": "المدفعية والصواريخ",
+    "he": "ארטילריה רקטות",
+    "ja": "火砲 ロケット",
+    "ko": "포병 로켓",
+    "zh": "火炮 火箭",
+    "id": "artileri roket",
+    "vi": "pháo binh tên lửa",
+    "th": "ปืนใหญ่ จรวด"
    }
   },
   "training": {
@@ -362,7 +443,16 @@
     "hr": "vojna vježba simulacija",
     "lt": "karinės pratybos simuliacija",
     "lv": "militārās mācības simulācija",
-    "et": "sõjaväeõppus simulatsioon"
+    "et": "sõjaväeõppus simulatsioon",
+    "tr": "askeri tatbikat simülasyon",
+    "ar": "مناورات عسكرية محاكاة",
+    "he": "תרגיל צבאי סימולציה",
+    "ja": "軍事演習 シミュレーション",
+    "ko": "군사훈련 시뮬레이션",
+    "zh": "军事演习 模拟",
+    "id": "latihan militer simulasi",
+    "vi": "diễn tập quân sự mô phỏng",
+    "th": "การฝึกทหาร จำลอง"
    }
   },
   "ew": {
@@ -392,7 +482,16 @@
     "hr": "elektroničko ratovanje",
     "lt": "elektroninė kova",
     "lv": "elektroniskā karadarbība",
-    "et": "elektrooniline sõjapidamine"
+    "et": "elektrooniline sõjapidamine",
+    "tr": "elektronik harp",
+    "ar": "الحرب الإلكترونية",
+    "he": "לוחמה אלקטרונית",
+    "ja": "電子戦",
+    "ko": "전자전",
+    "zh": "电子战",
+    "id": "peperangan elektronik",
+    "vi": "tác chiến điện tử",
+    "th": "สงครามอิเล็กทรอนิกส์"
    }
   },
   "critical_materials": {
@@ -422,7 +521,16 @@
     "hr": "kritične sirovine obrana",
     "lt": "kritinės žaliavos gynyba",
     "lv": "kritiskās izejvielas aizsardzība",
-    "et": "kriitilised toorained kaitse"
+    "et": "kriitilised toorained kaitse",
+    "tr": "kritik hammaddeler savunma",
+    "ar": "المواد الخام الحيوية الدفاع",
+    "he": "חומרי גלם קריטיים ביטחון",
+    "ja": "重要鉱物 防衛",
+    "ko": "핵심 원자재 국방",
+    "zh": "关键原材料 国防",
+    "id": "bahan baku kritis pertahanan",
+    "vi": "nguyên liệu thô quan trọng quốc phòng",
+    "th": "วัตถุดิบสำคัญ กลาโหม"
    }
   },
   "arctic": {
@@ -452,7 +560,16 @@
     "hr": "Arktik obrana nadzor",
     "lt": "Arktis gynyba stebėjimas",
     "lv": "Arktika aizsardzība novērošana",
-    "et": "Arktika kaitse seire"
+    "et": "Arktika kaitse seire",
+    "tr": "Arktik savunma gözetleme",
+    "ar": "القطب الشمالي الدفاع المراقبة",
+    "he": "ארקטי ביטחון מעקב",
+    "ja": "北極 防衛 監視",
+    "ko": "북극 국방 감시",
+    "zh": "北极 防御 监视",
+    "id": "Arktik pertahanan pengawasan",
+    "vi": "Bắc Cực quốc phòng giám sát",
+    "th": "อาร์กติก กลาโหม เฝ้าระวัง"
    },
    "countries": [
     "SE",
@@ -487,7 +604,16 @@
     "hr": "politika obrambene industrije",
     "lt": "gynybos pramonės politika",
     "lv": "aizsardzības industrijas politika",
-    "et": "kaitsetööstuse poliitika"
+    "et": "kaitsetööstuse poliitika",
+    "tr": "savunma sanayii politikası",
+    "ar": "سياسة الصناعات الدفاعية",
+    "he": "מדיניות התעשייה הביטחונית",
+    "ja": "防衛産業政策",
+    "ko": "방위산업 정책",
+    "zh": "国防工业政策",
+    "id": "kebijakan industri pertahanan",
+    "vi": "chính sách công nghiệp quốc phòng",
+    "th": "นโยบายอุตสาหกรรมป้องกันประเทศ"
    }
   },
   "contract": {
@@ -517,7 +643,16 @@
     "hr": "ugovor obrana dodijeljen",
     "lt": "gynybos sutartis",
     "lv": "aizsardzības līgums",
-    "et": "kaitseleping"
+    "et": "kaitseleping",
+    "tr": "savunma sözleşmesi imzalandı",
+    "ar": "عقد دفاعي",
+    "he": "חוזה ביטחוני",
+    "ja": "防衛契約 受注",
+    "ko": "국방 계약 체결",
+    "zh": "国防合同",
+    "id": "kontrak pertahanan",
+    "vi": "hợp đồng quốc phòng",
+    "th": "สัญญากลาโหม"
    }
   },
   "procurement": {
@@ -547,7 +682,16 @@
     "hr": "javna nabava obrana natječaj",
     "lt": "gynybos pirkimai konkursas",
     "lv": "aizsardzības iepirkums konkurss",
-    "et": "kaitsehange"
+    "et": "kaitsehange",
+    "tr": "savunma tedarik ihalesi",
+    "ar": "مناقصة مشتريات دفاعية",
+    "he": "מכרז רכש ביטחוני",
+    "ja": "防衛装備 調達 入札",
+    "ko": "방위사업 조달 입찰",
+    "zh": "国防采购 招标",
+    "id": "pengadaan pertahanan tender",
+    "vi": "đấu thầu mua sắm quốc phòng",
+    "th": "ประกวดราคา จัดซื้อ กลาโหม"
    }
   },
   "production": {
@@ -577,7 +721,16 @@
     "hr": "proizvodnja obrambena industrija tvornica",
     "lt": "gynybos pramonės gamykla",
     "lv": "aizsardzības industrijas ražotne",
-    "et": "kaitsetööstuse tehas tootmine"
+    "et": "kaitsetööstuse tehas tootmine",
+    "tr": "savunma sanayii üretim tesisi",
+    "ar": "مصنع الصناعات الدفاعية",
+    "he": "ייצור תעשייה ביטחונית מפעל",
+    "ja": "防衛産業 生産 工場",
+    "ko": "방산 생산 공장",
+    "zh": "国防工业 生产 工厂",
+    "id": "produksi industri pertahanan pabrik",
+    "vi": "nhà máy công nghiệp quốc phòng",
+    "th": "โรงงาน อุตสาหกรรมป้องกันประเทศ"
    }
   },
   "partnership": {
@@ -607,7 +760,16 @@
     "hr": "partnerstvo obrambene industrije",
     "lt": "gynybos pramonės partnerystė",
     "lv": "aizsardzības industrijas sadarbība",
-    "et": "kaitsetööstuse koostöö"
+    "et": "kaitsetööstuse koostöö",
+    "tr": "savunma sanayii ortaklığı",
+    "ar": "شراكة الصناعات الدفاعية",
+    "he": "שותפות תעשייה ביטחונית",
+    "ja": "防衛産業 提携",
+    "ko": "방위산업 협력",
+    "zh": "国防工业 合作",
+    "id": "kemitraan industri pertahanan",
+    "vi": "hợp tác công nghiệp quốc phòng",
+    "th": "ความร่วมมือ อุตสาหกรรมป้องกันประเทศ"
    }
   },
   "funding": {
@@ -637,7 +799,16 @@
     "hr": "financiranje obrambenih startupa",
     "lt": "gynybos startuolių finansavimas",
     "lv": "aizsardzības jaunuzņēmumu finansējums",
-    "et": "kaitsetehnoloogia idufirmade rahastus"
+    "et": "kaitsetehnoloogia idufirmade rahastus",
+    "tr": "savunma girişimi yatırım",
+    "ar": "تمويل الشركات الناشئة الدفاعية",
+    "he": "מימון סטארטאפ ביטחוני",
+    "ja": "防衛スタートアップ 資金調達",
+    "ko": "방산 스타트업 투자",
+    "zh": "国防初创企业 融资",
+    "id": "pendanaan startup pertahanan",
+    "vi": "tài trợ khởi nghiệp quốc phòng",
+    "th": "ทุน สตาร์ทอัพ กลาโหม"
    }
   },
   "export": {
@@ -667,7 +838,16 @@
     "hr": "dozvola izvoz oružja",
     "lt": "ginklų eksporto licencija",
     "lv": "ieroču eksporta licence",
-    "et": "relvade ekspordiluba"
+    "et": "relvade ekspordiluba",
+    "tr": "silah ihracat lisansı",
+    "ar": "ترخيص تصدير الأسلحة",
+    "he": "רישיון יצוא נשק",
+    "ja": "武器輸出 許可",
+    "ko": "무기 수출 허가",
+    "zh": "武器出口 许可",
+    "id": "izin ekspor senjata",
+    "vi": "giấy phép xuất khẩu vũ khí",
+    "th": "ใบอนุญาตส่งออกอาวุธ"
    }
   },
   "exhibition": {
@@ -697,7 +877,16 @@
     "hr": "sajam obrane",
     "lt": "gynybos paroda",
     "lv": "aizsardzības izstāde",
-    "et": "kaitsetööstuse mess"
+    "et": "kaitsetööstuse mess",
+    "tr": "savunma fuarı",
+    "ar": "معرض الدفاع",
+    "he": "תערוכה ביטחונית",
+    "ja": "防衛展示会",
+    "ko": "방산 전시회",
+    "zh": "防务展",
+    "id": "pameran pertahanan",
+    "vi": "triển lãm quốc phòng",
+    "th": "งานแสดงยุทโธปกรณ์"
    }
   },
   "appointment": {
@@ -727,7 +916,16 @@
     "hr": "obrambena tvrtka novi direktor",
     "lt": "gynybos bendrovė naujas vadovas",
     "lv": "aizsardzības uzņēmums jauns vadītājs",
-    "et": "kaitseettevõte uus juht"
+    "et": "kaitseettevõte uus juht",
+    "tr": "savunma şirketi yeni genel müdür",
+    "ar": "شركة دفاعية تعين رئيسا تنفيذيا",
+    "he": "חברה ביטחונית מנכל חדש",
+    "ja": "防衛企業 新社長",
+    "ko": "방산 기업 신임 대표",
+    "zh": "国防企业 任命 首席执行官",
+    "id": "perusahaan pertahanan CEO baru",
+    "vi": "công ty quốc phòng bổ nhiệm tổng giám đốc",
+    "th": "บริษัทกลาโหม แต่งตั้ง ซีอีโอ"
    }
   }
  }

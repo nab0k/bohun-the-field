@@ -14,10 +14,17 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 CATEGORIES = HERE / "categories.json"
 EUROPE = HERE / "countries_europe.json"   # A1SD-03 wave 1: 50 countries (Wikidata and the types layer)
+WORLD = HERE / "countries_world.json"     # waves 2-4 (20.11): Asia 46, the Americas 23, Oceania 14
 
 
 def europe():
     return json.loads(EUROPE.read_text(encoding="utf-8"))["countries"]
+
+
+def world():
+    """All 133 countries of the search: Europe first, then Asia, the Americas and Oceania."""
+    rest = json.loads(WORLD.read_text(encoding="utf-8"))["countries"]
+    return {**europe(), **{cc: {"name_en": c["name_en"]} for cc, c in rest.items()}}
 
 
 # 20.11 (A1SD-03 wave 1): layer 1 covered only the 12 countries of categories.json and its cheap finds ran out (search
@@ -28,15 +35,32 @@ EXTRA_LANG = {"AT": ("de", "Österreich"), "CH": ("de", "Schweiz"), "BE": ("fr",
               "NO": ("no", "Norge"), "DK": ("da", "Danmark"), "GR": ("el", "Ελλάδα"), "CY": ("el", "Κύπρος"),
               "HU": ("hu", "Magyarország"), "PT": ("pt", "Portugal"), "BG": ("bg", "България"),
               "HR": ("hr", "Hrvatska"), "BA": ("hr", "Bosna i Hercegovina"), "ME": ("hr", "Crna Gora"),
-              "RS": ("hr", "Srbija"), "LT": ("lt", "Lietuva"), "LV": ("lv", "Latvija"), "EE": ("et", "Eesti")}
-LAYER1_SKIP = {"AD", "LI", "MC", "SM", "VA"}
+              "RS": ("hr", "Srbija"), "LT": ("lt", "Lietuva"), "LV": ("lv", "Latvija"), "EE": ("et", "Eesti"),
+              # categories-0.3 (20.11, waves 2-4): Turkey moves from English to Turkish; Asia, the Americas
+              "TR": ("tr", "Türkiye"), "IL": ("he", "ישראל"), "JP": ("ja", "日本"), "KR": ("ko", "대한민국"),
+              "CN": ("zh", "中国"), "TW": ("zh", "台湾"), "HK": ("zh", "香港"), "ID": ("id", "Indonesia"),
+              "MY": ("id", "Malaysia"), "VN": ("vi", "Việt Nam"), "TH": ("th", "ประเทศไทย"),
+              "SA": ("ar", "السعودية"), "AE": ("ar", "الإمارات"), "QA": ("ar", "قطر"), "KW": ("ar", "الكويت"),
+              "JO": ("ar", "الأردن"), "IQ": ("ar", "العراق"), "OM": ("ar", "عمان"), "BH": ("ar", "البحرين"),
+              "LB": ("ar", "لبنان"), "SY": ("ar", "سوريا"), "YE": ("ar", "اليمن"), "PS": ("ar", "فلسطين"),
+              "MX": ("es", "México"), "AR": ("es", "Argentina"), "CL": ("es", "Chile"), "CO": ("es", "Colombia"),
+              "PE": ("es", "Perú"), "VE": ("es", "Venezuela"), "EC": ("es", "Ecuador"), "BO": ("es", "Bolivia"),
+              "PY": ("es", "Paraguay"), "UY": ("es", "Uruguay"), "GT": ("es", "Guatemala"), "HN": ("es", "Honduras"),
+              "SV": ("es", "El Salvador"), "NI": ("es", "Nicaragua"), "CR": ("es", "Costa Rica"),
+              "PA": ("es", "Panamá"), "CU": ("es", "Cuba"), "DO": ("es", "República Dominicana"),
+              "BR": ("pt", "Brasil")}
+# micro-states and very small markets: no layer 1 (Wikidata and the types layer still cover them)
+LAYER1_SKIP = {"AD", "LI", "MC", "SM", "VA", "MV", "BT", "TL", "MO", "GY", "SR", "FM", "MH", "PW", "NR", "TV", "KI",
+               "TO", "WS", "VU", "SB"}
 
 
 def with_europe(cat, countries=None):
-    """A copy of the dictionary whose countries also hold the rest of Europe (language from EXTRA_LANG, else en)."""
+    """A copy of the dictionary whose countries also hold the rest of the search countries (Europe by default, the
+    world for waves 2-4; language from EXTRA_LANG, else en). A country of the dictionary keeps its entry unless
+    EXTRA_LANG gives it a language (Turkey: English -> Turkish)."""
     out = {**cat, "countries": dict(cat["countries"])}
     for cc, c in (countries or europe()).items():
-        if cc in out["countries"] or cc in LAYER1_SKIP:
+        if cc in LAYER1_SKIP or (cc in out["countries"] and cc not in EXTRA_LANG):
             continue
         lang, local = EXTRA_LANG.get(cc, ("en", c["name_en"]))
         if any(lang not in k["terms"] for k in cat["categories"].values()):

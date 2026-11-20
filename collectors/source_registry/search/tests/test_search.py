@@ -399,5 +399,21 @@ class EngineCaps(unittest.TestCase):
         self.assertNotIn("section", gemini)  # the section layer stays with Tavily (include_domains)
 
 
+class World(unittest.TestCase):
+    def test_world_covers_133_countries_in_their_languages(self):
+        w = P.world()
+        self.assertEqual(len(w), 133)
+        self.assertTrue({"US", "BR", "JP", "IN", "AU", "SA"} <= set(w))
+        ext = P.with_europe(CAT, w)
+        self.assertEqual(ext["countries"]["JP"]["lang"], "ja")
+        self.assertEqual(ext["countries"]["MX"], {"name_en": "Mexico", "lang": "es", "name_local": "México"})
+        self.assertEqual(ext["countries"]["US"]["lang"], "en")
+        self.assertNotIn("TV", ext["countries"])                  # micro-state: no layer 1
+        self.assertEqual(ext["countries"]["PL"], CAT["countries"]["PL"])
+        self.assertEqual(len(P.wikidata_jobs(list(w))), 266)       # officials and companies for every country
+        self.assertEqual(C.A.CCTLD.get("co"), None)                 # .co is generic (dronexl.co), never Colombia
+        self.assertEqual(C.A.topic_share(["日本の防衛装備品輸出", "국방부 무기 계약", "Football"])[0], 2 / 3)
+
+
 if __name__ == "__main__":
     unittest.main()

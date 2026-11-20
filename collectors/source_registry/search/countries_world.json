@@ -1,0 +1,338 @@
+{
+ "version": "world-1",
+ "note": "A1SD-03 waves 2-4 (D-20261120-BLOCK-A-SCOPE): Asia without the countries already in countries_europe.json (TR, CY, GE, AM, AZ, RU), the Americas (23), Oceania (14)",
+ "countries": {
+  "AF": {
+   "name_en": "Afghanistan",
+   "region": "asia"
+  },
+  "BH": {
+   "name_en": "Bahrain",
+   "region": "asia"
+  },
+  "BD": {
+   "name_en": "Bangladesh",
+   "region": "asia"
+  },
+  "BT": {
+   "name_en": "Bhutan",
+   "region": "asia"
+  },
+  "BN": {
+   "name_en": "Brunei",
+   "region": "asia"
+  },
+  "KH": {
+   "name_en": "Cambodia",
+   "region": "asia"
+  },
+  "CN": {
+   "name_en": "China",
+   "region": "asia"
+  },
+  "HK": {
+   "name_en": "Hong Kong",
+   "region": "asia"
+  },
+  "IN": {
+   "name_en": "India",
+   "region": "asia"
+  },
+  "ID": {
+   "name_en": "Indonesia",
+   "region": "asia"
+  },
+  "IR": {
+   "name_en": "Iran",
+   "region": "asia"
+  },
+  "IQ": {
+   "name_en": "Iraq",
+   "region": "asia"
+  },
+  "IL": {
+   "name_en": "Israel",
+   "region": "asia"
+  },
+  "JP": {
+   "name_en": "Japan",
+   "region": "asia"
+  },
+  "JO": {
+   "name_en": "Jordan",
+   "region": "asia"
+  },
+  "KZ": {
+   "name_en": "Kazakhstan",
+   "region": "asia"
+  },
+  "KW": {
+   "name_en": "Kuwait",
+   "region": "asia"
+  },
+  "KG": {
+   "name_en": "Kyrgyzstan",
+   "region": "asia"
+  },
+  "LA": {
+   "name_en": "Laos",
+   "region": "asia"
+  },
+  "LB": {
+   "name_en": "Lebanon",
+   "region": "asia"
+  },
+  "MO": {
+   "name_en": "Macau",
+   "region": "asia"
+  },
+  "MY": {
+   "name_en": "Malaysia",
+   "region": "asia"
+  },
+  "MV": {
+   "name_en": "Maldives",
+   "region": "asia"
+  },
+  "MN": {
+   "name_en": "Mongolia",
+   "region": "asia"
+  },
+  "MM": {
+   "name_en": "Myanmar",
+   "region": "asia"
+  },
+  "NP": {
+   "name_en": "Nepal",
+   "region": "asia"
+  },
+  "KP": {
+   "name_en": "North Korea",
+   "region": "asia"
+  },
+  "OM": {
+   "name_en": "Oman",
+   "region": "asia"
+  },
+  "PK": {
+   "name_en": "Pakistan",
+   "region": "asia"
+  },
+  "PS": {
+   "name_en": "Palestine",
+   "region": "asia"
+  },
+  "PH": {
+   "name_en": "Philippines",
+   "region": "asia"
+  },
+  "QA": {
+   "name_en": "Qatar",
+   "region": "asia"
+  },
+  "SA": {
+   "name_en": "Saudi Arabia",
+   "region": "asia"
+  },
+  "SG": {
+   "name_en": "Singapore",
+   "region": "asia"
+  },
+  "KR": {
+   "name_en": "South Korea",
+   "region": "asia"
+  },
+  "LK": {
+   "name_en": "Sri Lanka",
+   "region": "asia"
+  },
+  "SY": {
+   "name_en": "Syria",
+   "region": "asia"
+  },
+  "TW": {
+   "name_en": "Taiwan",
+   "region": "asia"
+  },
+  "TJ": {
+   "name_en": "Tajikistan",
+   "region": "asia"
+  },
+  "TH": {
+   "name_en": "Thailand",
+   "region": "asia"
+  },
+  "TL": {
+   "name_en": "Timor-Leste",
+   "region": "asia"
+  },
+  "TM": {
+   "name_en": "Turkmenistan",
+   "region": "asia"
+  },
+  "AE": {
+   "name_en": "United Arab Emirates",
+   "region": "asia"
+  },
+  "UZ": {
+   "name_en": "Uzbekistan",
+   "region": "asia"
+  },
+  "VN": {
+   "name_en": "Vietnam",
+   "region": "asia"
+  },
+  "YE": {
+   "name_en": "Yemen",
+   "region": "asia"
+  },
+  "US": {
+   "name_en": "United States",
+   "region": "americas"
+  },
+  "CA": {
+   "name_en": "Canada",
+   "region": "americas"
+  },
+  "MX": {
+   "name_en": "Mexico",
+   "region": "americas"
+  },
+  "BR": {
+   "name_en": "Brazil",
+   "region": "americas"
+  },
+  "AR": {
+   "name_en": "Argentina",
+   "region": "americas"
+  },
+  "CL": {
+   "name_en": "Chile",
+   "region": "americas"
+  },
+  "CO": {
+   "name_en": "Colombia",
+   "region": "americas"
+  },
+  "PE": {
+   "name_en": "Peru",
+   "region": "americas"
+  },
+  "VE": {
+   "name_en": "Venezuela",
+   "region": "americas"
+  },
+  "EC": {
+   "name_en": "Ecuador",
+   "region": "americas"
+  },
+  "BO": {
+   "name_en": "Bolivia",
+   "region": "americas"
+  },
+  "PY": {
+   "name_en": "Paraguay",
+   "region": "americas"
+  },
+  "UY": {
+   "name_en": "Uruguay",
+   "region": "americas"
+  },
+  "GY": {
+   "name_en": "Guyana",
+   "region": "americas"
+  },
+  "SR": {
+   "name_en": "Suriname",
+   "region": "americas"
+  },
+  "GT": {
+   "name_en": "Guatemala",
+   "region": "americas"
+  },
+  "HN": {
+   "name_en": "Honduras",
+   "region": "americas"
+  },
+  "SV": {
+   "name_en": "El Salvador",
+   "region": "americas"
+  },
+  "NI": {
+   "name_en": "Nicaragua",
+   "region": "americas"
+  },
+  "CR": {
+   "name_en": "Costa Rica",
+   "region": "americas"
+  },
+  "PA": {
+   "name_en": "Panama",
+   "region": "americas"
+  },
+  "CU": {
+   "name_en": "Cuba",
+   "region": "americas"
+  },
+  "DO": {
+   "name_en": "Dominican Republic",
+   "region": "americas"
+  },
+  "AU": {
+   "name_en": "Australia",
+   "region": "oceania"
+  },
+  "NZ": {
+   "name_en": "New Zealand",
+   "region": "oceania"
+  },
+  "PG": {
+   "name_en": "Papua New Guinea",
+   "region": "oceania"
+  },
+  "FJ": {
+   "name_en": "Fiji",
+   "region": "oceania"
+  },
+  "SB": {
+   "name_en": "Solomon Islands",
+   "region": "oceania"
+  },
+  "VU": {
+   "name_en": "Vanuatu",
+   "region": "oceania"
+  },
+  "WS": {
+   "name_en": "Samoa",
+   "region": "oceania"
+  },
+  "TO": {
+   "name_en": "Tonga",
+   "region": "oceania"
+  },
+  "KI": {
+   "name_en": "Kiribati",
+   "region": "oceania"
+  },
+  "FM": {
+   "name_en": "Micronesia",
+   "region": "oceania"
+  },
+  "MH": {
+   "name_en": "Marshall Islands",
+   "region": "oceania"
+  },
+  "PW": {
+   "name_en": "Palau",
+   "region": "oceania"
+  },
+  "NR": {
+   "name_en": "Nauru",
+   "region": "oceania"
+  },
+  "TV": {
+   "name_en": "Tuvalu",
+   "region": "oceania"
+  }
+ }
+}
