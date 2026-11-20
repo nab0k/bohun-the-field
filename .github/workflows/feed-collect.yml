@@ -1,0 +1,38 @@
+name: BOHUN feed collector (A4SC-05, shadow)
+# D-20261120-A4SC-FEED-COLLECTOR: feeds of the sources accepted by the A1SD search, read directly (no Inoreader).
+# Stage 1 (shadow): writes only source_discovery.feed_poll / feed_items_shadow; product tables are only read.
+# Manual for the shadow day; the schedule relay is added after it. Public repository: counts only.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: bohun-feed-collect
+  cancel-in-progress: false
+jobs:
+  collect:
+    if: github.repository == 'nab0k/bohun-the-field' && github.actor == 'nab0k'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13'
+      - name: Pinned dependencies (feeds, PostgreSQL driver)
+        run: |
+          python -m venv "$RUNNER_TEMP/feeds"
+          "$RUNNER_TEMP/feeds/bin/python" -m pip install --disable-pip-version-check --only-binary=:all: 'psycopg[binary]==3.3.6'
+          "$RUNNER_TEMP/feeds/bin/python" -m pip install --disable-pip-version-check 'feedparser==6.0.14'
+      - name: Offline tests (no network, no database)
+        run: '"$RUNNER_TEMP/feeds/bin/python" -m unittest tests.feeds.test_collect'
+      - name: Collect (shadow)
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          set +x
+          "$RUNNER_TEMP/feeds/bin/python" -m collectors.feeds.collect --mode shadow
