@@ -1,5 +1,5 @@
 {
- "version": "categories-0.1",
+ "version": "categories-0.2",
  "prepared": "18.11.2026 Claude, по базе (14 тем, типы событий) — переводы подготовлены заранее, без модели в цикле; носителями не проверены, проверка — доля результатов на ожидаемом языке после первого цикла",
  "base_counts_at": "2026-11-18 SELECT: события по главной теме, без повторов по заголовку (в базе 1 495 событий, 983 разных заголовка)",
  "countries": {
@@ -82,7 +82,17 @@
     "sv": "militära drönare",
     "fi": "sotilasdroonit",
     "cs": "vojenské drony",
-    "ro": "drone militare"
+    "ro": "drone militare",
+    "no": "militære droner",
+    "da": "militære droner",
+    "el": "στρατιωτικά drones",
+    "hu": "katonai drónok",
+    "pt": "drones militares",
+    "bg": "военни дронове",
+    "hr": "vojni dronovi",
+    "lt": "kariniai dronai",
+    "lv": "militārie droni",
+    "et": "sõjalised droonid"
    }
   },
   "naval": {
@@ -102,7 +112,17 @@
     "sv": "örlogsfartyg varv",
     "fi": "sota-alusten rakentaminen",
     "cs": "válečné lodě loděnice",
-    "ro": "construcții navale militare"
+    "ro": "construcții navale militare",
+    "no": "marine skipsbygging",
+    "da": "flådefartøjer skibsbygning",
+    "el": "ναυπηγική πολεμικών πλοίων",
+    "hu": "hadihajó-gyártás",
+    "pt": "construção naval militar",
+    "bg": "военно корабостроене",
+    "hr": "vojna brodogradnja",
+    "lt": "karinių laivų statyba",
+    "lv": "karakuģu būve",
+    "et": "sõjalaevade ehitus"
    }
   },
   "c4isr": {
@@ -122,7 +142,17 @@
     "sv": "militär radar kommunikation",
     "fi": "sotilastutka viestintä",
     "cs": "vojenský radar komunikace",
-    "ro": "radar militar comunicații"
+    "ro": "radar militar comunicații",
+    "no": "militær radar kommunikasjon",
+    "da": "militær radar kommunikation",
+    "el": "στρατιωτικά ραντάρ επικοινωνίες",
+    "hu": "katonai radar kommunikáció",
+    "pt": "radares militares comunicações",
+    "bg": "военни радари комуникации",
+    "hr": "vojni radari komunikacije",
+    "lt": "kariniai radarai ryšiai",
+    "lv": "militārie radari sakari",
+    "et": "sõjalised radarid side"
    }
   },
   "munitions": {
@@ -142,7 +172,17 @@
     "sv": "ammunitionsproduktion",
     "fi": "ammustuotanto",
     "cs": "výroba munice",
-    "ro": "producție de muniție"
+    "ro": "producție de muniție",
+    "no": "ammunisjonsproduksjon",
+    "da": "ammunitionsproduktion",
+    "el": "παραγωγή πυρομαχικών",
+    "hu": "lőszergyártás",
+    "pt": "produção de munições",
+    "bg": "производство на боеприпаси",
+    "hr": "proizvodnja streljiva",
+    "lt": "šaudmenų gamyba",
+    "lv": "munīcijas ražošana",
+    "et": "laskemoona tootmine"
    }
   },
   "aircraft": {
@@ -162,7 +202,17 @@
     "sv": "stridsflygplan helikoptrar",
     "fi": "hävittäjät helikopterit",
     "cs": "vojenská letadla vrtulníky",
-    "ro": "avioane militare elicoptere"
+    "ro": "avioane militare elicoptere",
+    "no": "militærfly helikoptre",
+    "da": "militærfly helikoptere",
+    "el": "στρατιωτικά αεροσκάφη ελικόπτερα",
+    "hu": "katonai repülőgépek helikopterek",
+    "pt": "aviões militares helicópteros",
+    "bg": "военни самолети хеликоптери",
+    "hr": "vojni zrakoplovi helikopteri",
+    "lt": "kariniai lėktuvai sraigtasparniai",
+    "lv": "militārās lidmašīnas helikopteri",
+    "et": "sõjalennukid helikopterid"
    }
   },
   "space": {
@@ -182,7 +232,17 @@
     "sv": "militära satelliter",
     "fi": "sotilassatelliitit",
     "cs": "vojenské satelity",
-    "ro": "sateliți militari"
+    "ro": "sateliți militari",
+    "no": "militære satellitter",
+    "da": "militære satellitter",
+    "el": "στρατιωτικοί δορυφόροι",
+    "hu": "katonai műholdak",
+    "pt": "satélites militares",
+    "bg": "военни спътници",
+    "hr": "vojni sateliti",
+    "lt": "kariniai palydovai",
+    "lv": "militārie satelīti",
+    "et": "sõjalised satelliidid"
    }
   },
   "land_systems": {
@@ -202,7 +262,17 @@
     "sv": "pansarfordon",
     "fi": "panssariajoneuvot",
     "cs": "obrněná vozidla",
-    "ro": "vehicule blindate"
+    "ro": "vehicule blindate",
+    "no": "pansrede kjøretøy",
+    "da": "pansrede køretøjer",
+    "el": "τεθωρακισμένα οχήματα",
+    "hu": "páncélozott járművek",
+    "pt": "veículos blindados",
+    "bg": "бронирани машини",
+    "hr": "oklopna vozila",
+    "lt": "šarvuotos transporto priemonės",
+    "lv": "bruņumašīnas",
+    "et": "soomukid"
    }
   },
   "air_defence": {
@@ -222,7 +292,17 @@
     "sv": "luftvärn",
     "fi": "ilmatorjunta",
     "cs": "protivzdušná obrana",
-    "ro": "apărare antiaeriană"
+    "ro": "apărare antiaeriană",
+    "no": "luftvern missilforsvar",
+    "da": "luftværn missilforsvar",
+    "el": "αντιαεροπορική αντιπυραυλική άμυνα",
+    "hu": "légvédelem rakétavédelem",
+    "pt": "defesa aérea antimísseis",
+    "bg": "противовъздушна противоракетна отбрана",
+    "hr": "protuzračna proturaketna obrana",
+    "lt": "oro ir priešraketinė gynyba",
+    "lv": "pretgaisa pretraķešu aizsardzība",
+    "et": "õhu- ja raketikaitse"
    }
   },
   "artillery": {
@@ -242,7 +322,17 @@
     "sv": "artilleri raketer",
     "fi": "tykistö raketit",
     "cs": "dělostřelectvo rakety",
-    "ro": "artilerie rachete"
+    "ro": "artilerie rachete",
+    "no": "artilleri raketter",
+    "da": "artilleri raketter",
+    "el": "πυροβολικό ρουκέτες",
+    "hu": "tüzérség rakéták",
+    "pt": "artilharia foguetes",
+    "bg": "артилерия ракети",
+    "hr": "topništvo rakete",
+    "lt": "artilerija raketos",
+    "lv": "artilērija raķetes",
+    "et": "suurtükivägi raketid"
    }
   },
   "training": {
@@ -262,7 +352,17 @@
     "sv": "militärövning",
     "fi": "sotaharjoitus",
     "cs": "vojenské cvičení",
-    "ro": "exercițiu militar"
+    "ro": "exercițiu militar",
+    "no": "militærøvelse simulering",
+    "da": "militærøvelse simulation",
+    "el": "στρατιωτική άσκηση προσομοίωση",
+    "hu": "katonai gyakorlat szimuláció",
+    "pt": "exercício militar simulação",
+    "bg": "военно учение симулация",
+    "hr": "vojna vježba simulacija",
+    "lt": "karinės pratybos simuliacija",
+    "lv": "militārās mācības simulācija",
+    "et": "sõjaväeõppus simulatsioon"
    }
   },
   "ew": {
@@ -282,7 +382,17 @@
     "sv": "telekrigföring",
     "fi": "elektroninen sodankäynti",
     "cs": "elektronický boj",
-    "ro": "război electronic"
+    "ro": "război electronic",
+    "no": "elektronisk krigføring",
+    "da": "elektronisk krigsførelse",
+    "el": "ηλεκτρονικός πόλεμος",
+    "hu": "elektronikai hadviselés",
+    "pt": "guerra eletrónica",
+    "bg": "радиоелектронна борба",
+    "hr": "elektroničko ratovanje",
+    "lt": "elektroninė kova",
+    "lv": "elektroniskā karadarbība",
+    "et": "elektrooniline sõjapidamine"
    }
   },
   "critical_materials": {
@@ -302,7 +412,17 @@
     "sv": "kritiska råvaror försvar",
     "fi": "kriittiset raaka-aineet puolustus",
     "cs": "kritické suroviny obrana",
-    "ro": "materii prime critice apărare"
+    "ro": "materii prime critice apărare",
+    "no": "kritiske råvarer forsvar",
+    "da": "kritiske råstoffer forsvar",
+    "el": "κρίσιμες πρώτες ύλες άμυνα",
+    "hu": "kritikus nyersanyagok védelmi ipar",
+    "pt": "matérias-primas críticas defesa",
+    "bg": "критични суровини отбрана",
+    "hr": "kritične sirovine obrana",
+    "lt": "kritinės žaliavos gynyba",
+    "lv": "kritiskās izejvielas aizsardzība",
+    "et": "kriitilised toorained kaitse"
    }
   },
   "arctic": {
@@ -322,7 +442,17 @@
     "sv": "Arktis försvar",
     "fi": "arktinen puolustus",
     "cs": "Arktida obrana",
-    "ro": "Arctica apărare"
+    "ro": "Arctica apărare",
+    "no": "Arktis forsvar overvåking",
+    "da": "Arktis forsvar overvågning",
+    "el": "Αρκτική άμυνα επιτήρηση",
+    "hu": "Északi-sarkvidék védelem megfigyelés",
+    "pt": "Ártico defesa vigilância",
+    "bg": "Арктика отбрана наблюдение",
+    "hr": "Arktik obrana nadzor",
+    "lt": "Arktis gynyba stebėjimas",
+    "lv": "Arktika aizsardzība novērošana",
+    "et": "Arktika kaitse seire"
    },
    "countries": [
     "SE",
@@ -347,7 +477,17 @@
     "sv": "försvarsindustri politik",
     "fi": "puolustusteollisuus politiikka",
     "cs": "obranný průmysl politika",
-    "ro": "politica industriei de apărare"
+    "ro": "politica industriei de apărare",
+    "no": "forsvarsindustri politikk",
+    "da": "forsvarsindustri politik",
+    "el": "πολιτική αμυντικής βιομηχανίας",
+    "hu": "védelmi ipar politika",
+    "pt": "política da indústria de defesa",
+    "bg": "политика отбранителна индустрия",
+    "hr": "politika obrambene industrije",
+    "lt": "gynybos pramonės politika",
+    "lv": "aizsardzības industrijas politika",
+    "et": "kaitsetööstuse poliitika"
    }
   },
   "contract": {
@@ -367,7 +507,17 @@
     "sv": "försvarskontrakt",
     "fi": "puolustushankinta sopimus",
     "cs": "zbrojní zakázka",
-    "ro": "contract de apărare"
+    "ro": "contract de apărare",
+    "no": "forsvarskontrakt tildelt",
+    "da": "forsvarskontrakt tildelt",
+    "el": "σύμβαση αμυντικού εξοπλισμού",
+    "hu": "védelmi szerződés",
+    "pt": "contrato de defesa adjudicado",
+    "bg": "договор за отбрана",
+    "hr": "ugovor obrana dodijeljen",
+    "lt": "gynybos sutartis",
+    "lv": "aizsardzības līgums",
+    "et": "kaitseleping"
    }
   },
   "procurement": {
@@ -387,7 +537,17 @@
     "sv": "försvarsupphandling",
     "fi": "puolustushankinnat tarjouskilpailu",
     "cs": "veřejná zakázka obrana",
-    "ro": "achiziții apărare licitație"
+    "ro": "achiziții apărare licitație",
+    "no": "forsvarsanskaffelse anbud",
+    "da": "forsvarsindkøb udbud",
+    "el": "διαγωνισμός αμυντικών προμηθειών",
+    "hu": "védelmi beszerzés tender",
+    "pt": "concurso aquisição de defesa",
+    "bg": "обществена поръчка отбрана",
+    "hr": "javna nabava obrana natječaj",
+    "lt": "gynybos pirkimai konkursas",
+    "lv": "aizsardzības iepirkums konkurss",
+    "et": "kaitsehange"
    }
   },
   "production": {
@@ -407,7 +567,17 @@
     "sv": "försvarsfabrik produktion",
     "fi": "puolustusteollisuus tehdas",
     "cs": "zbrojovka výroba",
-    "ro": "fabrică apărare producție"
+    "ro": "fabrică apărare producție",
+    "no": "forsvarsindustri produksjon fabrikk",
+    "da": "forsvarsindustri produktion fabrik",
+    "el": "παραγωγή αμυντικής βιομηχανίας εργοστάσιο",
+    "hu": "hadiipari gyártás gyár",
+    "pt": "produção indústria de defesa fábrica",
+    "bg": "производство военна промишленост завод",
+    "hr": "proizvodnja obrambena industrija tvornica",
+    "lt": "gynybos pramonės gamykla",
+    "lv": "aizsardzības industrijas ražotne",
+    "et": "kaitsetööstuse tehas tootmine"
    }
   },
   "partnership": {
@@ -427,7 +597,17 @@
     "sv": "försvarsindustri samarbetsavtal",
     "fi": "puolustus yhteisyritys",
     "cs": "obranný průmysl partnerství",
-    "ro": "parteneriat industrie de apărare"
+    "ro": "parteneriat industrie de apărare",
+    "no": "forsvarsindustri samarbeid",
+    "da": "forsvarsindustri samarbejde",
+    "el": "συνεργασία αμυντικής βιομηχανίας",
+    "hu": "védelmi ipari együttműködés",
+    "pt": "parceria indústria de defesa",
+    "bg": "партньорство отбранителна индустрия",
+    "hr": "partnerstvo obrambene industrije",
+    "lt": "gynybos pramonės partnerystė",
+    "lv": "aizsardzības industrijas sadarbība",
+    "et": "kaitsetööstuse koostöö"
    }
   },
   "funding": {
@@ -447,7 +627,17 @@
     "sv": "försvar startup finansiering",
     "fi": "puolustus startup rahoitus",
     "cs": "obranný startup investice",
-    "ro": "finanțare startup apărare"
+    "ro": "finanțare startup apărare",
+    "no": "forsvarsteknologi oppstart finansiering",
+    "da": "forsvarsteknologi startup finansiering",
+    "el": "χρηματοδότηση αμυντικών νεοφυών επιχειρήσεων",
+    "hu": "védelmi startup finanszírozás",
+    "pt": "financiamento startup de defesa",
+    "bg": "финансиране отбранителни стартъпи",
+    "hr": "financiranje obrambenih startupa",
+    "lt": "gynybos startuolių finansavimas",
+    "lv": "aizsardzības jaunuzņēmumu finansējums",
+    "et": "kaitsetehnoloogia idufirmade rahastus"
    }
   },
   "export": {
@@ -467,7 +657,17 @@
     "sv": "vapenexport",
     "fi": "asevienti",
     "cs": "vývoz zbraní",
-    "ro": "export de armament"
+    "ro": "export de armament",
+    "no": "våpeneksport lisens",
+    "da": "våbeneksport licens",
+    "el": "άδεια εξαγωγής όπλων",
+    "hu": "fegyverexport engedély",
+    "pt": "licença exportação de armas",
+    "bg": "лиценз износ на оръжие",
+    "hr": "dozvola izvoz oružja",
+    "lt": "ginklų eksporto licencija",
+    "lv": "ieroču eksporta licence",
+    "et": "relvade ekspordiluba"
    }
   },
   "exhibition": {
@@ -487,7 +687,17 @@
     "sv": "försvarsmässa",
     "fi": "puolustusmessut",
     "cs": "veletrh obranné techniky",
-    "ro": "expoziție apărare"
+    "ro": "expoziție apărare",
+    "no": "forsvarsmesse",
+    "da": "forsvarsmesse",
+    "el": "αμυντική έκθεση",
+    "hu": "védelmi kiállítás",
+    "pt": "feira de defesa",
+    "bg": "изложение отбрана",
+    "hr": "sajam obrane",
+    "lt": "gynybos paroda",
+    "lv": "aizsardzības izstāde",
+    "et": "kaitsetööstuse mess"
    }
   },
   "appointment": {
@@ -507,7 +717,17 @@
     "sv": "försvarsföretag ny vd",
     "fi": "puolustusyhtiö uusi toimitusjohtaja",
     "cs": "zbrojní firma nový ředitel",
-    "ro": "numire director companie apărare"
+    "ro": "numire director companie apărare",
+    "no": "forsvarsselskap ny administrerende direktør",
+    "da": "forsvarsvirksomhed ny administrerende direktør",
+    "el": "νέος διευθύνων σύμβουλος αμυντικής εταιρείας",
+    "hu": "védelmi vállalat új vezérigazgató",
+    "pt": "empresa de defesa nomeia CEO",
+    "bg": "отбранителна компания нов изпълнителен директор",
+    "hr": "obrambena tvrtka novi direktor",
+    "lt": "gynybos bendrovė naujas vadovas",
+    "lv": "aizsardzības uzņēmums jauns vadītājs",
+    "et": "kaitseettevõte uus juht"
    }
   }
  }

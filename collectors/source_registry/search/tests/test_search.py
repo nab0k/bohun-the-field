@@ -14,7 +14,8 @@ COUNTRIES = list(CAT["countries"])
 
 class Dictionary(unittest.TestCase):
     def test_every_category_has_every_language_and_valid_type(self):
-        langs = {c["lang"] for c in CAT["countries"].values()} | {"en"}
+        # categories-0.2: the dictionary also carries the languages of the Europe extension (plan.EXTRA_LANG)
+        langs = {c["lang"] for c in CAT["countries"].values()} | {"en"} | {l for l, _ in P.EXTRA_LANG.values()}
         for cid, c in CAT["categories"].items():
             self.assertEqual(set(c["terms"]), langs, cid)
             self.assertTrue(all(t.strip() for t in c["terms"].values()), cid)
@@ -372,7 +373,9 @@ class Layer1Europe(unittest.TestCase):
         ext = P.with_europe(CAT)
         self.assertEqual(ext["countries"]["PL"], CAT["countries"]["PL"])          # originals unchanged
         self.assertEqual(ext["countries"]["AT"]["lang"], "de")
-        self.assertEqual(ext["countries"]["LT"], {"name_en": "Lithuania", "lang": "en", "name_local": "Lithuania"})
+        self.assertEqual(ext["countries"]["LT"], {"name_en": "Lithuania", "lang": "lt", "name_local": "Lietuva"})
+        self.assertEqual(ext["countries"]["SK"]["lang"], "en")  # no Slovak terms yet
+        self.assertEqual(ext["countries"]["RS"]["lang"], "hr")
         self.assertNotIn("VA", ext["countries"])
         self.assertEqual(len(ext["countries"]), 45)
         jobs = P.layer1_jobs(ext, list(ext["countries"]))

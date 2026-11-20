@@ -225,5 +225,16 @@ class Rules05(unittest.TestCase):
         self.assertEqual(A.status_of({"decision": "hold", "reason_codes": ["no_news_site"]}), "no_news")
 
 
+class NewLanguages(unittest.TestCase):
+    def test_defence_titles_in_new_languages_count_civil_do_not(self):
+        defence = ["Νέα σύμβαση για την άμυνα της χώρας", "A Honvédség új harckocsikat kap", "Exército português recebe drones",
+                   "Министерството на отбраната подписа договор", "Hrvatska vojska nabavlja nove helikoptere",
+                   "Lietuvos kariuomenė gavo naujų ginklų", "Latvijas bruņotie spēki saņem jaunus radarus",
+                   "Kaitseväe uus relvastus", "Forsvaret kjøper nye militære kjøretøy"]
+        civil = ["Νέα στρατηγική για τον τουρισμό", "Védelmi tanács a vízügyben", "Football results of the weekend"]
+        self.assertEqual(A.topic_share(defence)[0], 1.0)
+        self.assertEqual(A.topic_share(civil)[0], 0.0)
+
+
 if __name__ == "__main__":
     unittest.main()
