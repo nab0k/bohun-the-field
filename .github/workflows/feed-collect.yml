@@ -4,6 +4,12 @@ name: BOHUN feed collector (A4SC-05, shadow)
 # Manual for the shadow day; the schedule relay is added after it. Public repository: counts only.
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: 'shadow = only the source_discovery shadow tables; write = also intelligence.items (owner decision)'
+        type: choice
+        default: shadow
+        options: [shadow, write]
 permissions:
   contents: read
 concurrency:
@@ -30,9 +36,10 @@ jobs:
           "$RUNNER_TEMP/feeds/bin/python" -m pip install --disable-pip-version-check 'feedparser==6.0.14'
       - name: Offline tests (no network, no database)
         run: '"$RUNNER_TEMP/feeds/bin/python" -m unittest tests.feeds.test_collect'
-      - name: Collect (shadow)
+      - name: Collect
         env:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          MODE: ${{ inputs.mode || 'shadow' }}
         run: |
           set +x
-          "$RUNNER_TEMP/feeds/bin/python" -m collectors.feeds.collect --mode shadow
+          "$RUNNER_TEMP/feeds/bin/python" -m collectors.feeds.collect --mode "$MODE"

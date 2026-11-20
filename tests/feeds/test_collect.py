@@ -120,12 +120,56 @@ class Collect(unittest.TestCase):
         polls = [{"channel_id": "a", "http_status": 200, "etag": None, "last_modified": None, "entries": 1,
                   "fresh": 1, "error": None}]
         saved = F.save_shadow(pg, "r1", polls, shadow)
+        known = saved.pop("_known")
         self.assertEqual(saved, {"new_shadow_items": 1, "already_in_items": 0})
+        self.assertEqual(known, {"https://a.example/n/"})
         writes = [s for s in pg.sql if s.startswith("insert")]
         self.assertTrue(all("source_discovery." in s for s in writes))
         self.assertFalse(any("intelligence.items" in s and s.startswith("insert") for s in pg.sql))
         out = json.dumps(F.summary(polls, shadow, saved, F.Fetcher(opener=None)))
         self.assertNotIn("a.example", out)  # public log: counts only
+
+
+    def test_write_items_one_source_skips_known_and_keeps_contract(self):
+        import sys
+        import types
+        fake_json = types.ModuleType("psycopg.types.json")
+        fake_json.Jsonb = lambda v: v
+        sys.modules.setdefault("psycopg", types.ModuleType("psycopg"))
+        sys.modules.setdefault("psycopg.types", types.ModuleType("psycopg.types"))
+        sys.modules["psycopg.types.json"] = fake_json
+        log = []
+
+        class Cur:
+            def execute(self, sql, params=None):
+                log.append((" ".join(sql.split()), params))
+                self.row = (7,) if "select id from intelligence.sources" in sql else (len(log),)
+
+            def fetchone(self):
+                return self.row
+
+        class PG:
+            def cursor(self):
+                return Cur()
+
+            def transaction(self):
+                import contextlib
+                return contextlib.nullcontext()
+        cap = F.capture("<p>" + "Army orders radars. " * 40 + "</p>", NOW)
+        shadow = [{"channel_id": "a", "external_id": "e1", "url": "https://a.example/n", "title": "New",
+                   "published_at": NOW, "feed_url": "https://a.example/feed", "origin_title": "A", "capture": cap},
+                  {"channel_id": "a", "external_id": "e2", "url": "https://a.example/dup", "title": "Dup",
+                   "published_at": NOW, "feed_url": "https://a.example/feed", "origin_title": "A", "capture": cap}]
+        out = F.write_items(PG(), "r1", shadow, known={"https://a.example/dup"})
+        self.assertEqual(out, {"items_inserted": 1})
+        inserts = [p for s, p in log if s.startswith("insert into intelligence.items")]
+        self.assertEqual(len(inserts), 1)
+        source_id, eid, title, url, published, raw = inserts[0]
+        self.assertEqual((source_id, eid, url), (7, "e1", "https://a.example/n"))
+        self.assertEqual(raw["collector"], "a4sc-feeds-v1")
+        self.assertEqual(raw["content_capture"]["provider_field"], "summary.content")
+        self.assertTrue(all("on conflict (source_id, external_id) do nothing" in s
+                            for s, _ in log if s.startswith("insert into intelligence.items")))
 
 
 if __name__ == "__main__":

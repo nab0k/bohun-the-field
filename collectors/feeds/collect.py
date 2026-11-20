@@ -3,6 +3,11 @@ read directly - no Inoreader, no shared Inoreader quota.
 
   python -B -m collectors.feeds.collect --mode shadow [--max-feeds 200]
 
+Stage 2 (--mode write, D-20261120-A4SC-FEED-WRITE): the same entries also go to intelligence.items under one source
+"BOHUN feeds (A1SD)" (source_type news, collection_method rss), ON CONFLICT (source_id, external_id) DO NOTHING,
+skipping any url already in intelligence.items from another source (Inoreader). The shadow tables stay as the
+health record.
+
 Stage 1 (shadow): writes only source_discovery.feed_poll (per feed: status, conditional-GET validators, counts) and
 source_discovery.feed_items_shadow (per entry: url, title, date, text length, whether the url is already in
 intelligence.items). Product tables are only read (the duplicate check). Writing intelligence.items is stage 2, by a
@@ -23,6 +28,7 @@ import urllib.request
 import urllib.robotparser
 from collections import Counter
 
+SOURCE_NAME = "BOHUN feeds (A1SD)"
 UA = "BOHUN-FeedCollector/1.0 (+https://github.com/nab0k/bohun-the-field)"
 MAX_BYTES = 2_000_000
 TIMEOUT = 15
@@ -82,6 +88,7 @@ def entries(body, feed_url, now, fresh_days=FRESH_DAYS, per_feed=PER_FEED):
     parsed = feedparser.parse(body)
     out = []
     entries.total = len(parsed.entries)
+    entries.feed_title = ((parsed.get("feed") or {}).get("title") or "").strip()[:300] or None
     for e in parsed.entries:
         link = urllib.parse.urljoin(feed_url, e.get("link") or "")
         stamp = e.get("published_parsed") or e.get("updated_parsed")
@@ -184,7 +191,8 @@ def poll(feeds, fetcher, now, max_requests=600):
                     cap = capture(e["html"], now)
                     shadow.append({"channel_id": f["channel_id"], "external_id": eid, "url": e["url"],
                                    "title": e["title"], "published_at": e["published_at"],
-                                   "text_chars": cap.get("text_characters") or 0, "capture_status": cap.get("status")})
+                                   "text_chars": cap.get("text_characters") or 0, "capture_status": cap.get("status"),
+                                   "feed_url": f["url"], "origin_title": entries.feed_title, "capture": cap})
             elif status != 304:
                 row["error"] = f"http_{status}"
         except Exception as exc:  # noqa: BLE001 - one feed must not stop the run; only the error kind is kept
@@ -216,7 +224,38 @@ def save_shadow(pg, run_id, polls, shadow):
                         "entries, fresh, new_items, error) values (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                         (run_id, p["channel_id"], p["http_status"], p["etag"], p["last_modified"], p["entries"],
                          p["fresh"], new_by_channel[p["channel_id"]], p["error"]))
-    return {"new_shadow_items": sum(new_by_channel.values()), "already_in_items": sum(s["url"] in known for s in shadow)}
+    return {"new_shadow_items": sum(new_by_channel.values()), "already_in_items": sum(s["url"] in known for s in shadow),
+            "_known": known}
+
+
+def write_items(pg, run_id, shadow, known):
+    """Stage 2: entries whose url is not yet in intelligence.items -> intelligence.items (one source row)."""
+    from psycopg.types.json import Jsonb
+    cur = pg.cursor()
+    inserted = 0
+    with pg.transaction():
+        cur.execute("select id from intelligence.sources where name = %s order by id limit 1", (SOURCE_NAME,))
+        row = cur.fetchone()
+        if row:
+            source_id = row[0]
+        else:
+            cur.execute("insert into intelligence.sources (name, url, source_type, collection_method) "
+                        "values (%s, null, 'news', 'rss') returning id", (SOURCE_NAME,))
+            source_id = cur.fetchone()[0]
+        for s in shadow:
+            if not s["url"] or s["url"] in known:
+                continue
+            host = urllib.parse.urlsplit(s["url"]).hostname
+            raw = {"collector": "a4sc-feeds-v1", "collector_cycle_id": run_id, "channel_id": s["channel_id"],
+                   "feed_url": s.get("feed_url"), "host": host, "origin_title": s.get("origin_title"),
+                   "url": s["url"], "title": s["title"], "published": s["published_at"].isoformat(),
+                   "content_capture": s.get("capture")}
+            cur.execute("insert into intelligence.items (source_id, external_id, title, url, item_type, published_at,"
+                        " raw_data) values (%s,%s,%s,%s,'news',%s,%s) on conflict (source_id, external_id) do nothing"
+                        " returning id", (source_id, s["external_id"], s["title"] or "(untitled)", s["url"],
+                                          s["published_at"], Jsonb(raw)))
+            inserted += cur.fetchone() is not None
+    return {"items_inserted": inserted}
 
 
 def summary(polls, shadow, saved, fetcher):
@@ -229,7 +268,7 @@ def summary(polls, shadow, saved, fetcher):
 
 def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("--mode", choices=["shadow"], default="shadow")
+    ap.add_argument("--mode", choices=["shadow", "write"], default="shadow")
     ap.add_argument("--max-feeds", type=int, default=200)
     a = ap.parse_args(argv)
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "source_registry", "search"))
@@ -243,6 +282,9 @@ def main(argv=None):
         fetcher = Fetcher()
         polls, shadow = poll(feeds, fetcher, now)
         saved = save_shadow(pg, run_id, polls, shadow)
+        known = saved.pop("_known")
+        if a.mode == "write":
+            saved.update(write_items(pg, run_id, shadow, known))
     print(json.dumps({"run": run_id, "mode": a.mode, **summary(polls, shadow, saved, fetcher)}))
 
 
