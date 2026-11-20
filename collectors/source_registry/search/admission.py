@@ -27,7 +27,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import registry  # noqa: E402
 
-RULES_VERSION = "a2sa-shadow-0.7"  # 0.2: fixes after the 18.11 shadow run; 0.3: no-news sites kept (D-20261118-A1SD-NO-NEWS-KEEP)
+RULES_VERSION = "a2sa-shadow-0.8"  # 0.2: fixes after the 18.11 shadow run; 0.3: no-news sites kept (D-20261118-A1SD-NO-NEWS-KEEP)
 FRESH_DAYS = 60
 REJECT_COOLDOWN_DAYS = 90
 TOPIC_MIN_SHARE = 0.20
@@ -260,12 +260,14 @@ def decide(obs, known, now=None):
         if attempts > MAX_TRANSIENT:
             return out("reject", "unreachable")
         return out("retry", "transient_error")
-    if status == "http_only":  # alive, but only over plain http: a person decides
+    # 0.8 (owner 20.11 "Не нужно, решай сам"): nothing goes to the owner any more. What used to be disputed is held
+    # for the next check, or decided by the judge's verdict where one exists.
+    if status == "http_only":  # alive, but only over plain http
         checks.append({"check": 1, "result": "doubt", "basis": "http_only"})
-        return out("disputed", "http_only")
+        return out("hold", "http_only")
     if status == "RESPONSE_SIZE":  # 18.11: page larger than our transport reads; the site is alive
         checks.append({"check": 1, "result": "doubt", "basis": "page_too_large"})
-        return out("disputed", "page_too_large")
+        return out("hold", "page_too_large")
     if status != 200:
         checks.append({"check": 1, "result": "fail", "status": status})
         return out("reject", "unreachable")
@@ -273,7 +275,7 @@ def decide(obs, known, now=None):
         # 18.11: both cases on the run were the same organisation under a new domain (.gr -> .com, rebrand).
         # A redirect cannot tell a rebrand from a sold domain, so it goes to a person instead of a rejection.
         checks.append({"check": 1, "result": "doubt", "basis": "redirect_to_other_domain", "final_host": final_host})
-        return out("disputed", "redirect_other_domain")
+        return out("hold", "redirect_other_domain")
     checks.append({"check": 1, "result": "pass"})
     # 2 robots
     robots = obs.get("robots") or {}
@@ -309,7 +311,7 @@ def decide(obs, known, now=None):
                    country=country, language=(obs.get("html_lang") or "").split("-")[0].lower() or None)
     if delivery in ("feed", "page") and len(items) < 2:
         checks.append({"check": 3, "result": "doubt", "basis": f"{delivery}_with_{len(items)}_items"})
-        return out("disputed", "delivery_without_items", delivery=delivery)
+        return out("hold", "delivery_without_items", delivery=delivery)
     canon = registry.canonical_url(delivery_url)
     checks.append({"check": 3, "result": "pass", "delivery": delivery})
     titles = [i["title"] for i in items]
@@ -320,10 +322,15 @@ def decide(obs, known, now=None):
     base = {"delivery": delivery, "delivery_url": canon, "type": stype, "type_basis": type_basis, "sample_items": sample}
     # 4 language
     lang, lang_basis = detect_language(titles, obs.get("html_lang"))
-    if not lang:
+    specialised = (obs.get("judge") or {}).get("specialised") is True
+    if not lang and specialised:  # 0.8: the judge read the site and found it specialised; the language stays open
+        lang, lang_basis = (obs.get("html_lang") or "").split("-")[0].lower() or None, "judge_specialised"
+        checks.append({"check": 4, "result": "pass", "language": lang, "basis": lang_basis})
+    elif not lang:
         checks.append({"check": 4, "result": "doubt", "basis": lang_basis})
-        return out("disputed", "language_uncertain", **base)
-    checks.append({"check": 4, "result": "pass", "language": lang, "basis": lang_basis})
+        return out("hold", "language_uncertain", **base)
+    else:
+        checks.append({"check": 4, "result": "pass", "language": lang, "basis": lang_basis})
     # 5 country: never a rejection
     country, country_basis = detect_country(host, cand.get("guessed_country"), obs.get("page_country"), lang)
     checks.append({"check": 5, "result": "pass", "country": country, "basis": country_basis})
@@ -334,16 +341,17 @@ def decide(obs, known, now=None):
         checks.append({"check": 6, "result": "fail", "channel_id": channel})
         return out("reject", "duplicate", **base)
     if relation == "same_host":
-        checks.append({"check": 6, "result": "doubt", "channel_id": channel})
-        return out("disputed", "same_host_other_section", **base)
-    checks.append({"check": 6, "result": "pass"})
+        # 0.8: another section of a known site is its own source when it passes the topic check below
+        checks.append({"check": 6, "result": "pass", "basis": "same_host_other_section", "channel_id": channel})
+    else:
+        checks.append({"check": 6, "result": "pass"})
     # 7 freshness
     dates = [d for d in (parse_date(i.get("date")) for i in items) if d and d <= now + dt.timedelta(days=1)]
     if not dates:
         checks.append({"check": 7, "result": "doubt", "basis": "no_dates"})
         # 0.5 (D-20261118-A1SD-RETRO-PLAN-G2): only official sources without dates go to the owner; the rest
         # wait on hold for the next check (cycle 1: 23 of 66 disputed were undated, mostly not official)
-        return out("disputed" if stype in OFFICIAL_TYPES else "hold", "no_dates", **base)
+        return out("hold", "no_dates", **base)  # 0.8: undated official pages wait for the page collector
     age = (now - max(dates)).days
     if age > FRESH_DAYS:
         checks.append({"check": 7, "result": "doubt", "newest_age_days": age})
@@ -453,8 +461,8 @@ def admit(conn, observations, now=None, redecide=(), recheck=(), audit=()):
             (curl,)).fetchone()
         if seen and seen[0] in redecide and old_rules and old_rules[0] != RULES_VERSION:
             pass  # decided under older rules (e.g. 0.4 disputed) -> decide again under the current ones
-        elif seen and seen[0] == "hold" and curl in recheck:
-            pass  # on hold (stale, few titles, undated) and due for its next check
+        elif seen and seen[0] in ("hold", "disputed") and curl in recheck:
+            pass  # on hold (stale, few titles, undated) and due, or disputed under rules < 0.8: decided again
         elif curl in audit and (not seen or seen[0] == "accept"):
             pass  # accepted under older rules or without the judge (or seeded with no record of how): checked again
         elif seen and seen[0] in ("accept", "disputed", "hold", "general"):

@@ -42,9 +42,11 @@ def _recent(history, now, days):
     return [h for h in history if h["at"] >= cut]
 
 
-def adapt(quotas, gemini, history, recent_runs, now=None):
+def adapt(quotas, gemini, history, recent_runs, now=None, useful=None):
     """New layer quotas from the yield. history: learning rows with "at" (datetime); recent_runs: [(at, share)] newest
-    first. Returns (quotas, gemini, info)."""
+    first; useful (A6SH-02, 20.11): {layer: (sources with 5+ articles, of them reaching events)} - a layer whose sources
+    reach events weighs more (x0.5..x1.5), so the search learns usefulness, not just admission. Returns (quotas,
+    gemini, info)."""
     now = now or dt.datetime.now(dt.timezone.utc)
     quotas, gemini = dict(quotas), dict(gemini)
     shares = [s for _, s in recent_runs if s is not None]
@@ -58,6 +60,11 @@ def adapt(quotas, gemini, history, recent_runs, now=None):
     for h in window:
         accepted[h["layer"]] += h["accepted"]
     yield_ = {l: (accepted[l] + 1) / (asked[l] + 2) for l in layers}   # smoothed: an unasked layer is not zero
+    weight_by_use = {}
+    for l in layers:
+        n, good = (useful or {}).get(l, (0, 0))
+        weight_by_use[l] = 0.5 + good / n if n >= 5 else 1.0
+        yield_[l] *= weight_by_use[l]
     total = sum(quotas[l] for l in layers)
     floor = max(1, round(FLOOR * total))
     spare = total - floor * len(layers)
@@ -70,7 +77,8 @@ def adapt(quotas, gemini, history, recent_runs, now=None):
         gemini[l] = min(new[l], round(g * new[l] / quotas[l])) if quotas[l] else 0
         quotas[l] = new[l]
     return quotas, gemini, {"mode": "learned", "window_jobs": len(window),
-                            "yield": {l: round(v, 3) for l, v in yield_.items()}}
+                            "yield": {l: round(v, 3) for l, v in yield_.items()},
+                            "usefulness_weight": {l: round(v, 2) for l, v in weight_by_use.items() if v != 1.0}}
 
 
 def sleeping_cells(history, now=None):
