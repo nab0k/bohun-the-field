@@ -20,7 +20,8 @@ concurrency:
   cancel-in-progress: false
 jobs:
   search:
-    if: github.repository == 'nab0k/bohun-the-field' && (github.event_name == 'schedule' || github.actor == 'nab0k')
+    # relay (20.11): while SCHEDULE_RELAY_ENABLED is 'true' the Cloudflare relay dispatches this on time; the late GitHub schedule skips
+    if: github.repository == 'nab0k/bohun-the-field' && (github.event_name == 'schedule' || github.actor == 'nab0k') && (github.event_name != 'schedule' || vars.SCHEDULE_RELAY_ENABLED != 'true')
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:

@@ -14,6 +14,8 @@ concurrency:
 
 jobs:
   collect:
+    # relay (20.11): while SCHEDULE_RELAY_ENABLED is 'true' the Cloudflare relay dispatches this on time; the late GitHub schedule skips
+    if: (github.event_name != 'schedule' || vars.SCHEDULE_RELAY_ENABLED != 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 30
 

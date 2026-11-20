@@ -4,9 +4,15 @@ on:
   workflow_dispatch:
     inputs:
       expected_sha:
-        description: Exact reviewed commit for one bounded manual pilot
-        required: true
+        description: Exact reviewed commit for one bounded manual pilot (not used by the relay)
+        required: false
         type: string
+        default: ''
+      scheduled_relay:
+        description: 'Relay (20.11): run exactly the scheduled path (requires shared_dry_run=false)'
+        required: false
+        type: boolean
+        default: false
       shared_dry_run:
         description: Shared coordinator only; read Inoreader without accessing Supabase
         required: true
@@ -24,12 +30,19 @@ concurrency:
 
 jobs:
   collect:
-    if: ${{ vars.INOREADER_CUTOVER_PAUSED != 'true' || (github.event_name == 'workflow_dispatch' && vars.INOREADER_SHARED_ENABLED == 'true' && inputs.shared_dry_run) }}
+    # relay (20.11): while SCHEDULE_RELAY_ENABLED is 'true' the Cloudflare relay dispatches the scheduled path on time
+    # (scheduled_relay=true); the late GitHub schedule skips itself. The cutover pause applies to the relay too.
+    if: ${{ (vars.INOREADER_CUTOVER_PAUSED != 'true' || (github.event_name == 'workflow_dispatch' && vars.INOREADER_SHARED_ENABLED == 'true' && inputs.shared_dry_run && !inputs.scheduled_relay)) && (github.event_name != 'schedule' || vars.SCHEDULE_RELAY_ENABLED != 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      - name: Relay runs the scheduled path only
+        if: github.event_name == 'workflow_dispatch' && inputs.scheduled_relay
+        env:
+          SHARED_DRY_RUN: ${{ inputs.shared_dry_run }}
+        run: test "$SHARED_DRY_RUN" = 'false'
       - name: Guard reviewed manual revision before credentials
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch' && !inputs.scheduled_relay
         env:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
         run: |
@@ -56,7 +69,7 @@ jobs:
           INOREADER_CLIENT_SECRET: ${{ secrets.INOREADER_CLIENT_SECRET }}
           INOREADER_REFRESH_TOKEN: ${{ secrets.INOREADER_REFRESH_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          EVENT_NAME: ${{ github.event_name }}
+          EVENT_NAME: ${{ (github.event_name == 'workflow_dispatch' && inputs.scheduled_relay) && 'schedule' || github.event_name }}
         shell: bash
         run: |
           if [ "$EVENT_NAME" = 'workflow_dispatch' ]; then
@@ -95,7 +108,7 @@ jobs:
         env:
           SOURCE_DISCOVERY_STATE_TOKEN: ${{ secrets.SOURCE_DISCOVERY_STATE_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ (github.event_name != 'workflow_dispatch' || !inputs.shared_dry_run) && secrets.SUPABASE_DB_PASSWORD || '' }}
-          EVENT_NAME: ${{ github.event_name }}
+          EVENT_NAME: ${{ (github.event_name == 'workflow_dispatch' && inputs.scheduled_relay) && 'schedule' || github.event_name }}
           SHARED_DRY_RUN: ${{ inputs.shared_dry_run }}
         shell: bash
         run: |
@@ -114,7 +127,7 @@ jobs:
             "${command[@]}" --max-pages 2
           fi
       - name: Verify stored text hashes without logging content
-        if: ${{ github.event_name == 'workflow_dispatch' && !(vars.INOREADER_SHARED_ENABLED == 'true' && inputs.shared_dry_run) }}
+        if: ${{ github.event_name == 'workflow_dispatch' && !inputs.scheduled_relay && !(vars.INOREADER_SHARED_ENABLED == 'true' && inputs.shared_dry_run) }}
         env:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: '"$RUNNER_TEMP/bohun-inoreader-body/bin/python" -B scripts/inoreader-body-readback.py'

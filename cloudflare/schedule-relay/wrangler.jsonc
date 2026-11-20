@@ -1,0 +1,11 @@
+{
+  // BOHUN schedule relay: see relay.mjs. Deploy: npx wrangler deploy --config cloudflare/schedule-relay/wrangler.jsonc
+  // Secret (once, by the owner's word): npx wrangler secret put GITHUB_TOKEN --config cloudflare/schedule-relay/wrangler.jsonc
+  "name": "bohun-schedule-relay",
+  "main": "relay.mjs",
+  "compatibility_date": "2026-10-26",
+  "workers_dev": false,
+  "triggers": {"crons": ["* * * * *"]},
+  "vars": {"INOREADER_EVERY_HOURS": "4"},
+  "observability": {"enabled": true}
+}
