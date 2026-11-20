@@ -37,6 +37,23 @@ def tavily_left(quotas, gemini, jina):
     return sum(v for k, v in quotas.items() if k not in OPEN_LAYERS) - sum(gemini.values()) - sum(jina.values())
 
 
+def engine_shares(quotas, gemini_total, gemini_layers, jina_share):
+    """20.11: the learning moves queries between layers; the engines' daily free limits must not move with them (the
+    dry run gave Gemini 49 of its 40). Gemini gets exactly gemini_total spread over the layers it serves, in proportion
+    to their new quotas and leaving each layer's Jina share; Jina keeps its share; Tavily takes the rest."""
+    jina = {k: min(v, quotas.get(k, 0)) for k, v in jina_share.items()}
+    room = {l: max(0, quotas.get(l, 0) - jina.get(l, 0)) for l in gemini_layers}
+    total_room = sum(room.values())
+    want = min(gemini_total, total_room)
+    gemini = {l: (want * r // total_room if total_room else 0) for l, r in room.items()}
+    for l in sorted(room, key=lambda l: room[l] - gemini[l], reverse=True):  # rounding remainder, within room
+        if sum(gemini.values()) >= want:
+            break
+        if gemini[l] < room[l]:
+            gemini[l] += 1
+    return gemini, jina
+
+
 def daily_limits(tavily, jina=False, exa=False):
     """Free quotas: Gemini grounding ~5 000/month -> 40/day; Tavily ~1 000/month -> 20/day when its key exists."""
     if tavily:
@@ -191,7 +208,9 @@ def main():
         C.QUOTAS, C.GEMINI_SHARE, learned = L.adapt(C.QUOTAS, C.GEMINI_SHARE, ctx["learning"],
                                                     [(r["at"], r["share"]) for r in ctx["runs"]], useful=useful)
         C.NEW_CAPS = caps_for(C.QUOTAS, new_search)
-        jina_share = {k: min(v, C.QUOTAS.get(k, 0) - C.GEMINI_SHARE.get(k, 0)) for k, v in jina_share.items()}
+        gemini_total = sum(daily_limits(tavily, jina, exa)[2].values())
+        C.GEMINI_SHARE, jina_share = engine_shares(C.QUOTAS, gemini_total, [l for l, v in daily_limits(tavily, jina, exa)[2].items() if v],
+                                                   jina_share)
         C.LIMITS["gemini"] = sum(C.GEMINI_SHARE.values())
         C.LIMITS["jina"] = sum(jina_share.values())
         C.LIMITS["tavily"] = tavily_left(C.QUOTAS, C.GEMINI_SHARE, jina_share)

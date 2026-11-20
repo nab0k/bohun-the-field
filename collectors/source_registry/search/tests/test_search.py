@@ -387,5 +387,17 @@ class Layer1Europe(unittest.TestCase):
         self.assertNotIn("LT", CAT["countries"])
 
 
+class EngineCaps(unittest.TestCase):
+    def test_learning_never_moves_the_engine_limits(self):
+        import run_daily as R
+        quotas = {"types": 14, "layer1": 17, "layer3": 31, "section": 8, "gdelt": 0, "wikidata": 20, "similar": 15}
+        gemini, jina = R.engine_shares(quotas, 40, ["types", "layer1", "layer3"], {"types": 5, "layer1": 5})
+        self.assertEqual(sum(gemini.values()), 40)
+        self.assertEqual(jina, {"types": 5, "layer1": 5})
+        self.assertTrue(all(gemini[l] + jina.get(l, 0) <= quotas[l] for l in gemini))
+        self.assertEqual(R.tavily_left(quotas, gemini, jina), 70 - 40 - 10)
+        self.assertNotIn("section", gemini)  # the section layer stays with Tavily (include_domains)
+
+
 if __name__ == "__main__":
     unittest.main()
