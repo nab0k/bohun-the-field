@@ -55,7 +55,8 @@ def name_norm(name):
     """Key for exact comparison: lowercase, no accents, no legal forms, no punctuation."""
     text = unicodedata.normalize("NFKC", clean_name(name)).strip()
     text = _JP_FORM_RE.sub("", text).strip().lower()
-    text = text.replace("ł", "l")  # Polish ł has no NFKD decomposition
+    # letters without an NFKD decomposition: Polish ł, Nordic ø and æ ('Andoya' in a source, 'ANDØYA' in the register)
+    text = text.replace("ł", "l").replace("ø", "o").replace("æ", "ae")
     text = unicodedata.normalize("NFKD", text)
     text = "".join(ch for ch in text if not unicodedata.combining(ch))
     text = text.replace("&", " and ")
