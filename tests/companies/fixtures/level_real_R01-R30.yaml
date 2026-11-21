@@ -1,0 +1,842 @@
+{
+  "schema": "bohun-level-testset-real-v1",
+  "created": "2026-11-20",
+  "author": "Claude",
+  "status": "PROPOSED — needs owner confirmation (BATCH via D4OD)",
+  "note": "Expected answers fixed before any classifier run (00_COMMON §10). Quotes come from sources read in B4CE-02/03; R22–R30 are counterparties found in those sources and have no full card.",
+  "cases": [
+    {
+      "id": "R01",
+      "entity": "HENSOLDT AG",
+      "legal_id": "HRB 258711 (München)",
+      "country": "DE",
+      "size": "large",
+      "expected": {
+        "level": "L1",
+        "confidence": "verified",
+        "rule": "R01",
+        "scope": "consolidated_group",
+        "must_explain": true
+      },
+      "flags": [],
+      "why": "Group develops ECRS Mk1 radar, confirmed by Leonardo; AG itself is a holding (own level L0, N05).",
+      "evidence": [
+        {
+          "quote": "HENSOLDT is the design authority for the ECRS Mk1 radar",
+          "url": "https://www.leonardo.com/en/press-release-detail/-/detail/14-01-2022-%E2%82%AC260m-contracts-will-see-leonardo-play-core-role-in-e-scan-radar-for-german-and-spanish-typhoons",
+          "source_kind": "P2 second party"
+        }
+      ],
+      "forbidden_conclusions": [
+        "L1 for legal entity HENSOLDT AG without group scope (N05)"
+      ],
+      "card": "../reference/HENSOLDT.md"
+    },
+    {
+      "id": "R02",
+      "entity": "Rheinmetall Aktiengesellschaft",
+      "legal_id": "HRB 39401",
+      "country": "DE",
+      "size": "large",
+      "expected": {
+        "level": "L1",
+        "confidence": "verified",
+        "rule": "R01",
+        "scope": "consolidated_group",
+        "must_explain": true
+      },
+      "flags": [],
+      "why": "Boxer production confirmed by UK MoD.",
+      "evidence": [
+        {
+          "quote": "UK production is focused in Telford through Rheinmetall BAE Systems Land (RBSL)",
+          "url": "https://www.gov.uk/government/news/100-extra-boxer-vehicles-for-the-british-army",
+          "source_kind": "P1 customer"
+        }
+      ],
+      "forbidden_conclusions": [
+        "defence revenue share = 100% (only discontinued civil ops excluded; no figure)"
+      ],
+      "card": "../reference/b4ce03/rheinmetall-ag.md"
+    },
+    {
+      "id": "R03",
+      "entity": "INDRA SISTEMAS, S.A.",
+      "legal_id": "LEI 95980020140005308793",
+      "country": "ES",
+      "size": "large",
+      "expected": {
+        "level": "L1",
+        "confidence": "verified",
+        "rule": "R01",
+        "scope": "legal_entity",
+        "must_explain": true
+      },
+      "flags": [],
+      "why": "ECRS Mk1 developed by HENSOLDT Sensors and Indra Sistemas S.A.",
+      "evidence": [
+        {
+          "quote": "The radar was developed by a consortium consisting of the German HENSOLDT Sensors GmbH and the Spanish Indra Sistemas S.A.",
+          "url": "https://www.hensoldt.net/news/hensoldt-receives-350-million-euro-contract-extension-for-the-eurofighter-radar",
+          "source_kind": "P2 second party"
+        }
+      ],
+      "forbidden_conclusions": [
+        "defence share > 26% (only Defence segment reported)"
+      ],
+      "card": "../reference/b4ce03/indra-sistemas-sa.md"
+    },
+    {
+      "id": "R04",
+      "entity": "Patria Oyj",
+      "legal_id": "2334159-6",
+      "country": "FI",
+      "size": "large",
+      "expected": {
+        "level": "L1",
+        "confidence": "verified",
+        "rule": "R01",
+        "scope": "legal_entity",
+        "must_explain": true
+      },
+      "flags": [],
+      "why": "CAVS armoured vehicle programme with Patria, Finnish MoD.",
+      "evidence": [
+        {
+          "quote": "Finland and Latvia have signed an agreement on joint life cycle services for the Common Armoured Vehicle System (CAVS) with Patria.",
+          "url": "https://valtioneuvosto.fi/en/-/236553176/finland-and-latvia-agree-on-joint-life-cycle-services-for-cavs-vehicles",
+          "source_kind": "P1 customer"
+        }
+      ],
+      "forbidden_conclusions": [],
+      "card": "../reference/b4ce03/patria-oyj.md"
+    },
+    {
+      "id": "R05",
+      "entity": "KONGSBERG DEFENCE & AEROSPACE AS",
+      "legal_id": "978614582",
+      "country": "NO",
+      "size": "large",
+      "expected": {
+        "level": "L1",
+        "confidence": "verified",
+        "rule": "R01",
+        "scope": "legal_entity",
+        "must_explain": true
+      },
+      "flags": [],
+      "why": "US DoD contracts with this legal entity for Joint Strike Missile.",
+      "evidence": [
+        {
+          "quote": "JOINT STRIKE MISSILE LOT 2 AND OPTION LOT 3",
+          "url": "https://api.usaspending.gov/api/v2/search/spending_by_award/",
+          "source_kind": "P1 contract register"
+        }
+      ],
+      "forbidden_conclusions": [
+        "level inherited from Kongsberg Gruppen ASA"
+      ],
+      "card": "../reference/b4ce03/kongsberg-defence-aerospace-as.md"
+    },
+    {
+      "id": "R06",
+      "entity": "EXAIL TECHNOLOGIES",
+      "legal_id": "SIREN 348541186",
+      "country": "FR",
+      "size": "medium",
+      "expected": {
+        "level": "L1",
+        "confidence": "verified",
+        "rule": "R01",
+        "scope": "consolidated_group",
+        "must_explain": true
+      },
+      "flags": [],
+      "why": "rMCM drone mission system, confirmed by Naval Group; listed entity is a holding with 3-5 staff.",
+      "evidence": [
+        {
+          "quote": "Exail, co-contractor, is in charge of the UAV mission system",
+          "url": "https://naval-group.com/sites/default/files/2024-07/20240702_PR_Launching%20of%20the%20Tournai.pdf",
+          "source_kind": "P2 second party"
+        }
+      ],
+      "forbidden_conclusions": [
+        "L1 for the holding legal entity itself (N05)"
+      ],
+      "card": "../reference/b4ce03/exail-technologies.md"
+    },
+    {
+      "id": "R07",
+      "entity": "ARQUUS",
+      "legal_id": "SIREN 662043405",
+      "country": "FR",
+      "size": "medium",
+      "expected": {
+        "level": "L1",
+        "confidence": "supported",
+        "rule": "R01",
+        "scope": "legal_entity",
+        "must_explain": true
+      },
+      "flags": [],
+      "why": "Specially designed military vehicles per former owner; no named product read -> supported, not verified (rule 3.3).",
+      "evidence": [
+        {
+          "quote": "Arquus manufactures and sells specially designed vehicles to defense forces",
+          "url": "https://www.volvogroup.com/en/news-and-media/news/2024/jul/volvo-group-completes-divestment-of-arquus.html",
+          "source_kind": "P2 second party"
+        }
+      ],
+      "forbidden_conclusions": [
+        "L1 verified without a named product"
+      ],
+      "card": "../reference/b4ce03/arquus.md"
+    },
+    {
+      "id": "R08",
+      "entity": "RETIA, a.s.",
+      "legal_id": "IČO 25251929",
+      "country": "CZ",
+      "size": "medium",
+      "expected": {
+        "level": "L2",
+        "confidence": "verified",
+        "rule": "R02",
+        "scope": "legal_entity",
+        "must_explain": true
+      },
+      "flags": [],
+      "why": "Primary Czech partner of Elta in MADR radar programme (Czech MoD). Own radar ReGuard = L1 candidate only.",
+      "evidence": [
+        {
+          "quote": "Retia company and VTÚ state enterprise, who will be the primary partners on the Czech side",
+          "url": "https://acr.mo.gov.cz/en/ministry-of-defence/newsroom/news/czech-and-israeli-defence-representatives-signed-the-contract-for-the-procurement-of-mobile-air-defence-radars-218020/",
+          "source_kind": "P1 customer"
+        }
+      ],
+      "forbidden_conclusions": [
+        "L1 verified from ReGuard product page alone"
+      ],
+      "card": "../reference/b4ce03/retia-as.md"
+    },
+    {
+      "id": "R09",
+      "entity": "INTRACOM DEFENSE Α.Ε.",
+      "legal_id": "LEI 213800X54CP4HBHZJ115",
+      "country": "GR",
+      "size": "medium",
+      "expected": {
+        "level": "L1",
+        "confidence": "supported",
+        "rule": "R01",
+        "scope": "legal_entity",
+        "must_explain": true
+      },
+      "flags": [],
+      "why": "Coordinator of EDF tactical UAV development; coordinator role confirmed by partner, product by company.",
+      "evidence": [
+        {
+          "quote": "INTRACOM DEFENSE AE (Coordinator) Greece",
+          "url": "https://www.signalgenerix.com/?p=4250",
+          "source_kind": "P2 second party"
+        }
+      ],
+      "forbidden_conclusions": [
+        "grant = delivered product (N04)"
+      ],
+      "card": "../reference/b4ce03/intracom-defense.md"
+    },
+    {
+      "id": "R10",
+      "entity": "JOHN COCKERILL DEFENSE",
+      "legal_id": "BCE 0563837739",
+      "country": "BE",
+      "size": "medium",
+      "expected": {
+        "level": "L1",
+        "confidence": "supported",
+        "rule": "R01",
+        "scope": "brand_or_group",
+        "must_explain": true
+      },
+      "flags": [
+        "identity_disputed"
+      ],
+      "why": "Turrets per own group statement; two legal entities share the brand -> identity disputed.",
+      "evidence": [
+        {
+          "quote": "Arquus' new vehicle MAV'RX equipped with a Cockerill CPWS turret",
+          "url": "https://johncockerill.com/en/press-and-news/news/john-cockerill-completes-the-acquisition-process-of-arquus/",
+          "source_kind": "P2 self"
+        }
+      ],
+      "forbidden_conclusions": [
+        "merge with John Cockerill Defense Siège 0771840084 (N08)"
+      ],
+      "card": "../reference/b4ce03/john-cockerill-defense.md"
+    },
+    {
+      "id": "R11",
+      "entity": "GD European Land Systems - Steyr GmbH",
+      "legal_id": "FN 153139f",
+      "country": "AT",
+      "size": "medium",
+      "expected": {
+        "level": "L1",
+        "confidence": "supported",
+        "rule": "R01",
+        "scope": "legal_entity_by_name",
+        "must_explain": true
+      },
+      "flags": [],
+      "why": "225 Pandur Evolution for Austrian Armed Forces, produced in Vienna; source names GDELS without exact entity.",
+      "evidence": [
+        {
+          "quote": "Der Radpanzer wird in Wien von General Dynamics European Land Systems produziert",
+          "url": "https://orf.at/stories/3349158/",
+          "source_kind": "P3 media quoting minister"
+        }
+      ],
+      "forbidden_conclusions": [
+        "verified without exact legal entity in source"
+      ],
+      "card": "../reference/b4ce03/gdels-steyr.md"
+    },
+    {
+      "id": "R12",
+      "entity": "HUTA STALOWA WOLA S.A.",
+      "legal_id": "KRS 0000004324",
+      "country": "PL",
+      "size": "large",
+      "expected": {
+        "level": "L1",
+        "confidence": "verified",
+        "rule": "R01",
+        "scope": "legal_entity",
+        "must_explain": true
+      },
+      "flags": [],
+      "why": "Contracts for 96 Krab howitzers with Armament Agency.",
+      "evidence": [
+        {
+          "quote": "Agencja Uzbrojenia i Huta Stalowa Wola S.A. podpisały dwie umowy",
+          "url": "https://www.gov.pl/web/aktywa-panstwowe/huta-stalowa-wola-z-kontraktem-na-96-armatohaubic-krab",
+          "source_kind": "P1 government"
+        }
+      ],
+      "forbidden_conclusions": [],
+      "card": "../reference/b4ce03/huta-stalowa-wola.md"
+    },
+    {
+      "id": "R13",
+      "entity": "PIT-RADWAR S.A.",
+      "legal_id": "KRS 0000297470 (site footer)",
+      "country": "PL",
+      "size": "medium",
+      "expected": {
+        "level": "L3",
+        "confidence": "verified",
+        "rule": "R03",
+        "scope": "legal_entity",
+        "must_explain": true
+      },
+      "flags": [],
+      "why": "Named member of consortium on signed PET/PCL radar contract; own role not disclosed -> L1 only candidate.",
+      "evidence": [
+        {
+          "quote": "PIT-Radwar S.A.",
+          "url": "https://www.gov.pl/web/obrona-narodowa/stacje-radiolokacyjne-dla-zestawow-narew",
+          "source_kind": "P1 government"
+        }
+      ],
+      "forbidden_conclusions": [
+        "L1 verified without own product evidence"
+      ],
+      "card": "../reference/b4ce03/pit-radwar.md"
+    },
+    {
+      "id": "R14",
+      "entity": "Crosshill Oy",
+      "legal_id": "2617007-5",
+      "country": "FI",
+      "size": "small",
+      "expected": {
+        "level": "L4",
+        "confidence": "verified",
+        "rule": "R04",
+        "scope": "legal_entity",
+        "must_explain": false
+      },
+      "flags": [],
+      "why": "Listed in F-35 indirect industrial cooperation by Finnish MoD; subcontract to MBDA only self-claimed (L2 candidate).",
+      "evidence": [
+        {
+          "quote": "Cyberwatch Finland, Crosshill",
+          "url": "https://valtioneuvosto.fi/-/236553176/puolustusministeri-hakkanen-suomalaisyrityksille-nakopiirissa-uusia-mahdollisuuksia-f-35-hankkeen-kautta",
+          "source_kind": "P1 government"
+        }
+      ],
+      "forbidden_conclusions": [
+        "L2/L3 from indirect offset participation",
+        "L2 from own claim of subcontract"
+      ],
+      "card": "../reference/b4ce03/crosshill-oy.md"
+    },
+    {
+      "id": "R15",
+      "entity": "Aisikon Oy",
+      "legal_id": "0968253-8",
+      "country": "FI",
+      "size": "small",
+      "expected": {
+        "level": "L0",
+        "confidence": "unknown",
+        "rule": "none",
+        "scope": "legal_entity",
+        "must_explain": false
+      },
+      "flags": [
+        "identity_trap_same_name"
+      ],
+      "why": "Metal machining; only an association logo on website; no defence customer found.",
+      "evidence": [
+        {
+          "quote": "Machining of metals",
+          "url": "https://avoindata.prh.fi/opendata-ytj-api/v3/companies?name=Aisikon",
+          "source_kind": "P1 register"
+        }
+      ],
+      "forbidden_conclusions": [
+        "any L1-L4 from association membership (N02)",
+        "merge with 0755714-3"
+      ],
+      "card": "../reference/b4ce03/aisikon-oy.md"
+    },
+    {
+      "id": "R16",
+      "entity": "Phonexia a.s.",
+      "legal_id": "IČO 27680258",
+      "country": "CZ",
+      "size": "small",
+      "expected": {
+        "level": "L0",
+        "confidence": "unknown",
+        "rule": "none",
+        "scope": "legal_entity",
+        "must_explain": false
+      },
+      "flags": [
+        "law_enforcement",
+        "intelligence"
+      ],
+      "why": "Law-enforcement/intelligence voice tech; EU H2020 crime project; no military contract.",
+      "evidence": [
+        {
+          "quote": "Real time network, text, and speaker analytics for combating organized crime",
+          "url": "https://cordis.europa.eu/project/id/833635",
+          "source_kind": "P1 EU"
+        }
+      ],
+      "forbidden_conclusions": [
+        "L1-L3 from the phrase \"military-grade\" (N01)",
+        "legal form s.r.o. (catalogue error)"
+      ],
+      "card": "../reference/b4ce03/phonexia.md"
+    },
+    {
+      "id": "R17",
+      "entity": "Embedded Acoustics BV",
+      "legal_id": "not confirmed (no free NL register)",
+      "country": "NL",
+      "size": "small",
+      "expected": {
+        "level": "L3",
+        "confidence": "supported",
+        "rule": "R03",
+        "scope": "legal_entity_unconfirmed",
+        "must_explain": true
+      },
+      "flags": [],
+      "why": "€200,000 MoD development contract after Defence Innovation Competition 2020.",
+      "evidence": [
+        {
+          "quote": "the Delft-based company received a contract worth €200,000 to develop the idea further",
+          "url": "https://kivi.nl/en/communities/departments/defence-and-security/news/pico-monitor-winner-defence-innovation-competition-2020",
+          "source_kind": "P3 professional society"
+        }
+      ],
+      "forbidden_conclusions": [
+        "verified without customer document"
+      ],
+      "card": "../reference/b4ce03/embedded-acoustics.md"
+    },
+    {
+      "id": "R18",
+      "entity": "Emproof (BV or GmbH)",
+      "legal_id": "disputed",
+      "country": "NL/DE",
+      "size": "small",
+      "expected": {
+        "level": "L4",
+        "confidence": "candidate",
+        "rule": "R04",
+        "scope": "identity_disputed",
+        "must_explain": false
+      },
+      "flags": [
+        "identity_disputed"
+      ],
+      "why": "Embedded software protection; defence customers only self-claimed.",
+      "evidence": [
+        {
+          "quote": "Trusted by automotive, defence & sensor manufacturers",
+          "url": "https://www.emproof.com",
+          "source_kind": "P2 self"
+        }
+      ],
+      "forbidden_conclusions": [
+        "any L1-L3",
+        "treat EMPROOF BV and emproof GmbH as one entity without register"
+      ],
+      "card": "../reference/b4ce03/emproof.md"
+    },
+    {
+      "id": "R19",
+      "entity": "HiWiTronics",
+      "legal_id": "disputed (GmbH or association)",
+      "country": "AT",
+      "size": "small",
+      "expected": {
+        "level": "L4",
+        "confidence": "candidate",
+        "rule": "R04",
+        "scope": "identity_disputed",
+        "must_explain": false
+      },
+      "flags": [
+        "identity_disputed"
+      ],
+      "why": "Drones and demining for civil and military use, prototype level, self-described.",
+      "evidence": [
+        {
+          "quote": "bring them up to prototype level for civil and military applications",
+          "url": "https://www.hiwitronics.com",
+          "source_kind": "P2 self"
+        }
+      ],
+      "forbidden_conclusions": [
+        "any L1-L3"
+      ],
+      "card": "../reference/b4ce03/hiwitronics.md"
+    },
+    {
+      "id": "R20",
+      "entity": "Gyala S.r.l.",
+      "legal_id": "P.IVA 13731281005 (site footer)",
+      "country": "IT",
+      "size": "small",
+      "expected": {
+        "level": "L4",
+        "confidence": "candidate",
+        "rule": "R04",
+        "scope": "legal_entity",
+        "must_explain": false
+      },
+      "flags": [],
+      "why": "IT/OT cyber defence \"developed for defence\", no customer named.",
+      "evidence": [
+        {
+          "quote": "Una tecnologia italiana sviluppata per la difesa",
+          "url": "https://www.gyala.com",
+          "source_kind": "P2 self"
+        }
+      ],
+      "forbidden_conclusions": [
+        "any L1-L3 (N01)"
+      ],
+      "card": "../reference/b4ce03/gyala.md"
+    },
+    {
+      "id": "R21",
+      "entity": "Andres Industries AG",
+      "legal_id": "HRB 106287 B",
+      "country": "DE",
+      "size": "small",
+      "expected": {
+        "level": "L4",
+        "confidence": "candidate",
+        "rule": "R04",
+        "scope": "legal_entity",
+        "must_explain": false
+      },
+      "flags": [],
+      "why": "Thermal imaging maker; distributes another firm's night vision to government; civil fire-brigade customer.",
+      "evidence": [
+        {
+          "quote": "Andres Industries takes over government distribution for Theon Sensors' night vision products.",
+          "url": "https://www.andres-industries.de/en",
+          "source_kind": "P2 self"
+        }
+      ],
+      "forbidden_conclusions": [
+        "L1/L2 from distribution of third-party products",
+        "L1-L3 from NATO seminar attendance (N02)"
+      ],
+      "card": "../reference/b4ce03/andres-industries-ag.md"
+    },
+    {
+      "id": "R22",
+      "entity": "Diehl Defence",
+      "legal_id": "not resolved",
+      "country": "DE",
+      "size": "large",
+      "expected": {
+        "level": "L1",
+        "confidence": "supported",
+        "rule": "R01",
+        "scope": "brand",
+        "must_explain": true
+      },
+      "flags": [],
+      "why": "IRIS-T SLM named as Diehl Defence's system by second party (HENSOLDT).",
+      "evidence": [
+        {
+          "quote": "as part of Diehl Defence's IRIS-T SLM air defence system",
+          "url": "https://www.hensoldt.net/news/hensoldt-radars-protect-german-cities",
+          "source_kind": "P2 second party"
+        }
+      ],
+      "forbidden_conclusions": [
+        "verified before legal entity resolved"
+      ],
+      "card": null
+    },
+    {
+      "id": "R23",
+      "entity": "Naval Group",
+      "legal_id": "not resolved",
+      "country": "FR",
+      "size": "large",
+      "expected": {
+        "level": "L1",
+        "confidence": "supported",
+        "rule": "R01",
+        "scope": "brand",
+        "must_explain": true
+      },
+      "flags": [],
+      "why": "Overall prime contractor of rMCM mine countermeasure vessels (own document).",
+      "evidence": [
+        {
+          "quote": "on behalf of Naval Group, the overall prime contractor",
+          "url": "https://naval-group.com/sites/default/files/2024-07/20240702_PR_Launching%20of%20the%20Tournai.pdf",
+          "source_kind": "P2 self"
+        }
+      ],
+      "forbidden_conclusions": [],
+      "card": null
+    },
+    {
+      "id": "R24",
+      "entity": "Leonardo S.p.A.",
+      "legal_id": "not resolved",
+      "country": "IT",
+      "size": "large",
+      "expected": {
+        "level": "L1",
+        "confidence": "supported",
+        "rule": "R01",
+        "scope": "legal_entity_by_name",
+        "must_explain": true
+      },
+      "flags": [],
+      "why": "Leads ECRS Mk0/Mk2 Eurofighter radars (own statement); also shareholder of HENSOLDT (N05: no inheritance either way).",
+      "evidence": [
+        {
+          "quote": "Leonardo, which leads the development and delivery of the Typhoon’s ECRS Mk0 and ECRS Mk2 radars",
+          "url": "https://www.leonardo.com/en/press-release-detail/-/detail/14-01-2022-%E2%82%AC260m-contracts-will-see-leonardo-play-core-role-in-e-scan-radar-for-german-and-spanish-typhoons",
+          "source_kind": "P2 self"
+        }
+      ],
+      "forbidden_conclusions": [
+        "HENSOLDT level inherited from Leonardo stake (N05)"
+      ],
+      "card": null
+    },
+    {
+      "id": "R25",
+      "entity": "Airbus Defence and Space",
+      "legal_id": "not resolved",
+      "country": "DE/ES",
+      "size": "large",
+      "expected": {
+        "level": "L1",
+        "confidence": "verified",
+        "rule": "R01",
+        "scope": "brand",
+        "must_explain": true
+      },
+      "flags": [],
+      "why": "Integrates ECRS Mk1 on Eurofighter; commissions development — two independent parties.",
+      "evidence": [
+        {
+          "quote": "Airbus Defence & Space will integrate the radar onto the Eurofighter Typhoon",
+          "url": "https://www.leonardo.com/en/press-release-detail/-/detail/14-01-2022-%E2%82%AC260m-contracts-will-see-leonardo-play-core-role-in-e-scan-radar-for-german-and-spanish-typhoons",
+          "source_kind": "P2 second party"
+        },
+        {
+          "quote": "further development tasks were commissioned by Airbus Defence and Space",
+          "url": "https://www.hensoldt.net/news/hensoldt-receives-350-million-euro-contract-extension-for-the-eurofighter-radar",
+          "source_kind": "P2 second party"
+        }
+      ],
+      "forbidden_conclusions": [
+        "legal entity chosen without register check"
+      ],
+      "card": null
+    },
+    {
+      "id": "R26",
+      "entity": "ELTA Systems Ltd",
+      "legal_id": "not resolved",
+      "country": "IL",
+      "size": "large",
+      "expected": {
+        "level": "L1",
+        "confidence": "verified",
+        "rule": "R01",
+        "scope": "legal_entity_by_name",
+        "must_explain": true
+      },
+      "flags": [],
+      "why": "Radar manufacturer of MADR per Czech MoD; IAI subsidiary per HENSOLDT.",
+      "evidence": [
+        {
+          "quote": "the radar manufacturer, the Elta company",
+          "url": "https://acr.mo.gov.cz/en/ministry-of-defence/newsroom/news/czech-and-israeli-defence-representatives-signed-the-contract-for-the-procurement-of-mobile-air-defence-radars-218020/",
+          "source_kind": "P1 customer"
+        },
+        {
+          "quote": "IAI subsidiary ELTA Systems Ltd",
+          "url": "https://hensoldt.net/news/hensoldt-wins-contract-to-equip-german-f124-frigates-with-new-radars",
+          "source_kind": "P2 second party"
+        }
+      ],
+      "forbidden_conclusions": [
+        "IAI level copied to ELTA or back (N05)"
+      ],
+      "card": null
+    },
+    {
+      "id": "R27",
+      "entity": "Lockheed Martin",
+      "legal_id": "not resolved",
+      "country": "US",
+      "size": "large",
+      "expected": {
+        "level": "L1",
+        "confidence": "supported",
+        "rule": "R01",
+        "scope": "brand",
+        "must_explain": true
+      },
+      "flags": [],
+      "why": "F-35 components ordered from Kongsberg by Lockheed Martin (second party).",
+      "evidence": [
+        {
+          "quote": "has signed an agreement with Lockheed Martin with an expected total value of NOK 2 billion for deliveries of components to the F-35 fighter aircraft",
+          "url": "https://www.kongsberg.com/news/news-archive/2025/norway-acquires-more-nasams-air-defence-technology/",
+          "source_kind": "P2 second party"
+        }
+      ],
+      "forbidden_conclusions": [],
+      "card": null
+    },
+    {
+      "id": "R28",
+      "entity": "Jelcz Sp. z o.o.",
+      "legal_id": "not resolved",
+      "country": "PL",
+      "size": "medium",
+      "expected": {
+        "level": "L3",
+        "confidence": "verified",
+        "rule": "R03",
+        "scope": "legal_entity_by_name",
+        "must_explain": true
+      },
+      "flags": [],
+      "why": "Named member of PGZ-NAREW consortium on signed radar contract.",
+      "evidence": [
+        {
+          "quote": "Jelcz Sp. z o.o.",
+          "url": "https://www.gov.pl/web/obrona-narodowa/stacje-radiolokacyjne-dla-zestawow-narew",
+          "source_kind": "P1 government"
+        }
+      ],
+      "forbidden_conclusions": [
+        "L1 from consortium membership alone"
+      ],
+      "card": null
+    },
+    {
+      "id": "R29",
+      "entity": "Mesko S.A.",
+      "legal_id": "not resolved",
+      "country": "PL",
+      "size": "medium",
+      "expected": {
+        "level": "L3",
+        "confidence": "verified",
+        "rule": "R03",
+        "scope": "legal_entity_by_name",
+        "must_explain": true
+      },
+      "flags": [
+        "identity_trap_known"
+      ],
+      "why": "Named member of PGZ-NAREW consortium. Catalogue trap: \"Mesko\" vs \"Mesko S.A.\".",
+      "evidence": [
+        {
+          "quote": "Mesko S.A.",
+          "url": "https://www.gov.pl/web/obrona-narodowa/stacje-radiolokacyjne-dla-zestawow-narew",
+          "source_kind": "P1 government"
+        }
+      ],
+      "forbidden_conclusions": [
+        "merge \"Mesko\" and \"Mesko S.A.\" without identifier (N08)"
+      ],
+      "card": null
+    },
+    {
+      "id": "R30",
+      "entity": "AB Volvo (Volvo Group)",
+      "legal_id": "not resolved",
+      "country": "SE",
+      "size": "large",
+      "expected": {
+        "level": "L0",
+        "confidence": "unknown",
+        "rule": "none",
+        "scope": "consolidated_group",
+        "must_explain": false
+      },
+      "flags": [
+        "historical_owner"
+      ],
+      "why": "Owned Arquus until July 2024 (~1% of revenue). Owning a defence subsidiary does not give the owner a level (N05); historical link only (R07).",
+      "evidence": [
+        {
+          "quote": "In 2023, Arquus represented approximately 1 % of Volvo Group revenues.",
+          "url": "https://www.volvogroup.com/en/news-and-media/news/2024/jul/volvo-group-completes-divestment-of-arquus.html",
+          "source_kind": "P2 self"
+        }
+      ],
+      "forbidden_conclusions": [
+        "L1 for Volvo from Arquus ownership (N05)",
+        "current link after divestment (R07)"
+      ],
+      "card": null
+    }
+  ]
+}
