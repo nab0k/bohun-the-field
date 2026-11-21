@@ -55,7 +55,7 @@ class API:
 
 class Cur:
     def __init__(self, pg):
-        self.pg, self.rows = pg, []
+        self.pg, self.rows, self.rowcount = pg, [], 0
 
     def execute(self, sql, params=None):
         sql = " ".join(sql.split())
@@ -80,10 +80,11 @@ class PG:
 def judge_says(specialised):
     calls = []
 
-    def judge(host, name, pairs):
+    def judge(host, name, pairs, prompt=None):
         calls.append((host, len(pairs)))
+        judge.prompts.append(prompt)
         return {"specialised": specialised, "type": "media", "defence_section": None, "confidence": 0.9}
-    judge.calls = calls
+    judge.calls, judge.prompts = calls, []
     return judge
 
 
@@ -131,6 +132,7 @@ class YouTube(unittest.TestCase):
         yes, no = judge_says(True), judge_says(False)
         self.assertEqual(Y.assess(client, yes, UC, NOW)[:2], ("accept", "accepted"))
         self.assertEqual(yes.calls, [("youtube.com/@ch", 6)])
+        self.assertEqual(yes.prompts, [Y.CHANNEL_PROMPT])  # the channel prompt, not the website one
         self.assertEqual(Y.assess(client, no, UC, NOW)[:2], ("reject", "rejected"))
         self.assertEqual(Y.assess(client, None, UC, NOW)[:2], ("hold", "on_hold"))
         quiet = Y.Client("k", opener=API({"playlistItems": playlist(stale)}))
@@ -191,6 +193,38 @@ class YouTube(unittest.TestCase):
         self.assertEqual((len(polls), len(shadow), counts["videos"]), (1, 1, 1))
         self.assertIn("discovered", counts)
         self.assertNotIn("refresh", counts)  # shadow mode does not touch intelligence.items
+
+    def test_channel_prompt_fits_the_judge_template(self):
+        import judge as J
+        text = Y.CHANNEL_PROMPT.format(host="youtube.com/@x", name="n", types=list(J.TYPES), lines="- t <u>")
+        self.assertIn("clickbait", text)
+        self.assertIn('"defence_section": null', text)
+        seen = []
+        j = J.Judge(providers=[("groq", "u", "k", "m")], pause=0,
+                    ask=lambda p, prompt: seen.append(prompt) or '{"specialised": false, "confidence": 0.9}')
+        pairs = [(f"https://www.youtube.com/watch?v={i}", f"Title {i}") for i in range(6)]
+        self.assertFalse(j("youtube.com/@x", "n", pairs, prompt=Y.CHANNEL_PROMPT)["specialised"])
+        self.assertIn("YouTube channel", seen[0])
+        j("site.example", "n", pairs)
+        self.assertNotIn("YouTube channel", seen[1])  # websites keep the old prompt
+
+    def test_recheck_on_hold_and_old_rules_and_prune_shadow(self):
+        held, old, fresh = "UC" + "h" * 22, "UC" + "o" * 22, "UC" + "f" * 22
+        rows = [(Y.channel_url(held), "on_hold", "a5tc-youtube-0.1", "UA", "uk", "media", {"category": "ew"}),
+                (Y.channel_url(old), "accepted", "a5tc-youtube-0.1", "PL", "pl", "media", None),
+                (Y.channel_url(fresh), "accepted", Y.RULES, "DE", "de", "media", None)]
+        pg = PG({"from source_discovery.source_state s where s.delivery": rows})
+        api = API({"playlistItems": playlist([(f"v{i}", f"T{i}", "", i) for i in range(6)])})
+        _, _, counts = Y.run(pg, NOW, "r1", "k", write=False, discover_now=True, source_name="S",
+                             client=Y.Client("k", opener=api), judge=judge_says(False), cat=CAT)
+        self.assertEqual(counts["rechecked"], 2)
+        self.assertEqual(counts["discovered"], {"rejected": 2})
+        upserts = [s for s, _ in pg.log if s.startswith("insert into source_discovery.source_state")]
+        self.assertIn("is distinct from excluded.rules_version", upserts[0])
+        deletes = [s for s, _ in pg.log if s.startswith("delete")]
+        self.assertEqual(len(deletes), 1)
+        self.assertIn("source_discovery.feed_items_shadow", deletes[0])
+        self.assertIn("shadow_pruned", counts)
 
 
 if __name__ == "__main__":

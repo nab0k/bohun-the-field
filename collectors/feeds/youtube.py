@@ -23,7 +23,25 @@ from collectors.feeds import podcast
 API = "https://www.googleapis.com/youtube/v3/"
 UA = "BOHUN-FeedCollector/1.0 (+https://github.com/nab0k/bohun-the-field)"
 COLLECTOR = "a5tc-youtube-v1"
-RULES = "a5tc-youtube-0.1"
+RULES = "a5tc-youtube-0.2"   # 0.2 (21.11): the channel prompt; 0.1 took any war channel, clickbait included
+CHANNEL_PROMPT = """You classify a YouTube channel as a source for a defence-industry news monitor (Europe, Ukraine, NATO).
+Channel: {host}
+Channel name and description: {name}
+Its latest video titles and links (up to 40):
+{lines}
+
+Answer with one JSON object only:
+{{"specialised": true|false,
+  "type": one of {types},
+  "defence_section": null,
+  "confidence": number 0..1}}
+specialised = true ONLY if most videos are news, analysis, explainers or official information about the defence
+industry: companies and their products, military technology and equipment, procurement and contracts, exports,
+defence budgets and policy, research - or the channel is the official channel of a defence company, ministry,
+agency, armed service or trade event.
+specialised = false for: combat or frontline footage, soldier vlogs, unit or motivational videos, clickbait or
+sensational titles ("then THIS happened", "the brutal reality", "what happened next"), channels of mostly #shorts,
+games, entertainment, general news or politics without industry content, and re-uploads of other channels."""
 DISCOVER_HOUR = int(os.environ.get("YOUTUBE_DISCOVER_HOUR", "4"))   # the 04:25 UTC run of the relay
 DISCOVER_QUERIES = int(os.environ.get("YOUTUBE_DISCOVER_QUERIES", "25"))   # x 100 units
 MAX_CHANNELS = int(os.environ.get("YOUTUBE_MAX_CHANNELS", "300"))   # x 1 unit x 12 runs a day
@@ -132,7 +150,7 @@ def assess(client, judge, ucid, now):
         return "hold", "on_hold", {**record, "why": "no_judge"}
     name = (sn.get("title") or "") + " - " + (sn.get("description") or "")[:300]
     verdict = judge("youtube.com/" + (sn.get("customUrl") or ucid), name,
-                    [(video_url(v["id"]), v["title"]) for v in vids])
+                    [(video_url(v["id"]), v["title"]) for v in vids], prompt=CHANNEL_PROMPT)
     if verdict is None:
         return "hold", "on_hold", {**record, "why": "judge_no_answer"}
     record["judge"] = verdict
@@ -141,8 +159,9 @@ def assess(client, judge, ucid, now):
     return "reject", "rejected", record
 
 
-def discover(client, judge, cat, known, now, n=DISCOVER_QUERIES):
-    """Today's cells -> decisions for channels not seen before: [(ucid, cell, decision, status, record)]."""
+def discover(client, judge, cat, known, now, n=DISCOVER_QUERIES, recheck=None):
+    """Today's cells -> decisions for channels not seen before, plus `recheck` ({ucid: cell}: channels on hold or
+    decided under older rules): [(ucid, cell, decision, status, record)]."""
     found = {}
     for cell in cells(cat, (now.date() - START).days, n):
         data = client.get("search", cost=100, part="snippet", type="channel", q=cell["q"], maxResults=10,
@@ -151,6 +170,8 @@ def discover(client, judge, cat, known, now, n=DISCOVER_QUERIES):
             ucid = (it.get("id") or {}).get("channelId") or (it.get("snippet") or {}).get("channelId")
             if ucid and ucid.startswith("UC") and ucid not in known and ucid not in found:
                 found[ucid] = cell
+    for ucid, cell in (recheck or {}).items():
+        found.setdefault(ucid, cell)
     out = []
     for ucid, cell in found.items():
         decision, status, record = assess(client, judge, ucid, now)
@@ -177,7 +198,8 @@ def save_decisions(pg, run_id, decisions, now):
             cur.execute("insert into source_discovery.source_state values (%s,%s,%s,%s,'youtube',%s,%s,%s,%s) "
                         "on conflict (channel_id) do update set status=excluded.status, since=excluded.since, "
                         "rules_version=excluded.rules_version, type=excluded.type "
-                        "where source_discovery.source_state.status in ('candidate', 'on_hold')",
+                        "where source_discovery.source_state.status in ('candidate', 'on_hold') "
+                        "or source_discovery.source_state.rules_version is distinct from excluded.rules_version",
                         (cid, url, status, vtype, cell["country"], cell["lang"], now, RULES))
             counts[status] = counts.get(status, 0) + 1
     return counts
@@ -252,6 +274,25 @@ def refresh(pg, client, source_name, now):
     return counts
 
 
+STATE_SQL = """
+select s.canonical_url, s.status, s.rules_version, s.country, s.language, s.type,
+       (select found_via from source_discovery.admission_decision a where a.channel_id = s.channel_id
+        order by decision_id desc limit 1)
+from source_discovery.source_state s where s.delivery = 'youtube'
+"""
+RECHECK_MAX = 60
+
+
+def prune_shadow(pg, now):
+    """The 30-day rule also covers the shadow table: YouTube titles there are deleted after REFRESH_DAYS."""
+    cur = pg.cursor()
+    with pg.transaction():
+        cur.execute("delete from source_discovery.feed_items_shadow where seen_at < %s and channel_id in "
+                    "(select channel_id from source_discovery.source_state where delivery = 'youtube')",
+                    (now - dt.timedelta(days=REFRESH_DAYS),))
+    return max(cur.rowcount or 0, 0)
+
+
 CHANNELS_SQL = ("select channel_id, canonical_url from source_discovery.source_state "
                 "where status = 'accepted' and delivery = 'youtube' order by since")
 
@@ -264,19 +305,28 @@ def run(pg, now, run_id, key, write, discover_now, source_name, judge=None, clie
     polls, shadow, counts = [], [], {}
     try:
         if discover_now:
-            cur.execute("select canonical_url from source_discovery.source_state where delivery = 'youtube'")
-            known = {ucid_of(u) for (u,) in cur.fetchall()} - {None}
+            cur.execute(STATE_SQL)
+            rows = cur.fetchall()
+            known = {ucid_of(u) for u, *_ in rows} - {None}
+            recheck = {ucid_of(u): {"country": cc, "lang": lang or "en", "category": (fv or {}).get("category"),
+                                    "type": t or "media", "q": None}
+                       for u, status, rules, cc, lang, t, fv in rows
+                       if ucid_of(u) and (status == "on_hold" or (status == "accepted" and rules != RULES))}
+            recheck = dict(list(recheck.items())[:RECHECK_MAX])
             if judge is None or cat is None:
                 import judge as J
                 import plan as P
                 judge = J.Judge() if judge is None else judge
                 cat = P.with_europe(P.load(), P.world()) if cat is None else cat
-            counts["discovered"] = save_decisions(pg, run_id, discover(client, judge, cat, known, now), now)
+            counts["rechecked"] = len(recheck)
+            counts["discovered"] = save_decisions(pg, run_id, discover(client, judge, cat, known, now,
+                                                                       recheck=recheck), now)
         cur.execute(CHANNELS_SQL)
         channels = [{"channel_id": c, "url": u} for c, u in cur.fetchall()]
         polls, shadow = collect(client, channels, now)
         if write:
             counts["refresh"] = refresh(pg, client, source_name, now)
+        counts["shadow_pruned"] = prune_shadow(pg, now)
     except QuotaOut as exc:
         counts["stopped"] = str(exc)
     counts.update(channels=len(polls), videos=len(shadow), units=client.units, errors=client.errors)
