@@ -10,6 +10,10 @@ on:
         type: choice
         default: shadow
         options: [shadow, write]
+      busy:
+        description: 'busy run: only the feeds with 8+ entries a day (every 30 minutes from the relay)'
+        type: boolean
+        default: false
       youtube_discover:
         description: 'run YouTube channel discovery now (otherwise only in the 04:25 UTC run)'
         type: boolean
@@ -17,7 +21,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: bohun-feed-collect
+  group: bohun-feed-collect-${{ inputs.busy && 'busy' || 'main' }}
   cancel-in-progress: false
 jobs:
   collect:
@@ -50,7 +54,10 @@ jobs:
           GEMINI_SEARCH_API_KEY: ${{ secrets.GEMINI_SEARCH_API_KEY || secrets.GEMINI_FREE_API_KEY }}
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           PAGES_WRITE: ${{ vars.PAGES_WRITE || 'false' }}
+          FEED_RELAY_URL: ${{ vars.FEED_RELAY_URL }}
+          FEED_RELAY_TOKEN: ${{ secrets.FEED_RELAY_TOKEN }}
+          BUSY: ${{ inputs.busy && '--busy' || '' }}
           YT_DISCOVER: ${{ inputs.youtube_discover && '--youtube-discover' || '' }}
         run: |
           set +x
-          "$RUNNER_TEMP/feeds/bin/python" -m collectors.feeds.collect --mode "$MODE" $YT_DISCOVER
+          "$RUNNER_TEMP/feeds/bin/python" -m collectors.feeds.collect --mode "$MODE" $YT_DISCOVER $BUSY

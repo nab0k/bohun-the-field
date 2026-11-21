@@ -171,6 +171,80 @@ class Collect(unittest.TestCase):
         self.assertTrue(all("on conflict (source_id, external_id) do nothing" in s
                             for s, _ in log if s.startswith("insert into intelligence.items")))
 
+    def test_inoreader_compare_feeds_are_shadow_only(self):
+        class Cur:
+            def execute(self, sql, params=None):
+                self.sql = " ".join(sql.split())
+
+            def fetchall(self):
+                return [("ib_1", "https://a.example/feed", None, None), ("ib_2", "not-a-url", None, None)]
+        pages = {"https://a.example/robots.txt": (404, b"", {}),
+                 "https://a.example/feed": (200, rss([("New", "https://a.example/n", FRESH, "x " * 300)]), {})}
+        cur = Cur()
+        polls, shadow = F.compare_feeds(cur, F.Fetcher(opener=Net(pages), sleep=lambda s: None), NOW)
+        self.assertIn("s.delivery = 'feed_compare'", cur.sql)
+        self.assertEqual([p["channel_id"] for p in polls], ["ib_1"])
+        self.assertEqual(len(shadow), 1)
+        self.assertTrue(shadow[0]["skip_write"])
+
+    def test_relay_only_for_403_and_network_errors_never_429(self):
+        relay = ("https://relay.example", "tok")
+        rel = "https://relay.example/fetch?url="
+        pages = {"https://b.example/robots.txt": (404, b"", {}),
+                 "https://b.example/feed": (403, b"", {}),
+                 rel + "https%3A%2F%2Fb.example%2Ffeed": (200, rss([("New", "https://b.example/n", FRESH, "x " * 300)]),
+                                                          {"X-Relay": "1"}),
+                 "https://c.example/robots.txt": (404, b"", {}),
+                 "https://c.example/feed": (429, b"", {})}
+        net = Net(pages)
+        f = F.Fetcher(opener=net, sleep=lambda s: None, relay=relay)
+        polls, shadow = F.poll([{"channel_id": "b", "url": "https://b.example/feed"},
+                                {"channel_id": "c", "url": "https://c.example/feed"}], f, NOW)
+        by = {p["channel_id"]: p for p in polls}
+        self.assertEqual((by["b"]["http_status"], by["b"]["fresh"]), (200, 1))
+        self.assertEqual(by["c"]["error"], "http_429")
+        self.assertFalse(any(u.startswith(rel + "https%3A%2F%2Fc.example") for u, _ in net.calls))
+        self.assertEqual(dict(f.relayed), {"http_403": 1})
+        sent = dict(net.calls)[rel + "https%3A%2F%2Fb.example%2Ffeed"]
+        self.assertEqual(sent.get("X-relay-token"), "tok")
+
+        def down(req, timeout):
+            if req.full_url.startswith(rel):
+                return net(req, timeout)
+            raise urllib.error.URLError("reset")
+        g = F.Fetcher(opener=down, sleep=lambda s: None, relay=relay)
+        self.assertEqual(g._get("https://b.example/feed")[0], 200)
+        self.assertEqual(dict(g.relayed), {"URLError": 1})
+        # the Worker refused (no X-Relay mark): the direct answer stands; no relay configured: errors as before
+        net.pages[rel + "https%3A%2F%2Fb.example%2Ffeed"] = (401, b"", {})
+        self.assertEqual(F.Fetcher(opener=net, sleep=lambda s: None, relay=relay)._get("https://b.example/feed")[0], 403)
+        with self.assertRaises(urllib.error.URLError):
+            F.Fetcher(opener=down, sleep=lambda s: None, relay=())._get("https://b.example/feed")
+
+    def test_whole_feed_new_reads_the_older_page(self):
+        def wp(items, paged=False):
+            body = rss(items)
+            return body.replace(b"<title>T</title>", b"<title>T</title><generator>https://wordpress.org/?v=6.8</generator>")
+        first = [(f"N{i}", f"https://w.example/n{i}", FRESH, "x " * 50) for i in range(10)]
+        older = [(f"O{i}", f"https://w.example/o{i}", FRESH, "x " * 50) for i in range(4)] + first[-1:]
+        pages = {"https://w.example/robots.txt": (404, b"", {}),
+                 "https://w.example/feed": (200, wp(first), {}),
+                 "https://w.example/feed?paged=2": (200, wp(older), {})}
+        polls, shadow = F.poll([{"channel_id": "w", "url": "https://w.example/feed"}],
+                               F.Fetcher(opener=Net(pages), sleep=lambda s: None, relay=()), NOW)
+        self.assertEqual((polls[0]["fresh"], polls[0]["paged"]), (14, 4))
+        self.assertEqual(len({s["url"] for s in shadow}), 14)
+        few = {"https://w.example/robots.txt": (404, b"", {}), "https://w.example/feed": (200, wp(first[:5]), {})}
+        net = Net(few)
+        F.poll([{"channel_id": "w", "url": "https://w.example/feed"}], F.Fetcher(opener=net, sleep=lambda s: None,
+                                                                                 relay=()), NOW)
+        self.assertNotIn("https://w.example/feed?paged=2", [u for u, _ in net.calls])
+
+    def test_busy_sql_thresholds(self):
+        self.assertIn("having count(*) >= %s", " ".join(F.BUSY_SQL.split()))
+        self.assertIn("fresh >= entries", F.BUSY_SQL)
+        self.assertEqual(F.BUSY_PER_WEEK, 56)
+
 
 if __name__ == "__main__":
     unittest.main()
