@@ -28,7 +28,7 @@ import urllib.request
 import urllib.robotparser
 from collections import Counter
 
-from collectors.feeds import podcast
+from collectors.feeds import podcast, youtube
 
 SOURCE_NAME = "BOHUN feeds (A1SD)"
 UA = "BOHUN-FeedCollector/1.0 (+https://github.com/nab0k/bohun-the-field)"
@@ -262,7 +262,7 @@ def write_items(pg, run_id, shadow, known):
                    "feed_url": s.get("feed_url"), "host": host, "origin_title": s.get("origin_title"),
                    "url": s["url"], "title": s["title"], "published": s["published_at"].isoformat(),
                    "content_capture": s.get("capture"),
-                   **({"transcript": s["transcript"]} if s.get("transcript") else {})}
+                   **({"transcript": s["transcript"]} if s.get("transcript") else {}), **s.get("raw_extra", {})}
             cur.execute("insert into intelligence.items (source_id, external_id, title, url, item_type, published_at,"
                         " raw_data) values (%s,%s,%s,%s,'news',%s,%s) on conflict (source_id, external_id) do nothing"
                         " returning id", (source_id, s["external_id"], s["title"] or "(untitled)", s["url"],
@@ -283,6 +283,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--mode", choices=["shadow", "write"], default="shadow")
     ap.add_argument("--max-feeds", type=int, default=200)
+    ap.add_argument("--youtube-discover", action="store_true", help="run YouTube channel discovery now")
     a = ap.parse_args(argv)
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "source_registry", "search"))
     import pg_sync
@@ -300,12 +301,17 @@ def main(argv=None):
                         "where s.name = %s and i.discovered_at > now() - interval '8 days'", (SOURCE_NAME,))
             done = frozenset(r[0] for r in cur.fetchall())
         polls, shadow = poll(feeds, fetcher, now, transcriber=transcriber, done=done)
-        saved = save_shadow(pg, run_id, polls, shadow)
+        yt_polls, yt_shadow, yt = [], [], None
+        if os.environ.get("YOUTUBE_API_KEY"):  # A4SC-02 / A5TC-03: Data API only, descriptions as text
+            yt_polls, yt_shadow, yt = youtube.run(pg, now, run_id, os.environ["YOUTUBE_API_KEY"], a.mode == "write",
+                                                  a.youtube_discover or now.hour == youtube.DISCOVER_HOUR, SOURCE_NAME)
+        saved = save_shadow(pg, run_id, polls + yt_polls, shadow + yt_shadow)
         known = saved.pop("_known")
         if a.mode == "write":
-            saved.update(write_items(pg, run_id, shadow, known))
+            saved.update(write_items(pg, run_id, shadow + yt_shadow, known))
     print(json.dumps({"run": run_id, "mode": a.mode, **summary(polls, shadow, saved, fetcher),
-                      **({"podcasts": transcriber.counts} if transcriber else {})}))
+                      **({"podcasts": transcriber.counts} if transcriber else {}),
+                      **({"youtube": yt} if yt is not None else {})}))
 
 
 if __name__ == "__main__":
