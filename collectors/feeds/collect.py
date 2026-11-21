@@ -28,7 +28,7 @@ import urllib.request
 import urllib.robotparser
 from collections import Counter
 
-from collectors.feeds import podcast, youtube
+from collectors.feeds import pages, podcast, youtube
 
 SOURCE_NAME = "BOHUN feeds (A1SD)"
 UA = "BOHUN-FeedCollector/1.0 (+https://github.com/nab0k/bohun-the-field)"
@@ -255,7 +255,7 @@ def write_items(pg, run_id, shadow, known):
                         "values (%s, null, 'news', 'rss') returning id", (SOURCE_NAME,))
             source_id = cur.fetchone()[0]
         for s in shadow:
-            if not s["url"] or s["url"] in known:
+            if not s["url"] or s["url"] in known or s.get("skip_write"):
                 continue
             host = urllib.parse.urlsplit(s["url"]).hostname
             raw = {"collector": "a4sc-feeds-v1", "collector_cycle_id": run_id, "channel_id": s["channel_id"],
@@ -305,13 +305,15 @@ def main(argv=None):
         if os.environ.get("YOUTUBE_API_KEY"):  # A4SC-02 / A5TC-03: Data API only, descriptions as text
             yt_polls, yt_shadow, yt = youtube.run(pg, now, run_id, os.environ["YOUTUBE_API_KEY"], a.mode == "write",
                                                   a.youtube_discover or now.hour == youtube.DISCOVER_HOUR, SOURCE_NAME)
-        saved = save_shadow(pg, run_id, polls + yt_polls, shadow + yt_shadow)
+        pg_polls, pg_shadow, pg_counts = pages.run(  # A4SC-03: writing pages needs its own switch (owner word)
+            pg, fetcher, now, write=a.mode == "write" and os.environ.get("PAGES_WRITE") == "true")
+        saved = save_shadow(pg, run_id, polls + yt_polls + pg_polls, shadow + yt_shadow + pg_shadow)
         known = saved.pop("_known")
         if a.mode == "write":
-            saved.update(write_items(pg, run_id, shadow + yt_shadow, known))
+            saved.update(write_items(pg, run_id, shadow + yt_shadow + pg_shadow, known))
     print(json.dumps({"run": run_id, "mode": a.mode, **summary(polls, shadow, saved, fetcher),
                       **({"podcasts": transcriber.counts} if transcriber else {}),
-                      **({"youtube": yt} if yt is not None else {})}))
+                      **({"youtube": yt} if yt is not None else {}), "pages": pg_counts}))
 
 
 if __name__ == "__main__":
