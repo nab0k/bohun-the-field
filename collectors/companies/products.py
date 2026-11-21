@@ -23,6 +23,10 @@ MILITARY = re.compile(
     r'\b(military|army|armed forces|armies|soldiers?|battlefield|combat|tactical|nato|missiles?|artillery|'
     r'warships?|naval forces|armou?red (?:vehicle|personnel)|air defen[cs]e|missile defen[cs]e|ministry of defen[cs]e|'
     r'defen[cs]e (?:forces|industry|sector|ministry|procurement|customers)|electronic warfare|'
+    r'(?<!self-)(?<!self )defen[cs]e (?:solutions|systems|applications)|loitering munitions?|mortars?|howitzers?|'
+    r'grenades?|warheads?|torpedo\w*|interceptors?|v?shorad|manpads|anti-(?:ship|tank|armou?r|aircraft)|'
+    r'counter-battery|istar|c4isr|c4istar|elint|sigint|comint|frigates?|corvettes?|submarines?|destroyers?|'
+    r'fighter (?:jets?|aircraft)|armou?red|minomet\w*|granát\w*|houfnic\w*|'
     r'vojensk\w*|armád\w*|bojov\w*|protivzdušn\w*|ozbrojen\w*|elektronick\w* boj\w*|'
     r'puolustusvoim\w*|militaire|armée|forsvaret)\b', re.I)
 # An item also meant for civil use is dual-use, not military-specific (trial 21.11.2026, VZLU MiYa).

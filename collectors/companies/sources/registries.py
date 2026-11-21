@@ -14,6 +14,7 @@ look-alike name never resolves. Free public APIs without key, checked live on 21
 Every HTTP call goes through `opener` so tests run without network.
 """
 import json
+import re
 import urllib.parse
 import urllib.request
 
@@ -58,8 +59,15 @@ def no_rows(data):
     return out
 
 
+def _search_no(name, query, opener):
+    return _decide(name, no_rows(_get(NO_SEARCH.format(q=urllib.parse.quote(query)), opener)), lambda r: r["legal_name"])
+
+
 def resolve_no(name, opener=urllib.request.urlopen):
-    return _decide(name, no_rows(_get(NO_SEARCH.format(q=urllib.parse.quote(name)), opener)), lambda r: r["legal_name"])
+    return _search_no(name, name, opener)
+
+
+resolve_no.__wrapped__ = _search_no
 
 
 # --- France ---------------------------------------------------------------------------------------
@@ -83,8 +91,15 @@ def fr_rows(data):
     return out
 
 
+def _search_fr(name, query, opener):
+    return _decide(name, fr_rows(_get(FR_SEARCH.format(q=urllib.parse.quote(query)), opener)), lambda r: r["legal_name"])
+
+
 def resolve_fr(name, opener=urllib.request.urlopen):
-    return _decide(name, fr_rows(_get(FR_SEARCH.format(q=urllib.parse.quote(name)), opener)), lambda r: r["legal_name"])
+    return _search_fr(name, name, opener)
+
+
+resolve_fr.__wrapped__ = _search_fr
 
 
 # --- Finland --------------------------------------------------------------------------------------
@@ -115,8 +130,15 @@ def fi_rows(data):
     return out
 
 
+def _search_fi(name, query, opener):
+    return _decide(name, fi_rows(_get(FI_SEARCH.format(q=urllib.parse.quote(query)), opener)), lambda r: r["legal_name"])
+
+
 def resolve_fi(name, opener=urllib.request.urlopen):
-    return _decide(name, fi_rows(_get(FI_SEARCH.format(q=urllib.parse.quote(name)), opener)), lambda r: r["legal_name"])
+    return _search_fi(name, name, opener)
+
+
+resolve_fi.__wrapped__ = _search_fi
 
 
 # --- Poland ---------------------------------------------------------------------------------------
@@ -161,6 +183,19 @@ def resolve_pl(name, krs, opener=urllib.request.urlopen):
 
 
 RESOLVERS = {"NO": resolve_no, "FR": resolve_fr, "FI": resolve_fi}
+_FORM_TAIL = re.compile(r"[ ,]+(sas|sasu|sa|sarl|as|asa|oy|oyj|ab|abp|ltd)\.?$", re.I)
+
+
+def _with_retry(fn, name, opener):
+    """Search the listed name, then the name without its trailing legal form ('GDTECH FRANCE SAS' is filed
+    as 'GDTECH FRANCE'); the match is still exact on the normalised name, which ignores the form."""
+    res = fn(name, opener)
+    short = _FORM_TAIL.sub("", name).strip()
+    if res["decision"] == "not_found" and short and short != name:
+        res2 = fn.__wrapped__(name, short, opener) if hasattr(fn, "__wrapped__") else None
+        if res2 and res2["decision"] != "not_found":
+            return res2
+    return res
 
 
 def resolve(name, country, opener=urllib.request.urlopen, registered_as=None):
@@ -178,4 +213,24 @@ def resolve(name, country, opener=urllib.request.urlopen, registered_as=None):
     fn = RESOLVERS.get(country)
     if not fn:
         return {"decision": "not_found", "nearest": [], "reason": f"no free register API for {country}"}
-    return fn(name, opener)
+    return _with_retry(fn, name, opener)
+
+
+# --- any country with an LEI ------------------------------------------------------------------------
+LEI_DETAIL = "https://api.gleif.org/api/v1/lei-records/{lei}"
+
+
+def resolve_lei(name, lei, opener=urllib.request.urlopen):
+    """GLEIF record by LEI; the registered legal name must still match the company name exactly (N08)."""
+    try:
+        data = _get(LEI_DETAIL.format(lei=lei), opener).get("data") or {}
+    except Exception as e:  # noqa: BLE001
+        return {"decision": "not_found", "nearest": [], "reason": f"GLEIF: {type(e).__name__}"}
+    e = (data.get("attributes") or {}).get("entity") or {}
+    row = {"scheme": "LEI", "id": data.get("id") or lei, "legal_name": (e.get("legalName") or {}).get("name"),
+           "founded": (e.get("creationDate") or "")[:10] or None,
+           "city": ((e.get("legalAddress") or {}).get("city") or "").title() or None,
+           "activity": [], "registered_as": e.get("registeredAs"), "source_url": LEI_DETAIL.format(lei=lei)}
+    if (e.get("status") or "ACTIVE") != "ACTIVE":
+        return {"decision": "not_found", "nearest": [row["legal_name"]], "reason": "LEI entity not active"}
+    return _decide(name, [row], lambda r: r["legal_name"])
