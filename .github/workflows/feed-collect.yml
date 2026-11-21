@@ -23,7 +23,7 @@ jobs:
   collect:
     if: github.repository == 'nab0k/bohun-the-field' && github.actor == 'nab0k'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
@@ -38,8 +38,9 @@ jobs:
           python -m venv "$RUNNER_TEMP/feeds"
           "$RUNNER_TEMP/feeds/bin/python" -m pip install --disable-pip-version-check --only-binary=:all: 'psycopg[binary]==3.3.6'
           "$RUNNER_TEMP/feeds/bin/python" -m pip install --disable-pip-version-check 'feedparser==6.0.14'
+          "$RUNNER_TEMP/feeds/bin/python" -m pip install --disable-pip-version-check 'trafilatura==2.3.1'
       - name: Offline tests (no network, no database)
-        run: '"$RUNNER_TEMP/feeds/bin/python" -m unittest tests.feeds.test_collect tests.feeds.test_podcast tests.feeds.test_youtube'
+        run: '"$RUNNER_TEMP/feeds/bin/python" -m unittest tests.feeds.test_collect tests.feeds.test_podcast tests.feeds.test_youtube tests.feeds.test_pages'
       - name: Collect
         env:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
@@ -48,6 +49,7 @@ jobs:
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
           GEMINI_SEARCH_API_KEY: ${{ secrets.GEMINI_SEARCH_API_KEY || secrets.GEMINI_FREE_API_KEY }}
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          PAGES_WRITE: ${{ vars.PAGES_WRITE || 'false' }}
           YT_DISCOVER: ${{ inputs.youtube_discover && '--youtube-discover' || '' }}
         run: |
           set +x
