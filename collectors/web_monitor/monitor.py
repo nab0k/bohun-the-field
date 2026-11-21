@@ -434,6 +434,10 @@ def main():
     coverage_gaps = Counter()
     total = 0
     found = 0
+    if not enabled:
+        # A green empty batch is not evidence of successful source coverage.
+        coverage_gaps["no_enabled_sources"] = 1
+        print("SOURCE_COVERAGE batch: no_enabled_sources", flush=True)
     for index, source in enabled:
         command = [sys.executable, str(Path(__file__).resolve()), "--sources", args.sources,
                    "--source-index", str(index), "--channels", args.channels,
@@ -464,14 +468,19 @@ def main():
             total += result["inserted"]
             print(f"SOURCE {source['name']}: candidates={count} inserted={result['inserted']} "
                   f"quality={result.get('quality', {})} warnings={','.join(result['warnings']) or 'none'}", flush=True)
-            if not count:
-                warnings = result["warnings"]
-                if not result["channel_configured"]:
-                    reason = "no_enabled_channel"
-                elif warnings:
-                    reason = "source_error"
-                else:
-                    reason = "no_candidates"
+            # Partial channel failure is not full coverage, even if other
+            # channels yielded candidates. Retain the candidates for review,
+            # but never report a healthy/green source.
+            warnings = result["warnings"]
+            if not result["channel_configured"]:
+                reason = "no_enabled_channel"
+            elif warnings:
+                reason = "source_error"
+            elif not count:
+                reason = "no_candidates"
+            else:
+                reason = None
+            if reason:
                 coverage_gaps[reason] += 1
                 print(f"SOURCE_COVERAGE {source['name']}: {reason}", flush=True)
         except subprocess.TimeoutExpired:
