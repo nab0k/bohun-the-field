@@ -104,13 +104,14 @@ class Judge:
     def __bool__(self):
         return any(p[0] not in self.off for p in self.providers)
 
-    def __call__(self, host, name, pairs):
-        """pairs: [(url, label)] from the home page. Returns a verdict with "by" = provider, or None."""
+    def __call__(self, host, name, pairs, prompt=None):
+        """pairs: [(url, label)] from the home page. Returns a verdict with "by" = provider, or None.
+        prompt: another template with the same fields (the YouTube channel judge, A4SC-02)."""
         pairs = [(u, (lbl or "").strip()[:140]) for u, lbl in pairs if u and (lbl or "").strip()][:40]
         if len(pairs) < 5:
             return None
         links = {u for u, _ in pairs}
-        prompt = PROMPT.format(host=host, name=(name or "")[:120], types=list(TYPES),
+        prompt = (prompt or PROMPT).format(host=host, name=(name or "")[:120], types=list(TYPES),
                                lines="\n".join(f"- {lbl} <{u}>" for u, lbl in pairs))
         for p in self.providers:
             if p[0] in self.off:
