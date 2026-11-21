@@ -1,0 +1,125 @@
+name: BOHUN G3 PostgreSQL 17 SQL and RLS
+on:
+  push:
+    branches: [test/g3-postgres17-ci-001]
+  pull_request:
+    paths:
+      - 'tests/g3/**'
+      - 'docs/sql/G3_BORME_CORPORATE_ACTIONS_REVIEW.sql'
+      - 'docs/sql/G3_BORME_WRITER_RLS_SOURCE3_REVIEW.sql'
+      - '.github/workflows/bohun-g3-postgres17.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sql-rls:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test_only
+          POSTGRES_DB: bohun_g3
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d bohun_g3"
+          --health-interval 5s --health-timeout 5s --health-retries 15
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: test_only
+      PGDATABASE: bohun_g3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get update -qq && sudo apt-get install -y postgresql-client
+      - name: Version and fixture
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -Atqc "SHOW server_version" | tee /tmp/g3_pg_version.txt
+          grep -q '^17\.' /tmp/g3_pg_version.txt
+          psql -X -v ON_ERROR_STOP=1 -f tests/g3/fixture.sql
+      - name: Apply original G3 migration
+        run: psql -X -v ON_ERROR_STOP=1 -f docs/sql/G3_BORME_CORPORATE_ACTIONS_REVIEW.sql
+      - name: Validate constraints and RLS metadata
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/g3/assertions.sql
+      - name: Validate role SELECT denial
+        shell: bash
+        run: |
+          set -euo pipefail
+          for role in anon authenticated service_role; do
+            if psql -X -v ON_ERROR_STOP=1 -c "SET ROLE $role; SELECT * FROM intelligence.corporate_actions LIMIT 1;" > /tmp/g3_role.log 2>&1; then
+              echo "FAIL: $role could SELECT"; exit 1
+            fi
+            if ! grep -q 'permission denied' /tmp/g3_role.log; then
+              echo "FAIL: $role error was not privilege denial"; cat /tmp/g3_role.log; exit 1
+            fi
+            echo "PASS: $role denied SELECT"
+          done
+      - name: Verify FORCE RLS and row policies with temporary grants
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/g3/rls_policy_tests.sql
+      - name: Verify dedicated BORME writer policies
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/g3/borme_writer_tests.sql
+      - name: Verify complete G3 plus source-3 writer migration in fresh disposable database
+        shell: bash
+        run: |
+          set -euo pipefail
+          createdb bohun_g3_deploy_test
+          export PGDATABASE=bohun_g3_deploy_test
+          psql -X -v ON_ERROR_STOP=1 -f tests/g3/fixture.sql
+          psql -X -v ON_ERROR_STOP=1 -c "ALTER TABLE intelligence.items ADD COLUMN source_id bigint; UPDATE intelligence.items SET source_id=3 WHERE id=1001; UPDATE intelligence.items SET source_id=2 WHERE id=1002; ALTER TABLE intelligence.items ENABLE ROW LEVEL SECURITY; ALTER TABLE intelligence.items FORCE ROW LEVEL SECURITY; CREATE TABLE intelligence.sources(id bigint PRIMARY KEY,name text NOT NULL,active boolean NOT NULL); INSERT INTO intelligence.sources VALUES (3,'BORME',true),(2,'Inoreader BOHUN',true);"
+          psql -X -v ON_ERROR_STOP=1 -f docs/sql/G3_BORME_CORPORATE_ACTIONS_REVIEW.sql
+          psql -X -v ON_ERROR_STOP=1 -f docs/sql/G3_BORME_WRITER_RLS_SOURCE3_REVIEW.sql
+          psql -X -v ON_ERROR_STOP=1 -c "DO \$\$ BEGIN IF (SELECT count(*) FROM pg_policies WHERE schemaname='intelligence' AND policyname LIKE 'borme_ingest_%') <> 3 THEN RAISE EXCEPTION 'Expected three writer policies'; END IF; END \$\$;"
+          psql -X -v ON_ERROR_STOP=1 -c "SET ROLE bohun_borme_ingest_login; SELECT id FROM intelligence.items;"
+          psql -X -v ON_ERROR_STOP=1 -c "DO \$\$ BEGIN IF has_table_privilege('bohun_borme_ingest_login','intelligence.corporate_actions','UPDATE') OR has_table_privilege('bohun_borme_ingest_login','intelligence.corporate_actions','DELETE') THEN RAISE EXCEPTION 'Writer mutation privilege leaked'; END IF; END \$\$;"
+          echo 'PASS: disposable append-only migration deployment'
+          export PGDATABASE=bohun_g3
+          dropdb bohun_g3_deploy_test
+          psql -X -v ON_ERROR_STOP=1 -c 'DROP ROLE bohun_borme_ingest_login'
+      - name: Verify direct BORME login and source-scoped RLS
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -f tests/g3/borme_login_source_scope.sql
+          if psql -X -v ON_ERROR_STOP=1 -c "SET ROLE bohun_borme_ingest_login; INSERT INTO intelligence.corporate_actions(item_id,action_ordinal,action_type,extraction_method) VALUES (1002,71,'test','ci');" > /tmp/g3_cross_source.log 2>&1; then
+            echo 'FAIL: cross-source INSERT accepted'; exit 1
+          fi
+          grep -Eq 'row-level security policy|violates row-level security' /tmp/g3_cross_source.log
+          echo 'PASS: cross-source INSERT rejected by RLS'
+          if psql -X -v ON_ERROR_STOP=1 -c "SET ROLE bohun_borme_ingest_login; UPDATE intelligence.corporate_actions SET extraction_status='reviewed' WHERE item_id=1001;" > /tmp/g3_update.log 2>&1; then
+            echo 'FAIL: writer UPDATE accepted'; exit 1
+          fi
+          grep -q 'permission denied' /tmp/g3_update.log
+          echo 'PASS: writer UPDATE denied'
+      - name: Verify migration fails on repeat
+        shell: bash
+        run: |
+          set -euo pipefail
+          if psql -X -v ON_ERROR_STOP=1 -f docs/sql/G3_BORME_CORPORATE_ACTIONS_REVIEW.sql > /tmp/g3_repeat.log 2>&1; then
+            echo 'FAIL: repeated migration unexpectedly succeeded'; exit 1
+          fi
+          grep -q 'already exists: manual review required' /tmp/g3_repeat.log
+          echo 'PASS: repeated migration rejected as designed'
+      - name: Write PASS report
+        if: success()
+        run: |
+          mkdir -p test-results
+          {
+            echo '# BOHUN G3 PostgreSQL 17 test report'
+            echo
+            echo "- Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo "- Commit: ${GITHUB_SHA}"
+            echo "- PostgreSQL: $(cat /tmp/g3_pg_version.txt)"
+            echo '- Result: PASS'
+            echo '- Tests: migration, constraints, RLS metadata, grants, runtime role denial, temporary grants and policy isolation, duplicate migration rejection'
+            echo '- Scope: synthetic minimal fixture, not production schema/data'
+          } > test-results/G3_LOCAL_SQL_TEST_REPORT.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bohun-g3-sql-test-report
+          path: test-results/
+          if-no-files-found: warn
