@@ -33,6 +33,11 @@ class Opener:
 
 
 class TestNormalise(unittest.TestCase):
+    def test_nordic_letters(self):
+        self.assertEqual(name_norm('Andoya Space Defence AS'), name_norm('ANDØYA SPACE DEFENCE AS'))
+        self.assertEqual(name_norm('Raufoss Aero AS'), name_norm('RAUFOSS AERO AS'))
+        self.assertEqual(name_norm('Bjaerum AS'), name_norm('BJÆRUM AS'))
+
     def test_polish_forms(self):
         self.assertEqual(name_norm('PIT-RADWAR SPÓŁKA AKCYJNA'), name_norm('PIT-RADWAR S.A.'))
         self.assertEqual(name_norm('WB Electronics Spółka z ograniczoną odpowiedzialnością'), name_norm('WB Electronics sp. z o.o.'))
