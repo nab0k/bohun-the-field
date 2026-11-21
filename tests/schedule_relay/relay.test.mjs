@@ -6,7 +6,7 @@ const at = s => new Date(`2026-11-20T${s}:00Z`);
 const names = list => list.map(j => j.workflow);
 
 test("daily jobs fire at their UTC minute only", () => {
-  assert.deepEqual(names(due(at("04:40"))), ["source-search-daily.yml"]);
+  assert.deepEqual(names(due(at("04:40"))), ["source-search-daily.yml", "feed-collect.yml"]);  // + busy feeds
   assert.deepEqual(names(due(at("06:20"))), ["kb-daily.yml"]);
   assert.deepEqual(names(due(at("15:20"))), ["kb-daily.yml"]);
   assert.deepEqual(names(due(at("07:15"))), ["ted-daily.yml"]);
@@ -50,4 +50,13 @@ test("scheduled handler logs only workflow and status", async () => {
   } finally { globalThis.fetch = realFetch; console.log = realLog; }
   assert.deepEqual(logged.map(s => JSON.parse(s)), [{workflow: "kb-daily.yml", status: 204}]);
   assert.ok(!logged.join("").includes("secret-token"));
+});
+
+test("busy feeds every 30 minutes at :10 and :40, apart from the main feed run at :25", () => {
+  const busy = due(at("13:40")).filter(j => j.workflow === "feed-collect.yml");
+  assert.equal(busy.length, 1);
+  assert.deepEqual(busy[0].inputs, {mode: "write", busy: "true"});
+  assert.equal(due(at("14:10")).length, 1);
+  const main = due(at("14:25")).filter(j => j.workflow === "feed-collect.yml");
+  assert.deepEqual(main.map(j => j.inputs), [{mode: "write"}]);
 });

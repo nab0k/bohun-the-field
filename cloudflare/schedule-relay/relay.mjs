@@ -16,6 +16,8 @@ export function jobs(env = {}) {
   // A4SC-05 own feed collector (20.11, owner "Да, добавляй"): every 2 hours at :25, writing to the base
   const feeds = [];
   for (let h = 0; h < 24; h += 2) feeds.push(`${String(h).padStart(2, "0")}:25`);
+  const busy = [];
+  for (let h = 0; h < 24; h++) busy.push(`${String(h).padStart(2, "0")}:10`, `${String(h).padStart(2, "0")}:40`);
   return [
     {workflow: "inoreader-cloud.yml", at: inoreader, inputs: {scheduled_relay: "true", shared_dry_run: "false"}},
     {workflow: "source-search-daily.yml", at: ["04:40"], inputs: {dry_run: "false"}},
@@ -24,6 +26,8 @@ export function jobs(env = {}) {
     {workflow: "ted-daily.yml", at: ["07:15"]},
     {workflow: "opportunities-grants-us.yml", at: ["07:45"]},
     {workflow: "feed-collect.yml", at: feeds, inputs: {mode: "write"}},
+    // A4SC-06 (owner 21.11 "опрашивать частые ленты чаще"): the busy feeds every 30 minutes, between the main runs
+    {workflow: "feed-collect.yml", at: busy, inputs: {mode: "write", busy: "true"}},
   ];
 }
 

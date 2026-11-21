@@ -1,0 +1,9 @@
+{
+  // BOHUN feed relay: see relay.mjs. Deploy: npx wrangler deploy --config cloudflare/feed-relay/wrangler.jsonc
+  // Secret (once, by the owner): npx wrangler secret put RELAY_TOKEN --config cloudflare/feed-relay/wrangler.jsonc
+  "name": "bohun-feed-relay",
+  "main": "relay.mjs",
+  "compatibility_date": "2026-10-26",
+  "workers_dev": true,
+  "observability": {"enabled": true}
+}

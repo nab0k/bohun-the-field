@@ -38,6 +38,9 @@ HOST_PAUSE = 2.0
 FRESH_DAYS = 7
 PER_FEED = 50
 MIN_RULES = 0.7
+RELAY_ON = (403,)
+RELAY_TIMEOUT = 30
+BUSY_PER_WEEK = 56      # 8 new entries a day: such a feed is also read by the 30-minute busy run
 TRACKING = re.compile(r"^(utm_[a-z]+|fbclid|gclid|mc_cid|mc_eid|ref|rss|cmpid)$", re.I)
 
 FEEDS_SQL = """
@@ -56,6 +59,40 @@ order by s.since
 def rules_number(version):
     m = re.search(r"(\d+\.\d+)$", version or "")
     return float(m.group(1)) if m else 0.0
+
+
+# A4SC-06 busy feeds (owner 21.11 "опрашивать частые ленты чаще", Miniflux's entry-frequency idea): 8+ new entries a
+# day over 7 days, or a poll of the last day whose every entry was fresh (the feed window may be shorter than 2 hours)
+BUSY_SQL = """
+select channel_id from source_discovery.feed_items_shadow
+where seen_at > now() - interval '7 days' group by 1 having count(*) >= %s
+union
+select channel_id from source_discovery.feed_poll
+where polled_at > now() - interval '1 day' and entries >= 10 and fresh >= entries
+"""
+
+# A4SC-06 (owner 21.11 "Да, готовь сравнение"): the Inoreader feeds are read by this collector in parallel, shadow
+# only (delivery 'feed_compare'), to compare coverage and delay on one window before Inoreader may be switched off.
+COMPARE_SQL = """
+select s.channel_id, s.canonical_url, p.etag, p.last_modified
+from source_discovery.source_state s
+left join lateral (select etag, last_modified from source_discovery.feed_poll f
+                   where f.channel_id = s.channel_id and f.http_status = 200 order by polled_at desc limit 1) p on true
+where s.status = 'accepted' and s.delivery = 'feed_compare'
+order by s.since
+"""
+
+
+def compare_feeds(cur, fetcher, now, limit=120, only=None):
+    """Inoreader's feeds, polled like ours; every row is shadow only (never written to intelligence.items).
+    only: channel ids of the busy run."""
+    cur.execute(COMPARE_SQL)
+    feeds = [{"channel_id": c, "url": u, "etag": e, "last_modified": m} for c, u, e, m in cur.fetchall()
+             if u and u.startswith(("https://", "http://")) and (only is None or c in only)][:limit]
+    polls, shadow = poll(feeds, fetcher, now, max_requests=1000) if feeds else ([], [])
+    for s in shadow:
+        s["skip_write"] = True
+    return polls, shadow
 
 
 def eligible(rows, limit):
@@ -91,6 +128,7 @@ def entries(body, feed_url, now, fresh_days=FRESH_DAYS, per_feed=PER_FEED):
     out = []
     entries.total = len(parsed.entries)
     entries.feed_title = ((parsed.get("feed") or {}).get("title") or "").strip()[:300] or None
+    entries.next_url = next_page(parsed, feed_url)
     for e in parsed.entries:
         link = urllib.parse.urljoin(feed_url, e.get("link") or "")
         stamp = e.get("published_parsed") or e.get("updated_parsed")
@@ -108,6 +146,17 @@ def entries(body, feed_url, now, fresh_days=FRESH_DAYS, per_feed=PER_FEED):
     return out
 
 
+def next_page(parsed, feed_url):
+    """The older page of a feed: rel="next" (RFC 5005 paging), else WordPress ?paged=2; None otherwise."""
+    feed = parsed.get("feed") or {}
+    for link in feed.get("links") or []:
+        if link.get("rel") in ("next", "prev-archive") and link.get("href"):
+            return urllib.parse.urljoin(feed_url, link["href"])
+    if "wordpress" in (feed.get("generator") or "").lower() and "paged=" not in feed_url:
+        return feed_url + ("&" if "?" in feed_url else "?") + "paged=2"
+    return None
+
+
 def capture(html, now):
     """The same content contract as Inoreader items (raw_data.content_capture)."""
     from collectors.inoreader.content_contract import extract_inoreader_content
@@ -117,10 +166,15 @@ def capture(html, now):
 class Fetcher:
     """One GET per feed: robots.txt per host, a pause per host, conditional GET, bounded size and time."""
 
-    def __init__(self, opener=None, clock=time.monotonic, sleep=time.sleep, pause=HOST_PAUSE):
+    def __init__(self, opener=None, clock=time.monotonic, sleep=time.sleep, pause=HOST_PAUSE, relay=None):
         self.open = opener or urllib.request.urlopen
         self.clock, self.sleep, self.pause = clock, sleep, pause
         self.robots, self.last, self.requests = {}, {}, 0
+        # A4SC-06 fallback (owner 21.11): a site that refuses GitHub's addresses (403) or cannot be reached from them
+        # is read once more through the owner's Cloudflare Worker. Never for 429 (we wait) or for robots rules.
+        env_relay = (os.environ.get("FEED_RELAY_URL"), os.environ.get("FEED_RELAY_TOKEN"))
+        self.relay = relay if relay is not None else (env_relay if all(env_relay) else None)
+        self.relayed = Counter()
 
     def _wait(self, host):
         gap = self.last.get(host, -1e9) + self.pause - self.clock()
@@ -134,13 +188,45 @@ class Fetcher:
         self.requests += 1
         req = urllib.request.Request(url, headers={"User-Agent": UA, **(headers or {})})
         try:
-            with self.open(req, timeout=TIMEOUT) as r:
+            result = self._read(req, TIMEOUT)
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            if not self.relay:
+                raise
+            via = self._via_relay(url, headers)
+            if via is None:
+                raise
+            self.relayed[type(exc).__name__] += 1
+            return via
+        if self.relay and result[0] in RELAY_ON:
+            via = self._via_relay(url, headers)
+            if via is not None:
+                self.relayed[f"http_{result[0]}"] += 1
+                return via
+        return result
+
+    def _read(self, req, timeout):
+        try:
+            with self.open(req, timeout=timeout) as r:
                 body = r.read(MAX_BYTES + 1)
                 if len(body) > MAX_BYTES:
                     return 413, {}, b""
                 return r.status, dict(r.headers), body
         except urllib.error.HTTPError as exc:
             return exc.code, dict(exc.headers or {}), b""
+
+    def _via_relay(self, url, headers=None):
+        """The same GET through the Cloudflare Worker; None when the Worker itself fails (the direct result stands)."""
+        base, token = self.relay
+        fwd = {k: v for k, v in (headers or {}).items() if k in ("If-None-Match", "If-Modified-Since")}
+        req = urllib.request.Request(base.rstrip("/") + "/fetch?url=" + urllib.parse.quote(url, safe=""),
+                                     headers={"User-Agent": UA, "X-Relay-Token": token, **fwd})
+        try:
+            status, hdrs, body = self._read(req, RELAY_TIMEOUT)
+        except (urllib.error.URLError, TimeoutError, OSError):
+            return None
+        if not any(k.lower() == "x-relay" for k in hdrs):
+            return None  # the Worker refused the call (token, address) or never answered: not the site's answer
+        return status, hdrs, body
 
     def allowed(self, url):
         p = urllib.parse.urlsplit(url)
@@ -187,8 +273,16 @@ def poll(feeds, fetcher, now, max_requests=600, transcriber=None, done=frozenset
                 row["error"] = "robots"
             elif status == 200:
                 found = entries(body, f["url"], now)
-                row["entries"], row["fresh"] = entries.total, len(found)
-                feed_title = entries.feed_title
+                total, feed_title, nxt = entries.total, entries.feed_title, entries.next_url
+                # every entry of the feed is fresh: older ones may have dropped off between two polls -> one more page
+                if nxt and total >= 10 and len(found) == total and fetcher.requests < max_requests and fetcher.allowed(nxt):
+                    ps, _, pbody = fetcher._get(nxt)
+                    if ps == 200 and pbody:
+                        have = {e["url"] for e in found}
+                        more = [e for e in entries(pbody, nxt, now) if e["url"] not in have]
+                        found += more
+                        row["paged"] = len(more)
+                row["entries"], row["fresh"] = total, len(found)
                 eps = podcast.episodes(body) if transcriber is not None else {}
                 for e in found:
                     eid = external_id(e["url"], e["guid"])
@@ -284,6 +378,7 @@ def main(argv=None):
     ap.add_argument("--mode", choices=["shadow", "write"], default="shadow")
     ap.add_argument("--max-feeds", type=int, default=200)
     ap.add_argument("--youtube-discover", action="store_true", help="run YouTube channel discovery now")
+    ap.add_argument("--busy", action="store_true", help="30-minute run: only the busy feeds, no YouTube or pages")
     a = ap.parse_args(argv)
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "source_registry", "search"))
     import pg_sync
@@ -293,6 +388,11 @@ def main(argv=None):
         cur = pg.cursor()
         cur.execute(FEEDS_SQL)
         feeds = eligible(cur.fetchall(), a.max_feeds)
+        busy = None
+        if a.busy:
+            cur.execute(BUSY_SQL, (BUSY_PER_WEEK,))
+            busy = {r[0] for r in cur.fetchall()}
+            feeds = [f for f in feeds if f["channel_id"] in busy]
         fetcher = Fetcher()
         transcriber, done = None, frozenset()
         if a.mode == "write":
@@ -302,18 +402,23 @@ def main(argv=None):
             done = frozenset(r[0] for r in cur.fetchall())
         polls, shadow = poll(feeds, fetcher, now, transcriber=transcriber, done=done)
         yt_polls, yt_shadow, yt = [], [], None
-        if os.environ.get("YOUTUBE_API_KEY"):  # A4SC-02 / A5TC-03: Data API only, descriptions as text
+        if os.environ.get("YOUTUBE_API_KEY") and not a.busy:  # A4SC-02 / A5TC-03: Data API only, descriptions
             yt_polls, yt_shadow, yt = youtube.run(pg, now, run_id, os.environ["YOUTUBE_API_KEY"], a.mode == "write",
                                                   a.youtube_discover or now.hour == youtube.DISCOVER_HOUR, SOURCE_NAME)
-        pg_polls, pg_shadow, pg_counts = pages.run(  # A4SC-03: writing pages needs its own switch (owner word)
+        pg_polls, pg_shadow, pg_counts = ([], [], None) if a.busy else pages.run(  # A4SC-03: own write switch
             pg, fetcher, now, write=a.mode == "write" and os.environ.get("PAGES_WRITE") == "true")
-        saved = save_shadow(pg, run_id, polls + yt_polls + pg_polls, shadow + yt_shadow + pg_shadow)
+        cmp_polls, cmp_shadow = compare_feeds(cur, fetcher, now, only=busy)
+        saved = save_shadow(pg, run_id, polls + yt_polls + pg_polls + cmp_polls,
+                            shadow + yt_shadow + pg_shadow + cmp_shadow)
         known = saved.pop("_known")
         if a.mode == "write":
             saved.update(write_items(pg, run_id, shadow + yt_shadow + pg_shadow, known))
-    print(json.dumps({"run": run_id, "mode": a.mode, **summary(polls, shadow, saved, fetcher),
+    print(json.dumps({"run": run_id, "mode": a.mode, "busy": a.busy, "relayed": dict(fetcher.relayed),
+                      **summary(polls, shadow, saved, fetcher),
                       **({"podcasts": transcriber.counts} if transcriber else {}),
-                      **({"youtube": yt} if yt is not None else {}), "pages": pg_counts}))
+                      **({"youtube": yt} if yt is not None else {}), "pages": pg_counts,
+                      "inoreader_compare": {"feeds": len(cmp_polls), "entries": len(cmp_shadow),
+                                            "errors": dict(Counter(p["error"] for p in cmp_polls if p["error"]))}}))
 
 
 if __name__ == "__main__":
