@@ -1,0 +1,31 @@
+{
+ "odpis": {
+  "naglowekA": {
+   "dataRejestracjiWKRS": "23.03.2001"
+  },
+  "dane": {
+   "dzial1": {
+    "danePodmiotu": {
+     "nazwa": "HUTA STALOWA WOLA SPÓŁKA AKCYJNA"
+    },
+    "siedzibaIAdres": {
+     "siedziba": {
+      "miejscowosc": "STALOWA WOLA"
+     }
+    }
+   },
+   "dzial3": {
+    "przedmiotDzialalnosci": {
+     "przedmiotPrzewazajacejDzialalnosci": [
+      {
+       "opis": "PRODUKCJA BRONI I AMUNICJI",
+       "kodDzial": "25",
+       "kodKlasa": "30",
+       "kodPodklasa": "Z"
+      }
+     ]
+    }
+   }
+  }
+ }
+}

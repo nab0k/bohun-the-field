@@ -31,6 +31,7 @@ LEGAL_FORMS = [
     r"societa per azioni", r"societa a responsabilita limitata", r"s\.p\.a", r"societe anonyme",
     r"societe par actions simplifiee", r"aktiengesellschaft", r"gesellschaft mit beschrankter haftung",
     r"sociedad anonima", r"sociedad limitada", r"s\.l\.", r"sl", r"spolka akcyjna", r"oyj abp",
+    r"spolka z ograniczona odpowiedzialnoscia", r"sp\. z o\. o\.", r"spolka komandytowa", r"sp\. k\.",
     r"the",
 ]
 _FORM_RE = re.compile(r"(?<![\w])(" + "|".join(sorted(LEGAL_FORMS, key=len, reverse=True)) + r")(?![\w])")
@@ -54,6 +55,7 @@ def name_norm(name):
     """Key for exact comparison: lowercase, no accents, no legal forms, no punctuation."""
     text = unicodedata.normalize("NFKC", clean_name(name)).strip()
     text = _JP_FORM_RE.sub("", text).strip().lower()
+    text = text.replace("ł", "l")  # Polish ł has no NFKD decomposition
     text = unicodedata.normalize("NFKD", text)
     text = "".join(ch for ch in text if not unicodedata.combining(ch))
     text = text.replace("&", " and ")

@@ -1,0 +1,293 @@
+{
+ "_embedded": {
+  "enheter": [
+   {
+    "organisasjonsnummer": "938401772",
+    "navn": "KONGSBERG DEFENCE OY",
+    "organisasjonsform": {
+     "_links": {
+      "self": {
+       "href": "https://data.brreg.no/enhetsregisteret/api/organisasjonsformer/UTLA"
+      }
+     },
+     "beskrivelse": "Utenlandsk enhet",
+     "kode": "UTLA"
+    },
+    "forretningsadresse": {
+     "poststed": "13130 Hämeenlinna"
+    },
+    "konkurs": false
+   },
+   {
+    "organisasjonsnummer": "938395268",
+    "navn": "KONGSBERG DEFENCE &  AEROSPACE INC",
+    "organisasjonsform": {
+     "_links": {
+      "self": {
+       "href": "https://data.brreg.no/enhetsregisteret/api/organisasjonsformer/UTLA"
+      }
+     },
+     "beskrivelse": "Utenlandsk enhet",
+     "kode": "UTLA"
+    },
+    "forretningsadresse": {
+     "poststed": "22314 Alexandria, VA"
+    },
+    "konkurs": false
+   },
+   {
+    "organisasjonsnummer": "978614582",
+    "navn": "KONGSBERG DEFENCE & AEROSPACE AS",
+    "organisasjonsform": {
+     "_links": {
+      "self": {
+       "href": "https://data.brreg.no/enhetsregisteret/api/organisasjonsformer/AS"
+      }
+     },
+     "beskrivelse": "Aksjeselskap",
+     "kode": "AS"
+    },
+    "stiftelsesdato": "1997-05-28",
+    "forretningsadresse": {
+     "poststed": "KONGSBERG"
+    },
+    "naeringskode1": {
+     "beskrivelse": "Produksjon av våpen og ammunisjon",
+     "kode": "25.300"
+    },
+    "konkurs": false
+   },
+   {
+    "organisasjonsnummer": "938407274",
+    "navn": "KONGSBERG DEFENCE & AEROSPACE GREECE",
+    "organisasjonsform": {
+     "_links": {
+      "self": {
+       "href": "https://data.brreg.no/enhetsregisteret/api/organisasjonsformer/UTLA"
+      }
+     },
+     "beskrivelse": "Utenlandsk enhet",
+     "kode": "UTLA"
+    },
+    "forretningsadresse": {
+     "poststed": "10674 Athen"
+    },
+    "konkurs": false
+   },
+   {
+    "organisasjonsnummer": "938401543",
+    "navn": "KONGSBERG DEFENCE CHILE SPA",
+    "organisasjonsform": {
+     "_links": {
+      "self": {
+       "href": "https://data.brreg.no/enhetsregisteret/api/organisasjonsformer/UTLA"
+      }
+     },
+     "beskrivelse": "Utenlandsk enhet",
+     "kode": "UTLA"
+    },
+    "forretningsadresse": {
+     "poststed": "7561259 Las Condes"
+    },
+    "konkurs": false
+   },
+   {
+    "organisasjonsnummer": "935273625",
+    "navn": "KONGSBERG DEFENCE COMMUNICATION AS",
+    "organisasjonsform": {
+     "_links": {
+      "self": {
+       "href": "https://data.brreg.no/enhetsregisteret/api/organisasjonsformer/AS"
+      }
+     },
+     "beskrivelse": "Aksjeselskap",
+     "kode": "AS"
+    },
+    "stiftelsesdato": "2025-03-17",
+    "forretningsadresse": {
+     "poststed": "ASKER"
+    },
+    "naeringskode1": {
+     "beskrivelse": "Produksjon av måle-, kontroll- og navigasjonsinstrumenter",
+     "kode": "26.510"
+    },
+    "konkurs": false
+   },
+   {
+    "organisasjonsnummer": "938401896",
+    "navn": "KONGSBERG DEFENCE SP Z.O.O",
+    "organisasjonsform": {
+     "_links": {
+      "self": {
+       "href": "https://data.brreg.no/enhetsregisteret/api/organisasjonsformer/UTLA"
+      }
+     },
+     "beskrivelse": "Utenlandsk enhet",
+     "kode": "UTLA"
+    },
+    "forretningsadresse": {
+     "poststed": "00-535 Warszawa"
+    },
+    "konkurs": false
+   },
+   {
+    "organisasjonsnummer": "938405964",
+    "navn": "KONGSBERG DEFENCE SWITZERLAND AG",
+    "organisasjonsform": {
+     "_links": {
+      "self": {
+       "href": "https://data.brreg.no/enhetsregisteret/api/organisasjonsformer/UTLA"
+      }
+     },
+     "beskrivelse": "Utenlandsk enhet",
+     "kode": "UTLA"
+    },
+    "forretningsadresse": {
+     "poststed": "3600 Thun"
+    },
+    "konkurs": false
+   },
+   {
+    "organisasjonsnummer": "975782328",
+    "navn": "KONGSBERG DEFENCE SYSTEMS AS",
+    "organisasjonsform": {
+     "_links": {
+      "self": {
+       "href": "https://data.brreg.no/enhetsregisteret/api/organisasjonsformer/AS"
+      }
+     },
+     "beskrivelse": "Aksjeselskap",
+     "kode": "AS"
+    },
+    "stiftelsesdato": "1995-09-12",
+    "forretningsadresse": {
+     "poststed": "KONGSBERG"
+    },
+    "naeringskode1": {
+     "beskrivelse": "Produksjon av våpen og ammunisjon",
+     "kode": "25.300"
+    },
+    "konkurs": false
+   },
+   {
+    "organisasjonsnummer": "938395217",
+    "navn": "KONGSBERG DEFENCE &  AEROSPACE HOLDING INC",
+    "organisasjonsform": {
+     "_links": {
+      "self": {
+       "href": "https://data.brreg.no/enhetsregisteret/api/organisasjonsformer/UTLA"
+      }
+     },
+     "beskrivelse": "Utenlandsk enhet",
+     "kode": "UTLA"
+    },
+    "forretningsadresse": {
+     "poststed": "22314 Alexandria, VA"
+    },
+    "konkurs": false
+   },
+   {
+    "organisasjonsnummer": "938395152",
+    "navn": "KONGSBERG DEFENCE & AEROSPACE GERMANY GMBH",
+    "organisasjonsform": {
+     "_links": {
+      "self": {
+       "href": "https://data.brreg.no/enhetsregisteret/api/organisasjonsformer/UTLA"
+      }
+     },
+     "beskrivelse": "Utenlandsk enhet",
+     "kode": "UTLA"
+    },
+    "forretningsadresse": {
+     "poststed": "10117 Berlin"
+    },
+    "konkurs": false
+   },
+   {
+    "organisasjonsnummer": "938395985",
+    "navn": "KONGSBERG DEFENCE & AEROSPACE SPAIN S.L.U.",
+    "organisasjonsform": {
+     "_links": {
+      "self": {
+       "href": "https://data.brreg.no/enhetsregisteret/api/organisasjonsformer/UTLA"
+      }
+     },
+     "beskrivelse": "Utenlandsk enhet",
+     "kode": "UTLA"
+    },
+    "forretningsadresse": {
+     "poststed": "28004 Madrid"
+    },
+    "konkurs": false
+   },
+   {
+    "organisasjonsnummer": "938396167",
+    "navn": "KONGSBERG DEFENCE & AEROSPACE UKRAINE LLC",
+    "organisasjonsform": {
+     "_links": {
+      "self": {
+       "href": "https://data.brreg.no/enhetsregisteret/api/organisasjonsformer/UTLA"
+      }
+     },
+     "beskrivelse": "Utenlandsk enhet",
+     "kode": "UTLA"
+    },
+    "forretningsadresse": {
+     "poststed": "03110 Kyiv"
+    },
+    "konkurs": false
+   },
+   {
+    "organisasjonsnummer": "938396434",
+    "navn": "KONGSBERG DEFENCE AUSTRALIA PTY LTD",
+    "organisasjonsform": {
+     "_links": {
+      "self": {
+       "href": "https://data.brreg.no/enhetsregisteret/api/organisasjonsformer/UTLA"
+      }
+     },
+     "beskrivelse": "Utenlandsk enhet",
+     "kode": "UTLA"
+    },
+    "forretningsadresse": {
+     "poststed": "2609 Canberra Airport ACT"
+    },
+    "konkurs": false
+   },
+   {
+    "organisasjonsnummer": "938401705",
+    "navn": "KONGSBERG DEFENCE MALAYSIA SDN BHD",
+    "organisasjonsform": {
+     "_links": {
+      "self": {
+       "href": "https://data.brreg.no/enhetsregisteret/api/organisasjonsformer/UTLA"
+      }
+     },
+     "beskrivelse": "Utenlandsk enhet",
+     "kode": "UTLA"
+    },
+    "forretningsadresse": {
+     "poststed": "59200 Kuala Lumpur"
+    },
+    "konkurs": false
+   },
+   {
+    "organisasjonsnummer": "938394997",
+    "navn": "KONGSBERG DEFENCE AUSTRALIA MAWSON LAKES PROPERTY PTY LTD",
+    "organisasjonsform": {
+     "_links": {
+      "self": {
+       "href": "https://data.brreg.no/enhetsregisteret/api/organisasjonsformer/UTLA"
+      }
+     },
+     "beskrivelse": "Utenlandsk enhet",
+     "kode": "UTLA"
+    },
+    "forretningsadresse": {
+     "poststed": "SA 5095 Mawson Lakes"
+    },
+    "konkurs": false
+   }
+  ]
+ }
+}

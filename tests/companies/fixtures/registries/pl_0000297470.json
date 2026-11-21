@@ -1,0 +1,31 @@
+{
+ "odpis": {
+  "naglowekA": {
+   "dataRejestracjiWKRS": "07.02.2008"
+  },
+  "dane": {
+   "dzial1": {
+    "danePodmiotu": {
+     "nazwa": "PIT-RADWAR SPÓŁKA AKCYJNA"
+    },
+    "siedzibaIAdres": {
+     "siedziba": {
+      "miejscowosc": "WARSZAWA"
+     }
+    }
+   },
+   "dzial3": {
+    "przedmiotDzialalnosci": {
+     "przedmiotPrzewazajacejDzialalnosci": [
+      {
+       "opis": "BADANIA NAUKOWE I PRACE ROZWOJOWE W DZIEDZINIE NAUK PRZYRODNICZYCH I TECHNICZNYCH",
+       "kodDzial": "72",
+       "kodKlasa": "10",
+       "kodPodklasa": "Z"
+      }
+     ]
+    }
+   }
+  }
+ }
+}

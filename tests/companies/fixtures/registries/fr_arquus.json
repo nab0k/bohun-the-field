@@ -1,0 +1,64 @@
+{
+ "results": [
+  {
+   "siren": "662043405",
+   "nom_complet": "ARQUUS (VOLVO GROUP GOVERNMENTAL SALES, RENAULT TRUCKS DEFENSE, ACMAT, ACMAT DEFENSE, ARQUUS)",
+   "nom_raison_sociale": "ARQUUS",
+   "nature_juridique": "5710",
+   "etat_administratif": "A",
+   "date_creation": "1900-01-01",
+   "activite_principale": "30.40Z",
+   "siege": {
+    "libelle_commune": "VERSAILLES"
+   }
+  },
+  {
+   "siren": "889759783",
+   "nom_complet": "FONDS DE DOTATION ARQUUS",
+   "nom_raison_sociale": "FONDS DE DOTATION ARQUUS",
+   "nature_juridique": "9300",
+   "etat_administratif": "A",
+   "date_creation": "2020-10-03",
+   "activite_principale": "94.99Z",
+   "siege": {
+    "libelle_commune": "VERSAILLES"
+   }
+  },
+  {
+   "siren": "932925860",
+   "nom_complet": "CSE ARQUUS LOMOGES",
+   "nom_raison_sociale": "CSE ARQUUS LOMOGES",
+   "nature_juridique": "8311",
+   "etat_administratif": "A",
+   "date_creation": "2023-04-13",
+   "activite_principale": "94.20Z",
+   "siege": {
+    "libelle_commune": "LIMOGES"
+   }
+  },
+  {
+   "siren": "216200402",
+   "nom_complet": "COMMUNE D'ARQUES",
+   "nom_raison_sociale": "COMMUNE D'ARQUES",
+   "nature_juridique": "7210",
+   "etat_administratif": "A",
+   "date_creation": "1978-01-01",
+   "activite_principale": "84.11Z",
+   "siege": {
+    "libelle_commune": "ARQUES"
+   }
+  },
+  {
+   "siren": "000000001",
+   "nom_complet": "ARQUUS TEST",
+   "nom_raison_sociale": null,
+   "nature_juridique": "1000",
+   "etat_administratif": "A",
+   "date_creation": "2020-01-01",
+   "activite_principale": "86.22C",
+   "siege": {
+    "libelle_commune": "X"
+   }
+  }
+ ]
+}
