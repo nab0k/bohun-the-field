@@ -1,0 +1,568 @@
+[
+  {
+    "id": "T01",
+    "entity": "fictional_entity_01",
+    "source_rule": "R01",
+    "input_claims": [
+      {
+        "predicate": "official_specialized_finished_product",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [],
+    "expected": {
+      "must_explain": true,
+      "level": "L1",
+      "confidence": "verified"
+    }
+  },
+  {
+    "id": "T02",
+    "entity": "fictional_entity_02",
+    "source_rule": "R02",
+    "input_claims": [
+      {
+        "predicate": "official_specialized_component_named_program",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [],
+    "expected": {
+      "must_explain": true,
+      "level": "L2",
+      "confidence": "verified"
+    }
+  },
+  {
+    "id": "T03",
+    "entity": "fictional_entity_03",
+    "source_rule": "R04",
+    "input_claims": [
+      {
+        "predicate": "general_product_documented_relevance_no_customer",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [],
+    "expected": {
+      "must_explain": true,
+      "level": "L4",
+      "prohibited_levels": [
+        "L1",
+        "L2",
+        "L3"
+      ]
+    }
+  },
+  {
+    "id": "T04",
+    "entity": "fictional_entity_04",
+    "source_rule": "R03/R07",
+    "input_claims": [
+      {
+        "predicate": "general_product_completed_documented_engagement",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [],
+    "expected": {
+      "must_explain": true,
+      "level": "L3",
+      "time_class": "historical"
+    }
+  },
+  {
+    "id": "T05",
+    "entity": "fictional_entity_05",
+    "source_rule": "R02",
+    "input_claims": [
+      {
+        "predicate": "documented_specialized_component",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [],
+    "expected": {
+      "must_explain": true,
+      "level": "L2"
+    }
+  },
+  {
+    "id": "T06",
+    "entity": "fictional_entity_06",
+    "source_rule": "N01/N03",
+    "input_claims": [
+      {
+        "predicate": "general_consumer_goods_marketing_only",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [
+      "elevate_on_marketing"
+    ],
+    "expected": {
+      "must_explain": true,
+      "level": "L0",
+      "prohibited_levels": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "condition": "L4_requires_separate_specific_relevance"
+    }
+  },
+  {
+    "id": "T07",
+    "entity": "fictional_entity_07",
+    "source_rule": "R03",
+    "input_claims": [
+      {
+        "predicate": "official_award_for_general_product",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [],
+    "expected": {
+      "must_explain": true,
+      "level": "L3"
+    }
+  },
+  {
+    "id": "T08",
+    "entity": "fictional_entity_08",
+    "source_rule": "N01",
+    "input_claims": [
+      {
+        "predicate": "general_service_catalog_no_customer",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [
+      "infer_contract_from_catalog"
+    ],
+    "expected": {
+      "must_explain": true,
+      "allowed_levels": [
+        "L0",
+        "L4"
+      ],
+      "prohibited_levels": [
+        "L3"
+      ],
+      "condition": "L4_only_with_specific_documented_relevance"
+    }
+  },
+  {
+    "id": "T09",
+    "entity": "fictional_entity_09",
+    "source_rule": "R03",
+    "input_claims": [
+      {
+        "predicate": "general_service_documented_contract",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [],
+    "expected": {
+      "must_explain": true,
+      "level": "L3",
+      "condition": "L3_for_non_specialized_scope_only"
+    }
+  },
+  {
+    "id": "T10",
+    "entity": "fictional_entity_10",
+    "source_rule": "R01/R02",
+    "input_claims": [
+      {
+        "predicate": "specialized_software_role_documented",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [],
+    "expected": {
+      "must_explain": true,
+      "allowed_levels": [
+        "L1",
+        "L2"
+      ],
+      "condition": "direct_product_role_required"
+    }
+  },
+  {
+    "id": "T11",
+    "entity": "fictional_entity_11",
+    "source_rule": "R05/N03",
+    "input_claims": [
+      {
+        "predicate": "general_logistics_documented_customer",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [],
+    "expected": {
+      "must_explain": true,
+      "confirmed_customer": true,
+      "level": "L5"
+    }
+  },
+  {
+    "id": "T12",
+    "entity": "fictional_entity_12",
+    "source_rule": "R05",
+    "input_claims": [
+      {
+        "predicate": "standard_recruitment_documented_customer",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [],
+    "expected": {
+      "must_explain": true,
+      "level": "L5"
+    }
+  },
+  {
+    "id": "T13",
+    "entity": "fictional_entity_13",
+    "source_rule": "N03",
+    "input_claims": [
+      {
+        "predicate": "financial_intermediary_documented_transaction",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [],
+    "expected": {
+      "must_explain": true,
+      "allow_relation_only": true,
+      "level": "L5",
+      "condition": "relation_only_under_narrow_policy_scope"
+    }
+  },
+  {
+    "id": "T14",
+    "entity": "fictional_entity_14",
+    "source_rule": "N05",
+    "input_claims": [
+      {
+        "predicate": "affiliated_entity_has_distinct_activity",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [
+      "inherit_affiliate_classification"
+    ],
+    "expected": {
+      "must_explain": true
+    }
+  },
+  {
+    "id": "T15",
+    "entity": "fictional_entity_15",
+    "source_rule": "N04",
+    "input_claims": [
+      {
+        "predicate": "bidder_only",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [
+      "completed_contract",
+      "awarded_to"
+    ],
+    "expected": {
+      "must_explain": true,
+      "event_stage": "bid",
+      "confidence": "candidate"
+    }
+  },
+  {
+    "id": "T16",
+    "entity": "fictional_entity_16",
+    "source_rule": "N04",
+    "input_claims": [
+      {
+        "predicate": "award_no_execution_evidence",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [
+      "completed"
+    ],
+    "expected": {
+      "must_explain": true,
+      "event_stage": "awarded"
+    }
+  },
+  {
+    "id": "T17",
+    "entity": "fictional_entity_17",
+    "source_rule": "N06",
+    "input_claims": [
+      {
+        "predicate": "regulatory_product_flag_no_customer",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [
+      "infer_customer_from_trade_flag"
+    ],
+    "expected": {
+      "must_explain": true,
+      "regulatory_flag": true,
+      "prohibited_levels": [
+        "L1",
+        "L2",
+        "L3"
+      ]
+    }
+  },
+  {
+    "id": "T18",
+    "entity": "fictional_entity_18",
+    "source_rule": "N06/N08",
+    "input_claims": [
+      {
+        "predicate": "same_name_different_official_ids",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [
+      "assign_sanctions_by_name",
+      "elevate_on_false_match"
+    ],
+    "expected": {
+      "must_explain": true
+    }
+  },
+  {
+    "id": "T19",
+    "entity": "fictional_entity_19",
+    "source_rule": "N10",
+    "input_claims": [
+      {
+        "predicate": "five_reprints_share_one_source",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [
+      "count_reprints_as_independent"
+    ],
+    "expected": {
+      "must_explain": true,
+      "independence_group_count": 1
+    }
+  },
+  {
+    "id": "T20",
+    "entity": "fictional_entity_20",
+    "source_rule": "R07",
+    "input_claims": [
+      {
+        "predicate": "documented_end_of_engagement",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [
+      "active_contract"
+    ],
+    "expected": {
+      "must_explain": true,
+      "time_class": "historical"
+    }
+  },
+  {
+    "id": "T21",
+    "entity": "fictional_entity_21",
+    "source_rule": "N08/N09",
+    "input_claims": [
+      {
+        "predicate": "conflicting_dates_and_counterparty_ids",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [
+      "automatic_merge"
+    ],
+    "expected": {
+      "must_explain": true,
+      "manual_review": true,
+      "confidence": "disputed"
+    }
+  },
+  {
+    "id": "T22",
+    "entity": "fictional_entity_22",
+    "source_rule": "N01/N07",
+    "input_claims": [
+      {
+        "predicate": "conditional_capability_statement",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [
+      "confirmed_supply"
+    ],
+    "expected": {
+      "must_explain": true,
+      "level": "L4",
+      "confidence": "candidate",
+      "condition": "L4_if_relevance_established_else_candidate"
+    }
+  },
+  {
+    "id": "T23",
+    "entity": "fictional_entity_23",
+    "source_rule": "R01/R02",
+    "input_claims": [
+      {
+        "predicate": "documented_specialized_service",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [],
+    "expected": {
+      "must_explain": true,
+      "allowed_levels": [
+        "L1",
+        "L2"
+      ],
+      "condition": "depends_on_adopted_service_policy"
+    }
+  },
+  {
+    "id": "T24",
+    "entity": "fictional_entity_24",
+    "source_rule": "L4 limit",
+    "input_claims": [
+      {
+        "predicate": "generic_material_no_specific_relevance",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [],
+    "expected": {
+      "must_explain": true,
+      "level": "L0"
+    }
+  },
+  {
+    "id": "T25",
+    "entity": "fictional_entity_25",
+    "source_rule": "R05/N03",
+    "input_claims": [
+      {
+        "predicate": "ordinary_facility_cleaning_customer_public",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [],
+    "expected": {
+      "must_explain": true,
+      "level": "L5",
+      "prohibited_levels": [
+        "L3"
+      ]
+    }
+  },
+  {
+    "id": "T26",
+    "entity": "fictional_entity_26",
+    "source_rule": "R06",
+    "input_claims": [
+      {
+        "predicate": "division_mentioned_no_direct_evidence",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [
+      "verified_L1"
+    ],
+    "expected": {
+      "must_explain": true,
+      "manual_review": true,
+      "confidence": "candidate"
+    }
+  },
+  {
+    "id": "T27",
+    "entity": "fictional_entity_27",
+    "source_rule": "N01",
+    "input_claims": [
+      {
+        "predicate": "civilian_use_only_model_has_prior_belief",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [
+      "model_knowledge_as_evidence",
+      "confirmed_contract"
+    ],
+    "expected": {
+      "must_explain": true,
+      "prohibited_levels": [
+        "L1",
+        "L2",
+        "L3"
+      ]
+    }
+  },
+  {
+    "id": "T28",
+    "entity": "fictional_entity_28",
+    "source_rule": "N08",
+    "input_claims": [
+      {
+        "predicate": "same_brand_distinct_legal_entities_one_engagement",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [
+      "merge_same_brand",
+      "transfer_engagement"
+    ],
+    "expected": {
+      "must_explain": true,
+      "distinct_legal_entities": true
+    }
+  },
+  {
+    "id": "T29",
+    "entity": "fictional_entity_29",
+    "source_rule": "10.3",
+    "input_claims": [
+      {
+        "predicate": "different_numerator_denominator_years",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [
+      "divide_different_years",
+      "report_zero_as_missing"
+    ],
+    "expected": {
+      "must_explain": true,
+      "revenue_share": "unknown",
+      "retain_inputs": true
+    }
+  },
+  {
+    "id": "T30",
+    "entity": "fictional_entity_30",
+    "source_rule": "N04",
+    "input_claims": [
+      {
+        "predicate": "notice_no_winner",
+        "document": "synthetic"
+      }
+    ],
+    "forbidden_claims": [
+      "awarded_to"
+    ],
+    "expected": {
+      "must_explain": true,
+      "event_stage": "announcement"
+    }
+  }
+]
