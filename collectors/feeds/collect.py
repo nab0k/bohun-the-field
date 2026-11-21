@@ -28,6 +28,8 @@ import urllib.request
 import urllib.robotparser
 from collections import Counter
 
+from collectors.feeds import podcast
+
 SOURCE_NAME = "BOHUN feeds (A1SD)"
 UA = "BOHUN-FeedCollector/1.0 (+https://github.com/nab0k/bohun-the-field)"
 MAX_BYTES = 2_000_000
@@ -98,7 +100,8 @@ def entries(body, feed_url, now, fresh_days=FRESH_DAYS, per_feed=PER_FEED):
         if published > now + dt.timedelta(days=1) or now - published > dt.timedelta(days=fresh_days):
             continue
         html = ((e.get("content") or [{}])[0].get("value")) or e.get("summary") or None
-        out.append({"url": canonical(link), "guid": e.get("id"), "title": (e.get("title") or "").strip()[:2000],
+        out.append({"url": canonical(link), "link": e.get("link"), "guid": e.get("id"),
+                    "title": (e.get("title") or "").strip()[:2000],
                     "published_at": published, "html": html})
         if len(out) >= per_feed:
             break
@@ -166,8 +169,9 @@ class Fetcher:
         return self._get(item["url"], headers)
 
 
-def poll(feeds, fetcher, now, max_requests=600):
-    """Feeds -> (poll rows, shadow rows). A failing feed is recorded and the rest go on."""
+def poll(feeds, fetcher, now, max_requests=600, transcriber=None, done=frozenset()):
+    """Feeds -> (poll rows, shadow rows). A failing feed is recorded and the rest go on. With a transcriber
+    (A5TC-04), podcast episodes not yet in the base get their text from the publisher's transcript or Whisper."""
     polls, shadow = [], []
     for f in feeds:
         if fetcher.requests >= max_requests:
@@ -184,15 +188,23 @@ def poll(feeds, fetcher, now, max_requests=600):
             elif status == 200:
                 found = entries(body, f["url"], now)
                 row["entries"], row["fresh"] = entries.total, len(found)
+                feed_title = entries.feed_title
+                eps = podcast.episodes(body) if transcriber is not None else {}
                 for e in found:
                     eid = external_id(e["url"], e["guid"])
                     if not eid:
                         continue
-                    cap = capture(e["html"], now)
+                    cap, source = capture(e["html"], now), None
+                    info = eps.get((e.get("link") or "").strip()) or eps.get((e.get("guid") or "").strip())
+                    if info and eid not in done:
+                        text, source = transcriber.text(info)
+                        if text:
+                            cap = podcast.as_capture(text, now)
                     shadow.append({"channel_id": f["channel_id"], "external_id": eid, "url": e["url"],
                                    "title": e["title"], "published_at": e["published_at"],
                                    "text_chars": cap.get("text_characters") or 0, "capture_status": cap.get("status"),
-                                   "feed_url": f["url"], "origin_title": entries.feed_title, "capture": cap})
+                                   "feed_url": f["url"], "origin_title": feed_title, "capture": cap,
+                                   "transcript": source})
             elif status != 304:
                 row["error"] = f"http_{status}"
         except Exception as exc:  # noqa: BLE001 - one feed must not stop the run; only the error kind is kept
@@ -249,7 +261,8 @@ def write_items(pg, run_id, shadow, known):
             raw = {"collector": "a4sc-feeds-v1", "collector_cycle_id": run_id, "channel_id": s["channel_id"],
                    "feed_url": s.get("feed_url"), "host": host, "origin_title": s.get("origin_title"),
                    "url": s["url"], "title": s["title"], "published": s["published_at"].isoformat(),
-                   "content_capture": s.get("capture")}
+                   "content_capture": s.get("capture"),
+                   **({"transcript": s["transcript"]} if s.get("transcript") else {})}
             cur.execute("insert into intelligence.items (source_id, external_id, title, url, item_type, published_at,"
                         " raw_data) values (%s,%s,%s,%s,'news',%s,%s) on conflict (source_id, external_id) do nothing"
                         " returning id", (source_id, s["external_id"], s["title"] or "(untitled)", s["url"],
@@ -280,12 +293,19 @@ def main(argv=None):
         cur.execute(FEEDS_SQL)
         feeds = eligible(cur.fetchall(), a.max_feeds)
         fetcher = Fetcher()
-        polls, shadow = poll(feeds, fetcher, now)
+        transcriber, done = None, frozenset()
+        if a.mode == "write":
+            transcriber = podcast.Transcriber(fetcher, key=os.environ.get("GROQ_API_KEY") or None)
+            cur.execute("select i.external_id from intelligence.items i join intelligence.sources s on s.id = i.source_id "
+                        "where s.name = %s and i.discovered_at > now() - interval '8 days'", (SOURCE_NAME,))
+            done = frozenset(r[0] for r in cur.fetchall())
+        polls, shadow = poll(feeds, fetcher, now, transcriber=transcriber, done=done)
         saved = save_shadow(pg, run_id, polls, shadow)
         known = saved.pop("_known")
         if a.mode == "write":
             saved.update(write_items(pg, run_id, shadow, known))
-    print(json.dumps({"run": run_id, "mode": a.mode, **summary(polls, shadow, saved, fetcher)}))
+    print(json.dumps({"run": run_id, "mode": a.mode, **summary(polls, shadow, saved, fetcher),
+                      **({"podcasts": transcriber.counts} if transcriber else {})}))
 
 
 if __name__ == "__main__":
