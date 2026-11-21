@@ -173,6 +173,18 @@ class Pages(unittest.TestCase):
         raw = [p for s, p in log if s.startswith("insert into intelligence.items")][0][-1]
         self.assertEqual((raw["collector"], raw["page_method"]), (P.COLLECTOR, "links"))
 
+    def test_rubric_tag_and_author_pages_are_not_articles(self):
+        for path in ("/category/europe/", "/tag/drones", "/author/jane", "/page/2", "/kategori/x", "/topics/sea"):
+            self.assertTrue(P.TAXONOMY.search(path), path)
+        for path in ("/2026/11/20/army-orders-radars/", "/news/categories-of-export-rules-explained"):
+            self.assertFalse(P.TAXONOMY.search(path), path)
+        kids = [("https://s.example/category-sitemap.xml", None), ("https://s.example/post-sitemap.xml", None),
+                ("https://s.example/page-sitemap.xml", None), ("https://s.example/product-sitemap.xml", None)]
+        self.assertEqual(P.pick_children(kids, NOW), ["https://s.example/post-sitemap.xml"])
+        listing = "https://site.example/latest"
+        body = cards([f"/category/region-{i}" for i in range(5)], "https://site.example")
+        self.assertEqual(P.headline_links(P.parse_page(html(body), listing)[0], listing), [])
+
 
 if __name__ == "__main__":
     unittest.main()
