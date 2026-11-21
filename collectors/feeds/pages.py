@@ -36,6 +36,11 @@ GENERIC = {"news", "nieuws", "newsroom", "press", "press-releases", "pressreleas
            "news-and-media", "news-and-events", "archive", "en", "uk", "de", "fr", "es", "it", "nl", "pl", "ro",
            "index.php", "category", "categories", "section", "tag", "coverage", "web", "searchset", "articles",
            "article", "posts", "stories", "updates", "all", "home", "press-room", "pressroom", "events"}
+# listing pages, not articles: rubrics, tags, authors, pagination (the shadow run of 21.11 took "Europe - The Defense
+# Post" and "Okategoriserade" from site maps)
+TAXONOMY = re.compile(r"/(category|categories|tag|tags|author|authors|page|topics?|rubri[ck]\w*|kategori\w*)(/|$)",
+                      re.I)
+TAXONOMY_MAP = re.compile(r"(category|tag|author|taxonom|attachment|product|page-sitemap|/pages?[.-])", re.I)
 SITEMAP_NS = "{http://www.sitemaps.org/schemas/sitemap/0.9}"
 NEWS_NS = "{http://www.google.com/schemas/sitemap-news/0.9}"
 
@@ -115,6 +120,7 @@ def headline_links(links, listing):
     for href, text, chrome in links:
         url = canonical(urllib.parse.urljoin(listing, href))
         if (chrome or not url or url == own or not same_site(url, listing) or FILE_EXT.search(url)
+                or TAXONOMY.search(urllib.parse.urlsplit(url).path)
                 or urllib.parse.urlsplit(url).path in ("", "/")):
             continue
         if len(text) < 25 and len(text.split()) < 4:
@@ -166,7 +172,8 @@ def pick_children(children, now):
         loc, date = c
         newsy = any(w in loc.lower() for w in ("news", "post", "article", "press"))
         return (not newsy, -(date.timestamp() if date else 0))
-    fresh = [c for c in children if c[0] and (c[1] is None or now - c[1] <= dt.timedelta(days=31))]
+    fresh = [c for c in children if c[0] and not TAXONOMY_MAP.search(c[0])
+             and (c[1] is None or now - c[1] <= dt.timedelta(days=31))]
     return [loc for loc, _ in sorted(fresh, key=key)[:MAX_SITEMAPS]]
 
 
@@ -190,6 +197,7 @@ def from_sitemap(fetcher, listing, now):
             queue = pick_children(rows, now) + queue
             continue
         found += [(u, d) for u, d in rows if u and d and same_site(u, listing) and on_topic(u, words)
+                  and not TAXONOMY.search(urllib.parse.urlsplit(u).path)
                   and dt.timedelta(0) <= now - d <= dt.timedelta(days=FRESH_DAYS)]
     if not found:
         return None
