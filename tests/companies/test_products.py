@@ -112,6 +112,14 @@ class TestVerify(unittest.TestCase):
         kept, _ = P.verify(items, pages)
         self.assertEqual([k['specialized'] for k in kept], [False, False, False, True])
 
+    def test_trial_false_negatives(self):
+        """Batch 1, 21.11.2026: clearly military items that the narrow rule missed."""
+        quotes = ['Patria offers defence solutions, e.g. Patria NEMO turreted mortar system',
+                  'The AKERON RCH170 is a loitering munition designed for rapid deployment',
+                  'X-Lock VSHORAD INTERCEPTOR DISCOVER THE PRODUCT',
+                  'Anti Drone ammunition', 'XRG Defense cartridges for self-defense solutions']
+        self.assertEqual([bool(P.MILITARY.search(q)) for q in quotes], [True, True, True, False, False])
+
     def test_parse_tolerates_fences(self):
         self.assertEqual(P.parse('```json\n{"items": [{"name": "A"}]}\n```'), [{'name': 'A'}])
         self.assertEqual(P.parse('no json here'), [])

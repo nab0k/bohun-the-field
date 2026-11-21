@@ -63,6 +63,17 @@ class TestFrance(unittest.TestCase):
         op = Opener({'recherche-entreprises': fixture('fr_arquus.json')})
         self.assertEqual(R.resolve('Arquus Test', 'FR', opener=op)['decision'], 'not_found')
 
+    def test_retry_without_legal_form(self):
+        asked = []
+        def opener(req, timeout=None):
+            asked.append(req.full_url)
+            hit = 'q=GDTECH%20FRANCE&' in req.full_url
+            rows = [{'siren': '9', 'nom_raison_sociale': 'GDTECH FRANCE', 'nature_juridique': '5710',
+                     'etat_administratif': 'A', 'siege': {}}] if hit else []
+            return io.BytesIO(json.dumps({'results': rows}).encode())
+        r = R.resolve('GDTECH FRANCE SAS', 'FR', opener=opener)
+        self.assertEqual((r['decision'], r['id'], len(asked)), ('matched', '9', 2))
+
 
 class TestFinland(unittest.TestCase):
     def test_current_name_only(self):
