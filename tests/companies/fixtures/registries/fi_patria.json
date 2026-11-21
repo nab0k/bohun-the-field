@@ -1,0 +1,272 @@
+{
+ "totalResults": 2,
+ "companies": [
+  {
+   "businessId": {
+    "value": "1077447-2",
+    "registrationDate": "1997-02-27",
+    "source": "3"
+   },
+   "names": [
+    {
+     "name": "Patria Finance Oyj",
+     "type": "1",
+     "registrationDate": "2011-06-01",
+     "endDate": "2017-12-31",
+     "version": 1,
+     "source": "1"
+    },
+    {
+     "name": "Patria Oyj",
+     "type": "1",
+     "registrationDate": "2004-04-29",
+     "endDate": "2011-05-31",
+     "version": 2,
+     "source": "1"
+    },
+    {
+     "name": "Suomen Puolustusväline",
+     "type": "3",
+     "registrationDate": "1997-04-10",
+     "endDate": "2017-12-31",
+     "version": 1,
+     "source": "1"
+    },
+    {
+     "name": "Finnish Defence Equipment",
+     "type": "4",
+     "registrationDate": "1997-04-10",
+     "endDate": "2017-12-31",
+     "version": 1,
+     "source": "1"
+    },
+    {
+     "name": "Patria Finance Abp",
+     "type": "2",
+     "registrationDate": "2011-06-01",
+     "endDate": "2017-12-31",
+     "version": 1,
+     "source": "1"
+    },
+    {
+     "name": "Patria Finance Plc",
+     "type": "2",
+     "registrationDate": "2011-06-01",
+     "endDate": "2017-12-31",
+     "version": 1,
+     "source": "1"
+    }
+   ],
+   "mainBusinessLine": {
+    "type": "64200",
+    "descriptions": [
+     {
+      "languageCode": "3",
+      "description": "Activities of holding companies"
+     },
+     {
+      "languageCode": "2",
+      "description": "Holdingverksamhet"
+     },
+     {
+      "languageCode": "1",
+      "description": "Rahoitusalan holdingyhtiöiden toiminta"
+     }
+    ],
+    "typeCodeSet": "TOIMI3",
+    "registrationDate": "2007-12-31",
+    "source": "2"
+   },
+   "companyForms": [
+    {
+     "type": "17",
+     "descriptions": [
+      {
+       "languageCode": "1",
+       "description": "Julkinen osakeyhtiö"
+      },
+      {
+       "languageCode": "3",
+       "description": "Public limited company"
+      },
+      {
+       "languageCode": "2",
+       "description": "Publikt aktiebolag"
+      }
+     ],
+     "registrationDate": "1998-06-02",
+     "endDate": "2017-12-31",
+     "version": 1,
+     "source": "1"
+    }
+   ],
+   "addresses": [],
+   "tradeRegisterStatus": "4",
+   "status": "2",
+   "registrationDate": "1996-10-01",
+   "endDate": "2017-12-31"
+  },
+  {
+   "businessId": {
+    "value": "2334159-6",
+    "registrationDate": "2010-04-30",
+    "source": "3"
+   },
+   "names": [
+    {
+     "name": "Patria Oyj",
+     "type": "1",
+     "registrationDate": "2011-06-01",
+     "version": 1,
+     "source": "1"
+    },
+    {
+     "name": "Patria Holding Oyj",
+     "type": "1",
+     "registrationDate": "2010-05-11",
+     "endDate": "2011-05-31",
+     "version": 2,
+     "source": "1"
+    },
+    {
+     "name": "Patria Finance",
+     "type": "3",
+     "registrationDate": "2017-12-31",
+     "version": 1,
+     "source": "1"
+    },
+    {
+     "name": "Patria Engines Holding",
+     "type": "3",
+     "registrationDate": "2026-03-31",
+     "version": 1,
+     "source": "1"
+    },
+    {
+     "name": "Patria International Support Partnerships",
+     "type": "3",
+     "registrationDate": "2026-03-31",
+     "version": 1,
+     "source": "1"
+    },
+    {
+     "name": "Patria ISP",
+     "type": "3",
+     "registrationDate": "2026-03-31",
+     "version": 1,
+     "source": "1"
+    },
+    {
+     "name": "Patria Plc",
+     "type": "2",
+     "registrationDate": "2011-06-01",
+     "version": 1,
+     "source": "1"
+    },
+    {
+     "name": "Patria Abp",
+     "type": "2",
+     "registrationDate": "2011-06-01",
+     "version": 1,
+     "source": "1"
+    }
+   ],
+   "mainBusinessLine": {
+    "type": "84110",
+    "descriptions": [
+     {
+      "languageCode": "3",
+      "description": "General public administration activities"
+     },
+     {
+      "languageCode": "1",
+      "description": "Julkinen yleishallinto"
+     },
+     {
+      "languageCode": "2",
+      "description": "Övergripande offentlig förvaltning"
+     }
+    ],
+    "typeCodeSet": "TOIMI4",
+    "registrationDate": "2026-01-01",
+    "source": "2"
+   },
+   "companyForms": [
+    {
+     "type": "17",
+     "descriptions": [
+      {
+       "languageCode": "1",
+       "description": "Julkinen osakeyhtiö"
+      },
+      {
+       "languageCode": "3",
+       "description": "Public limited company"
+      },
+      {
+       "languageCode": "2",
+       "description": "Publikt aktiebolag"
+      }
+     ],
+     "registrationDate": "2010-05-11",
+     "version": 1,
+     "source": "1"
+    }
+   ],
+   "addresses": [
+    {
+     "type": 1,
+     "street": "Arkadiankatu",
+     "postCode": "00100",
+     "postOffices": [
+      {
+       "city": "HELSINGFORS",
+       "languageCode": "2",
+       "municipalityCode": "091"
+      },
+      {
+       "city": "HELSINKI",
+       "languageCode": "1",
+       "municipalityCode": "091"
+      }
+     ],
+     "buildingNumber": "2",
+     "entrance": "",
+     "apartmentNumber": "",
+     "apartmentIdSuffix": "",
+     "co": "",
+     "registrationDate": "2021-04-20",
+     "source": "0"
+    },
+    {
+     "type": 2,
+     "street": "",
+     "postCode": "00100",
+     "postOffices": [
+      {
+       "city": "HELSINGFORS",
+       "languageCode": "2",
+       "municipalityCode": "091"
+      },
+      {
+       "city": "HELSINKI",
+       "languageCode": "1",
+       "municipalityCode": "091"
+      }
+     ],
+     "postOfficeBox": "182",
+     "buildingNumber": "",
+     "entrance": "",
+     "apartmentNumber": "",
+     "apartmentIdSuffix": "",
+     "co": "",
+     "registrationDate": "2021-04-20",
+     "source": "0"
+    }
+   ],
+   "tradeRegisterStatus": "1",
+   "status": "2",
+   "registrationDate": "2010-05-11"
+  }
+ ]
+}
