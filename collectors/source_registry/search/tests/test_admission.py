@@ -219,9 +219,38 @@ class Rules05(unittest.TestCase):
         undated = [{"url": f"https://news.example.org/{i}", "title": t, "date": None} for i, t in enumerate(DEF)]
         self.assertEqual(self.d(obs(items=undated))["decision"], "hold")
         official = obs("https://www.mod.example.gov/", items=undated, delivery_url="https://www.mod.example.gov/news")
-        self.assertEqual(self.d(official)["decision"], "hold")  # 0.8: waits for the page collector
+        self.assertEqual(self.d(official)["decision"], "hold")  # no sure judge verdict: still waits
         self.assertEqual(A.status_of({"decision": "hold", "reason_codes": ["stale"]}), "on_hold")
         self.assertEqual(A.status_of({"decision": "hold", "reason_codes": ["no_news_site"]}), "no_news")
+
+
+class Rules09(unittest.TestCase):
+    """A1SD-04 (21.11): a sure judge overrules the keyword count for non-media kinds; undated pages are accepted."""
+
+    def test_sure_judge_overrules_keywords_for_funds_not_for_media(self):
+        sure = {"specialised": True, "confidence": 0.9, "type": "investment", "by": "fake"}
+        fund = obs("https://fund.example.org/", items=items(CIVIL), judge=sure,
+                   candidate={"url": "https://fund.example.org/", "guessed_type": "investment"})
+        r = A.decide(fund, nobody, NOW)
+        self.assertEqual(r["decision"], "accept")
+        self.assertEqual(r["checks"][-1]["basis"], "judge_sure_overrules_keywords")
+        self.assertEqual([c["check"] for c in r["checks"]].count(8), 1)
+        media = obs(items=items(CIVIL), judge={**sure, "type": "media"})
+        self.assertEqual(A.decide(media, nobody, NOW)["decision"], "general")
+        unsure = obs("https://fund.example.org/", items=items(CIVIL), judge={**sure, "confidence": 0.6},
+                     candidate={"url": "https://fund.example.org/", "guessed_type": "investment"})
+        self.assertEqual(A.decide(unsure, nobody, NOW)["decision"], "general")
+
+    def test_undated_page_accepted_with_sure_judge_feed_still_held(self):
+        undated = [{"url": f"https://www.mod.example.gov/n/{i}", "title": t, "date": None} for i, t in enumerate(DEF)]
+        sure = {"specialised": True, "confidence": 0.85, "by": "fake"}
+        page = obs("https://www.mod.example.gov/", items=undated, delivery="page",
+                   delivery_url="https://www.mod.example.gov/news", judge=sure)
+        r = A.decide(page, nobody, NOW)
+        self.assertEqual(r["decision"], "accept")
+        self.assertIn("undated_page_judge_sure", [c.get("basis") for c in r["checks"]])
+        feed = obs("https://www.mod.example.gov/", items=undated, judge=sure)
+        self.assertEqual(A.decide(feed, nobody, NOW)["reason_codes"], ["no_dates"])
 
 
 class NewLanguages(unittest.TestCase):
@@ -255,6 +284,15 @@ class Rules08(unittest.TestCase):
             o = obs("https://d.example/", fetch={"status": "http_only"})
             counts, _ = A.admit(conn, [o], NOW, recheck={"https://d.example/"})
             self.assertEqual(counts["hold"], 1)
+            # 0.9: a keyword-general site of older rules is judged again; one of the current rules is not
+            for url, rules in (("https://g.example/", "a2sa-shadow-0.8"), ("https://n.example/", A.RULES_VERSION)):
+                conn.execute("INSERT INTO candidate_seen VALUES (?,?,?,?,?)", (url, "general", NOW.isoformat(), 0, None))
+                conn.execute("INSERT INTO admission_decision(candidate_url, channel_id, decision, reasons_json, "
+                             "record_json, rules_version, decided_at) VALUES (?,?,?,?,?,?,?)",
+                             (url, None, "general", '["topic_below_threshold"]', "{}", rules, NOW.isoformat()))
+            urls = [c["url"] for c in R.recheck_candidates(conn)]
+            self.assertIn("https://g.example/", urls)
+            self.assertNotIn("https://n.example/", urls)
             conn.close()
 
 

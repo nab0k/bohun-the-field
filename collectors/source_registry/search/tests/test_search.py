@@ -293,11 +293,31 @@ class TwoEngines(unittest.TestCase):
 class TypesLayer(unittest.TestCase):
     def test_every_type_early_and_rotation(self):
         jobs = P.type_jobs(CAT, COUNTRIES)
-        self.assertEqual(len(jobs), 6 * 12)
-        self.assertEqual({j["role"] for j in jobs[:6]}, set(P.TYPE_QUERIES))
+        local = sum(1 for cc in COUNTRIES if P.country_lang(CAT, cc)[0] in P.LOCAL_TYPE_QUERIES)
+        self.assertEqual(len(jobs), 8 * 12 + 4 * local)  # A1SD-04: 8 kinds in English, 4 priority kinds also local
+        first = {j["role"] for j in jobs if j["country"] == jobs[0]["country"]}
+        self.assertEqual({r.split(".")[0] for r in first}, set(P.TYPE_QUERIES))
         later = P.type_jobs(CAT, COUNTRIES, {P.job_key(j) for j in jobs[:48]})
-        self.assertEqual(len(later), 24)
+        self.assertEqual(len(later), len(jobs) - 48)
         self.assertEqual(sum(C.QUOTAS.values()), C.LIMITS["tavily"] + C.LIMITS["gemini"])
+
+    def test_priority_kinds_local_language_and_weighting(self):
+        jobs = P.type_jobs(CAT, COUNTRIES)
+        ua = [j for j in jobs if j["country"] == "UA" and j["lang"] == "uk"]
+        self.assertEqual({j["role"] for j in ua}, {"grants.v2", "procurement.v2", "investment", "startups"})
+        self.assertTrue(all("Україна" in j["query"] for j in ua))
+        self.assertEqual({j["type_hint"] for j in jobs if j["role"] == "startups"}, {"investment"})
+        # old wording of grants and procurement was asked under the old role: the new wording is asked again
+        old = {"types|UA||grants|en|", "types|UA||procurement|en|"}
+        self.assertTrue(any(j["country"] == "UA" and j["role"] == "grants.v2" and j["lang"] == "en"
+                            for j in P.type_jobs(CAT, COUNTRIES, old)))
+        w = P.weight_types(jobs)
+        head = w[:30]
+        prio = sum(j["type_hint"] in P.PRIORITY_TYPES for j in head)
+        self.assertEqual(prio, 20)  # two of every three
+        self.assertEqual(sorted(map(id, w)), sorted(map(id, jobs)))
+        tiny = P.type_jobs(CAT, ["AD"], names={"AD": "Andorra"})
+        self.assertFalse(any(j["type_hint"] in P.PRIORITY_TYPES for j in tiny))  # micro-states: no priority jobs
 
 
 class OpenBases(unittest.TestCase):

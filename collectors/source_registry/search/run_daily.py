@@ -179,7 +179,14 @@ def recheck_candidates(conn, n=RECHECK_PER_DAY, days=RECHECK_AFTER_DAYS, no_judg
         "(decided_at < ? OR (reasons LIKE '%no_judge%' AND decided_at < ?)) "
         "ORDER BY (reasons LIKE '%no_judge%') DESC, decided_at LIMIT ?",
         (cutoff, quick, n)).fetchall()]
-    urls = (disputed + [u for u in held if u not in disputed])[:n]
+    # 0.9 (A1SD-04): sites set aside as general by the keyword count alone are judged again under the new rules
+    general = [u for (u,) in conn.execute(
+        "SELECT s.candidate_url FROM candidate_seen s JOIN admission_decision d ON d.decision_id=(SELECT max(decision_id) "
+        "FROM admission_decision x WHERE x.candidate_url=s.candidate_url) WHERE s.last_decision='general' "
+        "AND d.reasons_json LIKE '%topic_below_threshold%' AND d.rules_version != ? ORDER BY s.decided_at LIMIT ?",
+        (A.RULES_VERSION, max(n // 3, 1))).fetchall()]
+    urls = (disputed + [u for u in general if u not in disputed]
+            + [u for u in held if u not in disputed and u not in general])[:n]
     # prefilter: a recheck goes through the judge again (0.6: a no_judge hold must not pass on keywords alone)
     return [{"url": u, "pool_group": "recheck", "prefilter": True, "found_via": {"channel": "recheck", "layer": "recheck"}}
             for u in urls]
@@ -221,7 +228,7 @@ def main():
         jobs = {"layer1": gaps(P.layer1_jobs(cat1, list(cat1["countries"]), None, ctx["done"])),
                 "layer3": P.layer3_jobs(cat, ctx["events"], 50, ctx["done"]),
                 "section": P.section_jobs(C.general_sites(conn)) if tavily else [],
-                "types": gaps(P.type_jobs(cat, list(europe), ctx["done"], names=names)),
+                "types": P.weight_types(gaps(P.type_jobs(cat, list(europe), ctx["done"], names=names))),
                 "gdelt": P.gdelt_jobs(cat, countries, ctx["done"]),
                 "wikidata": gaps(P.wikidata_jobs(list(europe), ctx["done"])),
                 "similar": gaps(P.similar_jobs(accepted_sites(conn), ctx["done"])) if exa else []}

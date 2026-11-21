@@ -229,13 +229,93 @@ def section_jobs(general_sites):
 # Cycle 4 (19.11): without the official skeleton a cycle finds almost only media (2 types). This layer asks every
 # cycle for the kinds of sources a cycle must cover (spec A1SD: >= 5 types per cycle). Type-major, countries rotate.
 TYPE_QUERIES = {
-    "procurement": "{country} defence procurement tenders official portal",
+    "procurement": "{country} ministry of defence procurement agency tenders news",
     "exhibition": "{country} defence and security exhibition trade fair",
     "association": "{country} defence industry association news",
     "research": "{country} defence research institute news",
     "company_news": "{country} defence company newsroom press releases",
-    "grants": "{country} defence innovation funding call grants",
+    "grants": "{country} defence innovation fund call for proposals official",
+    "investment": "{country} defence tech venture capital fund invests",
+    "startups": "{country} defence startup accelerator programme",
 }
+# A1SD-04 (owner 21.11 "Да, усилить поиск видов"): grants, funds, startups and procurement come first in the types
+# layer (two of every three jobs), in English and in the country language. Grants and procurement have new wording,
+# so their role key changes and the countries already asked with the old wording are asked again.
+PRIORITY_TYPES = ("grants", "investment", "startups", "procurement")
+TYPE_HINT = {"startups": "investment"}
+TYPE_ROLE = {"grants": "grants.v2", "procurement": "procurement.v2"}
+LOCAL_TYPE_QUERIES = {
+    "uk": {"procurement": "{country} оборонні закупівлі тендери новини",
+           "grants": "{country} гранти оборонні інновації конкурс",
+           "investment": "{country} венчурний фонд інвестиції оборонні технології",
+           "startups": "{country} оборонні стартапи акселератор"},
+    "pl": {"procurement": "{country} zamówienia obronne przetargi aktualności",
+           "grants": "{country} granty innowacje obronne nabór wniosków",
+           "investment": "{country} fundusz venture capital inwestycje technologie obronne",
+           "startups": "{country} startupy obronne akcelerator"},
+    "de": {"procurement": "{country} Beschaffung Verteidigung Ausschreibungen Nachrichten",
+           "grants": "{country} Förderprogramm Verteidigungsinnovation Ausschreibung",
+           "investment": "{country} Risikokapital Fonds Investitionen Verteidigungstechnologie",
+           "startups": "{country} Verteidigung Startups Accelerator"},
+    "fr": {"procurement": "{country} marchés publics défense appels d'offres actualités",
+           "grants": "{country} subventions innovation défense appel à projets",
+           "investment": "{country} fonds capital-risque investissement technologies de défense",
+           "startups": "{country} startups défense accélérateur"},
+    "es": {"procurement": "{country} contratación defensa licitaciones noticias",
+           "grants": "{country} subvenciones innovación defensa convocatoria",
+           "investment": "{country} fondo capital riesgo inversión tecnología de defensa",
+           "startups": "{country} startups defensa aceleradora"},
+    "it": {"procurement": "{country} appalti difesa gare notizie",
+           "grants": "{country} finanziamenti innovazione difesa bando",
+           "investment": "{country} fondo venture capital investimenti tecnologie difesa",
+           "startups": "{country} startup difesa acceleratore"},
+    "nl": {"procurement": "{country} defensie aanbestedingen inkoop nieuws",
+           "grants": "{country} subsidie defensie-innovatie oproep",
+           "investment": "{country} durfkapitaal fonds investeringen defensietechnologie",
+           "startups": "{country} defensie startups accelerator"},
+    "sv": {"procurement": "{country} försvarsupphandling anbud nyheter",
+           "grants": "{country} bidrag försvarsinnovation utlysning",
+           "investment": "{country} riskkapitalfond investeringar försvarsteknik",
+           "startups": "{country} försvarsstartups accelerator"},
+    "fi": {"procurement": "{country} puolustushankinnat tarjouskilpailut uutiset",
+           "grants": "{country} rahoitus puolustusinnovaatiot haku",
+           "investment": "{country} pääomasijoitus rahasto puolustusteknologia",
+           "startups": "{country} puolustusalan startupit kiihdyttämö"},
+    "cs": {"procurement": "{country} obranné zakázky tendry novinky",
+           "grants": "{country} granty obranné inovace výzva",
+           "investment": "{country} rizikový kapitál fond investice obranné technologie",
+           "startups": "{country} obranné startupy akcelerátor"},
+    "ro": {"procurement": "{country} achiziții apărare licitații știri",
+           "grants": "{country} granturi inovare apărare apel proiecte",
+           "investment": "{country} fond capital de risc investiții tehnologie de apărare",
+           "startups": "{country} startup-uri apărare accelerator"},
+    "pt": {"procurement": "{country} compras defesa licitações notícias",
+           "grants": "{country} financiamento inovação defesa edital",
+           "investment": "{country} fundo capital de risco investimento tecnologia de defesa",
+           "startups": "{country} startups defesa aceleradora"},
+}
+
+
+def country_lang(cat, cc):
+    """(language, local name) of a country: the dictionary's own entry, else EXTRA_LANG, else None."""
+    c = cat["countries"].get(cc) or {}
+    if c.get("lang") and c["lang"] != "en":
+        return c["lang"], c.get("name_local") or c.get("name_en")
+    lang, local = EXTRA_LANG.get(cc, (None, None))
+    return lang, local
+
+
+def weight_types(jobs):
+    """Two priority-type jobs, then one of the other types, keeping each group's own order."""
+    first = [j for j in jobs if j.get("type_hint") in PRIORITY_TYPES or j.get("role", "").split(".")[0] in PRIORITY_TYPES]
+    rest = [j for j in jobs if j not in first]
+    out = []
+    while first or rest:
+        out += first[:2]
+        del first[:2]
+        out += rest[:1]
+        del rest[:1]
+    return out
 
 
 GDELT_COUNTRY = {"UA": "ukraine", "PL": "poland", "DE": "germany", "FR": "france", "ES": "spain", "IT": "italy",
@@ -290,11 +370,18 @@ def type_jobs(cat, countries, done=(), names=None):
     rows = []
     for t, template in TYPE_QUERIES.items():
         for i, cc in enumerate(countries):
-            job = {"layer": "types", "country": cc, "role": t, "lang": "en", "type_hint": t,
-                   "query": template.format(country=(names or {}).get(cc) or cat["countries"][cc]["name_en"]),
-                   "topic": "general",
-                   "time_range": None, "max_results": 8}
-            if job_key(job) not in asked:
-                rows.append((i, list(TYPE_QUERIES).index(t), job))
+            name = (names or {}).get(cc) or (cat["countries"].get(cc) or {}).get("name_en") or cc
+            variants = [("en", template.format(country=name))]
+            lang, local = country_lang(cat, cc)
+            if lang in LOCAL_TYPE_QUERIES and t in LOCAL_TYPE_QUERIES[lang]:
+                variants.append((lang, LOCAL_TYPE_QUERIES[lang][t].format(country=local or name)))
+            if t in PRIORITY_TYPES and cc in LAYER1_SKIP:
+                continue  # micro-states have no defence funds or tenders worth a priority job
+            for lang_code, query in variants:
+                job = {"layer": "types", "country": cc, "role": TYPE_ROLE.get(t, t), "lang": lang_code,
+                       "type_hint": TYPE_HINT.get(t, t), "query": query, "topic": "general",
+                       "time_range": None, "max_results": 8}
+                if job_key(job) not in asked:
+                    rows.append((i, list(TYPE_QUERIES).index(t), job))
     # round-robin: country 0 of every type, then country 1 of every type ... -> every type appears early
     return [r[2] for r in sorted(rows, key=lambda r: (r[0], r[1]))]

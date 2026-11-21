@@ -27,7 +27,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import registry  # noqa: E402
 
-RULES_VERSION = "a2sa-shadow-0.8"  # 0.2: fixes after the 18.11 shadow run; 0.3: no-news sites kept (D-20261118-A1SD-NO-NEWS-KEEP)
+RULES_VERSION = "a2sa-shadow-0.9"  # 0.2: fixes after the 18.11 shadow run; 0.3: no-news sites kept (D-20261118-A1SD-NO-NEWS-KEEP)
 FRESH_DAYS = 60
 REJECT_COOLDOWN_DAYS = 90
 TOPIC_MIN_SHARE = 0.20
@@ -36,6 +36,20 @@ MAX_TRANSIENT = 2
 TYPES = ("media", "company_news", "agency", "procurement", "grants", "investment", "company_registry",
          "association", "exhibition", "research")
 TOPIC_EXEMPT = {"procurement", "grants", "company_registry"}  # topic is filtered per record in A4SC
+# 0.9 (A1SD-04, 21.11): the judge read the site and is sure it is a defence source. For these kinds of sources the
+# keyword count of headlines does not overrule it (DARPA and the Defence Innovation Network were "general" by keywords),
+# and an undated page is accepted: the page collector (A4SC-03) dates every article itself.
+JUDGE_SURE = 0.8
+JUDGE_OVERRULES_TOPIC = {"procurement", "grants", "investment", "agency", "research", "association", "exhibition",
+                         "company_news"}
+
+
+def judge_sure(obs):
+    v = obs.get("judge") or {}
+    try:
+        return v.get("specialised") is True and float(v.get("confidence") or 0) >= JUDGE_SURE
+    except (TypeError, ValueError):
+        return False
 OFFICIAL_TYPES = {"agency", "procurement", "grants", "company_registry"}
 DELIVERIES = ("feed", "api", "page", "dataset")
 
@@ -356,16 +370,19 @@ def decide(obs, known, now=None):
         checks.append({"check": 6, "result": "pass"})
     # 7 freshness
     dates = [d for d in (parse_date(i.get("date")) for i in items) if d and d <= now + dt.timedelta(days=1)]
-    if not dates:
+    if not dates and delivery == "page" and judge_sure(obs):
+        checks.append({"check": 7, "result": "pass", "basis": "undated_page_judge_sure"})
+    elif not dates:
         checks.append({"check": 7, "result": "doubt", "basis": "no_dates"})
         # 0.5 (D-20261118-A1SD-RETRO-PLAN-G2): only official sources without dates go to the owner; the rest
         # wait on hold for the next check (cycle 1: 23 of 66 disputed were undated, mostly not official)
         return out("hold", "no_dates", **base)  # 0.8: undated official pages wait for the page collector
-    age = (now - max(dates)).days
-    if age > FRESH_DAYS:
-        checks.append({"check": 7, "result": "doubt", "newest_age_days": age})
-        return out("hold", "stale", **base)  # 0.5: a dormant source is re-checked later, not shown to the owner
-    checks.append({"check": 7, "result": "pass", "newest_age_days": age})
+    if dates:
+        age = (now - max(dates)).days
+        if age > FRESH_DAYS:
+            checks.append({"check": 7, "result": "doubt", "newest_age_days": age})
+            return out("hold", "stale", **base)  # 0.5: a dormant source is re-checked later, not the owner's
+        checks.append({"check": 7, "result": "pass", "newest_age_days": age})
     # 8 topic
     if stype in TOPIC_EXEMPT:
         checks.append({"check": 8, "result": "skipped", "basis": "filtered_per_record_in_a4sc"})
@@ -374,12 +391,16 @@ def decide(obs, known, now=None):
         if n < TOPIC_MIN_SAMPLE:
             checks.append({"check": 8, "result": "doubt", "sample": n})
             return out("hold", "topic_sample_too_small", **base)  # 0.5: too few titles to judge -> next check
-        if share < TOPIC_MIN_SHARE:
+        if share < TOPIC_MIN_SHARE and stype in JUDGE_OVERRULES_TOPIC and judge_sure(obs):
+            checks.append({"check": 8, "result": "pass", "share": round(share, 3), "sample": n,
+                           "basis": "judge_sure_overrules_keywords"})
+        elif share < TOPIC_MIN_SHARE:
             checks.append({"check": 8, "result": "doubt", "share": round(share, 3), "sample": n})
             # 0.5: a site that mostly writes about other things is a general outlet: kept in its own list for the
             # pass over its defence sections (decision 2 of the 18.11 review), never accepted, not the owner's
             return out("general", "topic_below_threshold", **base)
-        checks.append({"check": 8, "result": "pass", "share": round(share, 3), "sample": n})
+        else:
+            checks.append({"check": 8, "result": "pass", "share": round(share, 3), "sample": n})
     if obs.get("judge_missing"):
         # 0.6: found by search, not judged (too few headlines or no model answered): keywords alone do not admit it;
         # it waits for the next check (recheck after RECHECK_AFTER_DAYS, with the judge)
