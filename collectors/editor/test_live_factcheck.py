@@ -6,8 +6,8 @@ import unittest
 from unittest.mock import patch
 
 from collectors.editor.live_factcheck import (
-    MAX_MATERIALS, MAX_OUTPUT_TOKENS, MODEL, SQL,
-    _date_compatible, _words, call_groq, choose_excerpts,
+    MAX_MATERIALS, MAX_OUTPUT_TOKENS, MAX_PACKET_BYTES, MODEL, SQL,
+    _date_compatible, _words, call_groq, choose_excerpts, prepare,
     provider_request, query_candidates, run, sanitized_provider_failure, _exit_code,
     _groq_http_request, USER_AGENT,
 )
@@ -50,7 +50,77 @@ def groq_reply(status="supported",check_id="c-1",finish="stop"):
         {"claim_id":check_id,"status":status,"source_id":"s-1","span_id":"sp-1"}]})}}]}
 
 
+def synthetic_capture_row():
+    """Invented record, never loaded from Supabase or sent to Groq."""
+    url = "https://example.org/imaginary-radios"
+    return {
+        "id": 771, "event_id": 44, "version": 2, "generator": "author|gemini",
+        "published_at": "2026-11-09T11:00:00+00:00",
+        "headline": "Agency reports procurement of forty coastal radio sets.",
+        "what_happened": "The ministry says delivery of forty coastal radio sets is pending acceptance.",
+        "sources": [{"url": url, "date": "2026-11-08", "class": "P2"}],
+        "context_sources": [], "item_id": 909, "item_url": url,
+        "item_day": "2026-11-08", "manifest_day": "2026-11-08",
+        "capture_text": (
+            "The agency reported procurement of forty coastal radio sets after a tender.\n"
+            "The forty coastal radio sets are not yet delivered and acceptance is pending."
+        ),
+    }
+
+
 class FactcheckTests(unittest.TestCase):
+    def test_real_preparation_path_stays_untrusted_and_within_actual_http_cap(self):
+        """Exercise snapshot -> evidence bundle -> checker packet, all offline."""
+        from collectors.editor.core import _hash
+        from collectors.editor.checker_probe import validate_untrusted_reply
+        row = synthetic_capture_row()
+        packet, meta = prepare(row)
+        self.assertEqual(meta["material_id"], "syn-771")
+        self.assertEqual(meta["version"], 2)
+        self.assertGreaterEqual(meta["p2_excerpts"], 1)
+        self.assertLessEqual(meta["p2_excerpts"], 10)
+        self.assertEqual(len(packet["claims"]), meta["claims_selected"])
+        self.assertFalse(packet["independent_p1_attested"])
+        self.assertTrue(packet["full_material_coverage"])
+        self.assertTrue(all(len(span["quote"]) <= 200 and
+                            span["quote"] in row["capture_text"]
+                            for span in packet["spans"]))
+        self.assertTrue(all(span["url"] == row["item_url"] for span in packet["spans"]))
+        unhashed = {k:v for k,v in packet.items() if k != "request_hash"}
+        self.assertEqual(packet["request_hash"], _hash(unhashed))
+        request = provider_request(packet)
+        self.assertLessEqual(len(json.dumps(packet, ensure_ascii=False).encode("utf-8")),
+                             MAX_PACKET_BYTES)
+        self.assertLessEqual(len(json.dumps(request, ensure_ascii=False).encode("utf-8")),
+                             MAX_PACKET_BYTES)
+        self.assertNotIn("tools", request)
+        report = validate_untrusted_reply(packet, {
+            "request_hash": packet["request_hash"], "checker_model_id": MODEL,
+            "checks": [{"claim_id": claim["claim_id"], "status": "insufficient",
+                        "source_id": None, "span_id": None}
+                       for claim in packet["claims"]],
+        })
+        self.assertFalse(report["publication_authorized"])
+        self.assertFalse(report["semantic_assessment_trusted"])
+
+    def test_preparation_fails_closed_when_even_one_quote_exceeds_budget(self):
+        row = synthetic_capture_row()
+        with patch("collectors.editor.live_factcheck.MAX_PACKET_BYTES", 128):
+            with self.assertRaisesRegex(ValueError, "checker_packet_oversized"):
+                prepare(row)
+
+    def test_preparation_refuses_bad_manifest_date_before_packet(self):
+        row = synthetic_capture_row()
+        row["manifest_day"] = "2026-11-07"
+        with self.assertRaisesRegex(ValueError, "manifest_capture_date_mismatch"):
+            prepare(row)
+
+    def test_preparation_refuses_same_family_checker_as_author(self):
+        row = synthetic_capture_row()
+        row["generator"] = "openai/gpt-oss-20b"
+        with self.assertRaisesRegex(ValueError, "non_gemini_author_skipped"):
+            prepare(row)
+
     def test_tokenization_unicode(self):
         self.assertIn("ракета",_words("Ракета запущена 40 раз."))
 
