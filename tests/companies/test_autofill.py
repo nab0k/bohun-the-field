@@ -28,6 +28,10 @@ class Select(unittest.TestCase):
         self.assertEqual([x['company_id'] for x in A.select(queue, attempts, self.TODAY, 10)], ['b'])
         self.assertEqual([x['company_id'] for x in A.select(queue, {'a': '2026-10-01'}, self.TODAY, 10)], ['a', 'b', 'c'])
 
+    def test_events_then_companies_with_a_grant_or_award(self):
+        queue = [q('a'), q('b'), q('c', tier='event', last_event='2026-11-20'), q('d')]
+        self.assertEqual([x['company_id'] for x in A.select(queue, {}, self.TODAY, 10, with_signal={'d'})], ['c', 'd', 'a', 'b'])
+
     def test_limit_and_country(self):
         queue = [q('a'), q('b', country='CZ'), q('c')]
         self.assertEqual([x['company_id'] for x in A.select(queue, {}, self.TODAY, 1, {'CZ'})], ['b'])
