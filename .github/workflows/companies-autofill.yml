@@ -1,0 +1,61 @@
+name: Company cards autofill (B4CE-04 step 3.5)
+
+# Owner decision 22.11.2026: cards are filled autonomously on GitHub. Cards that pass the code rules are
+# written to Supabase schema `companies` with public_release=false; the site is rebuilt by its own job and
+# released only on the owner's command (decision 21.11.2026). Logs show public company names and counts only.
+on:
+  schedule:
+    - cron: '20 2 * * *'
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Companies per run'
+        default: '40'
+      country:
+        description: 'One ISO country code (empty = queue order)'
+        default: ''
+      write:
+        description: 'Write to the database (false = dry run)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: companies-autofill
+  cancel-in-progress: false
+
+jobs:
+  autofill:
+    if: github.repository == 'nab0k/bohun-the-field' && (github.event_name != 'schedule' || vars.COMPANIES_AUTOFILL_ENABLED == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Offline tests first
+        run: python -m unittest discover -s tests/companies -t .
+      - name: Install PostgreSQL driver
+        run: python -m pip install "psycopg[binary]"
+      - name: Fill cards
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          LIMIT: ${{ github.event.inputs.limit || '40' }}
+          COUNTRY: ${{ github.event.inputs.country || '' }}
+          WRITE: ${{ github.event_name == 'schedule' && 'true' || github.event.inputs.write }}
+        run: |
+          args="--limit $LIMIT --minutes 55"
+          if [ -n "$COUNTRY" ]; then args="$args --country $COUNTRY"; fi
+          if [ "$WRITE" = "true" ]; then args="$args --write"; fi
+          python scripts/companies-autofill.py $args
+      - name: Ask the site to rebuild company cards
+        if: success() && (github.event_name == 'schedule' || github.event.inputs.write == 'true')
+        env:
+          GH_TOKEN: ${{ secrets.SITE_FEED_DISPATCH_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then echo "SITE_FEED_DISPATCH_TOKEN not set"; exit 0; fi
+          gh workflow run company-cards-from-db.yml -R nab0k/bohundefense --ref main || echo "site job not available yet"

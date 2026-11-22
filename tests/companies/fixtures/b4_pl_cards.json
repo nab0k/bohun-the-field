@@ -1,0 +1,625 @@
+[
+ {
+  "company_id": "co_c208_8864235400e67a1c74b52dc5",
+  "name": "Allies Incorporated Sp. z o.o.",
+  "country": "PL",
+  "identity": {
+   "decision": "matched",
+   "scheme": "PL_KRS",
+   "id": "0000380802",
+   "legal_name": "ALLIES INCORPORATED SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ",
+   "founded": "2011-03-15",
+   "city": "Warszawa",
+   "activity": [
+    "70.20Z"
+   ],
+   "source_url": "https://api-krs.ms.gov.pl/api/krs/OdpisAktualny/0000380802?rejestr=P&format=json"
+  },
+  "level": "L3",
+  "confidence": "verified",
+  "rule": "R03",
+  "explanation": "documented defence contract for general product, service or unstated role",
+  "ignored": [],
+  "candidate_levels": [],
+  "evidence": [
+   {
+    "type": "tender_award",
+    "layer": "A",
+    "counterpart": "Jednostka Wojskowa Nr 4026",
+    "date": "2024-07-01",
+    "url": "https://ted.europa.eu/en/notice/-/detail/390136-2024"
+   },
+   {
+    "type": "tender_award",
+    "layer": "A",
+    "counterpart": "Jednostka Wojskowa Nr 4026",
+    "date": "2024-06-19",
+    "url": "https://ted.europa.eu/en/notice/-/detail/360984-2024"
+   },
+   {
+    "type": "tender_award",
+    "layer": "A",
+    "counterpart": "Jednostka Wojskowa Nr 4026",
+    "date": "2024-03-15",
+    "url": "https://ted.europa.eu/en/notice/-/detail/157701-2024"
+   }
+  ],
+  "products": [],
+  "products_rejected": 0,
+  "model": null,
+  "pages_read": [],
+  "empty": {
+   "technologies": "not_assessed",
+   "financials": "not_assessed",
+   "relationships": "not_assessed",
+   "defence_revenue_share": "unknown",
+   "products": "not_assessed"
+  },
+  "gaps": [
+   "website: no website in the record"
+  ],
+  "gate": "pass",
+  "website": null,
+  "nip_route": true
+ },
+ {
+  "company_id": "co_c208_53f6bb3357ee50da004f1f55",
+  "name": "Ankol sp. z o.o.",
+  "country": "PL",
+  "identity": {
+   "decision": "matched",
+   "scheme": "PL_KRS",
+   "id": "0000254567",
+   "legal_name": "ANKOL SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ",
+   "founded": "2006-04-12",
+   "city": "Chorzelów",
+   "activity": [
+    "46.14Z"
+   ],
+   "source_url": "https://api-krs.ms.gov.pl/api/krs/OdpisAktualny/0000254567?rejestr=P&format=json"
+  },
+  "level": "L4",
+  "confidence": "verified",
+  "rule": "R04",
+  "explanation": "documented relevant competence without military sale",
+  "ignored": [],
+  "candidate_levels": [],
+  "evidence": [
+   {
+    "type": "tender_award",
+    "layer": "C",
+    "counterpart": "2. Regionalna Baza Logistyczna",
+    "date": "2024-06-11",
+    "url": "https://ted.europa.eu/en/notice/-/detail/343044-2024"
+   }
+  ],
+  "products": [],
+  "products_rejected": 0,
+  "model": null,
+  "pages_read": [],
+  "empty": {
+   "technologies": "not_assessed",
+   "financials": "not_assessed",
+   "relationships": "not_assessed",
+   "defence_revenue_share": "unknown",
+   "products": "not_assessed"
+  },
+  "gaps": [
+   "website: no website in the record"
+  ],
+  "gate": "pass",
+  "website": null,
+  "nip_route": true
+ },
+ {
+  "company_id": "co_c208_58da6d78378603d9aba16c86",
+  "name": "AUTO PODLASIE Spółka z ograniczoną odpowiedzialnością",
+  "country": "PL",
+  "identity": {
+   "decision": "matched",
+   "scheme": "PL_KRS",
+   "id": "0000077538",
+   "legal_name": "\"AUTO PODLASIE\" SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ",
+   "founded": "2002-01-03",
+   "city": "Siedlce",
+   "activity": [
+    "47.81Z"
+   ],
+   "source_url": "https://api-krs.ms.gov.pl/api/krs/OdpisAktualny/0000077538?rejestr=P&format=json"
+  },
+  "level": "L4",
+  "confidence": "verified",
+  "rule": "R04",
+  "explanation": "documented relevant competence without military sale",
+  "ignored": [],
+  "candidate_levels": [],
+  "evidence": [
+   {
+    "type": "tender_award",
+    "layer": "C",
+    "counterpart": "ODDZIAŁ ZABEZPIECZENIA ŻANDARMERII WOJSKOWEJ",
+    "date": "2024-09-09",
+    "url": "https://ted.europa.eu/en/notice/-/detail/539274-2024"
+   },
+   {
+    "type": "tender_award",
+    "layer": "C",
+    "counterpart": "ODDZIAŁ ZABEZPIECZENIA ŻANDARMERII WOJSKOWEJ",
+    "date": "2024-09-09",
+    "url": "https://ted.europa.eu/en/notice/-/detail/539743-2024"
+   },
+   {
+    "type": "tender_award",
+    "layer": "C",
+    "counterpart": "ODDZIAŁ ZABEZPIECZENIA ŻANDARMERII WOJSKOWEJ",
+    "date": "2024-06-27",
+    "url": "https://ted.europa.eu/en/notice/-/detail/383538-2024"
+   }
+  ],
+  "products": [],
+  "products_rejected": 0,
+  "model": null,
+  "pages_read": [],
+  "empty": {
+   "technologies": "not_assessed",
+   "financials": "not_assessed",
+   "relationships": "not_assessed",
+   "defence_revenue_share": "unknown",
+   "products": "not_assessed"
+  },
+  "gaps": [
+   "website: no website in the record"
+  ],
+  "gate": "pass",
+  "website": null,
+  "nip_route": true
+ },
+ {
+  "company_id": "co_c208_fe7de41a1353da3c281ef1d6",
+  "name": "CHEMA Sp. z o. o.",
+  "country": "PL",
+  "identity": {
+   "decision": "matched",
+   "scheme": "PL_KRS",
+   "id": "0000303121",
+   "legal_name": "CHEMA SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ",
+   "founded": "2008-04-04",
+   "city": "Olesin",
+   "activity": [
+    "23.99Z"
+   ],
+   "source_url": "https://api-krs.ms.gov.pl/api/krs/OdpisAktualny/0000303121?rejestr=P&format=json"
+  },
+  "level": "L3",
+  "confidence": "verified",
+  "rule": "R03",
+  "explanation": "documented defence contract for general product, service or unstated role",
+  "ignored": [],
+  "candidate_levels": [],
+  "evidence": [
+   {
+    "type": "tender_award",
+    "layer": "A",
+    "counterpart": "Agencja Uzbrojenia",
+    "date": "2024-05-23",
+    "url": "https://ted.europa.eu/en/notice/-/detail/305492-2024"
+   }
+  ],
+  "products": [],
+  "products_rejected": 0,
+  "model": null,
+  "pages_read": [],
+  "empty": {
+   "technologies": "not_assessed",
+   "financials": "not_assessed",
+   "relationships": "not_assessed",
+   "defence_revenue_share": "unknown",
+   "products": "not_assessed"
+  },
+  "gaps": [
+   "website: no website in the record"
+  ],
+  "gate": "pass",
+  "website": null,
+  "nip_route": true
+ },
+ {
+  "company_id": "co_c208_0920060890685d439a067060",
+  "name": "CRH ŻAGIEL AUTO Spółka z ograniczoną odpowiedzialnością",
+  "country": "PL",
+  "identity": {
+   "decision": "matched",
+   "scheme": "PL_KRS",
+   "id": "0000218758",
+   "legal_name": "CRH ŻAGIEL AUTO SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ",
+   "founded": "2004-10-01",
+   "city": "Lublin",
+   "activity": [
+    "45.11Z"
+   ],
+   "source_url": "https://api-krs.ms.gov.pl/api/krs/OdpisAktualny/0000218758?rejestr=P&format=json"
+  },
+  "level": "L4",
+  "confidence": "verified",
+  "rule": "R04",
+  "explanation": "documented relevant competence without military sale",
+  "ignored": [],
+  "candidate_levels": [],
+  "evidence": [
+   {
+    "type": "tender_award",
+    "layer": "C",
+    "counterpart": "ODDZIAŁ ZABEZPIECZENIA ŻANDARMERII WOJSKOWEJ",
+    "date": "2024-06-27",
+    "url": "https://ted.europa.eu/en/notice/-/detail/383538-2024"
+   }
+  ],
+  "products": [],
+  "products_rejected": 0,
+  "model": null,
+  "pages_read": [],
+  "empty": {
+   "technologies": "not_assessed",
+   "financials": "not_assessed",
+   "relationships": "not_assessed",
+   "defence_revenue_share": "unknown",
+   "products": "not_assessed"
+  },
+  "gaps": [
+   "website: no website in the record"
+  ],
+  "gate": "pass",
+  "website": null,
+  "nip_route": true
+ },
+ {
+  "company_id": "co_c208_40440e3f04d1d5bd94496423",
+  "name": "DUDA-CARS Spółka Akcyjna",
+  "country": "PL",
+  "identity": {
+   "decision": "matched",
+   "scheme": "PL_KRS",
+   "id": "0000233056",
+   "legal_name": "DUDA - CARS SPÓŁKA AKCYJNA",
+   "founded": "2005-04-28",
+   "city": "Poznań",
+   "activity": [
+    "45.11Z"
+   ],
+   "source_url": "https://api-krs.ms.gov.pl/api/krs/OdpisAktualny/0000233056?rejestr=P&format=json"
+  },
+  "level": "L4",
+  "confidence": "verified",
+  "rule": "R04",
+  "explanation": "documented relevant competence without military sale",
+  "ignored": [],
+  "candidate_levels": [],
+  "evidence": [
+   {
+    "type": "tender_award",
+    "layer": "C",
+    "counterpart": "ODDZIAŁ ZABEZPIECZENIA ŻANDARMERII WOJSKOWEJ",
+    "date": "2024-06-27",
+    "url": "https://ted.europa.eu/en/notice/-/detail/383538-2024"
+   }
+  ],
+  "products": [],
+  "products_rejected": 0,
+  "model": null,
+  "pages_read": [],
+  "empty": {
+   "technologies": "not_assessed",
+   "financials": "not_assessed",
+   "relationships": "not_assessed",
+   "defence_revenue_share": "unknown",
+   "products": "not_assessed"
+  },
+  "gaps": [
+   "website: no website in the record"
+  ],
+  "gate": "pass",
+  "website": null,
+  "nip_route": true
+ },
+ {
+  "company_id": "co_c208_c62a92d1764cc3a878969bbe",
+  "name": "Energomasz Sp. z o.o.",
+  "country": "PL",
+  "identity": {
+   "decision": "matched",
+   "scheme": "PL_KRS",
+   "id": "0000008242",
+   "legal_name": "\"ENERGOMASZ\" SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ",
+   "founded": "2001-04-20",
+   "city": "Gdańsk",
+   "activity": [
+    "33.20Z"
+   ],
+   "source_url": "https://api-krs.ms.gov.pl/api/krs/OdpisAktualny/0000008242?rejestr=P&format=json"
+  },
+  "level": "L4",
+  "confidence": "verified",
+  "rule": "R04",
+  "explanation": "documented relevant competence without military sale",
+  "ignored": [],
+  "candidate_levels": [],
+  "evidence": [
+   {
+    "type": "tender_award",
+    "layer": "C",
+    "counterpart": "3 Regionalna Baza Logistyczna",
+    "date": "2024-04-18",
+    "url": "https://ted.europa.eu/en/notice/-/detail/231639-2024"
+   }
+  ],
+  "products": [],
+  "products_rejected": 0,
+  "model": null,
+  "pages_read": [],
+  "empty": {
+   "technologies": "not_assessed",
+   "financials": "not_assessed",
+   "relationships": "not_assessed",
+   "defence_revenue_share": "unknown",
+   "products": "not_assessed"
+  },
+  "gaps": [
+   "website: no website in the record"
+  ],
+  "gate": "pass",
+  "website": null,
+  "nip_route": true
+ },
+ {
+  "company_id": "co_c208_caeabd29d6359c06ddadd785",
+  "name": "MAW TELECOM INTERNATIONAL S.A.",
+  "country": "PL",
+  "identity": {
+   "decision": "matched",
+   "scheme": "PL_KRS",
+   "id": "0000057328",
+   "legal_name": "MAW TELECOM INTERNATIONAL SPÓŁKA AKCYJNA",
+   "founded": "2001-10-30",
+   "city": "Warszawa",
+   "activity": [
+    "61.90Z"
+   ],
+   "source_url": "https://api-krs.ms.gov.pl/api/krs/OdpisAktualny/0000057328?rejestr=P&format=json"
+  },
+  "level": "L4",
+  "confidence": "verified",
+  "rule": "R04",
+  "explanation": "documented relevant competence without military sale",
+  "ignored": [],
+  "candidate_levels": [],
+  "evidence": [
+   {
+    "type": "tender_award",
+    "layer": "C",
+    "counterpart": "2. Regionalna Baza Logistyczna",
+    "date": "2024-04-10",
+    "url": "https://ted.europa.eu/en/notice/-/detail/211560-2024"
+   }
+  ],
+  "products": [],
+  "products_rejected": 0,
+  "model": null,
+  "pages_read": [],
+  "empty": {
+   "technologies": "not_assessed",
+   "financials": "not_assessed",
+   "relationships": "not_assessed",
+   "defence_revenue_share": "unknown",
+   "products": "not_assessed"
+  },
+  "gaps": [
+   "website: no website in the record"
+  ],
+  "gate": "pass",
+  "website": null,
+  "nip_route": true
+ },
+ {
+  "company_id": "co_c208_e99ec18ebfd92835215c5175",
+  "name": "MEGMAR LOGISTICS & CONSULTING Spółka z ograniczoną odpowiedzialnością",
+  "country": "PL",
+  "identity": {
+   "decision": "matched",
+   "scheme": "PL_KRS",
+   "id": "0000386295",
+   "legal_name": "\"MEGMAR LOGISTICS & CONSULTING\" SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ",
+   "founded": "2011-05-16",
+   "city": "Kutno",
+   "activity": [
+    "46.64Z"
+   ],
+   "source_url": "https://api-krs.ms.gov.pl/api/krs/OdpisAktualny/0000386295?rejestr=P&format=json"
+  },
+  "level": "L4",
+  "confidence": "verified",
+  "rule": "R04",
+  "explanation": "documented relevant competence without military sale",
+  "ignored": [],
+  "candidate_levels": [],
+  "evidence": [
+   {
+    "type": "tender_award",
+    "layer": "C",
+    "counterpart": "1 REGIONALNA BAZA LOGISTYCZNA",
+    "date": "2024-04-04",
+    "url": "https://ted.europa.eu/en/notice/-/detail/197217-2024"
+   }
+  ],
+  "products": [],
+  "products_rejected": 0,
+  "model": null,
+  "pages_read": [],
+  "empty": {
+   "technologies": "not_assessed",
+   "financials": "not_assessed",
+   "relationships": "not_assessed",
+   "defence_revenue_share": "unknown",
+   "products": "not_assessed"
+  },
+  "gaps": [
+   "website: no website in the record"
+  ],
+  "gate": "pass",
+  "website": null,
+  "nip_route": true
+ },
+ {
+  "company_id": "co_c208_c471547d375b868a8f4c37f1",
+  "name": "Siltec Sp. z o.o.",
+  "country": "PL",
+  "identity": {
+   "decision": "matched",
+   "scheme": "PL_KRS",
+   "id": "0000001635",
+   "legal_name": "\"SILTEC\" SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ",
+   "founded": "2001-03-05",
+   "city": "Pruszków",
+   "activity": [
+    "26.20Z"
+   ],
+   "source_url": "https://api-krs.ms.gov.pl/api/krs/OdpisAktualny/0000001635?rejestr=P&format=json"
+  },
+  "level": "L3",
+  "confidence": "verified",
+  "rule": "R03",
+  "explanation": "documented defence contract for general product, service or unstated role",
+  "ignored": [],
+  "candidate_levels": [],
+  "evidence": [
+   {
+    "type": "tender_award",
+    "layer": "A",
+    "counterpart": "Agencja Uzbrojenia",
+    "date": "2024-04-26",
+    "url": "https://ted.europa.eu/en/notice/-/detail/251405-2024"
+   }
+  ],
+  "products": [],
+  "products_rejected": 0,
+  "model": null,
+  "pages_read": [],
+  "empty": {
+   "technologies": "not_assessed",
+   "financials": "not_assessed",
+   "relationships": "not_assessed",
+   "defence_revenue_share": "unknown",
+   "products": "not_assessed"
+  },
+  "gaps": [
+   "website: no website in the record"
+  ],
+  "gate": "pass",
+  "website": null,
+  "nip_route": true
+ },
+ {
+  "company_id": "co_c208_fd266d7b27480d7bf5022f54",
+  "name": "Warsaw Gun Works sp. z o.o.",
+  "country": "PL",
+  "identity": {
+   "decision": "matched",
+   "scheme": "PL_KRS",
+   "id": "0000732307",
+   "legal_name": "WARSAW GUN WORKS SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ",
+   "founded": "2018-05-18",
+   "city": "Warszawa",
+   "activity": [
+    "47.78Z"
+   ],
+   "source_url": "https://api-krs.ms.gov.pl/api/krs/OdpisAktualny/0000732307?rejestr=P&format=json"
+  },
+  "level": "L3",
+  "confidence": "verified",
+  "rule": "R03",
+  "explanation": "documented defence contract for general product, service or unstated role",
+  "ignored": [],
+  "candidate_levels": [],
+  "evidence": [
+   {
+    "type": "tender_award",
+    "layer": "A",
+    "counterpart": "Jednostka Wojskowa Nr 4026",
+    "date": "2024-06-25",
+    "url": "https://ted.europa.eu/en/notice/-/detail/375571-2024"
+   },
+   {
+    "type": "tender_award",
+    "layer": "A",
+    "counterpart": "Jednostka Wojskowa Nr 4026",
+    "date": "2024-06-25",
+    "url": "https://ted.europa.eu/en/notice/-/detail/376007-2024"
+   }
+  ],
+  "products": [],
+  "products_rejected": 0,
+  "model": null,
+  "pages_read": [],
+  "empty": {
+   "technologies": "not_assessed",
+   "financials": "not_assessed",
+   "relationships": "not_assessed",
+   "defence_revenue_share": "unknown",
+   "products": "not_assessed"
+  },
+  "gaps": [
+   "website: no website in the record"
+  ],
+  "gate": "pass",
+  "website": null,
+  "nip_route": true
+ },
+ {
+  "company_id": "co_c208_956a539ae2eabba0fd3ebb89",
+  "name": "ZDUNEK PREMIUM Sp. z o.o.",
+  "country": "PL",
+  "identity": {
+   "decision": "matched",
+   "scheme": "PL_KRS",
+   "id": "0000335997",
+   "legal_name": "ZDUNEK PREMIUM SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ",
+   "founded": "2009-08-31",
+   "city": "Gdańsk",
+   "activity": [
+    "45.11Z"
+   ],
+   "source_url": "https://api-krs.ms.gov.pl/api/krs/OdpisAktualny/0000335997?rejestr=P&format=json"
+  },
+  "level": "L4",
+  "confidence": "verified",
+  "rule": "R04",
+  "explanation": "documented relevant competence without military sale",
+  "ignored": [],
+  "candidate_levels": [],
+  "evidence": [
+   {
+    "type": "tender_award",
+    "layer": "C",
+    "counterpart": "ODDZIAŁ ZABEZPIECZENIA ŻANDARMERII WOJSKOWEJ",
+    "date": "2024-06-21",
+    "url": "https://ted.europa.eu/en/notice/-/detail/370394-2024"
+   }
+  ],
+  "products": [],
+  "products_rejected": 0,
+  "model": null,
+  "pages_read": [],
+  "empty": {
+   "technologies": "not_assessed",
+   "financials": "not_assessed",
+   "relationships": "not_assessed",
+   "defence_revenue_share": "unknown",
+   "products": "not_assessed"
+  },
+  "gaps": [
+   "website: no website in the record"
+  ],
+  "gate": "pass",
+  "website": null,
+  "nip_route": true
+ }
+]
