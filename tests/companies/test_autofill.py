@@ -68,6 +68,50 @@ class Payload(unittest.TestCase):
         self.assertEqual(sources, ref['sources'])
 
 
+class Res:
+    def __init__(self, rows): self.rows = rows
+    def fetchall(self): return self.rows
+    def fetchone(self): return self.rows[0] if self.rows else None
+
+
+class FakeConn:
+    """Dry run against fixed rows: one company with an EDF grant whose legal entity already has a card."""
+    def __init__(self, twin): self.twin, self.asked = twin, []
+    def commit(self): pass
+    def execute(self, sql, params=None):
+        self.asked.append(sql)
+        if sql is A.EXPORT_SQL:
+            return Res([{'id': 'co1', 'name': 'ACME Oy', 'country': 'FI', 'lei': False, 'national_id': False,
+                         'last_signal': None, 'has_card': False}])
+        if sql is A.ATTEMPTS_SQL: return Res([])
+        if sql is A.DETAILS_SQL: return Res([{'id': 'co1', 'website': None, 'ids': {}}])
+        if sql is A.SIGNALS_SQL:
+            return Res([{'company_id': 'co1', 'type': 'grant', 'layer': 'A', 'counterpart': 'EDF', 'date': '2025-01-01',
+                         'url': 'https://ec.europa.eu/x/101000001/EDF'}])
+        if sql is A.SAME_ENTITY_SQL: return Res([{'company_id': 'co0'}] if self.twin else [])
+        raise AssertionError(sql[:40])
+
+
+class RunDry(unittest.TestCase):
+    def setUp(self):
+        self.orig = A.identity, A.load_feed
+        A.identity = lambda entry, ids, today: {'decision': 'matched', 'scheme': 'FI_YTUNNUS', 'id': '1234567-8',
+                                                 'legal_name': 'ACME Oy', 'activity': [], 'source_url': 'https://x.fi/1'}
+        A.load_feed = lambda: []
+
+    def tearDown(self):
+        A.identity, A.load_feed = self.orig
+
+    def test_would_write(self):
+        out = A.run(FakeConn(False), {}, today=date(2026, 11, 22), log=lambda *_: None)
+        self.assertEqual(out['outcomes'], {'would_write': 1})
+
+    def test_second_record_of_a_carded_entity_is_skipped(self):
+        out = A.run(FakeConn(True), {}, today=date(2026, 11, 22), log=lambda *_: None)
+        self.assertEqual(out['outcomes'], {'skipped': 1})
+        self.assertIn('co0', out['held'][0])
+
+
 class Whitelist(unittest.TestCase):
     def test_krs_from_nip(self):
         def opener(url, timeout=0):

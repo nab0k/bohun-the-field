@@ -11,7 +11,8 @@ Owner review of the manual batches is replaced by code rules learned from it:
   - L0 is not written (owner, Finland 22.11.2026: association membership alone is not a card);
   - a register activity that is plainly not industrial (food service, lodging, personal or household
     services) is held for review: a name match there is the AddUp trap (N08);
-  - a company that already has an approved card is not rewritten.
+  - a company that already has an approved card is not rewritten, nor is a second record of a legal entity
+    (same register number) that already has one.
 Every attempt, written or not, is recorded in companies.card_attempt with its reason; a company is not
 tried again for RETRY_DAYS unless a new event names it.
 """
@@ -58,6 +59,9 @@ join cl on cl.company_id=c->>'company_id' and cl.claim_ref=c->>'ref'
 join src on src.company_id=cl.company_id and src.source_ref in (select jsonb_array_elements_text(c->'srcs'))"""
 CHECK_SQL = """select (select count(*) from companies.profile_claim where company_id=%(co)s and review_note=%(note)s) as claims,
   (select count(*) from companies.profile_claim where company_id=%(co)s and qa_status='APPROVED' and review_note<>%(note)s) as other"""
+# The same legal entity may sit under two catalogue records (e.g. "FORCIT" and "Oy Forcit Ab"): one card only.
+SAME_ENTITY_SQL = """select company_id from companies.profile_claim where claim_ref = 'b4:regno' and qa_status = 'APPROVED'
+  and claim_value = %(v)s::jsonb and company_id <> %(co)s limit 1"""
 ATTEMPT_SQL = """insert into companies.card_attempt (company_id, run, outcome, level, reason) values (%s, %s, %s, %s, %s)"""
 
 
@@ -272,6 +276,11 @@ def run(conn, env, limit=40, countries=None, write=False, today=None, minutes=50
             c['gaps'].append(f"products: model {prods['provider']}")
         outcome, reason = decide(c)
         if outcome == 'write':
+            regno = json.dumps({'scheme': ident['scheme'], 'value': ident['id']})
+            twin = conn.execute(SAME_ENTITY_SQL, {'v': regno, 'co': c['company_id']}).fetchone()
+            if twin:
+                outcome, reason = 'skipped', f"same legal entity already has a card ({twin['company_id']})"
+        if outcome == 'write':
             data = payload(c, run_label)
             if write:
                 with conn.transaction():
@@ -287,7 +296,7 @@ def run(conn, env, limit=40, countries=None, write=False, today=None, minutes=50
                 outcome = 'written' if write else 'would_write'
                 summary['claims'] += len(data['claims'])
                 summary['written'].append(f"{c['country']} {c['name']} {c['level']}")
-        elif outcome.startswith('held'):
+        elif outcome.startswith('held') or outcome == 'skipped':
             summary['held'].append(f"{c['country']} {c['name']}: {reason}")
         if write:
             with conn.transaction():
