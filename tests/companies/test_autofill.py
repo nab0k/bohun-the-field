@@ -58,6 +58,16 @@ class Decide(unittest.TestCase):
         self.assertEqual(A.decide(card(identity={'decision': 'matched', 'activity': ['5610']}))[0], 'held_activity')
         self.assertEqual(A.decide(card(identity={'decision': 'matched', 'activity': ['26.20Z']}))[0], 'write')
 
+    def test_universities_are_held(self):  # Univerzita Karlova, owner 23.11.2026
+        out, why = A.decide(card(name='UNIVERZITA KARLOVA', identity={'decision': 'matched', 'activity': ['72100']}))
+        self.assertEqual(out, 'held_activity')
+        self.assertIn('university', why)
+        self.assertEqual(A.decide(card(identity={'decision': 'matched', 'legal_name': 'Politechnika X',
+                                                 'activity': ['85.42Z']}))[0], 'held_activity')
+        self.assertEqual(A.decide(card(identity={'decision': 'matched', 'legal_name': 'Aalto-yliopisto'}))[0], 'held_activity')
+        self.assertEqual(A.decide(card(identity={'decision': 'matched', 'legal_name': 'GISAT s.r.o.',
+                                                 'activity': ['471', '63']}))[0], 'write')
+
 
 class Payload(unittest.TestCase):
     def test_same_claims_as_the_accepted_manual_batch(self):
