@@ -38,5 +38,20 @@ class Pack(unittest.TestCase):
         self.assertEqual(len(unpack(text)['cards']), sent)
 
 
+class Chunks(unittest.TestCase):
+    def test_parts_under_the_limit_catalogue_first(self):
+        import random
+        rnd = random.Random(2)
+        cards = [{'company_id': str(i), 'updated': '2026-11-23',
+                  'blob': ''.join(rnd.choice('abcdefghij') for _ in range(3000))} for i in range(30)]
+        cat = [{'name': f'Company {i}', 'country': ''} for i in range(50)]
+        parts = E.chunks(cards, cat, limit=20000)
+        self.assertTrue(all(len(p) <= 20000 for p in parts))
+        got = [unpack(p) for p in parts]
+        self.assertEqual(sum(len(g['catalogue']) for g in got), 50)
+        self.assertEqual(sum(len(g['cards']) for g in got), 30)
+        self.assertTrue(got[0]['catalogue'] and not got[0]['cards'])
+
+
 if __name__ == '__main__':
     unittest.main()
