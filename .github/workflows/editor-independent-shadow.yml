@@ -1,85 +1,91 @@
-name: BOHUN C3-10 independent Groq fact-check shadow (manual)
-run-name: independent-factcheck ${{ inputs.hours }}h / ${{ inputs.limit }} at ${{ inputs.expected_sha }}
+name: BOHUN C4-06 private signal cloud trial (manual)
+run-name: c4-06 private trial at ${{ inputs.expected_sha }}
 on:
   workflow_dispatch:
     inputs:
       hours:
-        description: Lookback window for new synthesis versions
+        description: Existing dispatch contract, select 72
         required: true
         type: choice
         options: ['24', '72']
-        default: '24'
+        default: '72'
       limit:
-        description: Maximum independent model API call attempts (1 or 2)
+        description: One provider attempt
         required: true
         type: choice
         options: ['1', '2']
         default: '1'
       send_excerpts_to_groq:
-        description: Explicit opt-in to send up to five claims and ten short P2 excerpts per material to Groq
+        description: Confirm the free Groq account and authorize one request with public excerpts
         required: true
         type: choice
         options: ['no', 'yes']
         default: 'no'
       expected_sha:
-        description: Exact reviewed main commit (40 lowercase hexadecimal characters)
+        description: Exact reviewed trial branch commit
         required: true
         type: string
 permissions:
   contents: read
 concurrency:
-  group: bohun-editor-independent-shadow
+  group: bohun-c4-06-private-cloud-pilot
   cancel-in-progress: false
 jobs:
-  factcheck:
-    if: github.repository == 'nab0k/bohun-the-field' && github.actor == 'nab0k' && github.run_attempt == 1
+  trial:
+    if: github.repository == 'nab0k/bohun-the-field' && github.ref == 'refs/heads/codex/c4-06-private-cloud-pilot' && github.actor == 'nab0k' && github.run_attempt == 1
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    env:
-      PYTHONDONTWRITEBYTECODE: '1'
+    timeout-minutes: 8
     steps:
-      - name: Check SHA and external-data opt-in before credentials
+      - name: Check trial scope
         env:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
           HOURS: ${{ inputs.hours }}
           LIMIT: ${{ inputs.limit }}
-          EXTERNAL_OPT_IN: ${{ inputs.send_excerpts_to_groq }}
+          EXCERPT_OPT_IN: ${{ inputs.send_excerpts_to_groq }}
         run: |
           test "$EXPECTED_SHA" = "$GITHUB_SHA"
-          test "$GITHUB_REF" = 'refs/heads/main'
-          test "${#EXPECTED_SHA}" -eq 40
-          case "$EXPECTED_SHA" in *[!0-9a-f]*) exit 1 ;; esac
-          case "$HOURS" in 24|72) ;; *) exit 1 ;; esac
-          case "$LIMIT" in 1|2) ;; *) exit 1 ;; esac
-          test "$EXTERNAL_OPT_IN" = yes
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$HOURS" = 72
+          test "$LIMIT" = 1
+          test "$EXCERPT_OPT_IN" = yes
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
-          python-version: '3.13'
-      - name: Verify offline editor tests before using secrets
-        run: python -B -m unittest discover -s collectors/editor -t . -p 'test_*.py' -q
-      - name: Install pinned PostgreSQL client into ephemeral environment
+          python-version: '3.12'
+      - name: Prepare the reviewed runtime
         run: |
-          python -m venv "$RUNNER_TEMP/bohun-independent-editor"
-          "$RUNNER_TEMP/bohun-independent-editor/bin/python" -m pip install --only-binary=:all: --disable-pip-version-check 'psycopg[binary]==3.3.6'
-      - name: One bounded read-only fact-check trial, no publisher
+          python -B -m unittest discover -s tests -p test_c4_06_cloud_trial.py -q
+          printf 'c4-06 encryption preflight' | openssl cms -encrypt -aes-256-gcm -binary -outform DER \
+            -out /dev/null collectors/signals/c4_06_trial_recipient.pem
+          python -m venv "$RUNNER_TEMP/bohun-c4-06"
+          "$RUNNER_TEMP/bohun-c4-06/bin/python" -m pip install --only-binary=:all: --disable-pip-version-check 'psycopg[binary]==3.3.6'
+      - name: Run one private signal check
         env:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          HOURS: ${{ inputs.hours }}
-          LIMIT: ${{ inputs.limit }}
+          BOHUN_C4_06_FREE_ONLY: confirmed
         run: |
-          "$RUNNER_TEMP/bohun-independent-editor/bin/python" -B -m collectors.editor.live_factcheck \
-            --allow-provider-call --hours "$HOURS" --limit "$LIMIT" \
-            --report "$RUNNER_TEMP/c3-10-independent-metadata.json"
-      - name: Retain metadata only, no quote or synthesis content
+          umask 077
+          private_dir=$(mktemp -d "$RUNNER_TEMP/c4-06-private.XXXXXX")
+          trap 'rm -f "$private_dir/receipt.json"; rmdir "$private_dir"' EXIT
+          result=0
+          "$RUNNER_TEMP/bohun-c4-06/bin/python" -B -m collectors.signals.c4_06_cloud_trial \
+            --summary "$RUNNER_TEMP/c4-06-summary.json" --private "$private_dir/receipt.json" || result=$?
+          if test -s "$private_dir/receipt.json"; then
+            openssl cms -encrypt -aes-256-gcm -binary -outform DER \
+              -in "$private_dir/receipt.json" -out "$RUNNER_TEMP/c4-06-receipt.cms" collectors/signals/c4_06_trial_recipient.pem
+          fi
+          exit "$result"
+      - name: Retain counts and encrypted evidence only
         if: always()
         uses: actions/upload-artifact@v4.6.2
         with:
-          name: c3-10-independent-shadow-metadata
-          path: ${{ runner.temp }}/c3-10-independent-metadata.json
+          name: c4-06-private-trial-result
+          path: |
+            ${{ runner.temp }}/c4-06-summary.json
+            ${{ runner.temp }}/c4-06-receipt.cms
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 3
