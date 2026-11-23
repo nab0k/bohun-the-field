@@ -129,6 +129,12 @@ class Write(unittest.TestCase):
         _, new = X.write_plan([self.dec(7, 'Khosla Ventures')])
         self.assertTrue(list(new.values())[0]['investor'])
 
+    def test_brand_and_full_name_are_one_new_company(self):  # Anduril / Anduril Industries, 23.11.2026
+        links, new = X.write_plan([self.dec(1, 'Anduril Industries', country='US'), self.dec(2, 'Anduril'),
+                                   self.dec(3, 'Advent International'), self.dec(4, 'Advent')])
+        self.assertEqual(sorted(c['name'] for c in new.values()), ['Advent', 'Advent International', 'Anduril'])
+        self.assertEqual(len([l for l in links if l[1] == X.brand_key('Anduril')]), 2)
+
     def test_write_creates_once_and_respects_base(self):
         class Conn:
             def __init__(self):

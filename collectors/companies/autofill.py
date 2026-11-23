@@ -24,6 +24,7 @@ import urllib.request
 from datetime import date, datetime, timedelta, timezone
 
 from . import products as P
+from .normalize import name_norm
 from .card_run import SIGNALS_SQL, card
 from .queue import EXPORT_SQL, build
 from .sources import registries as R
@@ -64,6 +65,11 @@ CHECK_SQL = """select (select count(*) from companies.profile_claim where compan
 # The same legal entity may sit under two catalogue records (e.g. "FORCIT" and "Oy Forcit Ab"): one card only.
 SAME_ENTITY_SQL = """select company_id from companies.profile_claim where claim_ref = 'b4:regno' and qa_status = 'APPROVED'
   and claim_value = %(v)s::jsonb and company_id <> %(co)s limit 1"""
+# Owner 23.11.2026 (duplicate cleanup): a carded company under another record is found by its legal name and country
+# too, not only by the same register number — Česká zbrojovka had a card by IČO and got a second one by LEI.
+CARDED_NAMES_SQL = """select p.company_id, p.claim_value #>> '{}' as legal_name, c.country
+from companies.profile_claim p join companies.company c on c.id = p.company_id
+where p.claim_ref = 'b4:legal_name' and p.qa_status = 'APPROVED'"""
 ATTEMPT_SQL = """insert into companies.card_attempt (company_id, run, outcome, level, reason) values (%s, %s, %s, %s, %s)"""
 
 
@@ -258,6 +264,10 @@ def run(conn, env, limit=40, countries=None, write=False, today=None, minutes=50
     signals = {}
     for s in (conn.execute(SIGNALS_SQL, {'ids': ids_}).fetchall() if ids_ else []):
         signals.setdefault(s['company_id'], []).append(dict(s))
+    carded = {}
+    for r in conn.execute(CARDED_NAMES_SQL).fetchall():
+        if r['legal_name']:
+            carded.setdefault((name_norm(r['legal_name']), r['country']), r['company_id'])
     provider = gemini_provider(env)
     summary = {'run': run_label, 'chosen': len(chosen), 'outcomes': {}, 'written': [], 'held': [], 'claims': 0}
     conn.commit()
@@ -285,8 +295,9 @@ def run(conn, env, limit=40, countries=None, write=False, today=None, minutes=50
         if outcome == 'write':
             regno = json.dumps({'scheme': ident['scheme'], 'value': ident['id']})
             twin = conn.execute(SAME_ENTITY_SQL, {'v': regno, 'co': c['company_id']}).fetchone()
-            if twin:
-                outcome, reason = 'skipped', f"same legal entity already has a card ({twin['company_id']})"
+            twin = twin['company_id'] if twin else carded.get((name_norm(ident.get('legal_name') or ''), entry['country']))
+            if twin and twin != c['company_id']:
+                outcome, reason = 'skipped', f"same legal entity already has a card ({twin})"
         if outcome == 'write':
             data = payload(c, run_label)
             if write:

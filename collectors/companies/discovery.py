@@ -357,6 +357,19 @@ def clean(name):
     return name.strip(' ,-')
 
 
+BRAND_SUFFIX = {'group', 'holding', 'holdings', 'industries', 'corporation', 'corp', 'company', 'co', 'inc', 'plc',
+                'ltd', 'limited'}
+
+
+def brand_key(name):
+    """key() without trailing Group / Industries / Holdings / Inc ...: "Anduril Industries" and "Anduril" are one new
+    company (owner 23.11.2026, duplicate cleanup). 'International' stays: "Advent" is not "Advent International"."""
+    words = key(name).split()
+    while len(words) > 1 and words[-1] in BRAND_SUFFIX:
+        words.pop()
+    return ' '.join(words)
+
+
 def write_plan(decisions, linked_nodes=()):
     """(links, new_companies). links: [(node_id, company_id | key, part, how)]; new companies are keyed by key()
     and created once however many mentions name them. Public bodies, universities, people, non-businesses
@@ -372,8 +385,10 @@ def write_plan(decisions, linked_nodes=()):
         elif d['match'] == 'new':
             if NOT_A_BUSINESS.search(name) or len(name_norm(name)) < 3:
                 continue
-            k = key(name)
+            k = brand_key(name)
             c = new.setdefault(k, {'name': name, 'countries': set(), 'investor': bool(INVESTOR.search(name))})
+            if len(name) < len(c['name']):  # "Anduril" and "Anduril Industries": one company, the shorter name
+                c['name'] = name
             if d.get('model_country'):
                 c['countries'].add(d['model_country'])
             links.append((d['node_id'], k, name, 'new'))
