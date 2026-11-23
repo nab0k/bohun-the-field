@@ -1,5 +1,4 @@
-name: BOHUN knowledge-base pilot (manual, EXP-028)
-run-name: kb-pilot ${{ inputs.day_from }}..${{ inputs.day_to }} limit ${{ inputs.limit }}
+name: D2RC cloud probe
 on:
   workflow_dispatch:
     inputs:
@@ -51,24 +50,20 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: bohun-kb-pilot
+  group: bohun-d2rc-cloud-probe
   cancel-in-progress: false
 jobs:
-  pilot:
-    if: github.repository == 'nab0k/bohun-the-field' && github.actor == 'nab0k' && github.run_attempt == 1
+  trial:
+    if: >-
+      github.repository == 'nab0k/bohun-the-field' && github.actor == 'nab0k' && github.run_attempt == 1 &&
+      github.ref == 'refs/heads/codex/d2rc-cloud-probe' &&
+      github.sha == inputs.expected_sha &&
+      inputs.mode == 'admit' && inputs.dossier_write == false &&
+      inputs.batch == false && inputs.limit == '1' &&
+      inputs.day_from == '2023-04-04' && inputs.day_to == '2024-03-07'
     runs-on: ubuntu-24.04
-    timeout-minutes: 180
-    env:
-      PYTHONDONTWRITEBYTECODE: '1'
+    timeout-minutes: 10
     steps:
-      - name: Verify reviewed revision before credentials
-        env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
-        run: |
-          test "$EXPECTED_SHA" = "$GITHUB_SHA"
-          test "$GITHUB_REF" = 'refs/heads/main'
-          test "${#EXPECTED_SHA}" -eq 40
-          case "$EXPECTED_SHA" in *[!0-9a-f]*) exit 1 ;; esac
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.sha }}
@@ -76,54 +71,31 @@ jobs:
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version: '3.13'
-      - name: Offline pilot tests
-        run: python -B -m unittest tests/kb_pilot/test_pilot.py tests/kb_pilot/test_transport.py
-      - name: Temporary pinned PostgreSQL driver
+      - name: Install pinned database driver
         run: |
-          python -m venv "$RUNNER_TEMP/bohun-kb"
-          "$RUNNER_TEMP/bohun-kb/bin/python" -m pip install --only-binary=:all: --disable-pip-version-check 'psycopg[binary]==3.3.6'
-      - name: Article extractor (fulltext mode only; pinned, never on the owner's Mac)
-        if: inputs.mode == 'fulltext'
-        run: |
-          "$RUNNER_TEMP/bohun-kb/bin/python" -m pip install --disable-pip-version-check 'trafilatura==2.3.1'
-      - name: Spare embedding model (bge-m3 on CPU, embed mode only)
-        if: inputs.mode == 'embed'
-        run: |
-          "$RUNNER_TEMP/bohun-kb/bin/python" -m pip install --disable-pip-version-check --index-url https://download.pytorch.org/whl/cpu 'torch==2.6.0'
-          "$RUNNER_TEMP/bohun-kb/bin/python" -m pip install --disable-pip-version-check 'sentence-transformers==3.4.1'
-      - name: Cache the spare embedding model
-        if: inputs.mode == 'embed'
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/huggingface
-          key: hf-bge-m3-v1
-      - name: Run the pilot (writes only the dossier tables; cap $2 per run)
+          python -m pip install --only-binary=:all: --disable-pip-version-check 'psycopg[binary]==3.3.6'
+      - name: Start isolated PostgreSQL and simulate outage
         env:
-          DAY_FROM: ${{ inputs.day_from }}
-          DAY_TO: ${{ inputs.day_to }}
-          LIMIT: ${{ inputs.limit }}
-          SCHEMA_MODE: ${{ inputs.schema_mode }}
-          KB_RESEARCH_THINKING: ${{ inputs.research_thinking }}
-          KB_MODE: ${{ inputs.mode }}
-          SOURCE: ${{ inputs.source }}
-          BATCH: ${{ inputs.batch && '--batch' || '' }}
-          NO_DOSSIER: ${{ (!inputs.dossier_write) && '--no-dossier-write' || '' }}
-          PUBLISH_HOLD: ${{ inputs.mode == 'pilot-publish' && '--publish-hold' || '' }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          # Free model (Workers AI); absent secrets = every step on Gemini.
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_WORKERS_AI_TOKEN: ${{ secrets.CLOUDFLARE_WORKERS_AI_TOKEN }}
-          # Further free providers (D-20261029-EXP028 A13); absent = not used.
-          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+          PYTHONPATH: .
+          D2RC_PHASE: outage
+        run: |
+          pg=$(pg_config --bindir)
+          cluster=$(mktemp -d "$RUNNER_TEMP/d2rc.XXXXXXXX")
+          "$pg/initdb" -D "$cluster/data" -A trust --no-locale -E UTF8 >/dev/null
+          "$pg/pg_ctl" -D "$cluster/data" -l "$cluster/server.log" -o "-c listen_addresses= -k $cluster -p 55432" -w start
+          echo "D2RC_SOCKET=$cluster" >> "$GITHUB_ENV"
+          D2RC_SOCKET="$cluster" python -B scripts/d2rc_cloud_probe.py
+      - name: Recover once through Groq
+        env:
+          PYTHONPATH: .
+          D2RC_PHASE: cloud
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          GEMINI_FREE_API_KEY: ${{ secrets.GEMINI_FREE_API_KEY }}
-        run: '"$RUNNER_TEMP/bohun-kb/bin/python" -B -m collectors.kb_pilot --day-from "$DAY_FROM" --day-to "$DAY_TO" --limit "${LIMIT:-0}" --schema-mode "$SCHEMA_MODE" --source "$SOURCE" $BATCH $NO_DOSSIER $PUBLISH_HOLD --out "$RUNNER_TEMP/kb-pilot-out"'
-      - name: Keep the result for review
-        if: always()
-        uses: actions/upload-artifact@v4.6.2
-        with:
-          name: kb-pilot-result
-          path: ${{ runner.temp }}/kb-pilot-out
-          retention-days: 14
-          if-no-files-found: warn
+          D2RC_FIXTURES_SHA256: '137d8d9779c8b9a890028584a39e12f14cff9c1e01a3fa9b5109738f87fd7006'
+        run: |
+          D2RC_PUBLIC_FIXTURES="$(cat scripts/d2rc_public_cases.json; printf x)"
+          export D2RC_PUBLIC_FIXTURES="${D2RC_PUBLIC_FIXTURES%x}"
+          python -B scripts/d2rc_cloud_probe.py >> "$GITHUB_STEP_SUMMARY"
+      - name: Stop temporary PostgreSQL
+        if: always() && env.D2RC_SOCKET != ''
+        run: |
+          "$(pg_config --bindir)/pg_ctl" -D "$D2RC_SOCKET/data" -m immediate stop
