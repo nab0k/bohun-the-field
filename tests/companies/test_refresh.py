@@ -6,8 +6,9 @@ from collectors.companies import refresh as F
 T = date(2026, 11, 23)
 
 
-def row(i, card=False, level=None, route=False, last=None, event=False):
-    return {'id': i, 'country': 'CZ', 'level': level, 'has_card': card, 'has_route': route, 'last_check': last, 'event': event}
+def row(i, card=False, level=None, route=False, last=None, event=False, size=0):
+    return {'id': i, 'country': 'CZ', 'level': level, 'has_card': card, 'has_route': route, 'last_check': last, 'event': event,
+            'size': size}
 
 
 class Schedule(unittest.TestCase):
@@ -20,6 +21,12 @@ class Schedule(unittest.TestCase):
                 row('other-recent', False, None, False, '2026-10-01')]  # 53 < 180
         got = [r['id'] for r, t, k in F.due(rows, T)]
         self.assertEqual(got, ['event', 'l3-old', 'l1-old', 'cand'])
+
+    def test_large_first(self):  # owner 23.11.2026: large companies first, the news in parallel and ahead
+        rows = [row('small', False, None, True, None, size=1), row('big', False, None, True, None, size=40),
+                row('news-small', False, None, True, '2026-11-20', True, size=2),
+                row('news-big', False, None, True, '2026-11-20', True, size=30)]
+        self.assertEqual([r['id'] for r, t, k in F.due(rows, T)], ['news-big', 'news-small', 'big', 'small'])
 
     def test_plan_split_and_budget(self):
         rows = [row('c1', True, 'L3', True, '2026-01-01'), row('k1', False, None, True, None),

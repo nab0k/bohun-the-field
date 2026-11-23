@@ -16,6 +16,8 @@ export function jobs(env = {}) {
   // A4SC-05 own feed collector (20.11, owner "Да, добавляй"): every 2 hours at :25, writing to the base
   const feeds = [];
   for (let h = 0; h < 24; h += 2) feeds.push(`${String(h).padStart(2, "0")}:25`);
+  const worker = [];
+  for (let h = 0; h < 24; h++) for (const m of ["03", "23", "43"]) worker.push(`${String(h).padStart(2, "0")}:${m}`);
   const busy = [];
   for (let h = 0; h < 24; h++) busy.push(`${String(h).padStart(2, "0")}:10`, `${String(h).padStart(2, "0")}:40`);
   return [
@@ -31,11 +33,10 @@ export function jobs(env = {}) {
     // B4CE-04 step 3.5 (owner 23.11 "Да, разберись"): nightly company cards; the workflow still checks
     // COMPANIES_AUTOFILL_ENABLED for relay runs, so switching the variable off stops it
     // B4CE-04 (owner 23.11 "Да, делай"): LEI and Wikidata for companies without a register route, before the autofill
-    // owner 23.11 "Ночной поиск + ссылки": new companies from the knowledge base mentions, before the route step
-    {workflow: "companies-discover.yml", at: ["01:00"],
-     inputs: {nightly: "true", model: "400", review: "true", write: "true", scheduled_relay: "true"}},
-    {workflow: "companies-route.yml", at: ["01:30"], inputs: {write: "true", scheduled_relay: "true"}},
-    {workflow: "companies-autofill.yml", at: ["02:20"], inputs: {write: "true", scheduled_relay: "true"}},
+    // owner 23.11 «нам не нужна привязка к ночам или дням, нужно просто постоянно работать»: the company worker
+    // (new companies, routes, cards — the news first, then the large ones — EDF, publication) every 20 minutes; it
+    // replaces the nightly discovery (01:00), route (01:30) and autofill (02:20) runs
+    {workflow: "companies-worker.yml", at: worker, inputs: {write: "true", scheduled_relay: "true"}},
   ];
 }
 

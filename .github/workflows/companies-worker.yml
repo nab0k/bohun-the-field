@@ -1,0 +1,60 @@
+name: Company worker (all the time)
+
+# Owner 23.11.2026: «нам не нужна привязка к ночам или дням, нужно просто постоянно работать». A short pass of all the
+# company work (new companies from the mentions, LEI / Wikidata routes, cards for the companies named in the news
+# first, then the large ones, then the overdue; EDF details; publication on the site), started by bohun-schedule-relay
+# every 20 minutes. One pass at a time (shared group with the autofill job). Counts only in the log.
+on:
+  workflow_dispatch:
+    inputs:
+      write:
+        description: 'Write (false = dry run)'
+        type: boolean
+        default: false
+      scheduled_relay:
+        description: 'Started by bohun-schedule-relay'
+        default: 'false'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: companies-autofill
+  cancel-in-progress: false
+
+jobs:
+  work:
+    if: >-
+      github.repository == 'nab0k/bohun-the-field' &&
+      (github.event.inputs.scheduled_relay != 'true' || vars.COMPANIES_AUTOFILL_ENABLED == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Offline tests first
+        run: python -m unittest discover -s tests/companies -t .
+      - name: Install PostgreSQL driver
+        run: python -m pip install "psycopg[binary]"
+      - name: One pass
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_FREE_API_KEY: ${{ secrets.GEMINI_FREE_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+          WRITE: ${{ github.event.inputs.write }}
+        run: |
+          args=(--minutes 15 --out "$RUNNER_TEMP/cards.b64")
+          if [ "$WRITE" = "true" ]; then args+=(--write); fi
+          python scripts/companies-worker.py "${args[@]}"
+      - name: Publish the changed cards on the site
+        if: success() && github.event.inputs.write == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.SITE_FEED_DISPATCH_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ] || [ ! -s "$RUNNER_TEMP/cards.b64" ]; then echo "nothing to publish"; exit 0; fi
+          gh workflow run company-cards-from-db.yml -R nab0k/bohundefense --ref main \
+            -f cards_gz_b64="$(cat "$RUNNER_TEMP/cards.b64")" -f publish=true || echo "site job not started"

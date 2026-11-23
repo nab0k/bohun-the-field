@@ -1,13 +1,14 @@
 """Catalogue refresh by parts (owner 23.11.2026 «Перепроверка каталога»; design EXP-033
 DESIGN_COMPANY_DISCOVERY_v0.md, section 8).
 
-Not every company every night. A company is due when:
+Not every company at once, but all the time (a worker every 20 minutes, scripts/companies-worker.py). A company is due when:
 1. an event names it after its last check (a new mention in the news or a synthesis) — first in line;
 2. its period has passed; the period depends on what is known:
    card L1–L2 — 30 days, card L3–L4 — 60 days, candidate with a register route or an LEI — 90 days,
    other candidates — 180 days;
 3. it was never checked.
-The night budget takes the events first, then the most overdue (overdue time / period). Carded companies are
+Each pass takes the events first, then the largest companies (mentions + contracts and grants), then the most
+overdue (overdue time / period). Carded companies are
 re-run through the autofill in refresh mode (a card is replaced only when the new one passes the gate and adds
 programmes or a new level, never when it would lose data); candidates with a route go through the ordinary
 autofill; companies without a route are left to the route step (LEI / Wikidata).
@@ -25,9 +26,12 @@ DUE_SQL = """with c as (
       or exists (select 1 from companies.company_identifier i where i.company_id = c.id and i.scheme = 'LEI')) as has_route,
     greatest((select max(a.attempted_at) from companies.card_attempt a where a.company_id = c.id),
              (select max(r.attempted_at) from companies.route_attempt r where r.company_id = c.id)) as last_check,
-    (select max(l.created_at) from companies.mention_link l where l.company_id = c.id) as last_event
+    (select max(l.created_at) from companies.mention_link l where l.company_id = c.id) as last_event,
+    -- size: how much the world writes about it and how much it wins (owner 23.11.2026: large companies first)
+    (select count(*) from companies.mention_link l where l.company_id = c.id)
+      + (select count(*) from companies.signal s where s.company_id = c.id) as size
   from companies.company c where c.excluded_reason is null)
-select id, country, level, has_card, has_route, last_check::date::text as last_check,
+select id, country, level, has_card, has_route, last_check::date::text as last_check, size,
   (last_event is not null and (last_check is null or last_event > last_check)) as event
 from c"""
 METRIC_SQL = """insert into companies.refresh_metric (day, total, on_time, overdue, never_checked, checked_today, by_tier)
@@ -44,22 +48,23 @@ def tier(r):
 
 
 def due(rows, today=None):
-    """[(row, tier, overdue ratio)] of the due companies, in the order they are taken: events, then the most overdue,
-    then the never checked (the route step and the queue order handle those)."""
+    """[(row, tier, priority)] of the due companies in the order they are taken (owner 23.11.2026: work all the time;
+    whatever the news, signals and syntheses name goes first, then the large companies, then the rest by schedule):
+    1. named after the last check, larger first; 2. never checked or overdue, larger first, then more overdue."""
     today = today or date.today()
     out = []
     for r in rows:
-        t = tier(r)
+        t, size = tier(r), r.get('size') or 0
         if r['event']:
-            out.append((r, t, 1e9))
+            out.append((r, t, (2, size, 0)))
             continue
         if not r['last_check']:
-            out.append((r, t, 0.5))
+            out.append((r, t, (1, size, 1.0)))
             continue
         age = (today - date.fromisoformat(r['last_check'])).days
         if age >= PERIODS[t]:
-            out.append((r, t, age / PERIODS[t]))
-    return sorted(out, key=lambda x: -x[2])
+            out.append((r, t, (1, size, age / PERIODS[t])))
+    return sorted(out, key=lambda x: tuple(-v for v in x[2]))
 
 
 def metric(rows, today=None):
