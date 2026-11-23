@@ -48,17 +48,51 @@ def pack(cards, catalogue=(), days=DAYS, today=None, limit=LIMIT):
             cards = cards[:len(cards) * 3 // 4] if len(cards) > 1 else []
 
 
+def chunks(cards, catalogue, limit=LIMIT):
+    """[encoded] parts, each under `limit`: the news companies first (small, many fit in one part), then the cards,
+    newest first (owner 23.11.2026: one dispatch could not carry 222 changed cards and the catalogue together)."""
+    out, cat = [], [{'name': c['name'], 'country': c['country']} for c in catalogue]
+    while cat:
+        n = len(cat)
+        while n > 1 and len(_encode({'cards': [], 'catalogue': cat[:n]})) > limit:
+            n = n * 3 // 4
+        out.append(_encode({'cards': [], 'catalogue': cat[:n]}))
+        cat = cat[n:]
+    rest = sorted(cards, key=lambda c: c.get('updated') or c.get('reviewed') or '', reverse=True)
+    while rest:
+        n = len(rest)
+        while n > 1 and len(_encode({'cards': rest[:n], 'catalogue': []})) > limit:
+            n = n * 3 // 4
+        out.append(_encode({'cards': rest[:n], 'catalogue': []}))
+        rest = rest[n:]
+    return out
+
+
 def main():
+    """export.py OUT_DIR [HOURS]: the cards changed and the news companies added in the last HOURS (default a week),
+    as part files OUT_DIR/part-NNN.b64 for one site dispatch each."""
     import psycopg
+    from datetime import datetime, timezone
     from psycopg.rows import dict_row
+    out = Path(sys.argv[1] if len(sys.argv) > 1 else 'cards')
+    hours = int(sys.argv[2]) if len(sys.argv) > 2 else DAYS * 24
+    since = datetime.now(timezone.utc) - timedelta(hours=hours)
     with psycopg.connect(**connect_params(), autocommit=True, row_factory=dict_row) as conn:
-        since = date.today() - timedelta(days=DAYS)  # cards written or changed lately (EDF details, refreshes)
-        cards = conn.execute('select public.export_company_cards_b4(%(d)s) as c', {'d': since}).fetchone()['c'] or []
-        catalogue = conn.execute(CATALOGUE_SQL).fetchall()
-    text, sent, sent_cat, left = pack(cards, catalogue)
-    Path(sys.argv[1] if len(sys.argv) > 1 else 'cards.b64').write_text(text)
-    print(json.dumps({'cards_in_base': len(cards), 'cards_sent': sent, 'catalogue_sent': sent_cat,
-                      'left_for_later': left, 'chars': len(text)}))
+        cards = conn.execute('select public.export_company_cards_b4(%(d)s) as c', {'d': since.date()}).fetchone()['c'] or []
+        catalogue = conn.execute(CATALOGUE_SQL.replace('order by', 'and created_at >= %(t)s order by'), {'t': since}).fetchall()
+    if out.suffix:  # a caller passing one file (kb-daily before the feed): the cards first, as before
+        text, sent, sent_cat, left = pack(cards, catalogue)
+        out.write_text(text if (sent or sent_cat) else '')
+        print(json.dumps({'cards': len(cards), 'cards_sent': sent, 'catalogue_sent': sent_cat, 'left_for_later': left}))
+        return
+    parts = chunks(cards, catalogue)
+    if True:
+        out.mkdir(parents=True, exist_ok=True)
+        for old in out.glob('part-*.b64'):
+            old.unlink()
+        for n, p in enumerate(parts, 1):
+            (out / f'part-{n:03}.b64').write_text(p)
+    print(json.dumps({'cards': len(cards), 'catalogue': len(catalogue), 'parts': len(parts), 'hours': hours}))
 
 
 if __name__ == '__main__':

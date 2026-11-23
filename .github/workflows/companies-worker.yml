@@ -14,6 +14,9 @@ on:
       scheduled_relay:
         description: 'Started by bohun-schedule-relay'
         default: 'false'
+      hours:
+        description: 'Send to the site what changed in the last N hours'
+        default: '3'
 
 permissions:
   contents: read
@@ -46,8 +49,9 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
           WRITE: ${{ github.event.inputs.write }}
+          HOURS: ${{ github.event.inputs.hours || '3' }}
         run: |
-          args=(--minutes 15 --out "$RUNNER_TEMP/cards.b64")
+          args=(--minutes 15 --out "$RUNNER_TEMP/cards" --hours "$HOURS")
           if [ "$WRITE" = "true" ]; then args+=(--write); fi
           python scripts/companies-worker.py "${args[@]}"
       - name: Publish the changed cards on the site
@@ -55,6 +59,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.SITE_FEED_DISPATCH_TOKEN }}
         run: |
-          if [ -z "$GH_TOKEN" ] || [ ! -s "$RUNNER_TEMP/cards.b64" ]; then echo "nothing to publish"; exit 0; fi
-          gh workflow run company-cards-from-db.yml -R nab0k/bohundefense --ref main \
-            -f cards_gz_b64="$(cat "$RUNNER_TEMP/cards.b64")" -f publish=true || echo "site job not started"
+          if [ -z "$GH_TOKEN" ]; then echo "SITE_FEED_DISPATCH_TOKEN not set"; exit 0; fi
+          # one dispatch per part; the site job takes about a minute and keeps one pending run, so wait between parts
+          for f in "$RUNNER_TEMP"/cards/part-*.b64; do
+            [ -s "$f" ] || continue
+            gh workflow run company-cards-from-db.yml -R nab0k/bohundefense --ref main \
+              -f cards_gz_b64="$(cat "$f")" -f publish=true || echo "site job not started for $f"
+            sleep 100
+          done

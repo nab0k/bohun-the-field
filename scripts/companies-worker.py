@@ -49,7 +49,8 @@ def main():
     ap.add_argument('--minutes', type=int, default=15)
     ap.add_argument('--model', type=int, default=40)
     ap.add_argument('--route', type=int, default=25)
-    ap.add_argument('--out', default='cards.b64')
+    ap.add_argument('--out', default='cards', help='directory for the export parts')
+    ap.add_argument('--hours', type=int, default=3, help='export the cards and news companies changed in the last N hours')
     ap.add_argument('--write', action='store_true')
     a = ap.parse_args()
     import psycopg
@@ -116,10 +117,11 @@ def main():
         except ValueError:
             pass
     if changed:
-        r = subprocess.run([py, str(ROOT / 'scripts/company-cards-export.py'), a.out], capture_output=True, text=True)
+        r = subprocess.run([py, str(ROOT / 'scripts/company-cards-export.py'), a.out, str(a.hours)], capture_output=True, text=True)
         report['export'] = (r.stdout.strip().splitlines() or ['failed'])[-1][:200]
-    elif Path(a.out).exists():
-        Path(a.out).unlink()
+    else:
+        for old in Path(a.out).glob('part-*.b64') if Path(a.out).is_dir() else []:
+            old.unlink()
     report['minutes'] = round((time.monotonic() - start) / 60, 1)
     text = json.dumps(report, indent=1)
     print(text)
