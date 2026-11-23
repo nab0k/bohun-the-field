@@ -1,0 +1,48 @@
+name: Company discovery dry run (B4CE-04)
+
+# Owner 23.11.2026: every company named in our news must be in the companies base. This job only sorts the
+# knowledge base mentions and asks the model about the unclear ones. It writes no company record. With
+# review=true the decisions go to the private table companies.discovery_review for checking. The log shows
+# counts only (public repository). Started by hand; no schedule.
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: "Ask the model about up to N 'unsure' names (0 = rules only)"
+        default: '0'
+      review:
+        description: 'Store the decisions in companies.discovery_review'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: companies-discover
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    if: github.repository == 'nab0k/bohun-the-field'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Offline tests first
+        run: python -m unittest discover -s tests/companies -t .
+      - name: Install PostgreSQL driver
+        run: python -m pip install "psycopg[binary]"
+      - name: Sort the mentions
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          MODEL: ${{ github.event.inputs.model || '0' }}
+          REVIEW: ${{ github.event.inputs.review }}
+        run: |
+          args="--model $MODEL"
+          if [ "$REVIEW" = "true" ]; then args="$args --review"; fi
+          python scripts/companies-discover.py $args
