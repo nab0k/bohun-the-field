@@ -64,6 +64,14 @@ jobs:
         if: success() && (github.event_name == 'schedule' || github.event.inputs.write == 'true')
         env:
           GH_TOKEN: ${{ secrets.SITE_FEED_DISPATCH_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
           if [ -z "$GH_TOKEN" ]; then echo "SITE_FEED_DISPATCH_TOKEN not set"; exit 0; fi
-          gh workflow run company-cards-from-db.yml -R nab0k/bohundefense --ref main || echo "site job not available yet"
+          # the cards travel with the dispatch: the site job needs no database key (owner 23.11.2026)
+          python scripts/company-cards-export.py "$RUNNER_TEMP/cards.b64"
+          if [ -s "$RUNNER_TEMP/cards.b64" ]; then
+            gh workflow run company-cards-from-db.yml -R nab0k/bohundefense --ref main -f cards_gz_b64="$(cat "$RUNNER_TEMP/cards.b64")" \
+              || echo "site job not available yet"
+          else
+            echo "no recent cards to send"
+          fi
