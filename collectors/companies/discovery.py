@@ -346,12 +346,15 @@ from companies.discovery_review where run = %(run)s"""
 
 
 def clean(name):
-    """Stray brackets and quotes the splitter leaves: 'KNDS Deutschland)' -> 'KNDS Deutschland'."""
-    name = name or ''
-    if name.count('(') > name.count(')'):  # "Naval Group (ADMP": the bracket was cut by the splitter
-        name = name[:name.rfind('(')]
-    name = re.sub(r"^[\s\"'(\[]+|[\s\"')\]]+$", '', name)
-    return re.sub(r"\s+", ' ', name).strip()
+    """Stray brackets and quotes the splitter leaves: 'KNDS Deutschland)' -> 'KNDS Deutschland',
+    'Naval Group (ADMP' -> 'Naval Group'; a balanced '(Leonardo)' stays."""
+    name = re.sub(r"\s+", ' ', name or '').strip()
+    name = re.sub(r"^[\s\"'\[]+|[\s\"'\]]+$", '', name)
+    while name.endswith(')') and name.count(')') > name.count('('):
+        name = name[:-1].rstrip()
+    if name.count('(') > name.count(')'):
+        name = name[:name.rfind('(')].rstrip()
+    return name.strip(' ,-')
 
 
 def write_plan(decisions, linked_nodes=()):
