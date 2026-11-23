@@ -90,7 +90,7 @@ class Res:
 
 class FakeConn:
     """Dry run against fixed rows: one company with an EDF grant whose legal entity already has a card."""
-    def __init__(self, twin): self.twin, self.asked = twin, []
+    def __init__(self, twin, carded=()): self.twin, self.carded, self.asked = twin, list(carded), []
     def commit(self): pass
     def execute(self, sql, params=None):
         self.asked.append(sql)
@@ -103,6 +103,7 @@ class FakeConn:
             return Res([{'company_id': 'co1', 'type': 'grant', 'layer': 'A', 'counterpart': 'EDF', 'date': '2025-01-01',
                          'url': 'https://ec.europa.eu/x/101000001/EDF'}])
         if sql is A.SAME_ENTITY_SQL: return Res([{'company_id': 'co0'}] if self.twin else [])
+        if sql is A.CARDED_NAMES_SQL: return Res(self.carded)
         raise AssertionError(sql[:40])
 
 
@@ -124,6 +125,20 @@ class RunDry(unittest.TestCase):
         out = A.run(FakeConn(True), {}, today=date(2026, 11, 22), log=lambda *_: None)
         self.assertEqual(out['outcomes'], {'skipped': 1})
         self.assertIn('co0', out['held'][0])
+
+
+class SameName(unittest.TestCase):
+    setUp, tearDown = RunDry.setUp, RunDry.tearDown
+
+    def test_card_under_another_record_with_the_same_legal_name_is_skipped(self):  # Česká zbrojovka, 23.11.2026
+        conn = FakeConn(False, [{'company_id': 'co9', 'legal_name': 'ACME OY', 'country': 'FI'}])
+        out = A.run(conn, {}, today=date(2026, 11, 22), log=lambda *_: None)
+        self.assertEqual(out['outcomes'], {'skipped': 1})
+        self.assertIn('co9', out['held'][0])
+
+    def test_same_name_in_another_country_is_not_a_twin(self):
+        conn = FakeConn(False, [{'company_id': 'co9', 'legal_name': 'ACME Oy', 'country': 'SE'}])
+        self.assertEqual(A.run(conn, {}, today=date(2026, 11, 22), log=lambda *_: None)['outcomes'], {'would_write': 1})
 
 
 class Whitelist(unittest.TestCase):
