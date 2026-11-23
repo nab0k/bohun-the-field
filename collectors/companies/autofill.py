@@ -34,6 +34,8 @@ RETRY_DAYS = 30
 # NACE / NAF / PKD divisions of activities that are not defence industry in any reading.
 HOLD_DIVISIONS = {'55': 'lodging', '56': 'food service', '96': 'personal services', '97': 'household employer',
                   '98': 'household production'}
+# Owner 23.11.2026: universities are not company cards; they are a separate category for later (defence cooperation).
+UNIVERSITY = re.compile(r'univerzit|universit|uniwersytet|yliopisto|universitet|universidad|universidade', re.I)
 WHITELIST = 'https://wl-api.mf.gov.pl/api/search/nip/{nip}?date={day}'
 FEED = 'https://bohundefence.com/feed/synthesis-feed.json'
 REG_KIND = {'LEI': 'legal_entity_identifier_reference'}
@@ -150,7 +152,10 @@ def products_for(entry, site, provider, pause=5):
 
 
 # --- decision -------------------------------------------------------------------------------------------
-def held_activity(ident):
+def held_activity(ident, name=''):
+    names = ' '.join(filter(None, [name, ident.get('legal_name')]))
+    if UNIVERSITY.search(names) or any(re.sub(r'\D', '', str(c)).startswith('854') for c in ident.get('activity') or []):
+        return 'university: not a company card, deferred category (owner 23.11.2026)'
     for code in ident.get('activity') or []:
         digits = re.sub(r'\D', '', str(code))
         if len(digits) >= 2 and digits[:2] in HOLD_DIVISIONS:
@@ -166,7 +171,7 @@ def decide(c):
         return 'fail', '; '.join(c['gaps'][:2]) or 'gate: no independent source for the level'
     if c['level'] == 'L0':
         return 'held_l0', 'L0: association membership only (owner decision 22.11.2026)'
-    hold = held_activity(c['identity'])
+    hold = held_activity(c['identity'], c.get('name') or '')
     if hold:
         return 'held_activity', hold
     return 'write', f"{c['level']} {c['confidence']} {c['rule']}"
