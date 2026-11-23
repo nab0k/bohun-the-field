@@ -107,5 +107,59 @@ class Model(unittest.TestCase):
         self.assertEqual(dec[0]['category'], 'unsure')
 
 
+class Write(unittest.TestCase):
+    def dec(self, node, name, category='company', match='new', ids=(), country=None):
+        return {'node_id': node, 'name': name, 'category': category, 'match': match, 'company_ids': list(ids),
+                'model_country': country}
+
+    def test_clean(self):
+        self.assertEqual(X.clean('Naval Group (ADMP'), 'Naval Group')
+        self.assertEqual(X.clean('KNDS Deutschland)'), 'KNDS Deutschland')
+        self.assertEqual(X.clean('Oto Melara (Leonardo)'), 'Oto Melara (Leonardo)')
+
+    def test_plan(self):
+        decs = [self.dec(1, 'Anduril Industries', country='US'), self.dec(2, 'ANDURIL INDUSTRIES'),
+                self.dec(3, 'Kongsberg', match='linked', ids=['c1']), self.dec(4, 'Konrad Adenauer Foundation'),
+                self.dec(5, 'Swedish Navy', category='gov', match=''), self.dec(6, 'KNDS Deutschland)', country='DE'),
+                self.dec(7, 'Khosla Ventures'), self.dec(8, 'Mystery', category='unsure')]
+        links, new = X.write_plan(decs, linked_nodes={7})
+        self.assertEqual(sorted(c['name'] for c in new.values()), ['Anduril Industries', 'KNDS Deutschland'])
+        self.assertEqual(len([l for l in links if l[3] == 'new']), 3)  # two mentions, one company
+        self.assertIn((3, 'c1', 'Kongsberg', 'linked'), links)
+        _, new = X.write_plan([self.dec(7, 'Khosla Ventures')])
+        self.assertTrue(list(new.values())[0]['investor'])
+
+    def test_write_creates_once_and_respects_base(self):
+        class Conn:
+            def __init__(self):
+                self.calls = []
+
+            def execute(self, sql, params=None):
+                self.calls.append((sql.split()[2] if sql.startswith('insert') else 'select', params))
+                return self
+
+            def fetchall(self):
+                return []
+
+            def transaction(self):
+                return self
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+        conn = Conn()
+        decs = [self.dec(1, 'Anduril Industries', country='US'), self.dec(2, 'Anduril Industries'),
+                self.dec(3, 'Kongsberg Defence', country='NO'), self.dec(4, 'Rostec Holding', country='RU')]
+        out = X.write(conn, decs, 'run', [{'id': 'k', 'name': 'KONGSBERG DEFENCE AS'}], log=lambda m: None)
+        self.assertEqual((out['created'], out['already_in_base'], out['created_excluded_country'], out['links']), (2, 1, 1, 4))
+        made = [p for t, p in conn.calls if t == 'companies.company']
+        self.assertEqual({(p['name'], p['status']) for p in made},
+                         {('Anduril Industries', 'candidate'), ('Rostec Holding', 'excluded')})
+        links = [p for t, p in conn.calls if t == 'companies.mention_link']
+        self.assertIn(('k', 'linked'), {(p['company_id'], p['how']) for p in links})
+
+
 if __name__ == '__main__':
     unittest.main()

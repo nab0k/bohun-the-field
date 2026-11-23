@@ -13,6 +13,7 @@ added as is. Each mention goes through three steps:
 
 Dry run only in this version: nothing is written. The model step for 'unsure' names is a later stage.
 """
+import json
 import re
 import unicodedata
 
@@ -267,7 +268,7 @@ def parse(text, size):
     if not m:
         return {}
     try:
-        rows = __import__('json').loads(m.group())
+        rows = json.loads(m.group())
     except ValueError:
         return {}
     out = {}
@@ -324,3 +325,90 @@ REVIEW_SQL = """insert into companies.discovery_review
   (run, node_id, mention, name, alias, category, reason, model_country, match, company_ids)
 values (%(run)s, %(node_id)s, %(mention)s, %(name)s, %(alias)s, %(category)s, %(reason)s, %(model_country)s,
   %(match)s, %(company_ids)s)"""
+
+
+# --- writing (owner 23.11.2026 «Да, делай»): new candidate companies and the mention -> company links ---------------
+from .normalize import EXCLUDED_COUNTRIES  # noqa: E402
+from .store import new_company_id  # noqa: E402
+
+NOT_A_BUSINESS = re.compile(r"\b(foundation|stiftung|fondation|fundaci[oó]n|fondazione|association|verband|council|"
+                            r"institute|institut|istituto|society|club|centre|center|zentrum|academy|akademie|"
+                            r"school|hospital|church|party|union)\b", re.I)
+INVESTOR = re.compile(r"\b(ventures?|capital|partners|asset management|investments?|fund|vc)\b", re.I)
+LINKED_SQL = "select node_id from companies.mention_link"
+INSERT_COMPANY_SQL = """insert into companies.company (id, name, name_norm, country, status, excluded_reason, flags,
+  created_at, updated_at)
+values (%(id)s, %(name)s, %(name_norm)s, %(country)s, %(status)s, %(excluded_reason)s, %(flags)s::jsonb, now(), now())"""
+INSERT_LINK_SQL = """insert into companies.mention_link (node_id, company_id, part, how, run)
+values (%(node_id)s, %(company_id)s, %(part)s, %(how)s, %(run)s) on conflict do nothing"""
+REVIEW_ROWS_SQL = """select node_id, mention, name, alias, category, reason, model_country, match, company_ids
+from companies.discovery_review where run = %(run)s"""
+
+
+def clean(name):
+    """Stray brackets and quotes the splitter leaves: 'KNDS Deutschland)' -> 'KNDS Deutschland',
+    'Naval Group (ADMP' -> 'Naval Group'; a balanced '(Leonardo)' stays."""
+    name = re.sub(r"\s+", ' ', name or '').strip()
+    name = re.sub(r"^[\s\"'\[]+|[\s\"'\]]+$", '', name)
+    while name.endswith(')') and name.count(')') > name.count('('):
+        name = name[:-1].rstrip()
+    if name.count('(') > name.count(')'):
+        name = name[:name.rfind('(')].rstrip()
+    return name.strip(' ,-')
+
+
+def write_plan(decisions, linked_nodes=()):
+    """(links, new_companies). links: [(node_id, company_id | key, part, how)]; new companies are keyed by key()
+    and created once however many mentions name them. Public bodies, universities, people, non-businesses
+    (foundations, institutes) and the 'unsure' are left out."""
+    links, new = [], {}
+    for d in decisions:
+        if d['category'] != 'company' or d['node_id'] in linked_nodes:
+            continue
+        name = clean(d['name'])
+        if d['match'] in ('linked', 'linked_core'):
+            for cid in d['company_ids']:
+                links.append((d['node_id'], cid, name, d['match']))
+        elif d['match'] == 'new':
+            if NOT_A_BUSINESS.search(name) or len(name_norm(name)) < 3:
+                continue
+            k = key(name)
+            c = new.setdefault(k, {'name': name, 'countries': set(), 'investor': bool(INVESTOR.search(name))})
+            if d.get('model_country'):
+                c['countries'].add(d['model_country'])
+            links.append((d['node_id'], k, name, 'new'))
+    return links, new
+
+
+def write(conn, decisions, run, companies, log=print):
+    """Create the new candidate companies and the links in one transaction. companies: fresh rows of the base
+    (id, name, aliases) — a name that appeared in the base meanwhile is linked, not created again."""
+    linked_nodes = {r['node_id'] for r in conn.execute(LINKED_SQL).fetchall()}
+    links, new = write_plan(decisions, linked_nodes)
+    index = Index(companies)
+    ids, created, excluded = {}, 0, 0
+    with conn.transaction():
+        for k, c in new.items():
+            match, found = index.match(c['name'])
+            if match in ('linked', 'linked_core'):
+                ids[k] = (found[0], match)
+                continue
+            country = next(iter(c['countries'])) if len(c['countries']) == 1 else None
+            status, reason = ('excluded', f'legal_country_{country}') if country in EXCLUDED_COUNTRIES else ('candidate', None)
+            excluded += status == 'excluded'
+            cid = new_company_id()
+            flags = ['from_news'] + (['investor'] if c['investor'] else [])
+            conn.execute(INSERT_COMPANY_SQL, {'id': cid, 'name': c['name'], 'name_norm': name_norm(c['name']),
+                                              'country': country, 'status': status, 'excluded_reason': reason,
+                                              'flags': json.dumps(flags)})
+            ids[k] = (cid, 'new')
+            created += 1
+        n_links = 0
+        for node_id, target, part, how in links:
+            cid, how2 = ids.get(target, (target, how)) if how == 'new' else (target, how)
+            conn.execute(INSERT_LINK_SQL, {'node_id': node_id, 'company_id': cid, 'part': part, 'how': how2, 'run': run})
+            n_links += 1
+    out = {'created': created, 'created_excluded_country': excluded, 'links': n_links,
+           'new_names': len(new), 'already_in_base': len(new) - created}
+    log(json.dumps(out))
+    return out

@@ -24,16 +24,21 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--model', type=int, default=0, help="ask the model about up to N 'unsure' names")
     ap.add_argument('--review', action='store_true', help='store the decisions in companies.discovery_review')
+    ap.add_argument('--from-review', default='', help='take the decisions of this stored review run (no model calls)')
+    ap.add_argument('--write', action='store_true', help='create the new candidate companies and the mention links')
     a = ap.parse_args()
     import psycopg
     from psycopg.rows import dict_row
     with psycopg.connect(**connect_params(), row_factory=dict_row, autocommit=True) as conn:
         mentions = conn.execute(X.MENTIONS_SQL).fetchall()
         companies = conn.execute(X.COMPANIES_SQL).fetchall()
-    decisions = X.plan(mentions, companies)
+        stored = conn.execute(X.REVIEW_ROWS_SQL, {'run': a.from_review}).fetchall() if a.from_review else []
+    if a.from_review and not stored:
+        sys.exit('no rows for that review run')
+    decisions = [dict(r) for r in stored] if stored else X.plan(mentions, companies)
     before = X.summary(decisions)
     model = {}
-    if a.model:
+    if a.model and not stored:
         chain = [p for p in [gemini_provider(os.environ)] + P.providers() if p]
         if not chain:
             sys.exit('no model key')
@@ -63,6 +68,13 @@ def main():
             conn.commit()
         print(f'review rows: {len(decisions)} ({run})')
     report = {'rules': before, 'model': model, 'after_model': after}
+    if a.write:
+        run = 'discovery write ' + datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%MZ')
+        with psycopg.connect(**connect_params(), row_factory=dict_row, autocommit=True) as conn:
+            report['write'] = X.write(conn, decisions, run, conn.execute(X.COMPANIES_SQL).fetchall(), log=lambda m: None)
+    else:
+        links, new = X.write_plan(decisions)
+        report['would_write'] = {'new_names': len(new), 'links': len(links)}
     print(json.dumps(report, indent=1))
     if os.environ.get('GITHUB_STEP_SUMMARY'):
         with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
