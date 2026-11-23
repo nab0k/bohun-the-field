@@ -74,7 +74,7 @@ ATTEMPT_SQL = """insert into companies.card_attempt (company_id, run, outcome, l
 
 
 # --- selection ------------------------------------------------------------------------------------------
-def select(queue, attempts, today, limit, countries=None, with_signal=None):
+def select(queue, attempts, today, limit, countries=None, with_signal=None, only=None):
     """Next companies to try: a free register route, no approved card, not tried within RETRY_DAYS
     (an event newer than the last attempt brings it back). Within the queue order, events come first, then
     companies with a grant or award (`with_signal`): without one a card can only be L0, which is not written."""
@@ -86,6 +86,8 @@ def select(queue, attempts, today, limit, countries=None, with_signal=None):
             continue
         if countries and q['country'] not in countries:
             continue
+        if only is not None and q['company_id'] not in only:
+            continue  # before publication (owner 23.11.2026): only the companies of the new materials
         last = attempts.get(q['company_id'])
         if last and last >= since and not (q['tier'] == 'event' and (q['last_event'] or '') > last):
             continue
@@ -259,7 +261,7 @@ def model_chain(env):
     return chain
 
 
-def run(conn, env, limit=40, countries=None, write=False, today=None, minutes=50, log=print):
+def run(conn, env, limit=40, countries=None, write=False, today=None, minutes=50, log=print, only=None):
     """conn: psycopg connection with dict rows. Returns the run summary."""
     today = today or date.today()
     started = time.monotonic()
@@ -268,7 +270,8 @@ def run(conn, env, limit=40, countries=None, write=False, today=None, minutes=50
     companies = conn.execute(EXPORT_SQL).fetchall()
     queue, counts = build(companies, load_feed(), today)
     attempts = {r['company_id']: r['last'] for r in conn.execute(ATTEMPTS_SQL).fetchall()}
-    chosen = select(queue, attempts, today, limit, countries, {c['id'] for c in companies if c.get('last_signal')})
+    chosen = select(queue, attempts, today, limit, countries, {c['id'] for c in companies if c.get('last_signal')},
+                    set(only) if only is not None else None)
     log(f'queue {counts}; chosen {len(chosen)}; write={write}')
     ids_ = [q['company_id'] for q in chosen]
     details = {r['id']: r for r in conn.execute(DETAILS_SQL, {'ids': ids_}).fetchall()} if ids_ else {}

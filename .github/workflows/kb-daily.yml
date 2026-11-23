@@ -174,10 +174,32 @@ jobs:
         env:
           KB_MODE: extract
         run: '"$RUNNER_TEMP/bohun-kb/bin/python" -B -m collectors.kb_pilot --day-from "$DAY_FROM" --day-to "$DAY_TO" --limit 120 | tee "$RUNNER_TEMP/kb-daily/extract.log"'
+      - name: Companies of the new materials, before the feed (B4CE-04)
+        # Owner 23.11.2026 (D-20261123-COMPANY-CARDS-AUTOPUBLISH): the texts go out with their companies linked and
+        # carded. New companies from the newest mentions, cards for the companies they name, EDF details, then the
+        # cards and the news companies are published on the site, and the site job refreshes the feed after them.
+        id: prepublish
+        if: "!cancelled() && github.ref == 'refs/heads/main' && vars.COMPANIES_AUTOFILL_ENABLED == 'true'"
+        continue-on-error: true
+        timeout-minutes: 30
+        env:
+          GH_TOKEN: ${{ secrets.SITE_FEED_DISPATCH_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_FREE_API_KEY: ${{ secrets.GEMINI_FREE_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+        run: |
+          "$RUNNER_TEMP/bohun-kb/bin/python" -B scripts/companies-prepublish.py --write --out "$RUNNER_TEMP/cards.b64"
+          if [ -n "$GH_TOKEN" ] && [ -s "$RUNNER_TEMP/cards.b64" ]; then
+            gh workflow run company-cards-from-db.yml -R nab0k/bohundefense --ref main \
+              -f cards_gz_b64="$(cat "$RUNNER_TEMP/cards.b64")" -f publish=true -f then_feed=true \
+              && echo "sent=true" >> "$GITHUB_OUTPUT"
+          fi
       - name: Refresh the site feed now
         # GitHub thins scheduled runs of the site's feed job, so new materials could wait for hours.
         # A narrow token (Actions on nab0k/bohundefense only). Without it the step skips and the schedule still works.
-        if: "!cancelled() && github.ref == 'refs/heads/main'"
+        # When the companies step sent cards, the site cards job refreshes the feed after publishing them.
+        if: "!cancelled() && github.ref == 'refs/heads/main' && steps.prepublish.outputs.sent != 'true'"
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.SITE_FEED_DISPATCH_TOKEN }}
