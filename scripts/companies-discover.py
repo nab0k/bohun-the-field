@@ -34,11 +34,26 @@ def main():
     before = X.summary(decisions)
     model = {}
     if a.model:
-        provider = gemini_provider(os.environ)
-        if not provider:
+        chain = [p for p in [gemini_provider(os.environ)] + P.providers() if p]
+        if not chain:
             sys.exit('no model key')
-        model = X.classify_unsure(decisions, lambda text: P.ask(text, provider),
-                                  {m['id']: m.get('context') or '' for m in mentions}, limit=a.model)
+        used = {}
+
+        def ask(text):
+            """The first provider that answers; on an error the batch goes to the next one. Logs the provider
+            name and the HTTP code only."""
+            last = None
+            for p in chain:
+                try:
+                    out = P.ask(text, p)
+                    used[p[0] + ':' + p[3]] = used.get(p[0] + ':' + p[3], 0) + 1
+                    return out
+                except Exception as e:  # noqa: BLE001
+                    last = e
+                    print(f'model {p[0]}: {getattr(e, "code", type(e).__name__)}')
+            raise last
+        model = X.classify_unsure(decisions, ask, {m['id']: m.get('context') or '' for m in mentions}, limit=a.model)
+        model['providers'] = used
     after = X.summary(decisions)
     if a.review:
         run = 'discovery dry run ' + datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%MZ')
