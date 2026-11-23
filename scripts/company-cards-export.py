@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hand the newest auto-written company cards to the site job (B4CE-04, owner 23.11.2026 «Да, делай оба»).
+"""Hand the newest auto-written company cards and the companies found in the news to the site job (B4CE-04, owner 23.11.2026 «Да, делай оба»).
 
 The site job used to read the cards from Supabase with its own service key. Now the FIELD autofill, which already
 has database access, exports them (public.export_company_cards_auto()) and passes them with the dispatch as one
@@ -21,26 +21,43 @@ DAYS = 7
 LIMIT = 60000  # characters; GitHub allows about 65 000 for all dispatch inputs together
 
 
-def pack(cards, days=DAYS, today=None, limit=LIMIT):
-    """(encoded, sent, dropped): cards reviewed in the last `days` days, newest first, gzip+base64 under `limit`."""
+CATALOGUE_SQL = """select name, coalesce(country, '') as country, created_at::date::text as added
+from companies.company where flags ? 'from_news' and status = 'candidate' order by created_at desc, id"""
+
+
+def _encode(obj):
+    return base64.b64encode(gzip.compress(json.dumps(obj, ensure_ascii=False, separators=(',', ':')).encode())).decode()
+
+
+def pack(cards, catalogue=(), days=DAYS, today=None, limit=LIMIT):
+    """(encoded, sent_cards, sent_catalogue, left): {"cards": cards reviewed in the last `days` days, newest first,
+    "catalogue": companies found in the news (owner 23.11.2026: a link to the catalogue marked "from the news,
+    not verified")}, gzip+base64 under `limit`. Cut the catalogue first, then the oldest cards."""
     since = ((today or date.today()) - timedelta(days=days)).isoformat()
-    recent = sorted((c for c in cards if (c.get('reviewed') or '') >= since), key=lambda c: c.get('reviewed') or '',
-                    reverse=True)
-    keep = list(recent)
+    cards = sorted((c for c in cards if (c.get('reviewed') or '') >= since), key=lambda c: c.get('reviewed') or '',
+                   reverse=True)
+    cat = [{'name': c['name'], 'country': c['country']} for c in catalogue]
+    total = len(cards) + len(cat)
     while True:
-        text = base64.b64encode(gzip.compress(json.dumps(keep, ensure_ascii=False, separators=(',', ':')).encode())).decode()
-        if len(text) <= limit or not keep:
-            return text, len(keep), len(recent) - len(keep)
-        keep = keep[:max(1, len(keep) * 3 // 4)] if len(keep) > 1 else []
+        text = _encode({'cards': cards, 'catalogue': cat})
+        if len(text) <= limit or not (cards or cat):
+            return text, len(cards), len(cat), total - len(cards) - len(cat)
+        if cat:
+            cat = cat[:len(cat) * 3 // 4] if len(cat) > 1 else []
+        else:
+            cards = cards[:len(cards) * 3 // 4] if len(cards) > 1 else []
 
 
 def main():
     import psycopg
-    with psycopg.connect(**connect_params(), autocommit=True) as conn:
-        cards = conn.execute('select public.export_company_cards_auto()').fetchone()[0] or []
-    text, sent, dropped = pack(cards)
+    from psycopg.rows import dict_row
+    with psycopg.connect(**connect_params(), autocommit=True, row_factory=dict_row) as conn:
+        cards = conn.execute('select public.export_company_cards_auto() as c').fetchone()['c'] or []
+        catalogue = conn.execute(CATALOGUE_SQL).fetchall()
+    text, sent, sent_cat, left = pack(cards, catalogue)
     Path(sys.argv[1] if len(sys.argv) > 1 else 'cards.b64').write_text(text)
-    print(json.dumps({'cards_in_base': len(cards), 'sent': sent, 'left_for_later': dropped, 'chars': len(text)}))
+    print(json.dumps({'cards_in_base': len(cards), 'cards_sent': sent, 'catalogue_sent': sent_cat,
+                      'left_for_later': left, 'chars': len(text)}))
 
 
 if __name__ == '__main__':

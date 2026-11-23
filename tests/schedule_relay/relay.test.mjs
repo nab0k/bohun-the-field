@@ -72,3 +72,10 @@ test("company route nightly at 01:30, before the autofill", () => {
   assert.deepEqual(names(r), ["companies-route.yml"]);
   assert.deepEqual(r[0].inputs, {write: "true", scheduled_relay: "true"});
 });
+
+test("company discovery nightly at 01:00, writing, before the route step", () => {
+  const r = due(at("01:00"));
+  assert.deepEqual(names(r), ["companies-discover.yml"]);
+  assert.equal(r[0].inputs.write, "true");
+  assert.equal(r[0].inputs.nightly, "true");
+});

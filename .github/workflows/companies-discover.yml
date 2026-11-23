@@ -3,7 +3,8 @@ name: Company discovery dry run (B4CE-04)
 # Owner 23.11.2026: every company named in our news must be in the companies base. This job only sorts the
 # knowledge base mentions and asks the model about the unclear ones. It writes no company record. With
 # review=true the decisions go to the private table companies.discovery_review for checking. The log shows
-# counts only (public repository). Started by hand; no schedule.
+# counts only (public repository). Nightly at 01:00 UTC through bohun-schedule-relay (nightly + write, owner 23.11.2026
+# «Ночной поиск + ссылки»): only new and unsure mentions, model for up to 400 names, decisions kept, companies written.
 on:
   workflow_dispatch:
     inputs:
@@ -21,6 +22,12 @@ on:
         description: 'Create the new candidate companies and the mention links'
         type: boolean
         default: false
+      nightly:
+        description: 'Only the mentions not settled yet'
+        default: 'false'
+      scheduled_relay:
+        description: 'Started by bohun-schedule-relay (nightly run)'
+        default: 'false'
 
 permissions:
   contents: read
@@ -31,9 +38,11 @@ concurrency:
 
 jobs:
   discover:
-    if: github.repository == 'nab0k/bohun-the-field'
+    if: >-
+      github.repository == 'nab0k/bohun-the-field' &&
+      (github.event.inputs.scheduled_relay != 'true' || vars.COMPANIES_AUTOFILL_ENABLED == 'true')
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -54,9 +63,11 @@ jobs:
           REVIEW: ${{ github.event.inputs.review }}
           FROM_REVIEW: ${{ github.event.inputs.from_review }}
           WRITE: ${{ github.event.inputs.write }}
+          NIGHTLY: ${{ github.event.inputs.nightly }}
         run: |
           args=(--model "$MODEL")
           if [ "$REVIEW" = "true" ]; then args+=(--review); fi
           if [ -n "$FROM_REVIEW" ]; then args+=(--from-review "$FROM_REVIEW"); fi
           if [ "$WRITE" = "true" ]; then args+=(--write); fi
+          if [ "$NIGHTLY" = "true" ]; then args+=(--nightly); fi
           python scripts/companies-discover.py "${args[@]}"
