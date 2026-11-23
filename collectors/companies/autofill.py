@@ -140,21 +140,22 @@ def worth_site(signals):
 
 
 def products_for(entry, site, provider, pause=5):
+    """provider: one provider tuple or a chain of them. A provider that fails (429 quota, 402 payment, 5xx) hands
+    the company to the next one (owner 23.11.2026: work without the paid Gemini key)."""
     if not site['pages'] or not provider:
         return None
-    for _ in range(3):
+    chain = [provider] if isinstance(provider, tuple) else list(provider)
+    last = None
+    for p in chain:
         try:
-            return P.extract(entry, site['pages'], provider)
+            return P.extract(entry, site['pages'], p)
         except urllib.error.HTTPError as e:
-            if e.code == 429:
-                time.sleep(30)
-                continue
-            return {'kept': [], 'rejected': [], 'provider': f'error HTTP {e.code}'}
+            last = f'error HTTP {e.code}'
         except Exception as e:  # noqa: BLE001
-            return {'kept': [], 'rejected': [], 'provider': f'error {type(e).__name__}'}
+            last = f'error {type(e).__name__}'
         finally:
             time.sleep(pause)
-    return {'kept': [], 'rejected': [], 'provider': 'error HTTP 429'}
+    return {'kept': [], 'rejected': [], 'provider': last or 'error no provider'}
 
 
 # --- decision -------------------------------------------------------------------------------------------
@@ -248,6 +249,16 @@ def gemini_provider(env):
     return ('gemini', None, key, env.get('PRODUCTS_GEMINI_MODEL', 'gemini-3.5-flash-lite')) if key else None
 
 
+def model_chain(env):
+    """Free providers first (free Gemini, Groq, Mistral — products.providers()), the paid Gemini key last: it answered
+    402 «prepayment credits are depleted» on 23.11.2026 and must not block the products of a card."""
+    chain = P.providers()
+    paid = env.get('GEMINI_API_KEY')
+    if paid and not any(p[2] == paid for p in chain):
+        chain.append(('gemini', None, paid, env.get('PRODUCTS_GEMINI_MODEL', 'gemini-3.5-flash-lite')))
+    return chain
+
+
 def run(conn, env, limit=40, countries=None, write=False, today=None, minutes=50, log=print):
     """conn: psycopg connection with dict rows. Returns the run summary."""
     today = today or date.today()
@@ -268,7 +279,7 @@ def run(conn, env, limit=40, countries=None, write=False, today=None, minutes=50
     for r in conn.execute(CARDED_NAMES_SQL).fetchall():
         if r['legal_name']:
             carded.setdefault((name_norm(r['legal_name']), r['country']), r['company_id'])
-    provider = gemini_provider(env)
+    provider = model_chain(env)
     summary = {'run': run_label, 'chosen': len(chosen), 'outcomes': {}, 'written': [], 'held': [], 'claims': 0}
     conn.commit()
     for q in chosen:

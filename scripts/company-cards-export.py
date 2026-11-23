@@ -34,8 +34,8 @@ def pack(cards, catalogue=(), days=DAYS, today=None, limit=LIMIT):
     "catalogue": companies found in the news (owner 23.11.2026: a link to the catalogue marked "from the news,
     not verified")}, gzip+base64 under `limit`. Cut the catalogue first, then the oldest cards."""
     since = ((today or date.today()) - timedelta(days=days)).isoformat()
-    cards = sorted((c for c in cards if (c.get('reviewed') or '') >= since), key=lambda c: c.get('reviewed') or '',
-                   reverse=True)
+    when = lambda c: c.get('updated') or c.get('reviewed') or ''  # noqa: E731
+    cards = sorted((c for c in cards if when(c) >= since), key=when, reverse=True)
     cat = [{'name': c['name'], 'country': c['country']} for c in catalogue]
     total = len(cards) + len(cat)
     while True:
@@ -52,7 +52,8 @@ def main():
     import psycopg
     from psycopg.rows import dict_row
     with psycopg.connect(**connect_params(), autocommit=True, row_factory=dict_row) as conn:
-        cards = conn.execute('select public.export_company_cards_auto() as c').fetchone()['c'] or []
+        since = date.today() - timedelta(days=DAYS)  # cards written or changed lately (EDF details, refreshes)
+        cards = conn.execute('select public.export_company_cards_b4(%(d)s) as c', {'d': since}).fetchone()['c'] or []
         catalogue = conn.execute(CATALOGUE_SQL).fetchall()
     text, sent, sent_cat, left = pack(cards, catalogue)
     Path(sys.argv[1] if len(sys.argv) > 1 else 'cards.b64').write_text(text)
