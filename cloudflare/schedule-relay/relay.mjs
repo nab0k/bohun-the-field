@@ -31,6 +31,9 @@ export function jobs(env = {}) {
     // B4CE-04 step 3.5 (owner 23.11 "Да, разберись"): nightly company cards; the workflow still checks
     // COMPANIES_AUTOFILL_ENABLED for relay runs, so switching the variable off stops it
     // B4CE-04 (owner 23.11 "Да, делай"): LEI and Wikidata for companies without a register route, before the autofill
+    // owner 23.11 "Ночной поиск + ссылки": new companies from the knowledge base mentions, before the route step
+    {workflow: "companies-discover.yml", at: ["01:00"],
+     inputs: {nightly: "true", model: "400", review: "true", write: "true", scheduled_relay: "true"}},
     {workflow: "companies-route.yml", at: ["01:30"], inputs: {write: "true", scheduled_relay: "true"}},
     {workflow: "companies-autofill.yml", at: ["02:20"], inputs: {write: "true", scheduled_relay: "true"}},
   ];

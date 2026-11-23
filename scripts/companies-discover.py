@@ -26,11 +26,12 @@ def main():
     ap.add_argument('--review', action='store_true', help='store the decisions in companies.discovery_review')
     ap.add_argument('--from-review', default='', help='take the decisions of this stored review run (no model calls)')
     ap.add_argument('--write', action='store_true', help='create the new candidate companies and the mention links')
+    ap.add_argument('--nightly', action='store_true', help='only the mentions not settled yet (new ones and unsure)')
     a = ap.parse_args()
     import psycopg
     from psycopg.rows import dict_row
     with psycopg.connect(**connect_params(), row_factory=dict_row, autocommit=True) as conn:
-        mentions = conn.execute(X.MENTIONS_SQL).fetchall()
+        mentions = conn.execute(X.NEW_MENTIONS_SQL if a.nightly else X.MENTIONS_SQL).fetchall()
         companies = conn.execute(X.COMPANIES_SQL).fetchall()
         stored = conn.execute(X.REVIEW_ROWS_SQL, {'run': a.from_review}).fetchall() if a.from_review else []
     if a.from_review and not stored:

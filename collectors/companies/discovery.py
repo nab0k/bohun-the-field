@@ -412,3 +412,9 @@ def write(conn, decisions, run, companies, log=print):
            'new_names': len(new), 'already_in_base': len(new) - created}
     log(json.dumps(out))
     return out
+
+# nightly: only the mentions not settled yet (no link, no final decision; 'unsure' ones are asked again)
+NEW_MENTIONS_SQL = MENTIONS_SQL.replace(
+    "where n.kind in ('company', 'org')",
+    "where n.kind in ('company', 'org')\n  and not exists (select 1 from companies.mention_link l where l.node_id = n.id)"
+    "\n  and not exists (select 1 from companies.discovery_review r where r.node_id = n.id and r.category <> 'unsure')")
