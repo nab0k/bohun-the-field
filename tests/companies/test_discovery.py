@@ -112,6 +112,11 @@ class Write(unittest.TestCase):
         return {'node_id': node, 'name': name, 'category': category, 'match': match, 'company_ids': list(ids),
                 'model_country': country}
 
+    def test_clean(self):
+        self.assertEqual(X.clean('Naval Group (ADMP'), 'Naval Group')
+        self.assertEqual(X.clean('KNDS Deutschland)'), 'KNDS Deutschland')
+        self.assertEqual(X.clean('Oto Melara (Leonardo)'), 'Oto Melara (Leonardo)')
+
     def test_plan(self):
         decs = [self.dec(1, 'Anduril Industries', country='US'), self.dec(2, 'ANDURIL INDUSTRIES'),
                 self.dec(3, 'Kongsberg', match='linked', ids=['c1']), self.dec(4, 'Konrad Adenauer Foundation'),

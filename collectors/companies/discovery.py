@@ -347,7 +347,10 @@ from companies.discovery_review where run = %(run)s"""
 
 def clean(name):
     """Stray brackets and quotes the splitter leaves: 'KNDS Deutschland)' -> 'KNDS Deutschland'."""
-    name = re.sub(r"^[\s\"'(\[]+|[\s\"')\]]+$", '', name or '')
+    name = name or ''
+    if name.count('(') > name.count(')'):  # "Naval Group (ADMP": the bracket was cut by the splitter
+        name = name[:name.rfind('(')]
+    name = re.sub(r"^[\s\"'(\[]+|[\s\"')\]]+$", '', name)
     return re.sub(r"\s+", ' ', name).strip()
 
 
