@@ -14,6 +14,13 @@ on:
         description: 'Store the decisions in companies.discovery_review'
         type: boolean
         default: false
+      from_review:
+        description: 'Use the decisions of this stored review run (no model calls)'
+        default: ''
+      write:
+        description: 'Create the new candidate companies and the mention links'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -45,7 +52,11 @@ jobs:
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
           MODEL: ${{ github.event.inputs.model || '0' }}
           REVIEW: ${{ github.event.inputs.review }}
+          FROM_REVIEW: ${{ github.event.inputs.from_review }}
+          WRITE: ${{ github.event.inputs.write }}
         run: |
-          args="--model $MODEL"
-          if [ "$REVIEW" = "true" ]; then args="$args --review"; fi
-          python scripts/companies-discover.py $args
+          args=(--model "$MODEL")
+          if [ "$REVIEW" = "true" ]; then args+=(--review); fi
+          if [ -n "$FROM_REVIEW" ]; then args+=(--from-review "$FROM_REVIEW"); fi
+          if [ "$WRITE" = "true" ]; then args+=(--write); fi
+          python scripts/companies-discover.py "${args[@]}"
