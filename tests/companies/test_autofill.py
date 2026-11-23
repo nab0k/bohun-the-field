@@ -150,6 +150,31 @@ class Only(unittest.TestCase):
         self.assertEqual(len(A.select(q, {}, date(2026, 11, 23), 10)), 3)
 
 
+class Refresh(unittest.TestCase):
+    def cl(self, level, progs, prods=0, note='B4CE-04 batch 1'):
+        out = [{'claim_ref': 'b4:level', 'claim_value': {'level': level}, 'review_note': note}]
+        out += [{'claim_ref': f'b4:prog{n}', 'claim_value': {'ref': r}, 'review_note': note} for n, r in enumerate(progs, 1)]
+        out += [{'claim_ref': f'b4:prod{n}', 'claim_value': {'name': 'x'}, 'review_note': note} for n in range(1, prods + 1)]
+        return out
+
+    def new(self, level, progs, prods=0):
+        return [{'ref': c['claim_ref'], 'value': c['claim_value']} for c in self.cl(level, progs, prods)]
+
+    def test_compare(self):
+        self.assertEqual(A.compare(self.cl('L3', ['1']), self.new('L3', ['1']))[0], 'unchanged')
+        self.assertEqual(A.compare(self.cl('L3', ['1']), self.new('L3', ['1', '2']))[0], 'refreshed')  # a new programme
+        self.assertEqual(A.compare(self.cl('L4', ['1']), self.new('L3', ['1']))[0], 'refreshed')  # a new level
+        self.assertEqual(A.compare(self.cl('L3', ['1', '2']), self.new('L3', ['1', '3']))[0], 'unchanged')  # would lose one
+        self.assertEqual(A.compare(self.cl('L3', ['1'], prods=2), self.new('L3', ['1', '2']))[0], 'unchanged')  # products
+        self.assertEqual(A.compare(self.cl('L3', ['1'], note='B4CE-02/03 card'), self.new('L3', ['1', '2']))[0], 'unchanged')
+
+    def test_select_refresh_takes_carded(self):
+        q = [{'company_id': 'a', 'route': 'open_register', 'refresh': True, 'country': 'CZ', 'tier': 'open_register',
+              'last_event': None}]
+        self.assertEqual(A.select(q, {}, date(2026, 11, 23), 10, only={'a'}), [])
+        self.assertEqual(len(A.select(q, {'a': '2026-11-20'}, date(2026, 11, 23), 10, only={'a'}, refresh=True)), 1)
+
+
 class FreeModels(unittest.TestCase):
     def test_chain_free_first_paid_last(self):
         import os
