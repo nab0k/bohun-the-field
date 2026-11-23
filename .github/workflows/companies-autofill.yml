@@ -63,6 +63,11 @@ jobs:
           if [ -n "$COUNTRY" ]; then args="$args --country $COUNTRY"; fi
           if [ "$WRITE" = "true" ]; then args="$args --write"; fi
           python scripts/companies-autofill.py $args
+      - name: EDF project details for the cards
+        if: success() && (github.event_name == 'schedule' || github.event.inputs.write == 'true')
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: python scripts/companies-edf-details.py --write || echo "EDF details step failed; cards stay as they are"
       - name: Ask the site to rebuild company cards
         if: success() && (github.event_name == 'schedule' || github.event.inputs.write == 'true')
         env:
