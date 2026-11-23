@@ -1,0 +1,53 @@
+name: Company route — Wikidata + GLEIF (B4CE-04)
+
+# Owner 23.11.2026: a free route for the companies without a national register (IT, DE, US, no country).
+# Finds an LEI by name (GLEIF) and the Wikidata item; writes identifiers and a missing country, nothing else.
+# Nightly at 01:30 UTC through bohun-schedule-relay (write=true, scheduled_relay=true), before the autofill at 02:20.
+# The log shows counts only (public repository).
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Companies per run'
+        default: '300'
+      write:
+        description: 'Write to the database (false = dry run)'
+        type: boolean
+        default: false
+      scheduled_relay:
+        description: 'Started by bohun-schedule-relay (nightly run)'
+        default: 'false'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: companies-route
+  cancel-in-progress: false
+
+jobs:
+  route:
+    # relay runs need COMPANIES_AUTOFILL_ENABLED like the autofill; switching it off stops both
+    if: >-
+      github.repository == 'nab0k/bohun-the-field' &&
+      (github.event.inputs.scheduled_relay != 'true' || vars.COMPANIES_AUTOFILL_ENABLED == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Offline tests first
+        run: python -m unittest discover -s tests/companies -t .
+      - name: Install PostgreSQL driver
+        run: python -m pip install "psycopg[binary]"
+      - name: Find routes
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          LIMIT: ${{ github.event.inputs.limit || '300' }}
+          WRITE: ${{ github.event.inputs.write }}
+        run: |
+          args="--limit $LIMIT --minutes 50"
+          if [ "$WRITE" = "true" ]; then args="$args --write"; fi
+          python scripts/companies-route.py $args

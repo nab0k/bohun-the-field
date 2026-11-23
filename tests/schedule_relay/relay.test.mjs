@@ -66,3 +66,9 @@ test("company cards autofill nightly at 02:20 with writes, marked as a relay run
   assert.deepEqual(names(cards), ["companies-autofill.yml"]);
   assert.deepEqual(cards[0].inputs, {write: "true", scheduled_relay: "true"});
 });
+
+test("company route nightly at 01:30, before the autofill", () => {
+  const r = due(at("01:30"));
+  assert.deepEqual(names(r), ["companies-route.yml"]);
+  assert.deepEqual(r[0].inputs, {write: "true", scheduled_relay: "true"});
+});
