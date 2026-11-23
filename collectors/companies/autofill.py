@@ -70,11 +70,16 @@ SAME_ENTITY_SQL = """select company_id from companies.profile_claim where claim_
 CARDED_NAMES_SQL = """select p.company_id, p.claim_value #>> '{}' as legal_name, c.country
 from companies.profile_claim p join companies.company c on c.id = p.company_id
 where p.claim_ref = 'b4:legal_name' and p.qa_status = 'APPROVED'"""
+# refresh (owner 23.11.2026): the card in force, and how it is replaced
+CARD_NOW_SQL = """select claim_ref, claim_value, review_note from companies.profile_claim where company_id = %(co)s and qa_status = 'APPROVED'"""
+SUPERSEDE_SQL = """update companies.profile_claim set qa_status = 'REJECTED', updated_at = now(),
+  review_note = review_note || ' | superseded by the refresh of ' || %(day)s
+where company_id = %(co)s and qa_status = 'APPROVED'"""
 ATTEMPT_SQL = """insert into companies.card_attempt (company_id, run, outcome, level, reason) values (%s, %s, %s, %s, %s)"""
 
 
 # --- selection ------------------------------------------------------------------------------------------
-def select(queue, attempts, today, limit, countries=None, with_signal=None, only=None):
+def select(queue, attempts, today, limit, countries=None, with_signal=None, only=None, refresh=False):
     """Next companies to try: a free register route, no approved card, not tried within RETRY_DAYS
     (an event newer than the last attempt brings it back). Within the queue order, events come first, then
     companies with a grant or award (`with_signal`): without one a card can only be L0, which is not written."""
@@ -82,15 +87,15 @@ def select(queue, attempts, today, limit, countries=None, with_signal=None, only
     with_signal = with_signal or set()
     out = []
     for q in sorted(queue, key=lambda q: (q['tier'] != 'event', q['company_id'] not in with_signal)):
-        if q['route'] not in ROUTES or q['refresh']:
-            continue
+        if q['route'] not in ROUTES or (q['refresh'] and not refresh):
+            continue  # a carded company is taken only in refresh mode (owner 23.11.2026, catalogue refresh)
         if countries and q['country'] not in countries:
             continue
         if only is not None and q['company_id'] not in only:
             continue  # before publication (owner 23.11.2026): only the companies of the new materials
         last = attempts.get(q['company_id'])
-        if last and last >= since and not (q['tier'] == 'event' and (q['last_event'] or '') > last):
-            continue
+        if not refresh and last and last >= since and not (q['tier'] == 'event' and (q['last_event'] or '') > last):
+            continue  # in refresh mode the schedule (refresh.py) has already decided that the company is due
         out.append(q)
         if len(out) >= limit:
             break
@@ -186,6 +191,30 @@ def decide(c):
     return 'write', f"{c['level']} {c['confidence']} {c['rule']}"
 
 
+def compare(now_claims, new_claims):
+    """('refreshed' | 'unchanged', reason): the new card replaces the one in force only when it keeps every programme
+    of it and adds programmes or a new level; a card that would lose data is never written."""
+    def progs(cl):
+        return {str((c.get('claim_value') or c.get('value') or {}).get('ref')) for c in cl
+                if str(c.get('claim_ref') or c.get('ref') or '').startswith('b4:prog')}
+
+    def level(cl):
+        for c in cl:
+            if (c.get('claim_ref') or c.get('ref')) == 'b4:level':
+                return ((c.get('claim_value') or c.get('value')) or {}).get('level')
+    if any(not str(c.get('review_note') or 'B4CE-04').startswith('B4CE-04') for c in now_claims):
+        return 'unchanged', 'card from another builder (reviewed by hand): not replaced automatically'
+    prods = lambda cl: sum(1 for c in cl if str(c.get('claim_ref') or c.get('ref') or '').startswith('b4:prod'))  # noqa: E731
+    if prods(new_claims) < prods(now_claims):
+        return 'unchanged', 'new card would lose products'
+    old_p, new_p, old_l, new_l = progs(now_claims), progs(new_claims), level(now_claims), level(new_claims)
+    if not old_p <= new_p:
+        return 'unchanged', f'new card would lose {len(old_p - new_p)} programmes'
+    if new_p == old_p and new_l == old_l:
+        return 'unchanged', 'same level and programmes'
+    return 'refreshed', f'{old_l}->{new_l}, programmes {len(old_p)}->{len(new_p)}'
+
+
 # --- claims (same format as the manual batches, reference/slice3/db_payload.py) ----------------------------
 def payload(c, run):
     sources, claims = [], []
@@ -261,7 +290,7 @@ def model_chain(env):
     return chain
 
 
-def run(conn, env, limit=40, countries=None, write=False, today=None, minutes=50, log=print, only=None):
+def run(conn, env, limit=40, countries=None, write=False, today=None, minutes=50, log=print, only=None, refresh=False):
     """conn: psycopg connection with dict rows. Returns the run summary."""
     today = today or date.today()
     started = time.monotonic()
@@ -271,7 +300,7 @@ def run(conn, env, limit=40, countries=None, write=False, today=None, minutes=50
     queue, counts = build(companies, load_feed(), today)
     attempts = {r['company_id']: r['last'] for r in conn.execute(ATTEMPTS_SQL).fetchall()}
     chosen = select(queue, attempts, today, limit, countries, {c['id'] for c in companies if c.get('last_signal')},
-                    set(only) if only is not None else None)
+                    set(only) if only is not None else None, refresh)
     log(f'queue {counts}; chosen {len(chosen)}; write={write}')
     ids_ = [q['company_id'] for q in chosen]
     details = {r['id']: r for r in conn.execute(DETAILS_SQL, {'ids': ids_}).fetchall()} if ids_ else {}
@@ -306,6 +335,12 @@ def run(conn, env, limit=40, countries=None, write=False, today=None, minutes=50
             c['empty']['products'] = 'not_assessed'
             c['gaps'].append(f"products: model {prods['provider']}")
         outcome, reason = decide(c)
+        is_refresh = bool(q.get('refresh'))
+        if outcome == 'write' and is_refresh:
+            outcome, reason = compare(conn.execute(CARD_NOW_SQL, {'co': c['company_id']}).fetchall(),
+                                      payload(c, run_label)['claims'])
+        elif is_refresh:
+            outcome, reason = 'unchanged', f'card kept: new check gave {outcome} ({reason[:120]})'
         if outcome == 'write':
             regno = json.dumps({'scheme': ident['scheme'], 'value': ident['id']})
             twin = conn.execute(SAME_ENTITY_SQL, {'v': regno, 'co': c['company_id']}).fetchone()
@@ -328,6 +363,15 @@ def run(conn, env, limit=40, countries=None, write=False, today=None, minutes=50
                 outcome = 'written' if write else 'would_write'
                 summary['claims'] += len(data['claims'])
                 summary['written'].append(f"{c['country']} {c['name']} {c['level']}")
+        elif outcome == 'refreshed':
+            data = payload(c, run_label)
+            if write:
+                with conn.transaction():
+                    conn.execute(SUPERSEDE_SQL, {'co': c['company_id'], 'day': today.isoformat()})
+                    conn.execute(WRITE_SQL, {'j': json.dumps(data, ensure_ascii=False), 'day': today.isoformat(),
+                                             'note': note + ' | refresh'})
+            summary['claims'] += len(data['claims'])
+            summary['written'].append(f"{c['country']} {c['name']} {c['level']} refreshed")
         elif outcome.startswith('held') or outcome == 'skipped':
             summary['held'].append(f"{c['country']} {c['name']}: {reason}")
         if write:

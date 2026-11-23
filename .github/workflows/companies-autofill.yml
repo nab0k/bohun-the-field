@@ -38,7 +38,7 @@ jobs:
       (github.event_name != 'schedule' || (vars.COMPANIES_AUTOFILL_ENABLED == 'true' && vars.SCHEDULE_RELAY_ENABLED != 'true')) &&
       (github.event.inputs.scheduled_relay != 'true' || vars.COMPANIES_AUTOFILL_ENABLED == 'true')
     runs-on: ubuntu-latest
-    timeout-minutes: 70
+    timeout-minutes: 110
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -63,6 +63,15 @@ jobs:
           if [ -n "$COUNTRY" ]; then args="$args --country $COUNTRY"; fi
           if [ "$WRITE" = "true" ]; then args="$args --write"; fi
           python scripts/companies-autofill.py $args
+      - name: Catalogue refresh by parts (events, schedule by status, metric)
+        if: success() && (github.event_name == 'schedule' || github.event.inputs.write == 'true')
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_FREE_API_KEY: ${{ secrets.GEMINI_FREE_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+        run: python scripts/companies-refresh.py --write --budget 80 --minutes 25 || echo "refresh step failed; the night goes on"
       - name: EDF project details for the cards
         if: success() && (github.event_name == 'schedule' || github.event.inputs.write == 'true')
         env:
