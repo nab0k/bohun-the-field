@@ -1,0 +1,51 @@
+name: C evidence search comparison
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Reviewed commit SHA
+        required: true
+        type: string
+      free_quotas_confirmed:
+        description: Both free quotas have 12 calls available and paid overage is off
+        required: true
+        default: false
+        type: boolean
+      corpus_covered:
+        description: Comma-separated case IDs already verified in the saved corpus
+        required: false
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: c-evidence-search-comparison
+  cancel-in-progress: false
+jobs:
+  compare:
+    if: github.repository == 'nab0k/bohun-the-field' && github.actor == 'nab0k' && inputs.free_quotas_confirmed && inputs.expected_sha == github.sha
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13'
+      - name: Offline tests
+        run: python -B -m unittest discover -s tests/source_registry -p test_compare_evidence_search.py
+      - name: Compare public evidence searches
+        env:
+          EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+          CORPUS_COVERED: ${{ inputs.corpus_covered }}
+        run: |
+          python -B -m collectors.source_registry.search.compare_evidence_search \
+            --corpus-covered="$CORPUS_COVERED" --out "$RUNNER_TEMP/c-search-results.json"
+      - uses: actions/upload-artifact@v4.6.2
+        with:
+          name: c-evidence-search-candidates
+          path: ${{ runner.temp }}/c-search-results.json
+          if-no-files-found: error
+          retention-days: 3
