@@ -1,0 +1,50 @@
+name: Russian defence enterprises from sanctions lists
+
+# Owner 23.11.2026 «Нам нужны только компании, и города», «А: оборонные + модель». Downloads the public OFAC and UK
+# sanctions lists, keeps Russian legal entities the list text calls military plus those the free model chain confirms
+# among the industrial-sounding rest; companies and cities only, no people. Weekly through the relay, or by hand.
+on:
+  workflow_dispatch:
+    inputs:
+      write:
+        description: 'Write to companies.ru_enterprise (false = dry run)'
+        type: boolean
+        default: false
+      model:
+        description: 'Ask the model about up to N industrial-sounding names'
+        default: '800'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ru-enterprises
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    if: github.repository == 'nab0k/bohun-the-field'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Offline tests first
+        run: python -m unittest discover -s tests/companies -t .
+      - name: Install PostgreSQL driver
+        run: python -m pip install "psycopg[binary]"
+      - name: Collect
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_FREE_API_KEY: ${{ secrets.GEMINI_FREE_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+          WRITE: ${{ github.event.inputs.write }}
+          MODEL: ${{ github.event.inputs.model || '800' }}
+        run: |
+          args=(--model "$MODEL")
+          if [ "$WRITE" = "true" ]; then args+=(--write); fi
+          python scripts/ru-enterprises.py "${args[@]}"
