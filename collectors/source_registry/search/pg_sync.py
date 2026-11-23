@@ -48,7 +48,7 @@ def connect():
         password=os.environ["SUPABASE_DB_PASSWORD"], sslmode="require", connect_timeout=20)
 
 
-def load(pg, sqlite_path):
+def load(pg, sqlite_path, registry_only=False):
     """Fill a fresh SQLite registry from the cloud state; return (conn, context)."""
     conn = A.open_db(str(sqlite_path))
     cur = pg.cursor()
@@ -63,23 +63,30 @@ def load(pg, sqlite_path):
                     "from source_discovery.candidate_seen")
         conn.executemany("INSERT INTO candidate_seen VALUES (?,?,?,?,?)",
                          [(r[0], r[1], r[2].isoformat(), r[3], r[4]) for r in cur.fetchall()])
-        cur.execute("select distinct on (candidate_url) candidate_url, channel_id, decision, reasons, record, "
-                    "rules_version, decided_at, found_via from source_discovery.admission_decision "
-                    "order by candidate_url, decision_id desc")
+        cur.execute("select candidate_url, channel_id, decision, reasons, record, rules_version, decided_at, found_via "
+                    "from source_discovery.admission_decision where decision_id in ("
+                    "select max(decision_id) from source_discovery.admission_decision group by candidate_url union "
+                    "select max(decision_id) from source_discovery.admission_decision "
+                    "where channel_id is not null group by channel_id) order by decision_id")
         conn.executemany("INSERT INTO admission_decision(candidate_url, channel_id, decision, reasons_json, record_json,"
                          " rules_version, decided_at, found_via) VALUES (?,?,?,?,?,?,?,?)",
                          [(r[0], r[1], r[2], json.dumps(r[3]), json.dumps(r[4], ensure_ascii=False), r[5],
                            r[6].isoformat(), json.dumps(r[7], ensure_ascii=False)) for r in cur.fetchall()])
     loaded_max = conn.execute("SELECT coalesce(max(decision_id), 0) FROM admission_decision").fetchone()[0]
-    cur.execute("select coalesce(jsonb_agg(distinct j), '[]') from source_discovery.cycle_run, "
-                "jsonb_array_elements_text(done_jobs) j")
-    done = cur.fetchone()[0] or []
     cur.execute(COMPANY_SQL)
     company, rnd, company_country = set(), set(), {}
     for is_rnd, host, country in cur.fetchall():
         if host:
             (rnd if is_rnd else company).add(host)
             company_country.setdefault(host, (country or "").strip().upper() or None)
+    ctx = {"company": company, "rnd": rnd, "company_country": company_country,
+           "loaded_max_decision": loaded_max, "state_rows": len(rows),
+           "loaded_state_versions": {r[0]: (r[7], r[9]) for r in rows}}
+    if registry_only:
+        return conn, ctx
+    cur.execute("select coalesce(jsonb_agg(distinct j), '[]') from source_discovery.cycle_run, "
+                "jsonb_array_elements_text(done_jobs) j")
+    done = cur.fetchone()[0] or []
     cur.execute(KNOWN_SQL)
     known = {h for (h,) in cur.fetchall() if h}
     # sites already seen by the Mac shadow cycles 1-5 (seed row), so the cloud does not issue them again
@@ -105,11 +112,8 @@ def load(pg, sqlite_path):
         by_type[stype] = by_type.get(stype, 0) + n
     cur.execute(EVENTS_SQL)
     events = [{"id": r[0], "title": r[1], "topic": r[2], "known_hosts": r[3] or []} for r in cur.fetchall()]
-    return conn, {"done": list(done), "company": company, "rnd": rnd, "company_country": company_country,
-                  "known": known, "events": events, "learning": learning, "runs": runs,
-                  "accepted_by_country": by_country, "accepted_by_type": by_type,
-                  "loaded_max_decision": loaded_max, "state_rows": len(rows),
-                  "loaded_state_versions": {r[0]: (r[7], r[9]) for r in rows}}
+    return conn, {**ctx, "done": list(done), "known": known, "events": events, "learning": learning, "runs": runs,
+                  "accepted_by_country": by_country, "accepted_by_type": by_type}
 
 
 def save(pg, conn, ctx, run):
