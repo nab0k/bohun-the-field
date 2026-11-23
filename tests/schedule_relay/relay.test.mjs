@@ -61,21 +61,9 @@ test("busy feeds every 30 minutes at :10 and :40, apart from the main feed run a
   assert.deepEqual(main.map(j => j.inputs), [{mode: "write"}]);
 });
 
-test("company cards autofill nightly at 02:20 with writes, marked as a relay run", () => {
-  const cards = due(at("02:20"));
-  assert.deepEqual(names(cards), ["companies-autofill.yml"]);
-  assert.deepEqual(cards[0].inputs, {write: "true", scheduled_relay: "true"});
+test("company worker every 20 minutes, writing; no nightly company jobs any more", () => {
+  for (const t of ["00:03", "00:23", "13:43"]) assert.deepEqual(names(due(at(t))), ["companies-worker.yml"]);
+  assert.deepEqual(due(at("00:03"))[0].inputs, {write: "true", scheduled_relay: "true"});
+  for (const t of ["01:00", "01:30", "02:20"]) assert.ok(!names(due(at(t))).some(n => n.startsWith("companies-")));
 });
 
-test("company route nightly at 01:30, before the autofill", () => {
-  const r = due(at("01:30"));
-  assert.deepEqual(names(r), ["companies-route.yml"]);
-  assert.deepEqual(r[0].inputs, {write: "true", scheduled_relay: "true"});
-});
-
-test("company discovery nightly at 01:00, writing, before the route step", () => {
-  const r = due(at("01:00"));
-  assert.deepEqual(names(r), ["companies-discover.yml"]);
-  assert.equal(r[0].inputs.write, "true");
-  assert.equal(r[0].inputs.nightly, "true");
-});

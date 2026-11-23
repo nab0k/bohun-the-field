@@ -86,12 +86,15 @@ def select(queue, attempts, today, limit, countries=None, with_signal=None, only
     since = (today - timedelta(days=RETRY_DAYS)).isoformat()
     with_signal = with_signal or set()
     out = []
-    for q in sorted(queue, key=lambda q: (q['tier'] != 'event', q['company_id'] not in with_signal)):
+    order = ({c: n for n, c in enumerate(only)} if isinstance(only, (list, tuple)) else None)
+    key = ((lambda q: order.get(q['company_id'], len(order))) if order is not None  # the caller's priority (worker)
+           else (lambda q: (q['tier'] != 'event', q['company_id'] not in with_signal)))
+    for q in sorted(queue, key=key):
         if q['route'] not in ROUTES or (q['refresh'] and not refresh):
             continue  # a carded company is taken only in refresh mode (owner 23.11.2026, catalogue refresh)
         if countries and q['country'] not in countries:
             continue
-        if only is not None and q['company_id'] not in only:
+        if only is not None and q['company_id'] not in (order if order is not None else only):
             continue  # before publication (owner 23.11.2026): only the companies of the new materials
         last = attempts.get(q['company_id'])
         if not refresh and last and last >= since and not (q['tier'] == 'event' and (q['last_event'] or '') > last):
@@ -300,7 +303,7 @@ def run(conn, env, limit=40, countries=None, write=False, today=None, minutes=50
     queue, counts = build(companies, load_feed(), today)
     attempts = {r['company_id']: r['last'] for r in conn.execute(ATTEMPTS_SQL).fetchall()}
     chosen = select(queue, attempts, today, limit, countries, {c['id'] for c in companies if c.get('last_signal')},
-                    set(only) if only is not None else None, refresh)
+                    list(only) if only is not None else None, refresh)
     log(f'queue {counts}; chosen {len(chosen)}; write={write}')
     ids_ = [q['company_id'] for q in chosen]
     details = {r['id']: r for r in conn.execute(DETAILS_SQL, {'ids': ids_}).fetchall()} if ids_ else {}
