@@ -145,16 +145,26 @@ def review(cheap, sources_text, version, items):
                                          "relevant": relevant}
 
 
-def held(cur, limit):
-    cur.execute("""SELECT s.id, s.event_id, v.version, v.headline, v.what_happened, v.context, v.policy_direction,
+def held(cur, limit, retry_queue=False):
+    retry_join = ""
+    retry_filter = ""
+    retry_order = ""
+    if retry_queue:
+        retry_join = """LEFT JOIN knowledge.synthesis_review_retry r
+                           ON r.synthesis_id = s.id AND r.version = s.active_version"""
+        retry_filter = "AND (r.next_attempt_at IS NULL OR r.next_attempt_at <= clock_timestamp())"
+        retry_order = "r.first_deferred_at ASC NULLS LAST,"
+    cur.execute(f"""SELECT s.id, s.event_id, v.version, v.headline, v.what_happened, v.context, v.policy_direction,
                           v.bigger_picture, v.supply_chain, v.why_it_matters, v.sources, v.context_sources
                      FROM knowledge.synthesis s
                      JOIN knowledge.synthesis_version v ON v.synthesis_id = s.id AND v.version = s.active_version
                      JOIN knowledge.synthesis_admission a ON a.synthesis_id = s.id AND a.version = s.active_version
+                     {retry_join}
                     WHERE a.decision = 'HOLD' AND NOT s.is_hidden
+                      {retry_filter}
                       AND ('owner_review' = ANY(a.reason_codes) OR a.reason_codes = ARRAY['run_limit'])
                       AND v.generator LIKE 'kb-pilot|%%'
-                 ORDER BY CASE WHEN a.reason_codes = ARRAY['run_limit'] THEN 0 ELSE 1 END,
+                 ORDER BY {retry_order} CASE WHEN a.reason_codes = ARRAY['run_limit'] THEN 0 ELSE 1 END,
                           CASE WHEN a.reason_codes = ARRAY['run_limit'] THEN a.decided_at END,
                           s.id DESC LIMIT %s""", (limit,))
     keys = ("headline", "what_happened", "context", "policy_direction", "bigger_picture", "supply_chain",
@@ -212,11 +222,31 @@ def write(cur, row, new, decision, reasons, provider, run_ref):
     return version
 
 
-def run(conn, cheap, limit=60, max_publish=MAX_PUBLISH, run_ref=None, dry_run=False):
+def lock_reviewable(cur, row):
+    cur.execute("""SELECT s.id FROM knowledge.synthesis s
+                     JOIN knowledge.synthesis_admission a
+                       ON a.synthesis_id = s.id AND a.version = s.active_version
+                    WHERE s.id = %s AND s.active_version = %s AND NOT s.is_hidden
+                      AND a.decision = 'HOLD'
+                      AND ('owner_review' = ANY(a.reason_codes) OR a.reason_codes = ARRAY['run_limit'])
+                    FOR UPDATE OF s, a""", (row["synthesis_id"], row["version"]))
+    return cur.fetchone() is not None
+
+
+def defer_review(cur, row, reason):
+    cur.execute("""INSERT INTO knowledge.synthesis_review_retry
+                      (synthesis_id, version, reason, next_attempt_at)
+                   VALUES (%s, %s, %s, clock_timestamp() + interval '15 minutes')
+                   ON CONFLICT (synthesis_id, version) DO UPDATE
+                   SET reason = EXCLUDED.reason, next_attempt_at = EXCLUDED.next_attempt_at""",
+                (row["synthesis_id"], row["version"], reason))
+
+
+def run(conn, cheap, limit=60, max_publish=MAX_PUBLISH, run_ref=None, dry_run=False, retry_queue=False):
     stats = {"rules": RULES, "held": 0, "published": 0, "kept_held": 0, "no_reviewer": 0, "fixed": 0, "dropped": 0,
              "reasons": {}, "published_ids": [], "dry_run": dry_run}
     with conn.cursor() as cur:
-        rows = held(cur, limit)
+        rows = held(cur, limit, retry_queue=retry_queue)
     stats["held"] = len(rows)
     for row in rows:
         with conn.cursor() as cur:
@@ -225,7 +255,13 @@ def run(conn, cheap, limit=60, max_publish=MAX_PUBLISH, run_ref=None, dry_run=Fa
             result = review(cheap, text, row["v"], items) if text else None
             if result is None:
                 stats["no_reviewer"] += 1
-                continue  # stays eligible for the next run
+                if retry_queue and not dry_run and lock_reviewable(cur, row):
+                    defer_review(cur, row, "reviewer_unavailable" if text else "missing_evidence")
+                    conn.commit()
+                continue
+            if retry_queue and not dry_run and not lock_reviewable(cur, row):
+                conn.rollback()
+                continue
             texts, provider, rs = result
             stats["fixed"] += rs["fixed"]
             stats["dropped"] += rs["dropped"]
@@ -236,6 +272,10 @@ def run(conn, cheap, limit=60, max_publish=MAX_PUBLISH, run_ref=None, dry_run=Fa
                 stats["reasons"][r] = stats["reasons"].get(r, 0) + 1
             if not dry_run:
                 write(cur, row, new, decision, reasons, provider, run_ref)
+                if retry_queue:
+                    cur.execute("""DELETE FROM knowledge.synthesis_review_retry
+                                    WHERE synthesis_id = %s AND version = %s""",
+                                (row["synthesis_id"], row["version"]))
         if dry_run:
             conn.rollback()
         else:
@@ -256,6 +296,7 @@ def main(argv=None):
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--run-ref", default=os.environ.get("GITHUB_RUN_ID"))
     parser.add_argument("--no-dossier-write", action="store_true", help="dry run: decide and print, write nothing")
+    parser.add_argument("--retry-queue", action="store_true", help="use the migrated D2RC review queue")
     args, _ = parser.parse_known_args(argv)  # the workflow passes the pilot's flags too
     cheap = FreeModel(Gemini(os.environ.get("GEMINI_API_KEY") or "unused", Ledger()))
     if not cheap.enabled:
@@ -263,7 +304,8 @@ def main(argv=None):
         return 1
     max_publish = args.limit if args.limit and args.limit <= MAX_PUBLISH else MAX_PUBLISH
     with connect() as conn:
-        stats = run(conn, cheap, max_publish=max_publish, run_ref=args.run_ref, dry_run=args.no_dossier_write)
+        stats = run(conn, cheap, max_publish=max_publish, run_ref=args.run_ref,
+                    dry_run=args.no_dossier_write, retry_queue=args.retry_queue)
     stats["free"] = cheap.stats
     print("KB_ADMIT_RESULT " + canonical(stats))
     return 0
