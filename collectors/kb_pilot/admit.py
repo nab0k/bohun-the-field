@@ -1,6 +1,6 @@
 """Automatic admission of pilot syntheses to the feed (D-20261030-AUTO-ADMISSION): no owner step.
 
-For each held pilot synthesis (HOLD owner_review, generator kb-pilot|…):
+For each held pilot synthesis (HOLD owner_review or run_limit, generator kb-pilot|…):
 1. code checks: the parts the code wrote (context, policy direction, supply chain) come from verified rows; every
    number in the parts a model wrote (headline, what happened, bigger picture, why it matters) must be in the sources;
 2. a second free model of another provider reads every model-written sentence against the sources;
@@ -151,9 +151,12 @@ def held(cur, limit):
                      FROM knowledge.synthesis s
                      JOIN knowledge.synthesis_version v ON v.synthesis_id = s.id AND v.version = s.active_version
                      JOIN knowledge.synthesis_admission a ON a.synthesis_id = s.id AND a.version = s.active_version
-                    WHERE a.decision = 'HOLD' AND 'owner_review' = ANY(a.reason_codes) AND NOT s.is_hidden
+                    WHERE a.decision = 'HOLD' AND NOT s.is_hidden
+                      AND ('owner_review' = ANY(a.reason_codes) OR a.reason_codes = ARRAY['run_limit'])
                       AND v.generator LIKE 'kb-pilot|%%'
-                 ORDER BY s.id DESC LIMIT %s""", (limit,))
+                 ORDER BY CASE WHEN a.reason_codes = ARRAY['run_limit'] THEN 0 ELSE 1 END,
+                          CASE WHEN a.reason_codes = ARRAY['run_limit'] THEN a.decided_at END,
+                          s.id DESC LIMIT %s""", (limit,))
     keys = ("headline", "what_happened", "context", "policy_direction", "bigger_picture", "supply_chain",
             "why_it_matters", "sources", "context_sources")
     return [{"synthesis_id": r[0], "event_id": r[1], "version": r[2], "v": dict(zip(keys, r[3:]))}
@@ -222,7 +225,7 @@ def run(conn, cheap, limit=60, max_publish=MAX_PUBLISH, run_ref=None, dry_run=Fa
             result = review(cheap, text, row["v"], items) if text else None
             if result is None:
                 stats["no_reviewer"] += 1
-                continue  # stays HOLD owner_review: the next run retries it
+                continue  # stays eligible for the next run
             texts, provider, rs = result
             stats["fixed"] += rs["fixed"]
             stats["dropped"] += rs["dropped"]
