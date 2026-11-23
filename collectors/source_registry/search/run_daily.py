@@ -25,7 +25,7 @@ import pg_sync  # noqa: E402
 import plan as P  # noqa: E402
 import providers as PR  # noqa: E402
 import search_cycle as C  # noqa: E402
-from eligibility import owner_accepted  # noqa: E402
+from eligibility import can_poll, owner_accepted  # noqa: E402
 
 
 OPEN_LAYERS = ("gdelt", "wikidata", "similar")  # layers whose engine is fixed (not Gemini/Jina/Tavily)
@@ -118,7 +118,7 @@ def review_candidate(conn, url, channel, layer):
     return candidate
 
 
-def audit_candidates(conn, n=AUDIT_PER_DAY):
+def audit_candidates(conn, n=AUDIT_PER_DAY, exclude=()):
     """0.7 (owner 19.11 "Да, чисти"): accepted sources decided under older rules or without the judge's verdict are
     checked again, oldest first; the owner's own accepts stay. Returns [(candidate, old_channel)]."""
     rows = conn.execute(
@@ -148,10 +148,54 @@ def audit_candidates(conn, n=AUDIT_PER_DAY):
             out.append((url, channel))
     candidates = {}
     for url, channel in out:
+        if channel in exclude:
+            continue
         candidate = review_candidate(conn, url, channel, "audit")
         candidate["decision_url"] = url
         candidates.setdefault(candidate["url"], (candidate, channel))
     return list(candidates.values())[:n]
+
+
+def channel_audits(conn, channel_ids=None, limit=AUDIT_PER_DAY):
+    """Find exact feed/page reviews: explicitly named channels or accepted channels without a polling grant."""
+    rows = conn.execute(
+        "SELECT s.channel_id, s.canonical_url, s.delivery, s.status, d.decision, d.rules_version, "
+        "d.record_json, d.reasons_json, (SELECT c.candidate_url FROM candidate_seen c "
+        "WHERE c.channel_id=s.channel_id ORDER BY c.decided_at DESC, c.candidate_url LIMIT 1) "
+        "FROM source_state s LEFT JOIN admission_decision d ON d.decision_id=("
+        "SELECT max(a.decision_id) FROM admission_decision a WHERE a.channel_id=s.channel_id) "
+        "WHERE s.delivery IN ('feed', 'page') AND s.status IN ('accepted', 'on_hold') "
+        "ORDER BY s.since, s.channel_id").fetchall()
+    candidates = {}
+    for channel, url, delivery, status, decision, rules, record, reasons, key in rows:
+        if channel_ids is None:
+            allowed = decision == "accept" and can_poll(
+                url, rules, json.loads(record or "{}").get("judge"), json.loads(reasons or "[]"))
+            if status != "accepted" or allowed:
+                continue
+        elif channel not in channel_ids:
+            continue
+        candidates[channel] = {"url": url, "decision_url": key or url, "pool_group": "audit", "prefilter": True,
+                               "expected_channel_id": channel, "expected_delivery": delivery,
+                               "found_via": {"channel": "audit", "layer": "audit"}}
+    order = list(candidates) if channel_ids is None else channel_ids
+    return [(candidates[channel], channel) for channel in order if channel in candidates][:limit]
+
+
+def audit_outcomes(audit, observations, results, stop):
+    checked = {A.registry.canonical_url(o["candidate"]["url"]) for o in observations}
+    decisions = {r["review_channel_id"]: r for r in results if r.get("review_channel_id")}
+    outcomes = {}
+    for candidate, channel in audit:
+        if not channel:
+            continue
+        if A.registry.canonical_url(candidate["url"]) not in checked:
+            outcomes[channel] = {"state": "deferred", "reason": stop or "not_observed"}
+        else:
+            decision = decisions.get(channel)
+            outcomes[channel] = {"state": "checked", "decision": decision["decision"] if decision else "unchanged",
+                                 "reasons": decision["reason_codes"] if decision else []}
+    return outcomes
 
 
 COMPANY_PER_DAY = int(os.environ.get("SEARCH_COMPANY_PER_DAY", "12"))
@@ -193,8 +237,8 @@ def recheck_candidates(conn, n=RECHECK_PER_DAY, days=RECHECK_AFTER_DAYS, no_judg
         "SELECT candidate_url FROM (SELECT s.candidate_url, s.decided_at, (SELECT d.reasons_json FROM admission_decision d "
         " WHERE d.candidate_url=s.candidate_url ORDER BY d.decision_id DESC LIMIT 1) reasons FROM candidate_seen s "
         " WHERE s.last_decision='hold') WHERE reasons NOT LIKE '%no_news_site%' AND "
-        "(decided_at < ? OR (reasons LIKE '%no_judge%' AND decided_at < ?)) "
-        "ORDER BY (reasons LIKE '%no_judge%') DESC, decided_at LIMIT ?",
+        "(decided_at < ? OR ((reasons LIKE '%no_judge%' OR reasons LIKE '%audit_transient%') AND decided_at < ?)) "
+        "ORDER BY (reasons LIKE '%no_judge%' OR reasons LIKE '%audit_transient%') DESC, decided_at LIMIT ?",
         (cutoff, quick, n)).fetchall()]
     # 0.9 (A1SD-04): sites set aside as general by the keyword count alone are judged again under the new rules
     general = [u for (u,) in conn.execute(
@@ -215,15 +259,69 @@ def recheck_candidates(conn, n=RECHECK_PER_DAY, days=RECHECK_AFTER_DAYS, no_judg
     return list(candidates.values())
 
 
-def main():
+def run_addressed_audit(a, pg, path, started):
+    conn, ctx = pg_sync.load(pg, path, registry_only=True)
+    A.set_base(ctx["company"], ctx["rnd"])
+    audit = channel_audits(conn, a.audit_channel)
+    outcomes = {channel: {"state": "unavailable"} for channel in a.audit_channel}
+    selected = {channel: {"state": "selected"} for _, channel in audit}
+    if a.dry_run or not audit:
+        outcomes.update(selected)
+        return outcomes
+    Budget, HTTP = C.network_parts()
+    import judge as J
+    import observer as O
+    previous_judge = O.JUDGE
+    O.JUDGE = J.Judge() if a.audit_judge else None
+    budget = Budget({"max_requests": min(600, len(audit) * 20),
+                     "max_seconds": 600, "max_bytes": 40_000_000})
+    audit_map = {A.registry.canonical_url(c["decision_url"]): ch for c, ch in audit}
+    try:
+        _, _, _, trace, observations, _, results = C.execute(
+            [], None, HTTP(budget, enabled=True), conn, set(), network_pause=None,
+            audit=audit_map, priority=[c for c, _ in audit])
+    finally:
+        O.JUDGE = previous_judge
+    outcomes.update(audit_outcomes(audit, observations, results, trace.get("stop")))
+    if a.apply_audit:
+        pg_sync.save(pg, conn, ctx, {
+            "run_id": "addressed-audit-" + started.strftime("%Y%m%dT%H%M%S%f"),
+            "started_at": started.isoformat(), "finished_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+            "where_run": "local", "plan": {"mode": "addressed_audit", "selected": len(audit)},
+            "trace": {"audit_channels": outcomes}, "measure": {}, "done_jobs": [],
+            "audited_channels": list(audit_map.values()),
+        })
+    return outcomes
+
+
+def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true", help="read the state and plan; no search, no site, no write")
-    a = ap.parse_args()
+    ap.add_argument("--audit-channel", action="append", default=[], metavar="ID",
+                    help="check only these feed/page channel IDs; repeat for each channel")
+    ap.add_argument("--audit-judge", action="store_true", help="enable the configured model in addressed audit")
+    ap.add_argument("--apply-audit", action="store_true", help="persist addressed audit results")
+    a = ap.parse_args(argv)
+    a.audit_channel = list(dict.fromkeys(a.audit_channel))
+    if len(a.audit_channel) > AUDIT_PER_DAY:
+        ap.error(f"at most {AUDIT_PER_DAY} audit channel IDs")
+    if (a.audit_judge or a.apply_audit) and (not a.audit_channel or a.dry_run):
+        ap.error("--audit-judge and --apply-audit require --audit-channel without --dry-run")
+    started = dt.datetime.now(dt.timezone.utc)
+    if a.audit_channel:
+        with pg_sync.connect() as pg, tempfile.TemporaryDirectory() as tmp:
+            if not a.apply_audit:
+                pg.read_only = True
+            outcomes = run_addressed_audit(a, pg, Path(tmp) / "registry.sqlite", started)
+        summary = dict(Counter(item["state"] for item in outcomes.values()))
+        applied = a.apply_audit and summary.get("unavailable", 0) < len(outcomes)
+        print(json.dumps({"audit": summary, "applied": applied,
+                          **({} if os.environ.get("GITHUB_RUN_ID") else {"channels": outcomes})}))
+        return
     tavily = bool(os.environ.get("TAVILY_API_KEY", "").strip())
     jina, exa = (bool(os.environ.get(k, "").strip()) for k in ("JINA_API_KEY", "EXA_API_KEY"))
     C.LIMITS, C.QUOTAS, C.GEMINI_SHARE, C.NEW_CAPS, jina_share = daily_limits(tavily, jina, exa)
     new_search = C.LIMITS["new"] - WIKIDATA_NEW
-    started = dt.datetime.now(dt.timezone.utc)
     run_id = "gh-" + os.environ.get("GITHUB_RUN_ID", "local") + "-" + started.strftime("%Y%m%dT%H%M")
     with pg_sync.connect() as pg, tempfile.TemporaryDirectory() as tmp:
         # A6SH-02: health and usefulness first, so failing/silent sources leave the accepted list before the run
@@ -275,12 +373,19 @@ def main():
         engines = C.Engines(tavily=PR.tavily_api, gemini=lambda job: PR.gemini_grounded(job["query"]))
         t0 = time.time()
         again = recheck_candidates(conn)
-        audit = audit_candidates(conn)
-        extra = company_candidates(ctx, known) + again + [c for c, _ in audit]
-        cands, found, done, trace, _obs, counts, results = C.execute(
+        priority = channel_audits(conn)
+        regular = audit_candidates(conn, AUDIT_PER_DAY - len(priority), exclude={ch for _, ch in priority})
+        audit = priority + regular
+        extra = company_candidates(ctx, known) + again + [c for c, _ in regular]
+        cands, found, done, trace, observations, counts, results = C.execute(
             todo, engines, http, conn, known, use_feedsearch=True, extra=extra,
             recheck={A.registry.canonical_url(c["decision_url"]) for c in again},
-            audit={A.registry.canonical_url(c["decision_url"]): ch for c, ch in audit})
+            audit={A.registry.canonical_url(c["decision_url"]): ch for c, ch in audit},
+            priority=[c for c, _ in priority])
+        outcomes = audit_outcomes(audit, observations, results, trace.get("stop"))
+        trace["audit_channels"] = outcomes
+        audit_progress = dict(Counter(item["state"] for item in outcomes.values()))
+        audit_progress["selected"] = len(audit)
         trace.update(http_requests=budget.requests, seconds=round(time.time() - t0),
                      engines_used=dict(engines.used), engines_off=sorted(engines.off),
                      engine_errors=dict(engines.errors),
@@ -305,6 +410,7 @@ def main():
                                                           "network_recovered", "judge_used", "judge_errors",
                                                           "judge_off")},
                       "decisions": counts, "written": written,
+                      "audit_progress": audit_progress,
                       "measure": {k: measure.get(k) for k in ("candidates", "n_countries", "n_types", "accepted_share",
                                                               "accepted_share_search", "accepted_share_layer2",
                                                               "accepted_share_incl_general", "disputed_for_owner",

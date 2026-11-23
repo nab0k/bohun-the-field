@@ -484,15 +484,20 @@ def admit(conn, observations, now=None, redecide=(), recheck=(), audit=()):
     results = []
     for obs in observations:
         curl = registry.canonical_url(obs["candidate"].get("decision_url") or obs["candidate"]["url"])
+        expected = obs["candidate"].get("expected_channel_id")
+        exact_audit = expected is not None and isinstance(audit, dict) and audit.get(curl) == expected
         seen = conn.execute("SELECT last_decision, decided_at, transient FROM candidate_seen WHERE candidate_url=?",
                             (curl,)).fetchone()
-        if seen and seen[0] == "reject" and now - parse_date(seen[1]) < dt.timedelta(days=REJECT_COOLDOWN_DAYS):
+        if (not exact_audit and seen and seen[0] == "reject"
+                and now - parse_date(seen[1]) < dt.timedelta(days=REJECT_COOLDOWN_DAYS)):
             counts["skipped_recent_reject"] += 1
             continue
         old_rules = seen and conn.execute(
             "SELECT rules_version FROM admission_decision WHERE candidate_url=? ORDER BY decision_id DESC LIMIT 1",
             (curl,)).fetchone()
-        if seen and seen[0] in redecide and old_rules and old_rules[0] != RULES_VERSION:
+        if exact_audit:
+            pass
+        elif seen and seen[0] in redecide and old_rules and old_rules[0] != RULES_VERSION:
             pass  # decided under older rules (e.g. 0.4 disputed) -> decide again under the current ones
         elif seen and seen[0] in ("hold", "disputed") and curl in recheck:
             pass  # on hold (stale, few titles, undated) and due, or disputed under rules < 0.8: decided again
@@ -502,7 +507,7 @@ def admit(conn, observations, now=None, redecide=(), recheck=(), audit=()):
             counts["skipped_decided"] += 1
             continue
         obs = {**obs, "prior_transient": seen[2] if seen else 0}
-        old = obs["candidate"].get("expected_channel_id")
+        old = expected
         if curl in audit:
             # 20.11: audit may name the accepted channel itself (sources seeded from the Mac have no candidate_seen row)
             old = old or (audit.get(curl) if isinstance(audit, dict) else None)
@@ -511,19 +516,29 @@ def admit(conn, observations, now=None, redecide=(), recheck=(), audit=()):
         previous = None
         if old:
             previous = conn.execute(
-                "SELECT s.status, s.canonical_url, d.rules_version, d.record_json, d.reasons_json, d.decision "
+                "SELECT s.status, s.canonical_url, d.rules_version, d.record_json, d.reasons_json, d.decision, "
+                "s.type, s.delivery, s.country, s.language "
                 "FROM source_state s LEFT JOIN admission_decision d ON d.decision_id=("
                 "SELECT max(decision_id) FROM admission_decision WHERE channel_id=s.channel_id) "
                 "WHERE s.channel_id=?", (old,)).fetchone()
         if previous and previous[0] == "accepted" and previous[5] == "accept" and owner_accepted(json.loads(previous[4] or "[]")):
             obs = {**obs, "approval_reasons": json.loads(previous[4])}
+        if previous and expected:
+            # Discovery attempts against the parent candidate do not count as failures of this exact channel.
+            obs["prior_transient"] = 0
         rec = decide(obs, (lambda c, h, _o=old: (None, None) if known(c, h)[1] == _o else known(c, h))
                      if old else known, now)
-        if previous and obs["candidate"].get("expected_channel_id") and rec.get("delivery_url") not in (None, previous[1]):
+        if previous and expected and rec.get("delivery_url") not in (None, previous[1]):
             rec = {**rec, "decision": "retry", "reason_codes": ["channel_changed"]}
         confirmed = previous and previous[0] == "accepted" and previous[5] == "accept" and can_poll(
             previous[1], previous[2], json.loads(previous[3] or "{}").get("judge"),
             json.loads(previous[4] or "[]"))
+        if old:
+            rec["review_channel_id"] = old
+        if previous and not confirmed and rec["decision"] == "retry" and expected:
+            stype, delivery, country, language = previous[6:]
+            rec.update(decision="hold", reason_codes=["audit_transient", *rec["reason_codes"]],
+                       delivery_url=previous[1], type=stype, delivery=delivery, country=country, language=language)
         if old and (rec["decision"] == "retry" or (confirmed and rec["reason_codes"] == ["no_judge"])):
             rec = {**rec, "decision": "retry"}
             counts["retry"] += 1

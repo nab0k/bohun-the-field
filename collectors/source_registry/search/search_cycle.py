@@ -343,15 +343,9 @@ def network_up(waits=3, pause=60, hosts=("www.wikipedia.org", "www.google.com", 
     return False
 
 
-def execute(todo, search, http, conn, known, raw=None, use_feedsearch=False, network_pause=60, extra=(), recheck=(),
-            audit=()):
-    """One cycle without files: search -> candidates -> observe (stops at a cap or a network outage) -> admit."""
+def observe_candidates(candidates, http, trace, use_feedsearch, network_pause):
     import observer as O
-    candidates, found, done, trace = collect(todo, search, known, sum(LIMITS.get(e, 0) for e in ("tavily", "gemini", "gdelt", "wikidata", "jina", "exa")),
-                                             LIMITS["new"], NEW_CAPS, raw)
-    if isinstance(search, Engines):
-        trace.update(engines_used=dict(search.used), engines_off=sorted(search.off))
-    candidates = candidates + list(extra)  # company websites of our base, on-hold sources due again (no search)
+
     observations, streak, queue, again = [], 0, list(candidates), []
     while queue:
         cand = queue.pop(0)
@@ -362,7 +356,7 @@ def execute(todo, search, http, conn, known, raw=None, use_feedsearch=False, net
             break
         observations.append(o)
         streak = streak + 1 if o["fetch"].get("status") == "connect_error" else 0
-        if streak >= 5:
+        if streak >= 5 and network_pause is not None:
             # cycle 4: a short outage of our own network stopped the cycle. Check our network; if it is up, the
             # five go to the end of the queue once; if it stays down after 3 checks a minute apart, stop.
             if not network_up(waits=3, pause=network_pause):
@@ -374,6 +368,27 @@ def execute(todo, search, http, conn, known, raw=None, use_feedsearch=False, net
             queue += [c for c in again if c not in queue][: len(failed)]
             trace["network_recovered"] = trace.get("network_recovered", 0) + 1
             streak = 0
+    return observations
+
+
+def execute(todo, search, http, conn, known, raw=None, use_feedsearch=False, network_pause=60, extra=(), recheck=(),
+            audit=(), priority=()):
+    """Spend the first observation budget on due audits, then search and observe remaining candidates."""
+    priority = list(priority)
+    trace = {"queries": 0, "failed": 0, "job_stats": {}}
+    observations = observe_candidates(priority, http, trace, use_feedsearch, network_pause)
+    candidates, found, done = list(priority), [], []
+    if not trace.get("stop"):
+        new, found, done, search_trace = collect(
+            todo, search, known, sum(LIMITS.get(e, 0) for e in ("tavily", "gemini", "gdelt", "wikidata", "jina", "exa")),
+            LIMITS["new"], NEW_CAPS, raw)
+        trace.update(search_trace)
+        priority_urls = {A.registry.canonical_url(c["url"]) for c in priority}
+        remaining = [c for c in new + list(extra) if A.registry.canonical_url(c["url"]) not in priority_urls]
+        candidates.extend(remaining)
+        observations.extend(observe_candidates(remaining, http, trace, use_feedsearch, network_pause))
+    if isinstance(search, Engines):
+        trace.update(engines_used=dict(search.used), engines_off=sorted(search.off))
     counts, results = A.admit(conn, observations, recheck=set(recheck),
                               audit=dict(audit) if isinstance(audit, dict) else set(audit))
     layer_of = {A.registry.canonical_url(c["url"]): c["found_via"] for c in candidates}
