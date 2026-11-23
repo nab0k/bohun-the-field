@@ -57,16 +57,44 @@ class CloudTrialTests(unittest.TestCase):
         self.assertEqual(public["provider_attempts"], 0)
         self.assertEqual(private["private_queue"], [])
 
+    def test_exact_spaced_opinions_deliver_with_canonical_facts_and_raw_receipt(self):
+        spaced = {
+            **trial.FACTS,
+            "baseline_opinion": "qualified opinion",
+            "current_opinion": "unmodified opinion",
+            "department_current_opinion": "disclaimer of opinion",
+        }
+
+        def check(payload):
+            return {**self.checker(payload), "facts": spaced}
+
+        public, private = self.replay(check)
+        self.assertEqual(public["queue_count"], 1)
+        self.assertEqual(private["private_queue"][0]["observed"], trial.FACTS)
+        self.assertEqual(private["review_receipt"]["response"]["facts"]["baseline_opinion"], "qualified opinion")
+
     def test_wrong_fact_or_request_hash_cannot_deliver(self):
         def wrong_fact(payload):
             response = self.checker(payload)
-            return {**response, "facts": {**trial.FACTS, "department_current_opinion": "unmodified_opinion"}}
+            return {**response, "facts": {**trial.FACTS, "department_current_opinion": "unmodified opinion"}}
         def stale_request(payload):
             return {**self.checker(payload), "request_sha256": "stale"}
         for check, reason in ((wrong_fact, "review_fact_mismatch"), (stale_request, "review_request_mismatch")):
             public, private = self.replay(check)
             self.assertEqual(public["decisions"][0]["reason"], reason)
             self.assertEqual(private["private_queue"], [])
+
+    def test_other_spellings_and_wrong_years_are_held(self):
+        for field, value in (("baseline_opinion", "partially qualified opinion"),
+                             ("baseline_opinion", ["qualified opinion"]),
+                             ("baseline_year", 2024)):
+            with self.subTest(field=field, value=value):
+                def check(payload):
+                    return {**self.checker(payload), "facts": {**trial.FACTS, field: value}}
+
+                public, private = self.replay(check)
+                self.assertEqual(public["decisions"][0]["reason"], "review_fact_mismatch")
+                self.assertEqual(private["private_queue"], [])
 
     def test_timeout_is_held_without_retry(self):
         def timeout(payload):

@@ -47,6 +47,11 @@ FACTS = {
     "current_year": 2026, "current_opinion": "unmodified_opinion",
     "department_current_opinion": "disclaimer_of_opinion",
 }
+OPINION_ALIASES = {
+    "qualified opinion": "qualified_opinion",
+    "unmodified opinion": "unmodified_opinion",
+    "disclaimer of opinion": "disclaimer_of_opinion",
+}
 SIGNAL_IDENTITY = ["audit_opinion_change", EVIDENCE[1]["entity"], 2026]
 FUND = re.compile(r"first time in fiscal 2026[^.!?]{0,180}Medicare[- ]Eligible Retiree Health Care Fund", re.I)
 SQL = """
@@ -127,7 +132,15 @@ def review_status(request, response):
         return "REJECTED", "independent_review_contradicted"
     if response.get("verdict") != "SUPPORTED":
         return "MONITORING", "independent_review_insufficient"
-    if response.get("facts") != FACTS:
+    facts = response.get("facts")
+    if not isinstance(facts, dict):
+        return "MONITORING", "review_fact_mismatch"
+    facts = facts.copy()
+    for field in ("baseline_opinion", "current_opinion", "department_current_opinion"):
+        opinion = facts.get(field)
+        if isinstance(opinion, str) and opinion in OPINION_ALIASES:
+            facts[field] = OPINION_ALIASES[opinion]
+    if facts != FACTS:
         return "MONITORING", "review_fact_mismatch"
     return "QUALIFIED", "documented_change_and_independent_review"
 
