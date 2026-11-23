@@ -60,3 +60,9 @@ test("busy feeds every 30 minutes at :10 and :40, apart from the main feed run a
   const main = due(at("14:25")).filter(j => j.workflow === "feed-collect.yml");
   assert.deepEqual(main.map(j => j.inputs), [{mode: "write"}]);
 });
+
+test("company cards autofill nightly at 02:20 with writes, marked as a relay run", () => {
+  const cards = due(at("02:20"));
+  assert.deepEqual(names(cards), ["companies-autofill.yml"]);
+  assert.deepEqual(cards[0].inputs, {write: "true", scheduled_relay: "true"});
+});
