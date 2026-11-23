@@ -141,6 +141,41 @@ class SameName(unittest.TestCase):
         self.assertEqual(A.run(conn, {}, today=date(2026, 11, 22), log=lambda *_: None)['outcomes'], {'would_write': 1})
 
 
+class FreeModels(unittest.TestCase):
+    def test_chain_free_first_paid_last(self):
+        import os
+        keep = {k: os.environ.get(k) for k in ('GEMINI_FREE_API_KEY', 'GROQ_API_KEY', 'MISTRAL_API_KEY', 'GEMINI_SEARCH_API_KEY')}
+        try:
+            for k in keep:
+                os.environ.pop(k, None)
+            os.environ['GROQ_API_KEY'] = 'g'
+            chain = A.model_chain({'GEMINI_API_KEY': 'paid'})
+            self.assertEqual([(p[0], p[2]) for p in chain], [('groq', 'g'), ('gemini', 'paid')])
+        finally:
+            for k, v in keep.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+
+    def test_failed_provider_hands_over(self):
+        import urllib.error
+        calls = []
+        orig = A.P.extract
+
+        def fake(entry, pages, p):
+            calls.append(p[0])
+            if p[0] == 'paid':
+                return {'kept': [1], 'rejected': [], 'provider': 'paid:m'}
+            raise urllib.error.HTTPError('u', 402, 'payment', None, None)
+        A.P.extract = fake
+        try:
+            got = A.products_for({}, {'pages': ['p']}, [('free', None, 'k', 'm'), ('paid', None, 'k', 'm')], pause=0)
+        finally:
+            A.P.extract = orig
+        self.assertEqual((calls, got['provider']), (['free', 'paid'], 'paid:m'))
+
+
 class Whitelist(unittest.TestCase):
     def test_krs_from_nip(self):
         def opener(url, timeout=0):
