@@ -47,7 +47,8 @@ class Observe(unittest.TestCase):
         self.assertEqual((o["delivery"], o["delivery_url"], len(o["items"])), ("feed", "https://firm.example.de/feed.xml", 5))
         self.assertEqual(o["html_lang"], "de")
         r = A.decide(o, lambda c, h: (None, None), NOW)
-        self.assertEqual((r["decision"], r["country"], r["type"]), ("accept", "DE", "company_news"))
+        self.assertEqual((r["decision"], r["country"], r["type"]), ("hold", "DE", "company_news"))
+        self.assertEqual(r["reason_codes"], ["no_judge"])
 
     def test_section_words_beyond_polish(self):
         body = b'<a href="/fr/actualites">Actualit\xc3\xa9s</a><a href="/about">About</a><a href="/sv/nyheter">x</a>'

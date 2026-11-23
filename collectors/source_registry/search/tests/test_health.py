@@ -18,7 +18,7 @@ def polls(ch, spec):
     for i, s in enumerate(spec):
         at = NOW - dt.timedelta(hours=2 * i)
         out.append((ch, at, {"ok": 200, "new": 200, "err": None, "304": 304}[s], "http_500" if s == "err" else None,
-                    3 if s == "new" else 0))
+                    3 if s == "new" else 0, f"run-{i}"))
     return out
 
 
@@ -30,7 +30,7 @@ class Health(unittest.TestCase):
         p = (polls("new", ["new"] * 4) + polls("fail", ["err", "err", "err", "new"]) + polls("silent", ["304"] * 5)
              + polls("useless", ["new", "ok", "304"]) + polls("good", ["304", "new", "ok"]))
         items = {"useless": (25, 0), "good": (12, 4)}
-        rows = {r["channel_id"]: r for r in H.assess(channels, p, items, NOW)}
+        rows = {r["channel_id"]: r for r in H.assess(channels, p, items, NOW, {c[0] for c in channels})}
         self.assertEqual({k: v["status"] for k, v in rows.items()},
                          {"new": "new", "fail": "failing", "silent": "silent", "useless": "useless", "good": "healthy"})
         self.assertEqual(rows["fail"]["errors_streak"], 3)
@@ -48,6 +48,22 @@ class Health(unittest.TestCase):
         self.assertLess(weighted["layer1"], base["layer1"])
         self.assertEqual(sum(weighted.values()), sum(q.values()))
         self.assertEqual(info["usefulness_weight"], {"types": 1.5, "layer1": 0.5})
+
+    def test_transport_outage_preserves_admission(self):
+        channels = [(channel, f"https://provider.example/{channel}", OLD) for channel in ("a", "b")]
+        p = polls("a", ["err", "err", "err", "ok"]) + polls("b", ["err", "err", "err", "ok"])
+        rows = H.assess(channels, p, {}, NOW, {"a", "b"})
+        self.assertEqual({row["reason"] for row in rows}, {"transport_unconfirmed"})
+        self.assertEqual({row["action"] for row in rows}, {None})
+
+    def test_first_poll_reasons(self):
+        channels = [(channel, f"https://provider.example/{channel}", since) for channel, since in (
+            ("blocked", OLD), ("overdue", OLD), ("pending", NOW - dt.timedelta(hours=1)), ("peer", OLD))]
+        eligible = {"overdue", "pending", "peer"}
+        rows = H.assess(channels, polls("peer", ["new", "ok"]), {}, NOW, eligible)
+        self.assertEqual({row["channel_id"]: row["reason"] for row in rows},
+                         {"blocked": "not_eligible", "overdue": "first_poll_overdue",
+                          "pending": "first_poll_pending", "peer": None})
 
 
 if __name__ == "__main__":

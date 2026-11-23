@@ -18,6 +18,7 @@ T = dt.datetime(2026, 11, 19, 8, 0, tzinfo=dt.timezone.utc)
 class Cursor:
     def __init__(self, pg):
         self.pg, self.rows = pg, []
+        self.rowcount = 1
 
     def execute(self, sql, params=None):
         self.pg.sql.append((sql.strip().split()[0].lower(), " ".join(sql.split())[:80], params))
@@ -31,7 +32,9 @@ class Cursor:
         elif "group by 1, 2" in s:
             self.rows = [("PL", "media", 3), ("DE", "media", 1), ("PL", "agency", 2)]
         elif "from source_discovery.source_state" in s:
-            self.rows = [("ch1", "https://old.example.org/feed", "accepted", "media", "feed", "PL", "pl", T, "a2sa-shadow-0.5")]
+            self.rows = [("ch1", "https://old.example.org/feed", "accepted", "media", "feed", "PL", "pl", T, "a2sa-shadow-0.5", 1)]
+        elif s.startswith("insert into source_discovery.source_state"):
+            self.rowcount = self.pg.state_rowcount
         elif "from source_discovery.candidate_seen" in s:
             self.rows = [("https://old.example.org/", "accept", T, 0, "ch1")]
         elif "from source_discovery.admission_decision" in s:
@@ -60,6 +63,7 @@ class Cursor:
 class FakePG:
     def __init__(self):
         self.sql = []
+        self.state_rowcount = 1
 
     def cursor(self):
         return Cursor(self)
@@ -106,6 +110,25 @@ class Sync(unittest.TestCase):
             self.assertTrue(any("source_discovery.admission_decision" in k for k in kinds))
             self.assertTrue(any("source_discovery.cycle_run" in k for k in kinds))
             self.assertFalse(any("intelligence" in s[1] or "companies" in s[1] for s in pg.sql))  # never writes product
+            conn.close()
+
+    def test_changed_admission_aborts_before_history_is_written(self):
+        fake_json = types.ModuleType("psycopg.types.json")
+        fake_json.Jsonb = lambda v: v
+        sys.modules.setdefault("psycopg", types.ModuleType("psycopg"))
+        sys.modules.setdefault("psycopg.types", types.ModuleType("psycopg.types"))
+        sys.modules["psycopg.types.json"] = fake_json
+        pg = FakePG()
+        with tempfile.TemporaryDirectory() as tmp:
+            conn, ctx = pg_sync.load(pg, Path(tmp) / "r.sqlite")
+            start = T + dt.timedelta(days=1)
+            conn.execute("update source_state set since=? where channel_id='ch1'", (start.isoformat(),))
+            pg.sql.clear()
+            pg.state_rowcount = 0
+            with self.assertRaisesRegex(RuntimeError, "SOURCE_STATE_CHANGED"):
+                pg_sync.save(pg, conn, ctx, {"started_at": start.isoformat(), "audited_channels": ["ch1"]})
+            self.assertEqual(len(pg.sql), 1)
+            self.assertEqual(pg.sql[0][2][-2:], (T, 1))
             conn.close()
 
 

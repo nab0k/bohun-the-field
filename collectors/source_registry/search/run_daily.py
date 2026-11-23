@@ -25,6 +25,7 @@ import pg_sync  # noqa: E402
 import plan as P  # noqa: E402
 import providers as PR  # noqa: E402
 import search_cycle as C  # noqa: E402
+from eligibility import owner_accepted  # noqa: E402
 
 
 OPEN_LAYERS = ("gdelt", "wikidata", "similar")  # layers whose engine is fixed (not Gemini/Jina/Tavily)
@@ -105,6 +106,16 @@ def accepted_sites(conn):
 
 
 AUDIT_PER_DAY = int(os.environ.get("SEARCH_AUDIT_PER_DAY", "25"))
+PREVIOUS_RULES = "a2sa-shadow-0.9"
+
+
+def review_candidate(conn, url, channel, layer):
+    candidate = {"url": url, "pool_group": layer, "prefilter": True,
+                 "found_via": {"channel": layer, "layer": layer}}
+    row = conn.execute("SELECT canonical_url, delivery FROM source_state WHERE channel_id=?", (channel,)).fetchone()
+    if row and row[1] in ("feed", "page"):
+        candidate.update(url=row[0], expected_channel_id=channel, expected_delivery=row[1])
+    return candidate
 
 
 def audit_candidates(conn, n=AUDIT_PER_DAY):
@@ -117,24 +128,30 @@ def audit_candidates(conn, n=AUDIT_PER_DAY):
     # 20.11: 86 accepted sources were seeded from the Mac cycles with no candidate_seen row and no decision; they are
     # audited through their site root, oldest first, before the rest
     seeded = conn.execute(
-        "SELECT canonical_url, channel_id FROM source_state s WHERE status='accepted' AND NOT EXISTS "
+        "SELECT canonical_url, channel_id, delivery FROM source_state s WHERE status='accepted' AND NOT EXISTS "
         "(SELECT 1 FROM candidate_seen c WHERE c.channel_id=s.channel_id) AND NOT EXISTS "
         "(SELECT 1 FROM admission_decision d WHERE d.channel_id=s.channel_id) ORDER BY since").fetchall()
     out, taken = [], set()
-    for url, channel in seeded:
+    for url, channel, delivery in seeded:
         host = A.registry.host_of(url)
-        root = A.registry.canonical_url(f"https://{host}/") if host else None
-        if root and root not in taken:
-            taken.add(root)
-            out.append((root, channel))
+        review_url = url if delivery in ("feed", "page") else (f"https://{host}/" if host else None)
+        if review_url and review_url not in taken:
+            taken.add(review_url)
+            out.append((review_url, channel))
     for url, channel, rules, record, reasons in rows:
-        if "owner_accept" in (reasons or "") or (rules == A.RULES_VERSION and '"judge"' in (record or "")):
+        if owner_accepted(json.loads(reasons or "[]")) or (
+            rules in (A.RULES_VERSION, PREVIOUS_RULES) and json.loads(record or "{}").get("judge")
+        ):
             continue
         if url not in taken:
             taken.add(url)
             out.append((url, channel))
-    return [({"url": url, "pool_group": "audit", "prefilter": True,
-              "found_via": {"channel": "audit", "layer": "audit"}}, channel) for url, channel in out[:n]]
+    candidates = {}
+    for url, channel in out:
+        candidate = review_candidate(conn, url, channel, "audit")
+        candidate["decision_url"] = url
+        candidates.setdefault(candidate["url"], (candidate, channel))
+    return list(candidates.values())[:n]
 
 
 COMPANY_PER_DAY = int(os.environ.get("SEARCH_COMPANY_PER_DAY", "12"))
@@ -183,13 +200,19 @@ def recheck_candidates(conn, n=RECHECK_PER_DAY, days=RECHECK_AFTER_DAYS, no_judg
     general = [u for (u,) in conn.execute(
         "SELECT s.candidate_url FROM candidate_seen s JOIN admission_decision d ON d.decision_id=(SELECT max(decision_id) "
         "FROM admission_decision x WHERE x.candidate_url=s.candidate_url) WHERE s.last_decision='general' "
-        "AND d.reasons_json LIKE '%topic_below_threshold%' AND d.rules_version != ? ORDER BY s.decided_at LIMIT ?",
-        (A.RULES_VERSION, max(n // 3, 1))).fetchall()]
+        "AND d.reasons_json LIKE '%topic_below_threshold%' AND d.rules_version NOT IN (?,?) "
+        "ORDER BY s.decided_at LIMIT ?",
+        (A.RULES_VERSION, PREVIOUS_RULES, max(n // 3, 1))).fetchall()]
     urls = (disputed + [u for u in general if u not in disputed]
             + [u for u in held if u not in disputed and u not in general])[:n]
     # prefilter: a recheck goes through the judge again (0.6: a no_judge hold must not pass on keywords alone)
-    return [{"url": u, "pool_group": "recheck", "prefilter": True, "found_via": {"channel": "recheck", "layer": "recheck"}}
-            for u in urls]
+    candidates = {}
+    for url in urls:
+        row = conn.execute("SELECT channel_id FROM candidate_seen WHERE candidate_url=?", (url,)).fetchone()
+        candidate = review_candidate(conn, url, row[0] if row else None, "recheck")
+        candidate["decision_url"] = url
+        candidates.setdefault(candidate["url"], candidate)
+    return list(candidates.values())
 
 
 def main():
@@ -204,7 +227,8 @@ def main():
     run_id = "gh-" + os.environ.get("GITHUB_RUN_ID", "local") + "-" + started.strftime("%Y%m%dT%H%M")
     with pg_sync.connect() as pg, tempfile.TemporaryDirectory() as tmp:
         # A6SH-02: health and usefulness first, so failing/silent sources leave the accepted list before the run
-        health = {} if a.dry_run else H.update(pg)
+        health_details = {}
+        health = {} if a.dry_run else H.update(pg, diagnostics=health_details)
         useful = H.useful_by_layer(pg)
         conn, ctx = pg_sync.load(pg, Path(tmp) / "registry.sqlite")
         A.set_base(ctx["company"], ctx["rnd"])
@@ -255,14 +279,15 @@ def main():
         extra = company_candidates(ctx, known) + again + [c for c, _ in audit]
         cands, found, done, trace, _obs, counts, results = C.execute(
             todo, engines, http, conn, known, use_feedsearch=True, extra=extra,
-            recheck={A.registry.canonical_url(c["url"]) for c in again},
-            audit={A.registry.canonical_url(c["url"]): ch for c, ch in audit})
+            recheck={A.registry.canonical_url(c["decision_url"]) for c in again},
+            audit={A.registry.canonical_url(c["decision_url"]): ch for c, ch in audit})
         trace.update(http_requests=budget.requests, seconds=round(time.time() - t0),
                      engines_used=dict(engines.used), engines_off=sorted(engines.off),
                      engine_errors=dict(engines.errors),
                      judge_used=dict(O.JUDGE.used) if O.JUDGE else {}, judge_errors=dict(O.JUDGE.errors) if O.JUDGE else {},
                      judge_off=sorted(O.JUDGE.off) if O.JUDGE else [])
         job_stats = trace.pop("job_stats", {})
+        trace["health_diagnostics"] = health_details
         measure = C.measure_cycle(cands, found, results, known)
         measure["disputed_total"] = len(A.disputed_batch(conn))
         # A1SD acceptance: three successful runs in a row, not three days (owner 19.11)

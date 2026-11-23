@@ -25,7 +25,8 @@ def items(titles, days_ago=1):
 def obs(url="https://news.example.org/", **kw):
     o = {"candidate": {"url": url, "found_via": {"channel": "test"}},
          "fetch": {"status": 200, "final_url": url}, "robots": {"state": "rules", "allowed": True},
-         "delivery": "feed", "delivery_url": url.rstrip("/") + "/feed", "items": items(DEF), "html_lang": "en"}
+         "delivery": "feed", "delivery_url": url.rstrip("/") + "/feed", "items": items(DEF), "html_lang": "en",
+         "judge": {"specialised": True, "by": "fixture"}}
     o.update(kw)
     return o
 
@@ -88,7 +89,7 @@ class Decide(unittest.TestCase):
         self.assertEqual((r["decision"], r["reason_codes"]), ("hold", ["delivery_without_items"]))
 
     def test_check4_language(self):
-        r = self.d(obs(html_lang="de"))
+        r = self.d(obs(html_lang="de", judge={"by": "fixture", "specialised": False}))
         if A._ready is None:  # our rules: titles vs page tag disagree -> a person decides
             self.assertEqual((r["decision"], r["reason_codes"]), ("hold", ["language_uncertain"]))
         else:  # Lingua is confident about the titles; the page tag is only recorded
@@ -104,6 +105,27 @@ class Decide(unittest.TestCase):
         self.assertEqual(self.d(obs())["country"], "international")
         r = self.d(obs(url="https://news.example.de/", candidate={"url": "https://news.example.de/", "guessed_country": "FR"}))
         self.assertEqual((r["decision"], r["country"]), ("accept", "international"))
+
+    def test_six_unreviewed_channels_wait_with_exact_delivery(self):
+        for n in range(6):
+            url = f"https://agency{n}.gov.example/"
+            for delivery in ("feed", "page"):
+                with self.subTest(n=n, delivery=delivery):
+                    rec = self.d(obs(url, delivery=delivery, judge=None))
+                    self.assertEqual((rec["decision"], rec["reason_codes"]), ("hold", ["no_judge"]))
+                    self.assertEqual(rec["delivery_url"], url + "feed")
+
+    def test_owner_approval_still_requires_other_checks(self):
+        approved = self.d(obs(judge=None, approval_reasons=["owner_accept"]))
+        self.assertEqual((approved["decision"], approved["reason_codes"]), ("accept", ["owner_accept"]))
+        blocked = self.d(obs(judge=None, approval_reasons=["owner_accept"], robots={"allowed": False}))
+        self.assertEqual(blocked["reason_codes"], ["robots_denied"])
+
+    def test_shared_gate_version_and_exact_owner_reason(self):
+        self.assertTrue(A.can_poll("https://x.example/feed", "a2sa-shadow-0.10", {"by": "fixture"}, []))
+        self.assertTrue(A.can_poll("https://x.example/feed", "a2sa-shadow-0.7", {"by": "fixture"}, []))
+        self.assertFalse(A.can_poll("https://x.example/feed", "a2sa-shadow-0.6", {"by": "fixture"}, []))
+        self.assertFalse(A.can_poll("https://x.example/feed", None, None, ["not_owner_accept"]))
         r = self.d(obs(url="https://news.example.pl/", candidate={"url": "https://news.example.pl/", "guessed_country": "PL"}))
         self.assertEqual(r["country"], "PL")
 

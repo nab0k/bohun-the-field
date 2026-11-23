@@ -197,6 +197,8 @@ def home_general(candidate, url, body, site_name=None, obs=None):
     if JUDGE:
         heads = [(cycle.safe_link(url, h), lbl) for h, lbl in links if len(lbl.split()) >= 4][:25]
         navs = [(cycle.safe_link(url, h), lbl) for h, lbl in links if 1 <= len(lbl.split()) <= 3][:15]
+        if obs is not None:
+            obs["judge_attempted"] = sum(bool(u) for u, _ in heads + navs) >= 5
         verdict = JUDGE(host, site_name, heads + navs)
         if verdict:
             if obs is not None:
@@ -215,6 +217,18 @@ def home_general(candidate, url, body, site_name=None, obs=None):
     if n >= GENERAL_MIN_LINKS and share < GENERAL_SHARE:
         return {"home_share": round(share, 3), "home_links": n}
     return None
+
+
+def review_delivery(obs):
+    if JUDGE and not obs.get("judge_attempted"):
+        host = urlsplit(obs["delivery_url"]).hostname or ""
+        pairs = [(item.get("url"), item["title"]) for item in obs["items"] if item.get("title")]
+        verdict = JUDGE(host, obs.get("site_name"), pairs)
+        if verdict:
+            obs["judge"] = verdict
+            if verdict.get("specialised") is False:
+                obs["general_outlet"] = {"judge": verdict.get("by"), "delivery_review": True}
+    return obs
 
 
 def observe(candidate, http, max_targets=3, use_feedsearch=False):
@@ -243,14 +257,22 @@ def observe(candidate, http, max_targets=3, use_feedsearch=False):
     if home.status != 200:
         return obs
     final = cycle.channel_url(home.url)
-    if _is_feed(home):
+    exact = candidate.get("expected_delivery")
+    if _is_feed(home) and exact != "page":
         obs.update(delivery="feed", delivery_url=final, items=feed_items(home, final))
+        return review_delivery(obs)
+    if exact == "feed":
+        obs["fetch"]["status"] = "connect_error"
         return obs
     if _mime(home) != "text/html":
         return obs
     page = PublicationPage(home.body)
     obs["html_lang"] = page.lang or page.metadata.get("og:locale", "").replace("_", "-")
     obs["site_name"] = (page.metadata.get("og:site_name") or page.title or "").strip()[:200]
+    if exact == "page":
+        items = cycle.dated_page_items(page, final, http) or undated_section_items(home.body, final)
+        obs.update(delivery="page", delivery_url=final, items=items)
+        return review_delivery(obs)
     general = home_general(candidate, final, home.body, obs.get("site_name"), obs) if candidate.get("prefilter") else None
     judged_section = general.pop("section", None) if general and "section" in general else None
     if general:  # D-20261118-A1SD-RETRO-PLAN-G2: a general outlet costs one page, not a feed hunt
@@ -259,7 +281,7 @@ def observe(candidate, http, max_targets=3, use_feedsearch=False):
     own = cycle.dated_page_items(page, final, http) if candidate.get("mode") == "channel" else []
     if len(own) >= 2:
         obs.update(delivery="page", delivery_url=final, items=own)
-        return obs
+        return review_delivery(obs)
     undated = None
     root = "https://" + urlsplit(final).netloc
     targets = sorted(section_links(final, home.body), key=lambda t: t[1] != "feed")[:max_targets]
@@ -297,12 +319,12 @@ def observe(candidate, http, max_targets=3, use_feedsearch=False):
             items = feed_items(r, turl)
             if len(items) >= 2:
                 obs.update(delivery="feed", delivery_url=turl, items=items)
-                return obs
+                return review_delivery(obs)
         elif _mime(r) == "text/html" and route != "guess":
             items = cycle.dated_page_items(PublicationPage(r.body), turl, http)
             if len(items) >= 2:
                 obs.update(delivery="page", delivery_url=turl, items=items)
-                return obs
+                return review_delivery(obs)
             undated = undated or (turl, undated_section_items(r.body, turl))
     if _ready is not None and use_feedsearch and not judged_section:  # feedsearch-crawler: own fetches, robots, 1 at a time
         try:
@@ -323,7 +345,8 @@ def observe(candidate, http, max_targets=3, use_feedsearch=False):
                 items = feed_items(r, cycle.channel_url(r.url))
                 if len(items) >= 2:
                     obs.update(delivery="feed", delivery_url=cycle.channel_url(r.url), items=items, feed_found_by="feedsearch")
-                    return obs
+                    return review_delivery(obs)
     if undated and undated[1]:
         obs.update(delivery="page", delivery_url=undated[0], items=undated[1])
+        return review_delivery(obs)
     return obs

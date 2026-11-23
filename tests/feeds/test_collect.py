@@ -47,7 +47,7 @@ class Net:
 
 class Collect(unittest.TestCase):
     def test_eligible_and_canonical(self):
-        rows = [("c1", "https://a.example/feed", "a2sa-shadow-0.7", True, [], None, None),
+        rows = [("c1", "https://a.example/feed", "a2sa-shadow-0.7", {"by": "fixture"}, [], None, None),
                 ("c2", "https://b.example/feed", "a2sa-shadow-0.5", False, [], None, None),
                 ("c3", "https://c.example/feed", "a2sa-shadow-0.6", False, ["owner_accept"], "E", None)]
         self.assertEqual([f["channel_id"] for f in F.eligible(rows, 10)], ["c1", "c3"])
