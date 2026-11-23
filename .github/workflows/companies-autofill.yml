@@ -18,6 +18,9 @@ on:
         description: 'Write to the database (false = dry run)'
         type: boolean
         default: false
+      scheduled_relay:
+        description: 'Started by bohun-schedule-relay (nightly run)'
+        default: 'false'
 
 permissions:
   contents: read
@@ -28,7 +31,12 @@ concurrency:
 
 jobs:
   autofill:
-    if: github.repository == 'nab0k/bohun-the-field' && (github.event_name != 'schedule' || vars.COMPANIES_AUTOFILL_ENABLED == 'true')
+    # GitHub starts this repository's cron 7-10 hours late; bohun-schedule-relay dispatches it at 02:20 instead.
+    # While SCHEDULE_RELAY_ENABLED is 'true' the late cron run skips itself; both nightly paths need COMPANIES_AUTOFILL_ENABLED.
+    if: >-
+      github.repository == 'nab0k/bohun-the-field' &&
+      (github.event_name != 'schedule' || (vars.COMPANIES_AUTOFILL_ENABLED == 'true' && vars.SCHEDULE_RELAY_ENABLED != 'true')) &&
+      (github.event.inputs.scheduled_relay != 'true' || vars.COMPANIES_AUTOFILL_ENABLED == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 70
     steps:

@@ -28,6 +28,9 @@ export function jobs(env = {}) {
     {workflow: "feed-collect.yml", at: feeds, inputs: {mode: "write"}},
     // A4SC-06 (owner 21.11 "опрашивать частые ленты чаще"): the busy feeds every 30 minutes, between the main runs
     {workflow: "feed-collect.yml", at: busy, inputs: {mode: "write", busy: "true"}},
+    // B4CE-04 step 3.5 (owner 23.11 "Да, разберись"): nightly company cards; the workflow still checks
+    // COMPANIES_AUTOFILL_ENABLED for relay runs, so switching the variable off stops it
+    {workflow: "companies-autofill.yml", at: ["02:20"], inputs: {write: "true", scheduled_relay: "true"}},
   ];
 }
 
