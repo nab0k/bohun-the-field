@@ -1,0 +1,52 @@
+name: C fresh evidence trial
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Reviewed commit SHA
+        required: true
+        type: string
+      free_quotas_confirmed:
+        description: Both free quotas have 12 calls available and paid overage is off
+        required: true
+        default: false
+        type: boolean
+      public_manifest:
+        description: Reviewed JSON for 12 public cases and any saved evidence
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: c-fresh-evidence-trial
+  cancel-in-progress: false
+jobs:
+  compare:
+    if: github.repository == 'nab0k/bohun-the-field' && github.actor == 'nab0k' && inputs.free_quotas_confirmed && inputs.expected_sha == github.sha
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13'
+      - name: Offline tests
+        run: python -B -m unittest discover -s tests/source_registry -p test_fresh_evidence_trial.py
+      - name: Check archive, Exa and Tavily
+        env:
+          EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+          PUBLIC_MANIFEST: ${{ inputs.public_manifest }}
+        run: |
+          printf '%s' "$PUBLIC_MANIFEST" > "$RUNNER_TEMP/c-fresh-manifest.json"
+          python -B -m collectors.source_registry.search.fresh_evidence_trial \
+            --manifest "$RUNNER_TEMP/c-fresh-manifest.json" --out "$RUNNER_TEMP/c-fresh-results.json"
+      - uses: actions/upload-artifact@v4.6.2
+        with:
+          name: c-fresh-evidence-results
+          path: ${{ runner.temp }}/c-fresh-results.json
+          if-no-files-found: error
+          retention-days: 3
