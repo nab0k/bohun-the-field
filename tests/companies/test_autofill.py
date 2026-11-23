@@ -26,7 +26,11 @@ class Select(unittest.TestCase):
         queue = [q('a'), q('b', tier='event', last_event='2026-11-20'), q('c', tier='event', last_event='2026-11-01')]
         attempts = {'a': '2026-11-10', 'b': '2026-11-10', 'c': '2026-11-10'}
         self.assertEqual([x['company_id'] for x in A.select(queue, attempts, self.TODAY, 10)], ['b'])
-        self.assertEqual([x['company_id'] for x in A.select(queue, {'a': '2026-10-01'}, self.TODAY, 10)], ['a', 'b', 'c'])
+        self.assertEqual([x['company_id'] for x in A.select(queue, {'a': '2026-10-01'}, self.TODAY, 10)], ['b', 'c', 'a'])  # events first
+
+    def test_events_then_companies_with_a_grant_or_award(self):
+        queue = [q('a'), q('b'), q('c', tier='event', last_event='2026-11-20'), q('d')]
+        self.assertEqual([x['company_id'] for x in A.select(queue, {}, self.TODAY, 10, with_signal={'d'})], ['c', 'd', 'a', 'b'])
 
     def test_limit_and_country(self):
         queue = [q('a'), q('b', country='CZ'), q('c')]

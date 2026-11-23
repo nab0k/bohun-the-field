@@ -66,12 +66,14 @@ ATTEMPT_SQL = """insert into companies.card_attempt (company_id, run, outcome, l
 
 
 # --- selection ------------------------------------------------------------------------------------------
-def select(queue, attempts, today, limit, countries=None):
+def select(queue, attempts, today, limit, countries=None, with_signal=None):
     """Next companies to try: a free register route, no approved card, not tried within RETRY_DAYS
-    (an event newer than the last attempt brings it back)."""
+    (an event newer than the last attempt brings it back). Within the queue order, events come first, then
+    companies with a grant or award (`with_signal`): without one a card can only be L0, which is not written."""
     since = (today - timedelta(days=RETRY_DAYS)).isoformat()
+    with_signal = with_signal or set()
     out = []
-    for q in queue:
+    for q in sorted(queue, key=lambda q: (q['tier'] != 'event', q['company_id'] not in with_signal)):
         if q['route'] not in ROUTES or q['refresh']:
             continue
         if countries and q['country'] not in countries:
@@ -244,7 +246,7 @@ def run(conn, env, limit=40, countries=None, write=False, today=None, minutes=50
     companies = conn.execute(EXPORT_SQL).fetchall()
     queue, counts = build(companies, load_feed(), today)
     attempts = {r['company_id']: r['last'] for r in conn.execute(ATTEMPTS_SQL).fetchall()}
-    chosen = select(queue, attempts, today, limit, countries)
+    chosen = select(queue, attempts, today, limit, countries, {c['id'] for c in companies if c.get('last_signal')})
     log(f'queue {counts}; chosen {len(chosen)}; write={write}')
     ids_ = [q['company_id'] for q in chosen]
     details = {r['id']: r for r in conn.execute(DETAILS_SQL, {'ids': ids_}).fetchall()} if ids_ else {}
