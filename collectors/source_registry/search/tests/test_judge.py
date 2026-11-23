@@ -159,10 +159,10 @@ class NoJudge(unittest.TestCase):
                       FakeHTTP(pages))
         return o, A.decide(o, lambda c, h: (None, None))
 
-    def test_too_few_headlines_for_judge_is_held(self):
+    def test_too_few_home_headlines_use_delivery_headlines(self):
         o, r = self.run_with(judge_says('{"specialised": true, "type": "media", "defence_section": null}'))
         self.assertTrue(o.get("judge_missing"))
-        self.assertEqual((r["decision"], r["reason_codes"]), ("hold", ["no_judge"]))
+        self.assertEqual((r["decision"], r["reason_codes"]), ("accept", []))
 
     def test_all_models_off_is_held(self):
         j = judge_says("x")
@@ -170,11 +170,11 @@ class NoJudge(unittest.TestCase):
         _, r = self.run_with(j)
         self.assertEqual(r["reason_codes"], ["no_judge"])
 
-    def test_company_site_from_base_and_no_judge_at_all_keep_keyword_rule(self):
+    def test_company_feed_and_unavailable_judge_wait_for_delivery_approval(self):
         _, r = self.run_with(judge_says("x"), layer="layer2")
-        self.assertEqual(r["decision"], "accept")
+        self.assertEqual((r["decision"], r["reason_codes"]), ("hold", ["no_judge"]))
         _, r = self.run_with(None)
-        self.assertEqual(r["decision"], "accept")
+        self.assertEqual((r["decision"], r["reason_codes"]), ("hold", ["no_judge"]))
 
     def test_defence_word_in_name_no_longer_skips_the_judge(self):
         O.JUDGE = judge_says('{"specialised": false, "type": "media", "defence_section": null, "confidence": 0.9}')

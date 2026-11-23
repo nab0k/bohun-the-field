@@ -52,8 +52,9 @@ def load(pg, sqlite_path):
     """Fill a fresh SQLite registry from the cloud state; return (conn, context)."""
     conn = A.open_db(str(sqlite_path))
     cur = pg.cursor()
-    cur.execute("select channel_id, canonical_url, status, type, delivery, country, language, since, rules_version "
-                "from source_discovery.source_state")
+    cur.execute("select s.channel_id, s.canonical_url, s.status, s.type, s.delivery, s.country, s.language, s.since, "
+                "s.rules_version, (select max(a.decision_id) from source_discovery.admission_decision a "
+                "where a.channel_id=s.channel_id) from source_discovery.source_state s")
     rows = cur.fetchall()
     with A.transaction(conn):
         conn.executemany("INSERT INTO source_state VALUES (?,?,?,?,?,?,?,?,?)",
@@ -107,7 +108,8 @@ def load(pg, sqlite_path):
     return conn, {"done": list(done), "company": company, "rnd": rnd, "company_country": company_country,
                   "known": known, "events": events, "learning": learning, "runs": runs,
                   "accepted_by_country": by_country, "accepted_by_type": by_type,
-                  "loaded_max_decision": loaded_max, "state_rows": len(rows)}
+                  "loaded_max_decision": loaded_max, "state_rows": len(rows),
+                  "loaded_state_versions": {r[0]: (r[7], r[9]) for r in rows}}
 
 
 def save(pg, conn, ctx, run):
@@ -117,21 +119,29 @@ def save(pg, conn, ctx, run):
     new = conn.execute("SELECT candidate_url, channel_id, decision, reasons_json, record_json, rules_version, decided_at,"
                        " found_via FROM admission_decision WHERE decision_id > ?", (ctx["loaded_max_decision"],)).fetchall()
     states = conn.execute("SELECT * FROM source_state WHERE since >= ?", (start,)).fetchall()
+    versions = ctx["loaded_state_versions"]
+    states = [r for r in states if r[0] not in versions or r[7] != versions[r[0]][0].isoformat()]
     seen = conn.execute("SELECT * FROM candidate_seen WHERE decided_at >= ?", (start,)).fetchall()
     with pg.transaction():
         cur = pg.cursor()
-        for r in new:
-            cur.execute("insert into source_discovery.admission_decision(candidate_url, channel_id, decision, reasons,"
-                        " record, rules_version, decided_at, found_via, run_id) values (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-                        (r[0], r[1], r[2], Jsonb(json.loads(r[3])), Jsonb(json.loads(r[4])), r[5], r[6],
-                         Jsonb(json.loads(r[7] or "null")), run["run_id"]))
         for r in states:
             cur.execute("insert into source_discovery.source_state values (%s,%s,%s,%s,%s,%s,%s,%s,%s) "
                         "on conflict (channel_id) do update set status=excluded.status, since=excluded.since, "
                         "rules_version=excluded.rules_version, type=excluded.type, delivery=excluded.delivery, "
                         "country=excluded.country, language=excluded.language "
-                        "where source_discovery.source_state.status in ('candidate', 'on_hold') "
-                        "or source_discovery.source_state.channel_id = any(%s)", (*r, run.get("audited_channels", [])))
+                        "where (source_discovery.source_state.status in ('candidate', 'on_hold') "
+                        "or source_discovery.source_state.channel_id = any(%s)) "
+                        "and source_discovery.source_state.since is not distinct from %s "
+                        "and (select max(a.decision_id) from source_discovery.admission_decision a "
+                        "where a.channel_id=source_discovery.source_state.channel_id) is not distinct from %s",
+                        (*r, run.get("audited_channels", []), *versions.get(r[0], (None, None))))
+            if cur.rowcount != 1:
+                raise RuntimeError("SOURCE_STATE_CHANGED")
+        for r in new:
+            cur.execute("insert into source_discovery.admission_decision(candidate_url, channel_id, decision, reasons,"
+                        " record, rules_version, decided_at, found_via, run_id) values (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                        (r[0], r[1], r[2], Jsonb(json.loads(r[3])), Jsonb(json.loads(r[4])), r[5], r[6],
+                         Jsonb(json.loads(r[7] or "null")), run["run_id"]))
         for r in seen:
             cur.execute("insert into source_discovery.candidate_seen values (%s,%s,%s,%s,%s) on conflict (candidate_url) "
                         "do update set last_decision=excluded.last_decision, decided_at=excluded.decided_at, "

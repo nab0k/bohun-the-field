@@ -320,9 +320,10 @@ def poll_page(page, fetcher, now, seen, budget, extract_fn=extract, write=False)
 
 
 PAGES_SQL = """
-select s.channel_id, s.canonical_url, d.rules_version, d.record ? 'judge', d.reasons, null, null
+select s.channel_id, s.canonical_url, d.rules_version, case when d.decision='accept' then d.record->'judge' end,
+       case when d.decision='accept' then d.reasons end, null, null
 from source_discovery.source_state s
-join lateral (select rules_version, record, reasons from source_discovery.admission_decision a
+join lateral (select decision, rules_version, record, reasons from source_discovery.admission_decision a
               where a.channel_id = s.channel_id order by decision_id desc limit 1) d on true
 where s.status = 'accepted' and s.delivery = 'page'
 order by s.since

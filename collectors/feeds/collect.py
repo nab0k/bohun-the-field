@@ -37,28 +37,23 @@ TIMEOUT = 15
 HOST_PAUSE = 2.0
 FRESH_DAYS = 7
 PER_FEED = 50
-MIN_RULES = 0.7
 RELAY_ON = (403,)
 RELAY_TIMEOUT = 30
 BUSY_PER_WEEK = 56      # 8 new entries a day: such a feed is also read by the 30-minute busy run
 TRACKING = re.compile(r"^(utm_[a-z]+|fbclid|gclid|mc_cid|mc_eid|ref|rss|cmpid)$", re.I)
 
 FEEDS_SQL = """
-select s.channel_id, s.canonical_url, d.rules_version, d.record ? 'judge', d.reasons,
+select s.channel_id, s.canonical_url, d.rules_version, case when d.decision='accept' then d.record->'judge' end,
+       case when d.decision='accept' then d.reasons end,
        p.etag, p.last_modified
 from source_discovery.source_state s
-join lateral (select rules_version, record, reasons from source_discovery.admission_decision a
+join lateral (select decision, rules_version, record, reasons from source_discovery.admission_decision a
               where a.channel_id = s.channel_id order by decision_id desc limit 1) d on true
 left join lateral (select etag, last_modified from source_discovery.feed_poll f
                    where f.channel_id = s.channel_id and f.http_status = 200 order by polled_at desc limit 1) p on true
 where s.status = 'accepted' and s.delivery = 'feed'
 order by s.since
 """
-
-
-def rules_number(version):
-    m = re.search(r"(\d+\.\d+)$", version or "")
-    return float(m.group(1)) if m else 0.0
 
 
 # A4SC-06 busy feeds (owner 21.11 "опрашивать частые ленты чаще", Miniflux's entry-frequency idea): 8+ new entries a
@@ -97,10 +92,11 @@ def compare_feeds(cur, fetcher, now, limit=120, only=None):
 
 def eligible(rows, limit):
     """Accepted feeds checked under rules >= 0.7 with the judge's verdict, or accepted by the owner."""
+    from collectors.source_registry.search.eligibility import can_poll
+
     out = []
     for channel, url, rules, judged, reasons, etag, modified in rows:
-        owner = "owner_accept" in json.dumps(reasons or [])
-        if url and url.startswith(("https://", "http://")) and (owner or (rules_number(rules) >= MIN_RULES and judged)):
+        if can_poll(url, rules, judged, reasons):
             out.append({"channel_id": channel, "url": url, "etag": etag, "last_modified": modified})
     return out[:limit]
 

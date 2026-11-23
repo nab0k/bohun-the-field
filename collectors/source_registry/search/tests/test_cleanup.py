@@ -65,7 +65,7 @@ class Audit(unittest.TestCase):
         obs = {"candidate": {"url": url, "found_via": {"layer": "layer1"}}, "fetch": {"status": 200, "final_url": url},
                "robots": {"state": "rules", "allowed": True}, "delivery": "feed", "delivery_url": delivery,
                "items": [{"title": t, "date": "2026-11-18T08:00:00+00:00", "url": f"{url}a/{i}"} for i, t in enumerate(DEF)],
-               "html_lang": "en"}
+               "html_lang": "en", "judge": {"specialised": True, "by": "fixture"}}
         counts, _ = A.admit(conn, [obs])
         self.assertEqual(counts["accept"], 1)
         return obs
@@ -101,7 +101,7 @@ class Audit(unittest.TestCase):
             conn = A.open_db(str(Path(d) / "r.sqlite"))
             for url, reasons, rules, record in (("https://old.example/", "[]", "a2sa-shadow-0.5", "{}"),
                                                 ("https://owner.example/", '["owner_accept"]', "a2sa-shadow-0.5", "{}"),
-                                                ("https://fresh.example/", "[]", A.RULES_VERSION, '{"judge": {}}')):
+                                                ("https://fresh.example/", "[]", A.RULES_VERSION, '{"judge": {"specialised": true}}')):
                 conn.execute("INSERT INTO candidate_seen VALUES (?,?,?,?,?)", (url, "accept", "2026-11-18", 0, "ch-" + url))
                 conn.execute("INSERT INTO admission_decision(candidate_url, channel_id, decision, reasons_json, "
                              "record_json, rules_version, decided_at) VALUES (?,?,?,?,?,?,?)",
@@ -115,7 +115,7 @@ class Audit(unittest.TestCase):
 class SeededAudit(unittest.TestCase):
     """20.11: 86 accepted sources were seeded from the Mac with no candidate_seen row and no decision."""
 
-    def test_seeded_accepted_source_is_audited_through_its_root(self):
+    def test_seeded_accepted_source_is_audited_at_its_channel(self):
         import run_daily as R
         with tempfile.TemporaryDirectory() as d:
             conn = A.open_db(str(Path(d) / "r.sqlite"))
@@ -123,15 +123,41 @@ class SeededAudit(unittest.TestCase):
                          ("ch-seed", "https://seed.example/comments/feed", "accepted", "media", "feed", "NL", "nl",
                           "2026-11-18T10:00:00+00:00", "a2sa-shadow-0.5"))
             got = R.audit_candidates(conn)
-            self.assertEqual([(c["url"], ch) for c, ch in got], [("https://seed.example/", "ch-seed")])
+            self.assertEqual([(c["url"], ch) for c, ch in got], [("https://seed.example/comments/feed", "ch-seed")])
             # the judge says general now: the seeded channel leaves the accepted list, nothing "already known"
-            gen = {"candidate": got[0][0], "fetch": {"status": 200, "final_url": "https://seed.example/"},
+            gen = {"candidate": got[0][0], "fetch": {"status": 200, "final_url": got[0][0]["url"]},
                    "robots": {"state": "rules", "allowed": True}, "general_outlet": {"judge": "fake"}, "items": []}
-            counts, _ = A.admit(conn, [gen], audit={"https://seed.example/": "ch-seed"})
+            counts, _ = A.admit(conn, [gen], audit={got[0][0]["decision_url"]: "ch-seed"})
             self.assertEqual(counts["general"], 1)
             st = dict(conn.execute("SELECT canonical_url, status FROM source_state").fetchall())
             self.assertNotEqual(st["https://seed.example/comments/feed"], "accepted")
             self.assertEqual(R.audit_candidates(conn), [])  # decided now: not audited again
+            conn.close()
+
+    def test_review_keeps_exact_channels_and_preserves_confirmed_admission_during_judge_outage(self):
+        import run_daily as R
+        with tempfile.TemporaryDirectory() as d:
+            conn = A.open_db(str(Path(d) / "r.sqlite"))
+            url = "https://agency.example/"
+            paths = [url + "dept-a/feed", url + "dept-b/feed"]
+            for n, path in enumerate(paths):
+                conn.execute("INSERT INTO source_state VALUES (?,?,?,?,?,?,?,?,?)",
+                             (f"ch-{n}", path, "accepted", "agency", "feed", "PL", "en",
+                              "2026-11-19T10:00:00+00:00", "a2sa-shadow-0.7"))
+            got = R.audit_candidates(conn)
+            self.assertEqual([c["url"] for c, _ in got], paths)
+            for candidate, channel in got:
+                if channel == "ch-0":
+                    conn.execute("INSERT INTO admission_decision(candidate_url, channel_id, decision, reasons_json, "
+                                 "record_json, rules_version, decided_at) VALUES (?,?,?,?,?,?,?)",
+                                 (candidate["url"], channel, "accept", "[]", '{"judge":{"specialised":true}}',
+                                  "a2sa-shadow-0.7", "2026-11-19"))
+                obs = {"candidate": candidate, "fetch": {"status": 200, "final_url": candidate["url"]},
+                       "robots": {"allowed": True}, "delivery": "feed", "delivery_url": candidate["url"],
+                       "items": [{"title": title, "date": "2026-11-22"} for title in DEF], "html_lang": "en"}
+                A.admit(conn, [obs], audit={candidate["decision_url"]: channel})
+            self.assertEqual(dict(conn.execute("SELECT channel_id, status FROM source_state")),
+                             {"ch-0": "accepted", "ch-1": "on_hold"})
             conn.close()
 
     def test_measure_ignores_rechecks_and_audit(self):

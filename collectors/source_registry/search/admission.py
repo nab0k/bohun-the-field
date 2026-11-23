@@ -26,8 +26,9 @@ from urllib.parse import urlsplit
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import registry  # noqa: E402
+from eligibility import can_poll, owner_accepted  # noqa: E402
 
-RULES_VERSION = "a2sa-shadow-0.9"  # 0.2: fixes after the 18.11 shadow run; 0.3: no-news sites kept (D-20261118-A1SD-NO-NEWS-KEEP)
+RULES_VERSION = "a2sa-shadow-0.10"
 FRESH_DAYS = 60
 REJECT_COOLDOWN_DAYS = 90
 TOPIC_MIN_SHARE = 0.20
@@ -401,12 +402,14 @@ def decide(obs, known, now=None):
             return out("general", "topic_below_threshold", **base)
         else:
             checks.append({"check": 8, "result": "pass", "share": round(share, 3), "sample": n})
-    if obs.get("judge_missing"):
+    reasons = obs.get("approval_reasons", [])
+    needs_review = delivery in ("feed", "page") and not can_poll(canon, RULES_VERSION, obs.get("judge"), reasons)
+    if needs_review or (delivery not in ("feed", "page") and obs.get("judge_missing")):
         # 0.6: found by search, not judged (too few headlines or no model answered): keywords alone do not admit it;
         # it waits for the next check (recheck after RECHECK_AFTER_DAYS, with the judge)
         checks.append({"check": 8, "result": "doubt", "basis": "no_judge"})
         return out("hold", "no_judge", **base)
-    return out("accept", None, **base)
+    return out("accept", "owner_accept" if owner_accepted(reasons) else None, **base)
 
 
 SCHEMA = """
@@ -480,7 +483,7 @@ def admit(conn, observations, now=None, redecide=(), recheck=(), audit=()):
     known = known_in(conn)
     results = []
     for obs in observations:
-        curl = registry.canonical_url(obs["candidate"]["url"])
+        curl = registry.canonical_url(obs["candidate"].get("decision_url") or obs["candidate"]["url"])
         seen = conn.execute("SELECT last_decision, decided_at, transient FROM candidate_seen WHERE candidate_url=?",
                             (curl,)).fetchone()
         if seen and seen[0] == "reject" and now - parse_date(seen[1]) < dt.timedelta(days=REJECT_COOLDOWN_DAYS):
@@ -499,15 +502,30 @@ def admit(conn, observations, now=None, redecide=(), recheck=(), audit=()):
             counts["skipped_decided"] += 1
             continue
         obs = {**obs, "prior_transient": seen[2] if seen else 0}
-        old = None
+        old = obs["candidate"].get("expected_channel_id")
         if curl in audit:
             # 20.11: audit may name the accepted channel itself (sources seeded from the Mac have no candidate_seen row)
-            old = audit.get(curl) if isinstance(audit, dict) else None
+            old = old or (audit.get(curl) if isinstance(audit, dict) else None)
             if old is None and seen:
                 old = conn.execute("SELECT channel_id FROM candidate_seen WHERE candidate_url=?", (curl,)).fetchone()[0]
-        rec = decide(obs, (lambda c, h, _o=old: (None, None) if _o and known(c, h)[1] == _o else known(c, h))
+        previous = None
+        if old:
+            previous = conn.execute(
+                "SELECT s.status, s.canonical_url, d.rules_version, d.record_json, d.reasons_json, d.decision "
+                "FROM source_state s LEFT JOIN admission_decision d ON d.decision_id=("
+                "SELECT max(decision_id) FROM admission_decision WHERE channel_id=s.channel_id) "
+                "WHERE s.channel_id=?", (old,)).fetchone()
+        if previous and previous[0] == "accepted" and previous[5] == "accept" and owner_accepted(json.loads(previous[4] or "[]")):
+            obs = {**obs, "approval_reasons": json.loads(previous[4])}
+        rec = decide(obs, (lambda c, h, _o=old: (None, None) if known(c, h)[1] == _o else known(c, h))
                      if old else known, now)
-        if old and rec["decision"] == "retry":
+        if previous and obs["candidate"].get("expected_channel_id") and rec.get("delivery_url") not in (None, previous[1]):
+            rec = {**rec, "decision": "retry", "reason_codes": ["channel_changed"]}
+        confirmed = previous and previous[0] == "accepted" and previous[5] == "accept" and can_poll(
+            previous[1], previous[2], json.loads(previous[3] or "{}").get("judge"),
+            json.loads(previous[4] or "[]"))
+        if old and (rec["decision"] == "retry" or (confirmed and rec["reason_codes"] == ["no_judge"])):
+            rec = {**rec, "decision": "retry"}
             counts["retry"] += 1
             results.append(rec)
             continue  # 0.7: a site that did not answer today keeps its accepted channel
@@ -516,7 +534,8 @@ def admit(conn, observations, now=None, redecide=(), recheck=(), audit=()):
         with transaction(conn):
             channel = None
             if rec["decision"] in STATUS and rec.get("delivery_url"):
-                channel = registry.channel_id_for(rec["delivery_url"])
+                channel = old if previous and rec["delivery_url"] == previous[1] else registry.channel_id_for(
+                    rec["delivery_url"])
                 conn.execute("INSERT INTO source_state VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(channel_id) DO UPDATE SET "
                              "status=excluded.status, since=excluded.since, rules_version=excluded.rules_version, "
                              "type=excluded.type, country=excluded.country, language=excluded.language "

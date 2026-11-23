@@ -73,6 +73,14 @@ JOBS = [{"layer": "layer1", "country": "PL", "category": "ew", "lang": "pl", "ty
 
 
 class Flow(unittest.TestCase):
+    def setUp(self):
+        previous = O.JUDGE
+        O.JUDGE = lambda host, name, pairs: {
+            "specialised": host != "generalnews.example.de" or any("/verteidigung/" in u for u, _ in pairs),
+            "by": "fixture",
+        } if len(pairs) >= 5 else None
+        self.addCleanup(setattr, O, "JUDGE", previous)
+
     def test_live_cycle_imports_resolve(self):  # cycle 2 first start: import order broke main() only
         Budget, HTTP = C.network_parts()
         self.assertTrue(callable(Budget) and callable(HTTP))
@@ -109,7 +117,7 @@ class Flow(unittest.TestCase):
             pages["https://generalnews.example.de/verteidigung/"] = (200, HTML, (
                 '<html lang="de"><link rel="alternate" type="application/rss+xml" href="/verteidigung/rss"></html>'
             ).encode())
-            pages["https://generalnews.example.de/verteidigung/rss"] = (200, RSS, rss("generalnews.example.de", DEF))
+            pages["https://generalnews.example.de/verteidigung/rss"] = (200, RSS, rss("generalnews.example.de", DEF).replace(b"/a/", b"/verteidigung/a/"))
             job = {"layer": "section", "site": "example.de", "lang": "de", "type_hint": "media",
                    "query": "Verteidigung", "include_domains": ["example.de"], "topic": "general", "max_results": 5}
 
