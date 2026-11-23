@@ -141,6 +141,15 @@ class SameName(unittest.TestCase):
         self.assertEqual(A.run(conn, {}, today=date(2026, 11, 22), log=lambda *_: None)['outcomes'], {'would_write': 1})
 
 
+class Only(unittest.TestCase):
+    def test_select_only_the_named_companies(self):  # before publication, owner 23.11.2026
+        q = [{'company_id': c, 'route': 'open_register', 'refresh': False, 'country': 'CZ', 'tier': 'event',
+              'last_event': None} for c in ('a', 'b', 'c')]
+        got = A.select(q, {}, date(2026, 11, 23), 10, only={'b'})
+        self.assertEqual([x['company_id'] for x in got], ['b'])
+        self.assertEqual(len(A.select(q, {}, date(2026, 11, 23), 10)), 3)
+
+
 class FreeModels(unittest.TestCase):
     def test_chain_free_first_paid_last(self):
         import os

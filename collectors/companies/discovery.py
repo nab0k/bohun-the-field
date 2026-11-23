@@ -433,3 +433,13 @@ NEW_MENTIONS_SQL = MENTIONS_SQL.replace(
     "where n.kind in ('company', 'org')",
     "where n.kind in ('company', 'org')\n  and not exists (select 1 from companies.mention_link l where l.node_id = n.id)"
     "\n  and not exists (select 1 from companies.discovery_review r where r.node_id = n.id and r.category <> 'unsure')")
+
+# before publication (owner 23.11.2026, D-20261123-COMPANY-CARDS-AUTOPUBLISH): the unsettled mentions of the newest
+# materials only, and the companies they name
+RECENT_MENTIONS_SQL = NEW_MENTIONS_SQL.replace(
+    " order by n.id", "\n  and n.created_at > now() - make_interval(hours => %(hours)s) order by n.id")
+RECENT_COMPANIES_SQL = """select distinct l.company_id from companies.mention_link l
+join knowledge.node n on n.id = l.node_id
+join companies.company c on c.id = l.company_id and c.excluded_reason is null
+where n.created_at > now() - make_interval(hours => %(hours)s)
+  and not exists (select 1 from companies.profile_claim p where p.company_id = l.company_id and p.qa_status = 'APPROVED')"""
