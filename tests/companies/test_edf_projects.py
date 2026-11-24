@@ -23,6 +23,19 @@ class Details(unittest.TestCase):
         self.assertEqual(E.for_company(d, names=['Naval Group'])['role'], 'participant')  # by name when no PIC
         self.assertNotIn('role', E.for_company(d, names=['Somebody Else']))
 
+    def test_other_participants_short_form(self):  # EXP-035: the network, never addresses
+        md = dict(MD, participants=[json.dumps([
+            {'role': 'coordinator', 'legalName': 'NAVAL  GROUP BELGIUM', 'pic': 893356906, 'type': 'PRC',
+             'postalAddress': {'street': '15 BOULEVARD', 'city': 'BRUSSELS', 'countryCode': {'abbreviation': 'BE'}},
+             'latitude': '50.85', 'webLink': 'x'},
+            {'role': 'participant', 'legalName': 'TNO', 'pic': '7', 'type': 'REC'},
+            {'role': 'participant', 'legalName': 'NAVAL GROUP', 'pic': '906'}])])
+        me = E.for_company(E.parse(md), pics=['906'])
+        self.assertEqual(me['participants'], [
+            {'name': 'NAVAL GROUP BELGIUM', 'country': 'BE', 'kind': 'company', 'role': 'coordinator', 'pic': '893356906'},
+            {'name': 'TNO', 'country': None, 'kind': 'research', 'role': 'participant', 'pic': '7'}])
+        self.assertNotIn('BRUSSELS', json.dumps(me))
+
     def test_fetch_batches(self):
         seen = []
 

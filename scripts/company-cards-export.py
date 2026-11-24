@@ -4,7 +4,8 @@
 The site job used to read the cards from Supabase with its own service key. Now the FIELD autofill, which already
 has database access, exports them (public.export_company_cards_auto()) and passes them with the dispatch as one
 gzip+base64 input, so the site repository needs no database key. Only cards reviewed in the last DAYS days go,
-newest first, cut to fit the dispatch limit; the site never replaces a published profile, so a card sent twice
+newest first, cut to fit the dispatch limit; each card carries its network and products from the knowledge graph
+(EXP-035), and a card whose company gained relations in the news goes again; the site never replaces a published profile, so a card sent twice
 is harmless. Prints counts only.
 """
 import base64
@@ -15,6 +16,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from collectors.companies import graph as G  # noqa: E402
 from collectors.companies.pg_store import connect_params  # noqa: E402
 
 DAYS = 7
@@ -79,6 +81,13 @@ def main():
     since = datetime.now(timezone.utc) - timedelta(hours=hours)
     with psycopg.connect(**connect_params(), autocommit=True, row_factory=dict_row) as conn:
         cards = conn.execute('select public.export_company_cards_b4(%(d)s) as c', {'d': since.date()}).fetchone()['c'] or []
+        # EXP-035: a card whose company gained relations in the news goes again, with its network and products
+        have = {c['company_id'] for c in cards}
+        more = {r['company_id'] for r in conn.execute(G.CHANGED_SQL, {'since': since, 'rels': list(G.RELS)}).fetchall()} - have
+        if more:
+            every = conn.execute("select public.export_company_cards_b4('2000-01-01') as c").fetchone()['c'] or []
+            cards += [c for c in every if c['company_id'] in more]
+        G.attach(conn, cards)
         catalogue = conn.execute(CATALOGUE_SQL.replace('order by', 'and created_at >= %(t)s order by'), {'t': since}).fetchall()
     if out.suffix:  # a caller passing one file (kb-daily before the feed): the cards first, as before
         text, sent, sent_cat, left = pack(cards, catalogue)
