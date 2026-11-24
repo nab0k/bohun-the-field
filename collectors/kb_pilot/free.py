@@ -133,8 +133,11 @@ def providers_from_env():
 
 
 class FreeModel:
-    def __init__(self, fallback, account=None, token=None, transport=http_post_json, model=FREE_MODEL, providers=None):
+    def __init__(self, fallback, account=None, token=None, transport=http_post_json, model=FREE_MODEL, providers=None,
+                 paid=None):
         self.fallback, self.transport = fallback, transport
+        # KB_PAID_GEMINI=0: what no free provider answered fails alone instead of going to paid Gemini
+        self.paid = paid if paid is not None else os.environ.get("KB_PAID_GEMINI", "1") != "0"
         if providers is None:
             if account is not None or token is not None:  # explicit Cloudflare only (tests, single-provider runs)
                 providers = [cloudflare(account, token, model)] if account and token else []
@@ -250,6 +253,11 @@ class FreeModel:
         else:
             self._note("free_disabled", len(reqs))
         rest = [i for i, o in enumerate(out) if o is None]
+        if rest and not self.paid:
+            self._note("paid_off", len(rest))
+            for i in rest:
+                out[i] = ("error", RuntimeError("no_free_provider"))
+            return out
         if rest:
             self._note("paid_gemini", len(rest))
             answers = self.fallback.many([reqs[i]["gemini"] for i in rest])
