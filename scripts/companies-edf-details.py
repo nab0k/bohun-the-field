@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Add European Defence Fund project details to the approved programme claims of company cards (B4CE-04,
 owner 23.11.2026; D-20261123-COMPANY-CARDS-AUTOPUBLISH). Only claims of kind edf_grant without details are
-touched; the value gains an "edf" object (acronym, title, topic, EU contribution, the company's role and
-contribution, dates, status, partners, coordinator, project page). Dry run by default; counts only in the log."""
+touched (and, since EXP-035, those whose details lack the participants); the value gains an "edf" object (acronym, title, topic, EU contribution, the company's role and
+contribution, dates, status, partners, coordinator, project page, the other participants in short form). Dry run by default; counts only in the log."""
 import argparse
 import json
 import sys
@@ -17,12 +17,13 @@ TODO_SQL = """select p.id, p.company_id, p.claim_value, c.name,
      and l.claim_ref = 'b4:legal_name' and l.qa_status = 'APPROVED' limit 1) as legal_name,
   (select array_agg(value) from companies.company_identifier i where i.company_id = p.company_id and i.scheme = 'EU_PIC') as pics
 from companies.profile_claim p join companies.company c on c.id = p.company_id
-where p.qa_status = 'APPROVED' and p.claim_value->>'kind' = 'edf_grant' and not (p.claim_value ? 'edf')
+where p.qa_status = 'APPROVED' and p.claim_value->>'kind' = 'edf_grant'
+  and (not (p.claim_value ? 'edf') or not (p.claim_value->'edf' ? 'participants'))
 order by p.id limit %(limit)s"""
 UPDATE_SQL = """update companies.profile_claim set claim_value = claim_value || jsonb_build_object('edf', %(edf)s::jsonb),
   content_sha256 = encode(sha256(convert_to((claim_value || jsonb_build_object('edf', %(edf)s::jsonb))::text, 'UTF8')), 'hex'),
   review_note = review_note || ' | EDF project details %(day)s', updated_at = now()
-where id = %(id)s and not (claim_value ? 'edf')"""
+where id = %(id)s and (not (claim_value ? 'edf') or not (claim_value->'edf' ? 'participants'))"""
 
 
 def main():

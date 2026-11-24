@@ -4,7 +4,8 @@ the project is, the company's role and money, and link to the project page — n
 Source: EU Funding & Tenders Search API, the same public index as sources/edf.py (apiKey SEDIA_NONH2020_PROD,
 CC BY 4.0). One request per batch of project numbers. Per project: acronym, title, topic, EU contribution,
 dates, status, number of participants, coordinator; per company: its role and its EU contribution, found by its
-EU PIC or, failing that, by its legal name.
+EU PIC or, failing that, by its legal name. The other participants are kept in a short form (name, country, kind of
+organisation, role, PIC) for the network on the company page (EXP-035, owner 23.11.2026); never addresses or people.
 """
 import json
 import urllib.request
@@ -66,13 +67,25 @@ def fetch(project_ids, opener=urllib.request.urlopen, batch=40):
     return out
 
 
+KINDS = {'PRC': 'company', 'REC': 'research', 'HES': 'research', 'PUB': 'public', 'OTH': 'other'}
+
+
+def short(p):
+    """One participant without address, coordinates or contacts."""
+    cc = ((p.get('postalAddress') or {}).get('countryCode') or {}).get('abbreviation')
+    return {'name': ' '.join((p.get('legalName') or '').split()) or None, 'country': cc,
+            'kind': KINDS.get(p.get('type') or '', 'other'), 'role': (p.get('role') or '').lower() or None,
+            'pic': str(p['pic']) if p.get('pic') else None}
+
+
 def for_company(details, pics=(), names=()):
-    """The project details plus the company's role and EU contribution; participants list dropped."""
+    """The project details plus the company's role and EU contribution; the other participants in short form."""
     pics = {str(p) for p in pics}
     keys = {name_norm(n) for n in names if n}
     me = next((p for p in details.get('_participants') or [] if str(p.get('pic') or '') in pics), None) or \
         next((p for p in details.get('_participants') or [] if name_norm(p.get('legalName') or '') in keys), None)
     out = {k: v for k, v in details.items() if k != '_participants'}
+    out['participants'] = [short(p) for p in details.get('_participants') or [] if p is not me]
     if me:
         out['role'] = (me.get('role') or '').lower() or None
         try:
