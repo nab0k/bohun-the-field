@@ -118,6 +118,11 @@ jobs:
         shell: bash
         env:
           KB_MODE: pilot-publish
+          KB_RESEARCH: free          # Exa/Tavily + free model; paid Gemini search stopped 23.11 (HTTP 402)
+          KB_PAID_GEMINI: '0'        # no paid fallback for grouping, research or writing
+          KB_FREE_SEARCH_CAP: '20'   # searches per run, inside the free quotas
+          EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
         run: |
           umask 077
           audit_args=()

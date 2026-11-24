@@ -23,6 +23,8 @@ from .dossier import DbStore, KIND, MemoryStore, PREFIX, row_hash
 from .gemini import CAP_MICRO_USD, Gemini, Ledger
 from .pages import amount_forms, check_row, fetch_all, host, is_official, norm, sections
 from .free import FreeModel
+from . import free_research
+from .free_research import FreeSearch
 from .prompts import (GROUP_SCHEMA, GROUP_SYSTEM, RESEARCH_SCHEMA, RESEARCH_SYSTEM, SECTIONS, SHORT_WRITER_SCHEMA,
                       SHORT_WRITER_SYSTEM, STRUCTURE_SYSTEM, WRITER_SCHEMA, WRITER_SYSTEM)
 from ..synthesis.contracts import canonical, sha
@@ -747,10 +749,11 @@ def topic_slugs():
 
 
 def run(cur, model, items, companies_by_event, doctrine_records, out_dir, fetcher=fetch_all, store=None,
-        run_ref=None, save=None, cheap=None, template=True):
+        run_ref=None, save=None, cheap=None, template=True, searcher=None):
     """Phases over all events: grouping → research → structure → pages and facts → writer → checks → dossier.
 
     Each model phase is one call per event, or one Batch request for all events when the model is in batch mode.
+    With a searcher (KB_RESEARCH=free) research is free search plus a free model, with no structure call.
     save(ev, record, facts, cards) commits the event's verified rows to the dossier.
     """
     if not items:
@@ -799,10 +802,19 @@ def run(cur, model, items, companies_by_event, doctrine_records, out_dir, fetche
                                 "timeline": [], "supply_chain": [], "restrictions": [], "documents": []},
                       rinfo={"search_queries": 0, "grounding_chunks": [], "supports": [], "cost_micro_usd": 0},
                       sinfo={"cost_micro_usd": 0})
-        live = phase([ev for ev in evs if not ev.get("enough")], lambda ev: research_request(model, ev),
-                     lambda ev, note, info: ev.update(note=note, rinfo=info))
-        live = phase(live, lambda ev: structure_request(cheap, ev, ev["note"], ev["rinfo"]),
-                     lambda ev, research, info: ev.update(research=research, sinfo=info), cheap)
+        need = [ev for ev in evs if not ev.get("enough")]
+        if searcher is not None:  # free route: paid Gemini search is not called at all
+            for ev in need:
+                ev["sources"] = searcher(free_research.query_for(ev))
+            live = phase(need, lambda ev: free_research.request(cheap, ev, ev["sources"]),
+                         lambda ev, research, info: ev.update(
+                             research=research, rinfo=free_research.info(ev["sources"], bool(ev["sources"])),
+                             sinfo={"cost_micro_usd": 0}), cheap)
+        else:
+            live = phase(need, lambda ev: research_request(model, ev),
+                         lambda ev, note, info: ev.update(note=note, rinfo=info))
+            live = phase(live, lambda ev: structure_request(cheap, ev, ev["note"], ev["rinfo"]),
+                         lambda ev, research, info: ev.update(research=research, sinfo=info), cheap)
         live = known + live
         for ev in list(live):
             try:
@@ -858,6 +870,8 @@ def run(cur, model, items, companies_by_event, doctrine_records, out_dir, fetche
                 rec["dossier"] = {"error": type(exc).__name__ + ":" + str(exc)[:160]}
     result["batches"] = getattr(model, "batches", [])
     result["free"] = getattr(cheap, "stats", None)
+    if searcher is not None:
+        result["research_mode"], result["free_search"] = "free", getattr(searcher, "stats", None)
     return result
 
 
@@ -872,6 +886,7 @@ def summary(result, ledger):
     return {"version": result["version"], "items": result["items"], "groups": result["groups"],
             "outcomes": outcomes, "reasons": reasons, "spent_micro_usd": ledger.spent, "model_calls": ledger.calls,
             "spent_by_step": ledger.steps, "search_queries": ledger.search_queries, "free": result.get("free"),
+            "research_mode": result.get("research_mode", "gemini"), "free_search": result.get("free_search"),
             "batches": [{k: b.get(k) for k in ("step", "requests", "state", "waited_seconds", "estimated")}
                         for b in result.get("batches") or []],
             "known_programmes": sum(1 for e in result["events"] if e.get("known_programme")),
@@ -930,7 +945,8 @@ def main(argv=None):
     doctrine_records = json.loads(DOCTRINE.read_text(encoding="utf-8"))["records"]
     ledger = Ledger(cap=int(os.environ.get("KB_CAP_MICRO_USD") or CAP_MICRO_USD))
     model = Gemini(os.environ.get("GEMINI_API_KEY"), ledger, batch=args.batch)
-    cheap = FreeModel(model)  # free model when CLOUDFLARE_* secrets exist, Gemini otherwise
+    cheap = FreeModel(model)  # free model when CLOUDFLARE_* secrets exist, Gemini otherwise (KB_PAID_GEMINI=0: never)
+    searcher = FreeSearch.from_env() if os.environ.get("KB_RESEARCH", "gemini") == "free" else None
     with connect() as conn:
         with conn.cursor() as cur:
             items = select_input(cur, args, report_path)
@@ -954,7 +970,7 @@ def main(argv=None):
             try:
                 result = run(cur, model, items, by_event, doctrine_records, out_dir, store=store,
                              run_ref=args.run_ref, save=save, cheap=cheap,
-                             template=os.environ.get("KB_TEMPLATE", "1") != "0")
+                             template=os.environ.get("KB_TEMPLATE", "1") != "0", searcher=searcher)
             except BudgetStop as stop:
                 conn.rollback()
                 result = {"version": PILOT_VERSION, "items": len(items), "groups": 0, "events": [], "stop": str(stop)}
