@@ -9,6 +9,7 @@ One pass, inside --minutes:
 3. cards: the queue of refresh.py — named in the news / signals / syntheses after the last check first (larger
    first), then the large companies, then the overdue by status; carded ones in refresh mode, candidates with a
    route through the autofill;
+3b. contracts of US and Canadian companies (USAspending, Open Government Canada; EXP-035), a slice;
 4. EDF project details; then, if anything changed, the cards and the news companies go to the site (published at
    once, D-20261123-COMPANY-CARDS-AUTOPUBLISH);
 5. the daily metric.
@@ -25,6 +26,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from collectors.companies import autofill as A  # noqa: E402
+from collectors.companies import contracts as K  # noqa: E402
 from collectors.companies import discovery as X  # noqa: E402
 from collectors.companies import products as P  # noqa: E402
 from collectors.companies import refresh as F  # noqa: E402
@@ -47,6 +49,7 @@ def chain_ask(chain):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--minutes', type=int, default=15)
+    ap.add_argument('--contracts', type=int, default=6, help='US / Canadian companies to check for contracts per pass')
     ap.add_argument('--model', type=int, default=40)
     ap.add_argument('--route', type=int, default=25)
     ap.add_argument('--out', default='cards', help='directory for the export parts')
@@ -100,6 +103,13 @@ def main():
                 changed = changed or bool((s.get('outcomes') or {}).get('refreshed'))
         except Exception as e:  # noqa: BLE001
             report['cards_error'] = type(e).__name__
+        try:  # 3b. contracts (US, Canada)
+            if a.contracts and left() > 5:
+                s = K.run(conn, limit=a.contracts, write=a.write, today=today, log=quiet, minutes=max(1, min(4, left() - 4)))
+                report['contracts'] = s['outcomes']
+                changed = changed or any(k.startswith(('written', 'refreshed', 'card_made')) for k in s['outcomes'])
+        except Exception as e:  # noqa: BLE001
+            report['contracts_error'] = type(e).__name__
         try:  # 5. metric
             m = F.metric(conn.execute(F.DUE_SQL).fetchall(), today)
             report['on_time_share'] = round(m['on_time'] / m['total'], 3) if m['total'] else None

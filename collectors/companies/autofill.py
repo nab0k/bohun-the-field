@@ -74,7 +74,7 @@ where p.claim_ref = 'b4:legal_name' and p.qa_status = 'APPROVED'"""
 CARD_NOW_SQL = """select claim_ref, claim_value, review_note from companies.profile_claim where company_id = %(co)s and qa_status = 'APPROVED'"""
 SUPERSEDE_SQL = """update companies.profile_claim set qa_status = 'REJECTED', updated_at = now(),
   review_note = review_note || ' | superseded by the refresh of ' || %(day)s
-where company_id = %(co)s and qa_status = 'APPROVED'"""
+where company_id = %(co)s and qa_status = 'APPROVED' and claim_ref !~ '^b4:(spend|ctr|sub)'"""  # contracts: their own step (EXP-035)
 ATTEMPT_SQL = """insert into companies.card_attempt (company_id, run, outcome, level, reason) values (%s, %s, %s, %s, %s)"""
 
 
