@@ -14,6 +14,7 @@ from collectors.kb_pilot.free import FreeModel, OpenAICompatible
 from collectors.kb_pilot.gemini import Gemini, Ledger
 
 phase = os.environ["D2RC_PHASE"]
+shadow = os.environ.get("D2RC_SHADOW") == "1"
 
 def provider(name):
     return OpenAICompatible(name, name, "fixture-key", name)
@@ -113,7 +114,7 @@ def cloud_recovery(conn):
     with (patch.object(admit, "sources_text", return_value=cases[0]["evidence"]),
           patch.object(admit, "review", side_effect=bounded_review),
           patch.object(admit, "in_feed", return_value=False)):
-        result = admit.run(conn, reviewer, limit=1, retry_queue=True)
+        result = admit.run(conn, reviewer, limit=1, retry_queue=True, retry_policy=shadow)
     releases, = conn.execute("SELECT count(*) FROM knowledge.synthesis_admission WHERE public_release").fetchone()
     if calls != 1 or releases != result["published"] or releases > 1:
         raise SystemExit("Unexpected request or release count")
@@ -121,6 +122,7 @@ def cloud_recovery(conn):
               "no_usable_review" if result["no_reviewer"] else
               "test_publish" if releases else "hold")
     print(json.dumps({
+        "retry_policy": shadow,
         "sha": os.environ.get("GITHUB_SHA", "local"),
         "fixtures_sha256": os.environ["D2RC_FIXTURES_SHA256"],
         "order": order, "requests": calls, "route": "groq", "model": GROQ_MODEL,
@@ -190,6 +192,18 @@ with psycopg.connect(host=os.environ["D2RC_SOCKET"], port=55432, dbname=os.envir
         """)
         conn.commit()
         if phase == "cloud":
+            if shadow:
+                # The preceding offline process verifies the restart before
+                # expiry. Open the test window without waiting in real time.
+                expired = conn.execute("""
+                    UPDATE knowledge.synthesis_review_route_block
+                       SET resume_at = clock_timestamp() - interval '1 second'
+                     WHERE provider = 'groq' AND reason = 'rate_limited'
+                       AND resume_at > clock_timestamp()
+                """).rowcount
+                if expired != 1:
+                    raise SystemExit("Expected one active simulated Groq cooldown")
+                conn.commit()
             cloud_recovery(conn)
             raise SystemExit(0)
         rows = admit.held(conn.cursor(), 60, retry_queue=True)

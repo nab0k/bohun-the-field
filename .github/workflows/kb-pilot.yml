@@ -85,10 +85,21 @@ jobs:
           "$pg/pg_ctl" -D "$cluster/data" -l "$cluster/server.log" -o "-c listen_addresses= -k $cluster -p 55432" -w start
           echo "D2RC_SOCKET=$cluster" >> "$GITHUB_ENV"
           D2RC_SOCKET="$cluster" python -B scripts/d2rc_cloud_probe.py
+      - name: Simulate short 429 and verify cooldown after restart
+        env:
+          PYTHONPATH: .
+          PGHOST: ${{ env.D2RC_SOCKET }}
+          PGPORT: '55432'
+          PGDATABASE: postgres
+          D2RC_SCENARIO: short
+        run: |
+          D2RC_PHASE=failure python -B scripts/check_d2rc_retry_policy.py
+          D2RC_PHASE=restart python -B scripts/check_d2rc_retry_policy.py
       - name: Recover once through Groq
         env:
           PYTHONPATH: .
           D2RC_PHASE: cloud
+          D2RC_SHADOW: '1'
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           D2RC_FIXTURES_SHA256: '137d8d9779c8b9a890028584a39e12f14cff9c1e01a3fa9b5109738f87fd7006'
         run: |
