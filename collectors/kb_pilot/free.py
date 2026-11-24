@@ -17,6 +17,7 @@ import urllib.request
 from ..synthesis.contracts import canonical
 from ..synthesis.live import GEMINI_URL
 from .gemini import parse_json_text, parse_reply, unwrap
+from .retry_policy import retry_due, route_block, utc_now
 
 WORKERS_AI_URL = "https://api.cloudflare.com/client/v4/accounts/{}/ai/v1/chat/completions"
 FREE_MODEL = os.environ.get("KB_FREE_MODEL", "@cf/google/gemma-4-26b-a4b-it")
@@ -145,6 +146,7 @@ class FreeModel:
         self.batches = fallback.batches
         self.off, self.rate_limited, self.next_slot = set(), {}, {}
         self.lock = threading.Lock()
+        self.retry_blocks = None
         self.stats = {"free_ok": 0, "by_provider": {}, "fallback": {}}
 
     @property
@@ -185,7 +187,8 @@ class FreeModel:
 
     def _free(self, req, exclude=()):
         for p in self.providers:
-            if p.name in self.off or p.name in exclude:
+            block = self.retry_blocks.get(p.name) if self.retry_blocks is not None else None
+            if p.name in self.off or p.name in exclude or (block and not retry_due(block, utc_now())):
                 continue
             self._pace(p.name)
             try:
@@ -194,7 +197,10 @@ class FreeModel:
             except urllib.error.HTTPError as exc:
                 self._note("%s_http_%d" % (p.name, exc.code))
                 with self.lock:
-                    if exc.code in (401, 403):
+                    block = route_block(p.name, exc, utc_now()) if self.retry_blocks is not None else None
+                    if block:
+                        self.retry_blocks[p.name] = block
+                    elif exc.code in (401, 403):
                         self.off.add(p.name)
                     elif exc.code == 429:
                         self.rate_limited[p.name] = self.rate_limited.get(p.name, 0) + 1

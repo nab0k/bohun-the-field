@@ -23,6 +23,7 @@ from .extract import WEAK_JUDGES, verifier_excludes
 from .pilot import numbers_in
 from .publish import clean_sources, headline_of
 from .prompts import REVIEW_SCHEMA, REVIEW_SYSTEM
+from .retry_policy import DEFAULT_DELAY, queue_wait, utc_now
 
 RULES = "auto-admission-v1"
 MODEL_SECTIONS = ("what_happened", "bigger_picture", "why_it_matters")
@@ -139,6 +140,8 @@ def review(cheap, sources_text, version, items):
                     fixed += 1
                 else:
                     dropped.append(n)
+        elif getattr(cheap, "retry_blocks", None) is not None:
+            return None
         else:
             dropped += list(fixes)
     return keep, first[2].get("model"), {"sentences": len(items), "fixed": fixed, "dropped": len(set(dropped)),
@@ -233,34 +236,73 @@ def lock_reviewable(cur, row):
     return cur.fetchone() is not None
 
 
-def defer_review(cur, row, reason):
+def defer_review(cur, row, reason, next_attempt):
     cur.execute("""INSERT INTO knowledge.synthesis_review_retry
                       (synthesis_id, version, reason, next_attempt_at)
-                   VALUES (%s, %s, %s, clock_timestamp() + interval '15 minutes')
+                   VALUES (%s, %s, %s, %s)
                    ON CONFLICT (synthesis_id, version) DO UPDATE
                    SET reason = EXCLUDED.reason, next_attempt_at = EXCLUDED.next_attempt_at""",
-                (row["synthesis_id"], row["version"], reason))
+                (row["synthesis_id"], row["version"], reason, next_attempt))
 
 
-def run(conn, cheap, limit=60, max_publish=MAX_PUBLISH, run_ref=None, dry_run=False, retry_queue=False):
+def load_route_blocks(cur):
+    cur.execute("""SELECT provider, reason, resume_at
+                     FROM knowledge.synthesis_review_route_block
+                    WHERE resume_at IS NULL OR resume_at > clock_timestamp()""")
+    return {name: (reason, resume_at) for name, reason, resume_at in cur.fetchall()}
+
+
+def save_new_route_blocks(cur, current, previous):
+    for name, (reason, resume_at) in current.items():
+        if previous.get(name) == (reason, resume_at):
+            continue
+        cur.execute("""INSERT INTO knowledge.synthesis_review_route_block AS existing
+                           (provider, reason, resume_at)
+                       VALUES (%s, %s, %s)
+                       ON CONFLICT (provider) DO UPDATE
+                          SET reason = EXCLUDED.reason, resume_at = EXCLUDED.resume_at
+                        WHERE existing.resume_at IS NOT NULL AND
+                              (EXCLUDED.resume_at IS NULL OR EXCLUDED.resume_at >= existing.resume_at)""",
+                    (name, reason, resume_at))
+
+
+def run(conn, cheap, limit=60, max_publish=MAX_PUBLISH, run_ref=None, dry_run=False, retry_queue=False, retry_policy=False):
     stats = {"rules": RULES, "held": 0, "published": 0, "kept_held": 0, "no_reviewer": 0, "fixed": 0, "dropped": 0,
              "reasons": {}, "published_ids": [], "dry_run": dry_run}
     with conn.cursor() as cur:
         rows = held(cur, limit, retry_queue=retry_queue)
+        if retry_policy:
+            cheap.retry_blocks = load_route_blocks(cur)
+    previous = dict(cheap.retry_blocks) if retry_policy else {}
     stats["held"] = len(rows)
     for row in rows:
         with conn.cursor() as cur:
             text = sources_text(cur, row["event_id"])
             items = review_items(row["v"])
             result = review(cheap, text, row["v"], items) if text else None
+            if retry_policy and not dry_run:
+                save_new_route_blocks(cur, cheap.retry_blocks, previous)
+                previous = dict(cheap.retry_blocks)
             if result is None:
                 stats["no_reviewer"] += 1
-                if retry_queue and not dry_run and lock_reviewable(cur, row):
-                    defer_review(cur, row, "reviewer_unavailable" if text else "missing_evidence")
+                if retry_queue and not dry_run:
+                    if lock_reviewable(cur, row):
+                        now = utc_now()
+                        if text and retry_policy:
+                            eligible = verifier_excludes(cheap, None)
+                            blocks = [cheap.retry_blocks.get(p.name) for p in cheap.providers
+                                      if p.name not in eligible and p.name not in WEAK_JUDGES]
+                            reason, next_attempt = queue_wait(blocks, now)
+                        else:
+                            reason = "reviewer_unavailable" if text else "missing_evidence"
+                            next_attempt = now + DEFAULT_DELAY
+                        defer_review(cur, row, reason, next_attempt)
                     conn.commit()
+                elif dry_run:
+                    conn.rollback()
                 continue
             if retry_queue and not dry_run and not lock_reviewable(cur, row):
-                conn.rollback()
+                conn.commit()
                 continue
             texts, provider, rs = result
             stats["fixed"] += rs["fixed"]
@@ -297,15 +339,19 @@ def main(argv=None):
     parser.add_argument("--run-ref", default=os.environ.get("GITHUB_RUN_ID"))
     parser.add_argument("--no-dossier-write", action="store_true", help="dry run: decide and print, write nothing")
     parser.add_argument("--retry-queue", action="store_true", help="use the migrated D2RC review queue")
+    parser.add_argument("--retry-policy", action="store_true", help="use persistent review route blocks")
     args, _ = parser.parse_known_args(argv)  # the workflow passes the pilot's flags too
-    cheap = FreeModel(Gemini(os.environ.get("GEMINI_API_KEY") or "unused", Ledger()))
+    if args.retry_policy and not args.retry_queue:
+        parser.error("--retry-policy requires --retry-queue")
+    cheap = FreeModel(Gemini("unused", Ledger()))
     if not cheap.enabled:
         print("KB_ADMIT_RESULT " + canonical({"stop": "NO_FREE_PROVIDER"}))
         return 1
     max_publish = args.limit if args.limit and args.limit <= MAX_PUBLISH else MAX_PUBLISH
     with connect() as conn:
         stats = run(conn, cheap, max_publish=max_publish, run_ref=args.run_ref,
-                    dry_run=args.no_dossier_write, retry_queue=args.retry_queue)
+                    dry_run=args.no_dossier_write, retry_queue=args.retry_queue,
+                    retry_policy=args.retry_policy)
     stats["free"] = cheap.stats
     print("KB_ADMIT_RESULT " + canonical(stats))
     return 0
