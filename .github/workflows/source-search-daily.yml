@@ -10,6 +10,23 @@ on:
         type: boolean
         default: true
         required: false
+      scope:
+        description: 'Run the full cycle or review only selected channels'
+        type: choice
+        default: full
+        options: [full, addressed]
+      audit_channels:
+        description: 'Channel IDs for addressed review (up to 25, separated by spaces or commas)'
+        type: string
+        required: false
+      audit_judge:
+        description: 'Use the configured free Gemini key for an addressed review'
+        type: boolean
+        default: false
+      audit_apply:
+        description: 'Save addressed review decisions in the source registry'
+        type: boolean
+        default: false
   # D-20261119-A1SD-DAILY-SCHEDULE-PR: daily, shadow registry only (no product tables, collection or Inoreader)
   schedule:
     - cron: '40 4 * * *'
@@ -43,6 +60,7 @@ jobs:
         run: |
           for t in collectors/source_registry/search/tests/test_*.py; do "$RUNNER_TEMP/search/bin/python" -I "$t"; done
       - name: Search cycle (shadow)
+        if: ${{ github.event_name != 'workflow_dispatch' || ((inputs.scope == '' || inputs.scope == 'full') && inputs.audit_channels == '' && !inputs.audit_judge && !inputs.audit_apply) }}
         env:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           GEMINI_SEARCH_API_KEY: ${{ secrets.GEMINI_SEARCH_API_KEY || secrets.GEMINI_FREE_API_KEY }}
@@ -59,3 +77,49 @@ jobs:
           else
             "$RUNNER_TEMP/search/bin/python" -I collectors/source_registry/search/run_daily.py
           fi
+      - name: Review selected channels
+        if: ${{ github.event_name == 'workflow_dispatch' && (inputs.scope == 'addressed' || inputs.audit_channels != '' || inputs.audit_judge || inputs.audit_apply) }}
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          GEMINI_FREE_API_KEY: ${{ inputs.audit_judge && secrets.GEMINI_FREE_API_KEY || '' }}
+        run: |
+          "$RUNNER_TEMP/search/bin/python" -I - <<'PY'
+          import json
+          import os
+          import re
+          import sys
+          from pathlib import Path
+
+          inputs = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())["inputs"]
+          if inputs.get("scope") != "addressed":
+              raise SystemExit("Select addressed scope for channel IDs or audit flags.")
+          channels = list(dict.fromkeys(re.split(r"[\s,]+", inputs.get("audit_channels", "").strip(" ,\t\n\r"))))
+          if not 1 <= len(channels) <= 25 or any(not re.fullmatch(r"ch_[0-9a-f]{16}", c) for c in channels):
+              raise SystemExit("Supply 1 to 25 valid channel IDs.")
+
+          def flag(name, default):
+              value = inputs.get(name, default)
+              if value is True or value == "true":
+                  return True
+              if value is False or value == "false":
+                  return False
+              raise SystemExit("Invalid audit flag.")
+
+          dry = flag("dry_run", True)
+          judge = flag("audit_judge", False)
+          apply = flag("audit_apply", False)
+          if dry and (judge or apply):
+              raise SystemExit("Disable dry_run before enabling the model or saving decisions.")
+          if judge and not os.environ.get("GEMINI_FREE_API_KEY"):
+              raise SystemExit("The free Gemini key is unavailable.")
+          args = [sys.executable, "-I", "collectors/source_registry/search/run_daily.py"]
+          for channel in channels:
+              args.extend(("--audit-channel", channel))
+          if dry:
+              args.append("--dry-run")
+          if judge:
+              args.append("--audit-judge")
+          if apply:
+              args.append("--apply-audit")
+          os.execv(sys.executable, args)
+          PY
