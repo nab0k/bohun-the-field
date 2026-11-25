@@ -104,3 +104,54 @@ class Find(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class FakeConn:
+    def __init__(self, targets, searched=0):
+        self.targets, self.searched, self.writes = targets, searched, []
+
+    def execute(self, sql, params=None):
+        outer = self
+
+        class R:
+            def fetchall(self):
+                return outer.targets
+
+            def fetchone(self):
+                return {'n': outer.searched}
+        if sql.lstrip().lower().startswith(('insert', 'update')):
+            self.writes.append((sql.split()[0].lower(), params))
+        return R()
+
+
+class Step(unittest.TestCase):
+    c = {'id': 'co_k', 'name': 'KAIRNTECH', 'legal_name': 'KAIRNTECH', 'country': 'DE', 'city': 'MEYLAN', 'ids': {},
+         'has_card': True}
+    pages = {'https://kairntech.com/robots.txt': ('', 'text/plain'),
+             'https://kairntech.com/': ('<p>Kairntech Meylan' + FILL + '</p>', HTML)}
+
+    def test_found_site_is_written_with_its_proof(self):
+        conn = FakeConn([self.c])
+        s = W.run(conn, search=lambda q: [{'url': 'https://kairntech.com/'}], write=True, opener=opener(self.pages))
+        self.assertEqual(s['found'], [('co_k', True)])
+        kinds = [k for k, _ in conn.writes]
+        self.assertEqual(kinds, ['insert', 'update'])
+        self.assertEqual(conn.writes[0][1]['outcome'], 'found')
+        self.assertTrue(conn.writes[0][1]['searched'])
+
+    def test_spent_budget_leaves_the_company_for_tomorrow(self):
+        conn = FakeConn([self.c], searched=30)
+        s = W.run(conn, search=lambda q: [{'url': 'https://kairntech.com/'}], write=True, opener=opener(self.pages))
+        self.assertEqual(conn.writes, [])
+        self.assertEqual(s['outcomes']['waiting_for_search'], 1)
+
+    def test_dry_run_writes_nothing(self):
+        conn = FakeConn([self.c])
+        W.run(conn, search=lambda q: [{'url': 'https://kairntech.com/'}], write=False, opener=opener(self.pages))
+        self.assertEqual(conn.writes, [])
+
+    def test_more_products_refresh_a_card(self):
+        from collectors.companies import autofill as A
+        old = [{'claim_ref': 'b4:level', 'claim_value': {'level': 'L4'}, 'review_note': 'B4CE-04 auto'}]
+        new = [{'ref': 'b4:level', 'value': {'level': 'L4'}}, {'ref': 'b4:prod1', 'value': {}}]
+        self.assertEqual(A.compare(old, new)[0], 'refreshed')

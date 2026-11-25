@@ -261,3 +261,96 @@ def find(c, search=None, opener=urllib.request.urlopen, log=lambda *_: None):
             if why:
                 return {'website': page['url'], 'via': 'search', 'proof': why, 'ids': reg['ids'], 'tried': tried}
     return {'website': None, 'ids': reg['ids'], 'tried': tried}
+
+
+# --- web search chain -------------------------------------------------------------------------------------
+def web_search():
+    """Tavily, else Exa, else Jina (keys from the GitHub secrets via source_registry.search.providers); None
+    without any key. An empty or failed answer hands the query to the next one."""
+    import os
+    from collectors.source_registry.search import providers as P
+    if not any(os.environ.get(k) for k in ('TAVILY_API_KEY', 'EXA_API_KEY', 'JINA_API_KEY')):
+        return None
+
+    def exa(q):
+        data = P._post('https://api.exa.ai/search', {'query': q, 'numResults': 5, 'type': 'auto'}, {'x-api-key': P._key('EXA.txt')})
+        return [{'url': r.get('url'), 'title': r.get('title')} for r in data.get('results', [])]
+
+    chain = (('tavily', lambda q: P.tavily_api({'query': q, 'max_results': 5})['results']), ('exa', exa),
+             ('jina', lambda q: P.jina_search(q)['results']))
+
+    def search(q):
+        for _, fn in chain:
+            try:
+                res = fn(q)
+                if res:
+                    return res
+            except Exception:  # noqa: BLE001
+                continue
+        return []
+    return search
+
+
+# --- worker step ------------------------------------------------------------------------------------------
+TARGETS_SQL = """select c.id, c.name, c.country,
+  (select p.claim_value #>> '{}' from companies.profile_claim p where p.company_id = c.id and p.qa_status = 'APPROVED'
+     and p.claim_ref = 'b4:legal_name' limit 1) as legal_name,
+  (select p.claim_value #>> '{}' from companies.profile_claim p where p.company_id = c.id and p.qa_status = 'APPROVED'
+     and p.claim_ref = 'b4:city' limit 1) as city,
+  coalesce((select jsonb_object_agg(i.scheme, i.value) from companies.company_identifier i where i.company_id = c.id), '{}'::jsonb) as ids,
+  exists (select 1 from companies.profile_claim p where p.company_id = c.id and p.qa_status = 'APPROVED'
+          and p.claim_ref = 'b4:level') as has_card
+from companies.company c
+where (c.website is null or c.website = '') and c.excluded_reason is null
+  and not exists (select 1 from companies.website_attempt w where w.company_id = c.id
+                  and w.attempted_at > now() - interval '30 days')
+  and (exists (select 1 from companies.profile_claim p where p.company_id = c.id and p.qa_status = 'APPROVED'
+               and p.claim_ref = 'b4:level')
+       or exists (select 1 from companies.mention_link l where l.company_id = c.id))
+order by has_card desc,
+  (select count(*) from companies.mention_link l where l.company_id = c.id) desc, c.id
+limit %(limit)s"""
+SEARCHED_TODAY_SQL = """select count(*) as n from companies.website_attempt
+where searched and attempted_at >= date_trunc('day', now())"""
+ATTEMPT_SQL = """insert into companies.website_attempt (company_id, outcome, website, via, proof, searched, reason)
+values (%(company_id)s, %(outcome)s, %(website)s, %(via)s, %(proof)s, %(searched)s, %(reason)s)"""
+# only an empty website is filled: a site someone set is never replaced
+SET_SQL = """update companies.company set website = %(website)s, updated_at = now()
+where id = %(company_id)s and (website is null or website = '')"""
+DAILY_SEARCHES = 30
+
+
+def run(conn, search=None, limit=4, write=False, daily=DAILY_SEARCHES, opener=urllib.request.urlopen, log=lambda *_: None):
+    """One slice. Returns {'outcomes': {...}, 'found': [(company_id, has_card)]}. A failing company never stops it."""
+    left = max(0, daily - (conn.execute(SEARCHED_TODAY_SQL).fetchone()['n'] or 0))
+    outcomes, found = {}, []
+    for c in conn.execute(TARGETS_SQL, {'limit': limit}).fetchall():
+        c = dict(c)
+        calls = []
+
+        def counted(q):
+            calls.append(q)
+            return search(q)
+        allow = bool(search) and left > 0
+        try:
+            r = find(c, search=counted if allow else None, opener=opener)
+            outcome = 'found' if r['website'] else 'not_found'
+            reason = None if r['website'] else '; '.join(f"{t.get('url') or t.get('via')}: {t['result']}" for t in r['tried'])[:500] or 'nothing to read'
+        except Exception as e:  # noqa: BLE001
+            r, outcome, reason = {'website': None}, 'error', f'{type(e).__name__}: {str(e)[:120]}'
+        left -= len(calls)
+        if outcome == 'not_found' and search and not allow:
+            # the free paths gave nothing and today's searches are spent: tried again tomorrow, not in 30 days
+            outcomes['waiting_for_search'] = outcomes.get('waiting_for_search', 0) + 1
+            continue
+        outcomes[outcome] = outcomes.get(outcome, 0) + 1
+        log(c['name'], outcome, r.get('website'))
+        if write:
+            conn.execute(ATTEMPT_SQL, {'company_id': c['id'], 'outcome': outcome, 'website': r.get('website'),
+                                       'via': r.get('via'), 'proof': r.get('proof'), 'searched': bool(calls), 'reason': reason})
+            if r.get('website'):
+                conn.execute(SET_SQL, {'company_id': c['id'], 'website': r['website']})
+        if r.get('website'):
+            found.append((c['id'], c['has_card']))
+    outcomes['searches_left_today'] = max(0, left)
+    return {'outcomes': outcomes, 'found': found}

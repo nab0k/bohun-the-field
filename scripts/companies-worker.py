@@ -6,6 +6,8 @@
 One pass, inside --minutes:
 1. new companies from the mentions not settled yet (rules, the free model chain for up to --model unclear names);
 2. LEI / Wikidata for companies without a register route (route step, a slice);
+2b. websites for carded companies without one (registers, Wikidata, then a web search, at most 30 a day; EXP-035);
+    the ones found are refilled first in step 3, so their products come in the same pass;
 3. cards: the queue of refresh.py — named in the news / signals / syntheses after the last check first (larger
    first), then the large companies, then the overdue by status; carded ones in refresh mode, candidates with a
    route through the autofill;
@@ -31,6 +33,7 @@ from collectors.companies import discovery as X  # noqa: E402
 from collectors.companies import products as P  # noqa: E402
 from collectors.companies import refresh as F  # noqa: E402
 from collectors.companies import route as Rt  # noqa: E402
+from collectors.companies import website_finder as Wf  # noqa: E402
 from collectors.companies.pg_store import connect_params  # noqa: E402
 
 
@@ -52,6 +55,7 @@ def main():
     ap.add_argument('--contracts', type=int, default=6, help='US / Canadian companies to check for contracts per pass')
     ap.add_argument('--model', type=int, default=40)
     ap.add_argument('--route', type=int, default=25)
+    ap.add_argument('--websites', type=int, default=4, help='companies to look for a website per pass')
     ap.add_argument('--out', default='cards', help='directory for the export parts')
     ap.add_argument('--hours', type=int, default=3, help='export the cards and news companies changed in the last N hours')
     ap.add_argument('--write', action='store_true')
@@ -84,9 +88,19 @@ def main():
             report['route'] = Rt.run(conn, write=a.write, limit=a.route, minutes=max(1, min(4, left() * 0.25)))['outcomes']
         except Exception as e:  # noqa: BLE001
             report['route_error'] = type(e).__name__
+        found = []
+        try:  # 2b. websites
+            if a.websites:
+                s = Wf.run(conn, search=Wf.web_search(), limit=a.websites, write=a.write, log=quiet)
+                report['websites'], found = s['outcomes'], s['found']
+        except Exception as e:  # noqa: BLE001
+            report['websites_error'] = type(e).__name__
         try:  # 3. cards
             rows = conn.execute(F.DUE_SQL).fetchall()
             refresh_ids, fill_ids = F.plan(rows, 400, today)
+            if a.write and found:  # a new website: the card is filled again at once (products)
+                refresh_ids = [i for i, card in found if card] + [i for i in refresh_ids if i not in {x for x, _ in found}]
+                fill_ids = [i for i, card in found if not card] + [i for i in fill_ids if i not in {x for x, _ in found}]
             report['due'] = {'refresh': len(refresh_ids), 'fill': len(fill_ids)}
             # keep 4 minutes for the contracts step and 3 for EDF and the site (25.11.2026: once the cards really
             # run, they would otherwise use the whole pass)
