@@ -24,16 +24,20 @@ DUE_SQL = """with c as (
     exists (select 1 from companies.profile_claim p where p.company_id = c.id and p.qa_status = 'APPROVED') as has_card,
     (coalesce(c.country in ('CZ','NO','FR','FI','PL'), false)
       or exists (select 1 from companies.company_identifier i where i.company_id = c.id and i.scheme = 'LEI')) as has_route,
-    greatest((select max(a.attempted_at) from companies.card_attempt a where a.company_id = c.id),
-             (select max(r.attempted_at) from companies.route_attempt r where r.company_id = c.id)) as last_check,
+    (select max(a.attempted_at) from companies.card_attempt a where a.company_id = c.id) as last_card,
+    (select max(r.attempted_at) from companies.route_attempt r where r.company_id = c.id) as last_route,
     (select max(l.created_at) from companies.mention_link l where l.company_id = c.id) as last_event,
     -- size: how much the world writes about it and how much it wins (owner 23.11.2026: large companies first)
     (select count(*) from companies.mention_link l where l.company_id = c.id)
       + (select count(*) from companies.signal s where s.company_id = c.id) as size
-  from companies.company c where c.excluded_reason is null)
+  from companies.company c where c.excluded_reason is null),
+k as (select *,
+  -- a company with a card or a register route is checked by a card attempt; the route step only finds the route
+  -- (fix 25.11.2026: a route attempt made 797 never-filled companies look checked)
+  case when has_card or has_route then last_card else greatest(last_card, last_route) end as last_check from c)
 select id, country, level, has_card, has_route, last_check::date::text as last_check, size,
   (last_event is not null and (last_check is null or last_event > last_check)) as event
-from c"""
+from k"""
 METRIC_SQL = """insert into companies.refresh_metric (day, total, on_time, overdue, never_checked, checked_today, by_tier)
 values (%(day)s, %(total)s, %(on_time)s, %(overdue)s, %(never)s, %(today)s, %(tiers)s::jsonb)
 on conflict (day) do update set total = excluded.total, on_time = excluded.on_time, overdue = excluded.overdue,
@@ -95,8 +99,8 @@ def plan(rows, budget, today=None):
     for r, t, _ in due(rows, today):
         if len(refresh) + len(fill) >= budget:
             break
-        if r['has_card']:
-            refresh.append(r['id'])
+        if r['has_card'] and r['has_route']:
+            refresh.append(r['id'])  # a card without a register route is refreshed by its own step (contracts)
         elif r['has_route']:
             fill.append(r['id'])
     return refresh, fill

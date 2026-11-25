@@ -221,3 +221,34 @@ class Whitelist(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class WorkerSchedule(unittest.TestCase):
+    """25.11.2026: the worker's schedule chose companies that the autofill then dropped (fill {} / refresh {})."""
+    setUp, tearDown = RunDry.setUp, RunDry.tearDown
+
+    class Conn(FakeConn):
+        def __init__(self, card, last):
+            super().__init__(False)
+            self.card, self.last = card, last
+
+        def execute(self, sql, params=None):
+            if sql is A.EXPORT_SQL:
+                return Res([{'id': 'co1', 'name': 'ACME Oy', 'country': 'FI', 'lei': False, 'national_id': False,
+                             'last_signal': None, 'has_card': self.card}])
+            if sql is A.ATTEMPTS_SQL:
+                return Res([{'company_id': 'co1', 'last': self.last}] if self.last else [])
+            if sql is A.CARD_NOW_SQL:
+                return Res([])
+            return super().execute(sql, params)
+
+    def test_carded_company_due_for_refresh_is_taken_without_an_event(self):
+        out = A.run(self.Conn(True, None), {}, today=date(2026, 11, 25), log=lambda *_: None, only=['co1'], refresh=True)
+        self.assertEqual(out['chosen'], 1)
+
+    def test_scheduled_fill_ignores_the_retry_wait(self):
+        conn = self.Conn(False, '2026-11-20')
+        self.assertEqual(A.run(conn, {}, today=date(2026, 11, 25), log=lambda *_: None, only=['co1'])['chosen'], 0)
+        out = A.run(self.Conn(False, '2026-11-20'), {}, today=date(2026, 11, 25), log=lambda *_: None, only=['co1'],
+                    scheduled=True)
+        self.assertEqual(out['chosen'], 1)

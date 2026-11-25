@@ -88,16 +88,18 @@ def main():
             rows = conn.execute(F.DUE_SQL).fetchall()
             refresh_ids, fill_ids = F.plan(rows, 400, today)
             report['due'] = {'refresh': len(refresh_ids), 'fill': len(fill_ids)}
-            budget = max(1.0, left() - 3)  # keep 3 minutes for EDF and the site
+            # keep 4 minutes for the contracts step and 3 for EDF and the site (25.11.2026: once the cards really
+            # run, they would otherwise use the whole pass)
+            budget = max(1.0, left() - 7)
             # candidates (the news ones lead the list) get most of the pass; carded ones the rest
             fill_min = budget * (0.7 if refresh_ids else 1.0)
             if fill_ids:
                 s = A.run(conn, os.environ, limit=len(fill_ids), write=a.write, minutes=max(1, fill_min),
-                          log=quiet, only=fill_ids)
+                          log=quiet, only=fill_ids, scheduled=True)
                 report['fill'] = s.get('outcomes')
                 changed = changed or bool((s.get('outcomes') or {}).get('written'))
-            if refresh_ids and left() > 4:
-                s = A.run(conn, os.environ, limit=len(refresh_ids), write=a.write, minutes=max(1, left() - 3),
+            if refresh_ids and left() > 8:
+                s = A.run(conn, os.environ, limit=len(refresh_ids), write=a.write, minutes=max(1, left() - 7),
                           log=quiet, only=refresh_ids, refresh=True)
                 report['refresh'] = s.get('outcomes')
                 changed = changed or bool((s.get('outcomes') or {}).get('refreshed'))

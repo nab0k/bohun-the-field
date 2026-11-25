@@ -34,6 +34,13 @@ class Schedule(unittest.TestCase):
         self.assertEqual(F.plan(rows, 10, T), (['c1', 'c2'], ['k1']))  # no-route companies wait for the route step
         self.assertEqual(F.plan(rows, 1, T), (['c1'], []))
 
+    def test_card_without_a_route_is_left_to_its_own_step(self):  # contract cards (US UEI), 25.11.2026
+        rows = [row('us', True, 'L3', False, None), row('cz', True, 'L3', True, None)]
+        self.assertEqual(F.plan(rows, 10, T), (['cz'], []))
+
+    def test_route_attempt_does_not_count_as_a_card_check(self):  # 797 companies never filled, 25.11.2026
+        self.assertIn('case when has_card or has_route then last_card', F.DUE_SQL)
+
     def test_metric(self):
         rows = [row('a', True, 'L3', True, '2026-11-01'), row('b', True, 'L1', True, '2026-10-01'),
                 row('c', False, None, False, None), row('d', False, None, True, '2026-11-23')]
