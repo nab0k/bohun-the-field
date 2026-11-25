@@ -22,6 +22,22 @@ DATASET = 'https://open.canada.ca/data/en/dataset/d8f85d91-7dec-4fd1-8055-483b77
 RECORD = 'https://search.open.canada.ca/contracts/record/{org},{ref}'
 UA = {'User-Agent': 'BOHUN-research/1.0'}
 DEFENCE_ORGS = {'National Defence', 'Communications Security Establishment Canada', 'Canadian Security Intelligence Service'}
+# Defence spending categories (owner 25.11.2026 «Yes, defence codes only»): Canada publishes no PSC code, only the
+# category name, and National Defence also buys tiling, food and furniture (live sample 25.11.2026). A contract is a
+# defence one when the buyer is a defence organisation and the category is defence goods, their parts or defence R&D.
+import re  # noqa: E402
+DEFENCE_CATEGORY = re.compile(
+    r'weapon|ammunition|explosive|missile|rocket|torpedo|military|armament|fire control|ordnance|\bguns?\b|'
+    r'aircraft|airframe|helicopter|\bships?\b|vessel|submarine|naval|combat|armou?r|radar|sonar|night vision|guided|'
+    r'vehicular|engines?\b|turbine|detection|electronic warfare|simulat|training aids', re.I)
+NOT_DEFENCE = re.compile(r'rental|lease|food|furniture|construction|catering|fuel', re.I)
+
+
+def defence_contract(x):
+    cat = (x.get('description_en') or '')
+    return org(x) in DEFENCE_ORGS and bool(DEFENCE_CATEGORY.search(cat)) and not NOT_DEFENCE.search(cat)
+
+
 FORMS = ('Inc.', 'Inc', 'INC.', 'INC', 'Ltd.', 'Ltd', 'LTD.', 'LTD', 'Limited', 'LIMITED', 'Corporation', 'CORPORATION', 'Corp.', 'ULC', 'Ltée')
 
 
@@ -98,7 +114,8 @@ def summarise(rows, top=8):
     dates = sorted(x['contract_date'] for x in items if x.get('contract_date'))
     return {'vendors': sorted({x.get('vendor_name') for x in items if x.get('vendor_name')}), 'count': len(items), 'rows': len(rows),
             'first': dates[0] if dates else None, 'last': dates[-1] if dates else None,
-            'defence': sum(1 for x in items if org(x) in DEFENCE_ORGS),
+            'defence': sum(1 for x in items if defence_contract(x)),
+            'defence_buyer': sum(1 for x in items if org(x) in DEFENCE_ORGS),
             'buyers': sorted(buyers.values(), key=lambda b: (-b['n'], -b['largest']))[:8],
             'contracts': [{'ref': x.get('reference_number'), 'buyer': org(x), 'vendor': x.get('vendor_name'),
                            'category': (x.get('description_en') or '').strip() or None, 'amount': value(x), 'currency': 'CAD',

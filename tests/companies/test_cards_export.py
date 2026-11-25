@@ -53,5 +53,12 @@ class Chunks(unittest.TestCase):
         self.assertTrue(got[0]['catalogue'] and not got[0]['cards'])
 
 
+class Withdrawn(unittest.TestCase):  # owner 25.11.2026: cards made from non-defence contracts leave the site
+    def test_withdrawn_go_first_in_a_part_of_their_own(self):
+        parts = E.chunks([], [], withdrawn=[{'name': 'CDW GOVERNMENT LLC', 'country': 'US'}])
+        self.assertEqual(unpack(parts[0]), {'cards': [], 'catalogue': [], 'withdrawn': [{'name': 'CDW GOVERNMENT LLC', 'country': 'US'}]})
+        self.assertEqual(E.chunks([], []), [])
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -34,13 +34,20 @@ TARGETS_SQL = """with c as (
             and p.claim_ref = 'b4:city') as has_city,
     (select count(*) from companies.mention_link l where l.company_id = c.id)
       + (select count(*) from companies.signal s where s.company_id = c.id and s.layer in ('A', 'B')) as size,
-    (select max(a.attempted_at) from companies.card_attempt a where a.company_id = c.id and a.run like 'B4CE-04 contracts%%') as last
+    (select max(a.attempted_at) from companies.card_attempt a where a.company_id = c.id and a.run like 'B4CE-04 contracts%%') as last,
+    exists (select 1 from companies.profile_claim p where p.company_id = c.id and p.qa_status = 'APPROVED'
+            and p.claim_ref = 'b4:level' and p.review_note like 'B4CE-04 contracts%%') as by_contracts,
+    -- contract claims counted before the defence-code filter (owner 25.11.2026): checked again at once
+    exists (select 1 from companies.profile_claim p where p.company_id = c.id and p.qa_status = 'APPROVED'
+            and p.claim_ref = 'b4:spend' and not (p.claim_value ? 'scope'))
+      and not exists (select 1 from companies.card_attempt a where a.company_id = c.id and a.run like 'B4CE-04 contracts%%'
+                      and a.reason like '%%' || %(mark)s) as rescope
   from companies.company c where c.country in ('US', 'CA') and c.excluded_reason is null)
-select id, name, country, has_card, has_city, legal_name, lei, size from c
-where (has_card or size > 0) and (last is null or last < now() - make_interval(days => %(days)s)
+select id, name, country, has_card, has_city, legal_name, lei, size, by_contracts from c
+where (has_card or size > 0) and (last is null or last < now() - make_interval(days => %(days)s) or rescope
   -- a card without a city cannot reach the site catalogue: checked again soon (25.11.2026)
   or (has_card and not has_city and last < now() - interval '20 minutes'))
-order by has_card desc, size desc, id limit %(limit)s"""
+order by rescope desc, has_card desc, size desc, id limit %(limit)s"""
 SUBS_SQL = """select c.name as supplier, c.country, s.counterpart as prime, s.signal_date::text as date, s.url
 from companies.signal s join companies.company c on c.id = s.company_id
 where s.type = 'subcontract' and lower(s.counterpart) = any(%(names)s) and c.excluded_reason is null
@@ -50,11 +57,18 @@ where company_id = %(co)s and qa_status = 'APPROVED' and claim_ref ~ '^b4:(spend
 RETIRE_SQL = """update companies.profile_claim set qa_status = 'REJECTED', updated_at = now(),
   review_note = review_note || ' | replaced by the contracts refresh of ' || %(day)s
 where company_id = %(co)s and qa_status = 'APPROVED' and claim_ref ~ '^b4:(spend|ctr|sub)'"""
+# the whole card made by this step (identity, level, city and contracts) when its contracts turn out not to be defence
+RETIRE_ALL_SQL = """update companies.profile_claim set qa_status = 'REJECTED', updated_at = now(),
+  review_note = review_note || ' | withdrawn: no defence contracts under the defence codes, ' || %(day)s
+where company_id = %(co)s and qa_status = 'APPROVED' and review_note like 'B4CE-04 contracts%%'"""
 ATTEMPT_SQL = """insert into companies.card_attempt (company_id, run, outcome, level, reason) values (%s, %s, %s, %s, %s)"""
 # card_attempt.outcome is checked against the autofill outcomes (db/companies/b4ce04_card_attempt.sql + refresh): the
 # contracts outcomes are stored as one of them, the detail goes to the reason (25.11.2026: CheckViolation on every pass)
 DB_OUTCOME = {'card_made': 'written', 'written': 'written', 'refreshed': 'refreshed', 'unchanged': 'unchanged',
-              'no_record': 'skipped', 'no_identity': 'skipped', 'error': 'error'}
+              'no_record': 'skipped', 'no_identity': 'skipped', 'withdrawn': 'skipped', 'error': 'error'}
+MARK = ' [defence codes]'  # every attempt since the filter: a company is re-checked under it once (owner 25.11.2026)
+SCOPE_US = 'DoD contracts for defence goods and defence R&D (PSC groups of us_contracts.DEFENCE_PSC)'
+SCOPE_CA = 'federal contracts; defence = a defence buyer and a defence category (ca_contracts.DEFENCE_CATEGORY)'
 
 
 def fiscal_window(today):
@@ -69,7 +83,8 @@ def us_claims(d):
     top = max(d['buyers'], key=lambda b: b['amount']) if d['buyers'] else None
     out = {'b4:spend': {'kind': 'spend_total', 'register': 'USAspending.gov', 'buyer': 'US Department of Defense', 'period': d['period'],
                         'amount': d['total'], 'currency': 'USD', 'count': d['count'], 'url': d['profile'], 'partial': d.get('partial', False),
-                        'top_buyer': top, 'buyers': d['buyers'][:8], 'recipient': d['recipient'], 'uei': d['uei']}}
+                        'top_buyer': top, 'buyers': d['buyers'][:8], 'recipient': d['recipient'], 'uei': d['uei'],
+                        'scope': SCOPE_US, 'defence_share': d.get('defence_share'), 'all_dod': d.get('all_dod')}}
     for n, a in enumerate(d['awards'][:8], 1):
         out[f'b4:ctr{n}'] = {'kind': 'contract', 'register': 'USAspending.gov', 'ref': a['ref'], 'buyer': a['buyer'], 'title': a['title'],
                              'amount': a['amount'], 'currency': 'USD', 'date': a['date'], 'end': a['end'], 'url': a['url'],
@@ -80,6 +95,7 @@ def us_claims(d):
 def ca_claims(d):
     """Claims of a Canada summary (ca_contracts.summarise)."""
     out = {'b4:spend': {'kind': 'contract_count', 'register': 'Open Government Canada', 'count': d['count'], 'defence': d['defence'],
+                        'defence_buyer': d.get('defence_buyer'), 'scope': SCOPE_CA,
                         'first': d['first'], 'last': d['last'], 'buyers': [{'name': b['name'], 'n': b['n']} for b in d['buyers']],
                         'vendors': d['vendors'], 'url': 'https://open.canada.ca/data/en/dataset/d8f85d91-7dec-4fd1-8055-483b77225d8b'}}
     for n, c in enumerate(d['contracts'][:8], 1):
@@ -166,8 +182,8 @@ def run(conn, limit=12, write=False, today=None, us_fetch=None, ca_fetch=None, l
     ca_fetch = ca_fetch or (lambda name, aliases: C.summarise(C.fetch(name, aliases)))
     start, end = fiscal_window(today)
     note, run_label = NOTE.format(day=today.isoformat()), RUN.format(day=today.isoformat())
-    targets = conn.execute(TARGETS_SQL, {'days': PERIOD_DAYS, 'limit': limit}).fetchall()
-    summary = {'targets': len(targets), 'outcomes': {}, 'cards_made': [], 'write': write}
+    targets = conn.execute(TARGETS_SQL, {'days': PERIOD_DAYS, 'limit': limit, 'mark': MARK}).fetchall()
+    summary = {'targets': len(targets), 'outcomes': {}, 'cards_made': [], 'withdrawn': [], 'write': write}
     import time
     started = time.monotonic()
     for t in targets:
@@ -181,11 +197,28 @@ def run(conn, limit=12, write=False, today=None, us_fetch=None, ca_fetch=None, l
                 found = us_claims(d) if d and d['total'] > 0 else {}
                 defence = bool(found)
                 ident_name = d['recipient'] if d else None
+                not_defence = bool(d and d.get('non_defence'))
+                why_not = f"{d.get('defence_share', 0):.0%} of the DoD money under the defence codes" if not_defence else ''
             else:
                 d = ca_fetch(names[0], names[1:])
                 found = ca_claims(d) if d else {}
                 defence = bool(d and d['defence'])
                 ident_name = (d['vendors'][0] if d and d['vendors'] else None)
+                # a Canadian card made by this step needs defence contracts; one made elsewhere keeps its contract list
+                not_defence = bool(d and not defence and t.get('by_contracts'))
+                why_not = 'no contract with a defence buyer in a defence category' if not_defence else ''
+            if not_defence:  # owner 25.11.2026: defence codes only — withdraw what this step wrote
+                now = conn.execute(NOW_SQL, {'co': t['id']}).fetchall()
+                if t.get('by_contracts') or now:
+                    if write:
+                        with conn.transaction():
+                            conn.execute(RETIRE_ALL_SQL if t.get('by_contracts') else RETIRE_SQL, {'co': t['id'], 'day': today.isoformat()})
+                    outcome, reason = 'withdrawn' + ('' if write else '_dry'), why_not
+                    if t.get('by_contracts'):
+                        summary['withdrawn'].append(f"{t['country']} {t['name']}")
+                else:
+                    outcome, reason = 'no_record', why_not
+                found = {}
             # the city lets the site add a company that is not in the catalogue yet (25.11.2026: Lockheed Martin skipped)
             town = (d or {}).get('city') if t['country'] == 'US' else (gleif_city(t['lei']) if t.get('lei') and found else None)
             if found and t['has_card'] and not t.get('has_city') and town and write:
@@ -230,7 +263,7 @@ def run(conn, limit=12, write=False, today=None, us_fetch=None, ca_fetch=None, l
             try:  # the attempt row only schedules the next check: a failure here never stops the step
                 with conn.transaction():
                     conn.execute(ATTEMPT_SQL, (t['id'], run_label, DB_OUTCOME.get(outcome, 'error'),
-                                               'L3' if outcome.startswith('card_made') else None, f'{outcome}: {reason}'[:500]))
+                                               'L3' if outcome.startswith('card_made') else None, f'{outcome}: {reason}'[:480] + MARK))
             except Exception as e:  # noqa: BLE001
                 summary['outcomes']['attempt_not_logged'] = summary['outcomes'].get('attempt_not_logged', 0) + 1
                 log(f'attempt not logged: {type(e).__name__}')
