@@ -125,6 +125,7 @@ class Attempts(unittest.TestCase):
         self.assertEqual(c.rows[0][2], 'skipped')
         self.assertTrue(c.rows[0][4].startswith('no_record'))
         self.assertTrue(c.rows[0][4].endswith(K.MARK))  # the re-check under the defence codes happens once
+        self.assertIn("a.outcome <> 'error'", K.TARGETS_SQL)  # a failed re-check is tried again (Lockheed, 25.11.2026)
 
 
 class DefenceCodes(unittest.TestCase):  # owner 25.11.2026 «Yes, defence codes only»

@@ -252,3 +252,18 @@ class WorkerSchedule(unittest.TestCase):
         out = A.run(self.Conn(False, '2026-11-20'), {}, today=date(2026, 11, 25), log=lambda *_: None, only=['co1'],
                     scheduled=True)
         self.assertEqual(out['chosen'], 1)
+
+
+class OneCompanyNeverStopsTheStep(unittest.TestCase):  # 25.11.2026: AssertionError stopped every pass from 11:23
+    setUp, tearDown = RunDry.setUp, RunDry.tearDown
+
+    def test_error_is_counted_and_the_step_goes_on(self):
+        A.identity = lambda entry, ids, today: {'decision': 'matched', 'scheme': 'FI_YTUNNUS', 'id': '1234567-8',
+                                                 'legal_name': 'ACME Oy', 'activity': [], 'source_url': 'http://x.fi/1'}
+        out = A.run(FakeConn(False), {}, today=date(2026, 11, 22), log=lambda *_: None)
+        self.assertEqual(out['outcomes'], {'error': 1})
+
+    def test_a_refresh_writes_the_same_source_and_value_again(self):  # UniqueViolation on contracts refreshes
+        self.assertIn('on conflict (company_id, source_ref, source_url) do update', A.WRITE_SQL)
+        self.assertIn('on conflict (company_id, claim_ref, content_sha256) do update', A.WRITE_SQL)
+        self.assertTrue(A.WRITE_SQL.rstrip().endswith('on conflict do nothing'))

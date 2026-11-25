@@ -51,15 +51,21 @@ from companies.company c where c.id = any(%(ids)s)"""
 WRITE_SQL = """with p as (select %(j)s::jsonb j),
 src as (insert into companies.profile_source (company_id,source_ref,title,source_url,source_kind,as_of)
   select s->>'company_id', s->>'ref', s->>'title', s->>'url', s->>'kind', %(day)s::date from p, jsonb_array_elements(j->'sources') s
+  -- a refresh writes the same source again (25.11.2026: UniqueViolation on every contracts refresh)
+  on conflict (company_id, source_ref, source_url) do update set title = excluded.title, as_of = excluded.as_of
   returning id, company_id, source_ref),
 cl as (insert into companies.profile_claim (company_id,claim_ref,field_path,claim_value,assessment,review_note,content_sha256,qa_status,public_release)
   select c->>'company_id', c->>'ref', c->>'path', c->'value', c->>'assessment', %(note)s,
   encode(sha256(convert_to((c->'value')::text,'UTF8')),'hex'), 'APPROVED', false from p, jsonb_array_elements(j->'claims') c
+  -- the same value as a superseded claim: that claim is approved again with the new note
+  on conflict (company_id, claim_ref, content_sha256) do update set qa_status = 'APPROVED', review_note = excluded.review_note,
+    field_path = excluded.field_path, assessment = excluded.assessment, updated_at = now()
   returning id, company_id, claim_ref)
 insert into companies.profile_claim_source (company_id, claim_id, source_id)
 select distinct cl.company_id, cl.id, src.id from p, jsonb_array_elements(j->'claims') c
 join cl on cl.company_id=c->>'company_id' and cl.claim_ref=c->>'ref'
-join src on src.company_id=cl.company_id and src.source_ref in (select jsonb_array_elements_text(c->'srcs'))"""
+join src on src.company_id=cl.company_id and src.source_ref in (select jsonb_array_elements_text(c->'srcs'))
+on conflict do nothing"""
 CHECK_SQL = """select (select count(*) from companies.profile_claim where company_id=%(co)s and review_note=%(note)s) as claims,
   (select count(*) from companies.profile_claim where company_id=%(co)s and qa_status='APPROVED' and review_note<>%(note)s) as other"""
 # The same legal entity may sit under two catalogue records (e.g. "FORCIT" and "Oy Forcit Ab"): one card only.
@@ -158,7 +164,10 @@ def products_for(entry, site, provider, pause=5):
     last = None
     for p in chain:
         try:
-            return P.extract(entry, site['pages'], p)
+            got = P.extract(entry, site['pages'], p)
+            if got and got.get('kept'):  # a claim needs an https source (25.11.2026: one http page stopped the step)
+                got['kept'] = [x for x in got['kept'] if not isinstance(x, dict) or str(x.get('url') or '').startswith('https://')]
+            return got
         except urllib.error.HTTPError as e:
             last = f'error HTTP {e.code}'
         except Exception as e:  # noqa: BLE001
@@ -264,8 +273,9 @@ def payload(c, run):
           'cross_source' if ev_refs else 'company_claim', sorted(set(lvl_srcs)) or [reg])
     claim('b4:empty', '/gaps', {**c['empty'], 'notes': c['gaps']}, 'inferred_needs_review', [reg])
     keys = [(s['ref'], s['url']) for s in sources]
-    assert len(keys) == len(set(keys)) and len({x['ref'] for x in claims}) == len(claims)
-    assert all(s['url'].startswith('https://') for s in sources)
+    assert len(keys) == len(set(keys)) and len({x['ref'] for x in claims}) == len(claims), 'duplicate source or claim'
+    bad = [s['ref'] for s in sources if not str(s['url'] or '').startswith('https://')]
+    assert not bad, f'source without https: {bad}'
     return {'sources': sources, 'claims': claims}
 
 
@@ -323,69 +333,80 @@ def run(conn, env, limit=40, countries=None, write=False, today=None, minutes=50
         if time.monotonic() - started > minutes * 60:
             log('time budget reached')
             break
-        d = details.get(q['company_id']) or {}
-        ids = d.get('ids') or {}
-        sig = signals.get(q['company_id'], [])
-        entry = {'id': q['company_id'], 'name': q['name'], 'country': q['country'], 'route': q['route']}
-        ident = identity(entry, ids, today)
-        website = d.get('website')
-        if website and worth_site(sig) and ident.get('decision') == 'matched':
-            site = read_site(website)
-        else:
-            site = {'pages': [], 'skipped': [(None, 'no website in the record' if not website
-                                              else 'site not read: no defence evidence beyond association membership')]}
-        prods = products_for(entry, site, provider)
-        c = card(entry, ident, sig, prods, site, ids)
-        if prods and str(prods.get('provider') or '').startswith('error'):
-            c['empty']['products'] = 'not_assessed'
-            c['gaps'].append(f"products: model {prods['provider']}")
-        outcome, reason = decide(c)
-        is_refresh = bool(q.get('refresh'))
-        if outcome == 'write' and is_refresh:
-            outcome, reason = compare(conn.execute(CARD_NOW_SQL, {'co': c['company_id']}).fetchall(),
-                                      payload(c, run_label)['claims'])
-        elif is_refresh:
-            outcome, reason = 'unchanged', f'card kept: new check gave {outcome} ({reason[:120]})'
-        if outcome == 'write':
-            regno = json.dumps({'scheme': ident['scheme'], 'value': ident['id']})
-            twin = conn.execute(SAME_ENTITY_SQL, {'v': regno, 'co': c['company_id']}).fetchone()
-            twin = twin['company_id'] if twin else carded.get((name_norm(ident.get('legal_name') or ''), entry['country']))
-            if twin and twin != c['company_id']:
-                outcome, reason = 'skipped', f"same legal entity already has a card ({twin})"
-        if outcome == 'write':
-            data = payload(c, run_label)
-            if write:
-                with conn.transaction():
-                    have = conn.execute(CHECK_SQL, {'co': c['company_id'], 'note': note}).fetchone()
-                    if have['other'] or have['claims']:
-                        outcome, reason = 'skipped', 'approved claims already present'
-                    else:
-                        conn.execute(WRITE_SQL, {'j': json.dumps(data, ensure_ascii=False), 'day': today.isoformat(), 'note': note})
-                        got = conn.execute(CHECK_SQL, {'co': c['company_id'], 'note': note}).fetchone()['claims']
-                        if got != len(data['claims']):
-                            raise RuntimeError(f"{c['company_id']}: {got} claims stored, {len(data['claims'])} expected")
+        try:
+            d = details.get(q['company_id']) or {}
+            ids = d.get('ids') or {}
+            sig = signals.get(q['company_id'], [])
+            entry = {'id': q['company_id'], 'name': q['name'], 'country': q['country'], 'route': q['route']}
+            ident = identity(entry, ids, today)
+            website = d.get('website')
+            if website and worth_site(sig) and ident.get('decision') == 'matched':
+                site = read_site(website)
+            else:
+                site = {'pages': [], 'skipped': [(None, 'no website in the record' if not website
+                                                  else 'site not read: no defence evidence beyond association membership')]}
+            prods = products_for(entry, site, provider)
+            c = card(entry, ident, sig, prods, site, ids)
+            if prods and str(prods.get('provider') or '').startswith('error'):
+                c['empty']['products'] = 'not_assessed'
+                c['gaps'].append(f"products: model {prods['provider']}")
+            outcome, reason = decide(c)
+            is_refresh = bool(q.get('refresh'))
+            if outcome == 'write' and is_refresh:
+                outcome, reason = compare(conn.execute(CARD_NOW_SQL, {'co': c['company_id']}).fetchall(),
+                                          payload(c, run_label)['claims'])
+            elif is_refresh:
+                outcome, reason = 'unchanged', f'card kept: new check gave {outcome} ({reason[:120]})'
             if outcome == 'write':
-                outcome = 'written' if write else 'would_write'
+                regno = json.dumps({'scheme': ident['scheme'], 'value': ident['id']})
+                twin = conn.execute(SAME_ENTITY_SQL, {'v': regno, 'co': c['company_id']}).fetchone()
+                twin = twin['company_id'] if twin else carded.get((name_norm(ident.get('legal_name') or ''), entry['country']))
+                if twin and twin != c['company_id']:
+                    outcome, reason = 'skipped', f"same legal entity already has a card ({twin})"
+            if outcome == 'write':
+                data = payload(c, run_label)
+                if write:
+                    with conn.transaction():
+                        have = conn.execute(CHECK_SQL, {'co': c['company_id'], 'note': note}).fetchone()
+                        if have['other'] or have['claims']:
+                            outcome, reason = 'skipped', 'approved claims already present'
+                        else:
+                            conn.execute(WRITE_SQL, {'j': json.dumps(data, ensure_ascii=False), 'day': today.isoformat(), 'note': note})
+                            got = conn.execute(CHECK_SQL, {'co': c['company_id'], 'note': note}).fetchone()['claims']
+                            if got != len(data['claims']):
+                                raise RuntimeError(f"{c['company_id']}: {got} claims stored, {len(data['claims'])} expected")
+                if outcome == 'write':
+                    outcome = 'written' if write else 'would_write'
+                    summary['claims'] += len(data['claims'])
+                    summary['written'].append(f"{c['country']} {c['name']} {c['level']}")
+            elif outcome == 'refreshed':
+                data = payload(c, run_label)
+                if write:
+                    with conn.transaction():
+                        conn.execute(SUPERSEDE_SQL, {'co': c['company_id'], 'day': today.isoformat()})
+                        conn.execute(WRITE_SQL, {'j': json.dumps(data, ensure_ascii=False), 'day': today.isoformat(),
+                                                 'note': note + ' | refresh'})
                 summary['claims'] += len(data['claims'])
-                summary['written'].append(f"{c['country']} {c['name']} {c['level']}")
-        elif outcome == 'refreshed':
-            data = payload(c, run_label)
+                summary['written'].append(f"{c['country']} {c['name']} {c['level']} refreshed")
+            elif outcome.startswith('held') or outcome == 'skipped':
+                summary['held'].append(f"{c['country']} {c['name']}: {reason}")
             if write:
                 with conn.transaction():
-                    conn.execute(SUPERSEDE_SQL, {'co': c['company_id'], 'day': today.isoformat()})
-                    conn.execute(WRITE_SQL, {'j': json.dumps(data, ensure_ascii=False), 'day': today.isoformat(),
-                                             'note': note + ' | refresh'})
-            summary['claims'] += len(data['claims'])
-            summary['written'].append(f"{c['country']} {c['name']} {c['level']} refreshed")
-        elif outcome.startswith('held') or outcome == 'skipped':
-            summary['held'].append(f"{c['country']} {c['name']}: {reason}")
-        if write:
-            with conn.transaction():
-                conn.execute(ATTEMPT_SQL, (c['company_id'], run_label, outcome, c['level'], reason[:500]))
-        summary['outcomes'][outcome] = summary['outcomes'].get(outcome, 0) + 1
-        # The log is public: a name is shown only for a legal entity matched in a register (a sole trader's
-        # name is a person's name and stays out, e.g. Polish entries without KRS).
-        shown = c['name'][:40] if ident.get('decision') == 'matched' else c['company_id']
-        log(f"{c['country']} {shown:40} id={ident.get('decision', '?')[:9]:9} -> {c['level']} {c['confidence']} {outcome}")
+                    conn.execute(ATTEMPT_SQL, (c['company_id'], run_label, outcome, c['level'], reason[:500]))
+            summary['outcomes'][outcome] = summary['outcomes'].get(outcome, 0) + 1
+            # The log is public: a name is shown only for a legal entity matched in a register (a sole trader's
+            # name is a person's name and stays out, e.g. Polish entries without KRS).
+            shown = c['name'][:40] if ident.get('decision') == 'matched' else c['company_id']
+            log(f"{c['country']} {shown:40} id={ident.get('decision', '?')[:9]:9} -> {c['level']} {c['confidence']} {outcome}")
+        except Exception as e:  # noqa: BLE001 — one company never stops the step (25.11.2026: AssertionError on every pass)
+            reason = f'{type(e).__name__}: {e}'[:300]
+            if write:
+                try:
+                    with conn.transaction():
+                        conn.execute(ATTEMPT_SQL, (q['company_id'], run_label, 'error', None, reason))
+                except Exception:  # noqa: BLE001
+                    pass
+            summary['outcomes']['error'] = summary['outcomes'].get('error', 0) + 1
+            log(f"{q['country']} {q['company_id']} -> error {reason}")
     summary['finished_at'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
     return summary
