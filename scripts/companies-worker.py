@@ -109,7 +109,7 @@ def main():
             if a.contracts and left() > 5:
                 s = K.run(conn, limit=a.contracts, write=a.write, today=today, log=quiet, minutes=max(1, min(4, left() - 4)))
                 report['contracts'] = s['outcomes']
-                changed = changed or any(k.startswith(('written', 'refreshed', 'card_made')) for k in s['outcomes'])
+                changed = changed or any(k.startswith(('written', 'refreshed', 'card_made', 'withdrawn')) for k in s['outcomes'])
         except Exception as e:  # noqa: BLE001
             report['contracts_error'] = type(e).__name__
         try:  # 5. metric

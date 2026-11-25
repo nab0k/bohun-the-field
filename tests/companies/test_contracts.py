@@ -124,6 +124,94 @@ class Attempts(unittest.TestCase):
         self.assertEqual(s['outcomes'], {'no_record': 1})
         self.assertEqual(c.rows[0][2], 'skipped')
         self.assertTrue(c.rows[0][4].startswith('no_record'))
+        self.assertTrue(c.rows[0][4].endswith(K.MARK))  # the re-check under the defence codes happens once
+
+
+class DefenceCodes(unittest.TestCase):  # owner 25.11.2026 «Yes, defence codes only»
+    def opener(self, defence, every):
+        calls = []
+
+        class R:
+            def __init__(s, body): s.body = body
+            def __enter__(s): return s
+            def __exit__(s, *a): return False
+            def read(s): return json.dumps(s.body).encode()
+
+        def op(req, timeout=None):
+            body = json.loads(req.data) if req.data else {}
+            calls.append((req.full_url, body))
+            url = req.full_url
+            if url.endswith('/search/spending_by_award/') and body.get('fields') == ['Recipient Name', 'Recipient UEI']:
+                return R({'results': [{'Recipient Name': 'CDW GOVERNMENT LLC', 'Recipient UEI': 'U1'}]})
+            if url.endswith('/spending_by_category/recipient/'):
+                psc = 'psc_codes' in body['filters']
+                return R({'results': [{'name': 'CDW GOVERNMENT LLC', 'amount': defence if psc else every}]})
+            if url.endswith('/awarding_subagency/'):
+                return R({'results': [{'name': 'Department of the Army', 'amount': defence}]})
+            if url.endswith('/spending_by_award_count/'):
+                return R({'results': {'contracts': 3}})
+            if url.endswith('/search/spending_by_award/'):
+                return R({'results': []})
+            return R({})
+        return op, calls
+
+    def test_mostly_non_defence_purchases_give_no_summary(self):  # CDW Government, 6 % on 25.11.2026
+        op, calls = self.opener(2.6e6, 40.6e6)
+        d = U.fetch('CDW Government LLC', '2025-10-01', '2027-09-30', opener=op)
+        self.assertTrue(d['non_defence'])
+        self.assertEqual((d['total'], d['defence_share']), (0, 0.064))
+        self.assertFalse(any(u.endswith('/awarding_subagency/') for u, _ in calls))
+
+    def test_defence_supplier_counts_only_the_defence_codes(self):  # Lockheed Martin, 85 %
+        op, calls = self.opener(40.1e9, 47.2e9)
+        d = U.fetch('CDW Government LLC', '2025-10-01', '2027-09-30', opener=op)
+        self.assertNotIn('non_defence', d)
+        self.assertEqual(d['total'], 40.1e9)
+        later = [b for u, b in calls if u.endswith(('/awarding_subagency/', '/spending_by_award_count/'))]
+        self.assertTrue(later and all(b['filters']['psc_codes'] == U.PSC for b in later))
+        self.assertIn(['Product', '25'], U.PSC['require'])  # vehicle components (LOC Performance)
+        claim = K.us_claims(dict(US, defence_share=0.85, all_dod=47.2e9))['b4:spend']
+        self.assertEqual((claim['scope'], claim['defence_share']), (K.SCOPE_US, 0.85))
+
+    def test_canada_defence_buyer_and_category(self):
+        dnd = {'owner_org_title': 'National Defence | Défense nationale'}
+        self.assertTrue(C.defence_contract(dict(dnd, description_en='Weapons (including parts)')))
+        self.assertTrue(C.defence_contract(dict(dnd, description_en='Military (R&D)')))
+        for cat in ('Fruits and Vegetables', 'Rental of aircraft', 'Office Furniture', 'Floor and Wall Tiling Work'):
+            self.assertFalse(C.defence_contract(dict(dnd, description_en=cat)), cat)
+        self.assertFalse(C.defence_contract({'owner_org_title': 'Transport Canada | x', 'description_en': 'Aircraft'}))
+
+    def test_card_made_from_non_defence_contracts_is_withdrawn(self):
+        class Conn:
+            def __init__(self, by_contracts):
+                self.sql, self.by = [], by_contracts
+
+            def execute(self, sql, params=None):
+                self.sql.append(sql)
+                by = self.by
+
+                class R:
+                    def fetchall(s):
+                        if 'with c as' in sql:
+                            return [{'id': 'co1', 'name': 'CDW Government', 'country': 'US', 'has_card': True, 'has_city': True,
+                                     'legal_name': None, 'lei': None, 'size': 3, 'by_contracts': by}]
+                        return [{'claim_ref': 'b4:spend', 'claim_value': {}}] if sql is K.NOW_SQL else []
+                return R()
+
+            def transaction(self):
+                import contextlib
+                return contextlib.nullcontext()
+        fetch = lambda *a, **k: {'recipient': 'CDW GOVERNMENT LLC', 'uei': 'U1', 'total': 0, 'non_defence': True, 'defence_share': 0.06}  # noqa: E731
+        c = Conn(True)
+        s = K.run(c, write=True, today=date(2026, 11, 25), us_fetch=fetch, log=lambda *m: None)
+        self.assertEqual((s['outcomes'], s['withdrawn']), ({'withdrawn': 1}, ['US CDW Government']))
+        self.assertIn(K.RETIRE_ALL_SQL, c.sql)
+        c = Conn(False)  # a card made elsewhere loses only its contract claims
+        s = K.run(c, write=True, today=date(2026, 11, 25), us_fetch=fetch, log=lambda *m: None)
+        self.assertEqual((s['outcomes'], s['withdrawn']), ({'withdrawn': 1}, []))
+        self.assertIn(K.RETIRE_SQL, c.sql)
+        self.assertNotIn(K.RETIRE_ALL_SQL, c.sql)
+        self.assertEqual(K.DB_OUTCOME['withdrawn'], 'skipped')
 
 
 class Sql(unittest.TestCase):

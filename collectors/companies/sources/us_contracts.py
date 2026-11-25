@@ -1,4 +1,4 @@
-"""US Department of Defense contracts of one company from USAspending.gov (no key) — EXP-035, owner 24.11.2026
+"""US Department of Defense contracts of one company — defence goods and R&D only (PSC groups, owner 25.11.2026) from USAspending.gov (no key) — EXP-035, owner 24.11.2026
 «Yes, build them»: cards of companies without EDF show what the defence buyers spent with them.
 
 Per company: the recipient (the exact name among the award rows of the period; the UEI seen most often), its UEI,
@@ -22,6 +22,18 @@ SITE = 'https://www.usaspending.gov'
 UA = {'User-Agent': 'BOHUN-research/1.0', 'Content-Type': 'application/json'}
 DOD = {'type': 'awarding', 'tier': 'toptier', 'name': 'Department of Defense'}
 CONTRACTS = ['A', 'B', 'C', 'D']
+# Defence goods and defence R&D only (owner 25.11.2026 «Yes, defence codes only»: CDW Government, an IT reseller,
+# had a card from DoD purchases). PSC groups: 10 weapons, 11 nuclear ordnance, 12 fire control, 13 ammunition and
+# explosives, 14 guided missiles, 15 aircraft, 16 aircraft components, 17 aircraft launching and landing equipment,
+# 18 space vehicles, 19 ships, 20 ship equipment, 23 vehicles, 25 vehicle components, 28 engines, 29 engine
+# accessories, 58 communication and detection, 59 electronic components; R&D: AC defence systems, AR space. The groups
+# of the procurement collector (usaspending.py) plus 11, 12, 17, 18, 20, 25, 29, AR after the live check of 25.11.2026
+# (LOC Performance, Bradley components, had 5 % under the narrower list).
+DEFENCE_PSC = ['10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '23', '25', '28', '29', '58', '59', 'AC', 'AR']
+PSC = {'require': [['Research and Development' if g[:1].isalpha() else 'Product', g] for g in DEFENCE_PSC]}
+# A company is shown as a defence supplier only when at least this share of what the DoD paid it is under those
+# codes (25.11.2026, live: CDW Government 3.5 %, Lockheed Martin 90 %).
+MIN_SHARE = 0.25
 PLAIN = {'THE', 'IS', 'FOR', 'AND', 'OF', 'TO', 'A', 'AN', 'IN', 'ON', 'WITH', 'BY', 'AT', 'AS', 'OR', 'THIS', 'THAT', 'FROM',
          'ARE', 'BE', 'ITS', 'ALL', 'NEW', 'BASE', 'LONG', 'LEAD', 'LOT', 'PER', 'ONE', 'TWO', 'YEAR', 'USE', 'NOT', 'ANY'}
 BOILER = re.compile(r'^(the )?purpose of th(is|e) (modification|contract|action|order) is to (award |provide |exercise )?', re.I)
@@ -71,6 +83,19 @@ def match(name, rows):
     return {'uei': ueis[0], 'ueis': ueis, 'recipient_name': seen[ueis[0]][0]}
 
 
+def share(ueis, start, end, opener=urllib.request.urlopen):
+    """(DoD money under the defence codes, all DoD money) to these recipients in [start, end]."""
+    out = []
+    for psc in (PSC, None):
+        f = {'time_period': [{'start_date': start, 'end_date': end}], 'agencies': [DOD], 'award_type_codes': CONTRACTS,
+             'recipient_search_text': list(ueis)[:100]}
+        if psc:
+            f['psc_codes'] = psc
+        rows = _post('/search/spending_by_category/recipient/', {'filters': f, 'limit': 100}, opener).get('results') or []
+        out.append(round(sum(float(r.get('amount') or 0) for r in rows), 2))
+    return out[0], out[1]
+
+
 def title(desc, award_id):
     d = ' '.join((desc or '').split())
     d = BOILER.sub('', d)
@@ -105,8 +130,17 @@ def fetch(name, start, end, opener=urllib.request.urlopen, top=8, today=None):
     rec = match(name, rows)
     if not rec:
         return None
+    try:
+        defence, every = share(rec['ueis'], start, end, opener)
+    except urllib.error.HTTPError as e:  # many UEIs time out under load (Raytheon): the main ones, as for the breakdown
+        if e.code < 500 or len(rec['ueis']) <= 10:
+            raise
+        defence, every = share(rec['ueis'][:10], start, end, opener)
+    if not every or defence / every < MIN_SHARE:  # mostly non-defence purchases: no defence summary at all
+        return {'recipient': rec['recipient_name'], 'uei': rec['uei'], 'total': 0, 'non_defence': True,
+                'defence_share': round(defence / every, 3) if every else 0.0, 'all_dod': every}
     flt = {'time_period': [{'start_date': start, 'end_date': end}], 'agencies': [DOD], 'award_type_codes': CONTRACTS,
-           'recipient_search_text': rec['ueis'][:100]}
+           'recipient_search_text': rec['ueis'][:100], 'psc_codes': PSC}
     try:
         buyers = _post('/search/spending_by_category/awarding_subagency/', {'filters': flt, 'limit': 10}, opener).get('results') or []
     except urllib.error.HTTPError as e:  # the breakdown over many UEIs times out under load: the main UEIs only, marked partial
@@ -121,6 +155,7 @@ def fetch(name, start, end, opener=urllib.request.urlopen, top=8, today=None):
                               'Start Date', 'End Date', 'Description', 'generated_internal_id']}, opener).get('results') or []
     d = parse(rec, buyers, count, awards, start, end, today)
     d['city'] = city(d.pop('_rid', None), opener)
+    d['defence_share'], d['all_dod'] = round(defence / every, 3), every
     return d
 
 

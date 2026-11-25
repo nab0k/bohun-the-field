@@ -27,6 +27,16 @@ CATALOGUE_SQL = """select name, coalesce(country, '') as country, created_at::da
 from companies.company where flags ? 'from_news' and status = 'candidate' order by created_at desc, id"""
 
 
+# Cards withdrawn in the window (owner 25.11.2026 «Yes, defence codes only»: a card made from contracts that are not
+# defence ones): no approved level any more, a level rejected since then. The site removes their auto-built profile.
+WITHDRAWN_SQL = """select c.name, coalesce(c.country, '') as country from companies.company c
+where exists (select 1 from companies.profile_claim p where p.company_id = c.id and p.claim_ref = 'b4:level'
+              and p.qa_status = 'REJECTED' and p.updated_at >= %(t)s)
+  and not exists (select 1 from companies.profile_claim p where p.company_id = c.id and p.claim_ref = 'b4:level'
+                  and p.qa_status = 'APPROVED')
+order by c.id"""
+
+
 def _encode(obj):
     return base64.b64encode(gzip.compress(json.dumps(obj, ensure_ascii=False, separators=(',', ':')).encode())).decode()
 
@@ -50,10 +60,14 @@ def pack(cards, catalogue=(), days=DAYS, today=None, limit=LIMIT):
             cards = cards[:len(cards) * 3 // 4] if len(cards) > 1 else []
 
 
-def chunks(cards, catalogue, limit=LIMIT):
-    """[encoded] parts, each under `limit`: the news companies first (small, many fit in one part), then the cards,
-    newest first (owner 23.11.2026: one dispatch could not carry 222 changed cards and the catalogue together)."""
+def chunks(cards, catalogue, limit=LIMIT, withdrawn=()):
+    """[encoded] parts, each under `limit`: the withdrawn cards in a part of their own, the news companies (small,
+    many fit in one part), then the cards, newest first (owner 23.11.2026: one dispatch could not carry 222 changed
+    cards and the catalogue together)."""
     out, cat = [], [{'name': c['name'], 'country': c['country']} for c in catalogue]
+    if withdrawn:
+        out.append(_encode({'cards': [], 'catalogue': [], 'withdrawn': [{'name': w['name'], 'country': w['country']}
+                                                                        for w in withdrawn]}))
     while cat:
         n = len(cat)
         while n > 1 and len(_encode({'cards': [], 'catalogue': cat[:n]})) > limit:
@@ -89,19 +103,21 @@ def main():
             cards += [c for c in every if c['company_id'] in more]
         G.attach(conn, cards)
         catalogue = conn.execute(CATALOGUE_SQL.replace('order by', 'and created_at >= %(t)s order by'), {'t': since}).fetchall()
+        withdrawn = conn.execute(WITHDRAWN_SQL, {'t': since}).fetchall()
     if out.suffix:  # a caller passing one file (kb-daily before the feed): the cards first, as before
         text, sent, sent_cat, left = pack(cards, catalogue)
         out.write_text(text if (sent or sent_cat) else '')
         print(json.dumps({'cards': len(cards), 'cards_sent': sent, 'catalogue_sent': sent_cat, 'left_for_later': left}))
         return
-    parts = chunks(cards, catalogue)
+    parts = chunks(cards, catalogue, withdrawn=withdrawn)
     if True:
         out.mkdir(parents=True, exist_ok=True)
         for old in out.glob('part-*.b64'):
             old.unlink()
         for n, p in enumerate(parts, 1):
             (out / f'part-{n:03}.b64').write_text(p)
-    print(json.dumps({'cards': len(cards), 'catalogue': len(catalogue), 'parts': len(parts), 'hours': hours}))
+    print(json.dumps({'cards': len(cards), 'catalogue': len(catalogue), 'withdrawn': len(withdrawn), 'parts': len(parts),
+                      'hours': hours}))
 
 
 if __name__ == '__main__':
