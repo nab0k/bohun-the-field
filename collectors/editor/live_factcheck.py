@@ -66,39 +66,9 @@ def _words(s: str) -> set[str]:
 
 
 def choose_excerpts(body: str, claims: list[dict]) -> list[str]:
-    """Retrieval candidates, NOT verified semantic support or atomic claims."""
-    if not isinstance(body, str) or not 30 <= len(body) <= MAX_CAPTURE_CHARS:
-        raise ValueError("invalid_capture_length")
-    # Limit input text. Order ties stably by occurrence, and include numerical overlap.
-    windows = []
-    for p in re.split(r"(?<=[.!?])\s+|\n+", body):
-        p = p.strip()
-        if len(p) >= 35:
-            for start in range(0, len(p), 180):
-                s = p[start:start+200]
-                if s.strip() and len(s) >= 25:
-                    windows.append(s)
-    if not windows:
-        raise ValueError("no_citable_excerpts")
-    chosen = []
-    for claim in claims:
-        query = claim["text"]
-        query_words = _words(query)
-        numerals = set(re.findall(r"\d+(?:[.,]\d+)?", query))
-        scores = []
-        for i, quote in enumerate(windows):
-            common = len(query_words & _words(quote))
-            overlap_numbers = len(numerals & set(re.findall(r"\d+(?:[.,]\d+)?", quote)))
-            scores.append((common+overlap_numbers*3, -i, quote))
-        score, _, best = max(scores)
-        if score >= 2 and best not in chosen:
-            chosen.append(best)
-        if len(chosen) >= MAX_SPANS:
-            break
-    if not chosen:
-        # No excerpt is better than a fake citation.
-        raise ValueError("no_lexically_related_excerpt")
-    return chosen
+    """Retrieve candidates, NOT verified semantic support or atomic claims."""
+    from .evidence_retrieval import select_excerpts
+    return select_excerpts(body, claims, max_spans=MAX_SPANS)
 
 
 def _date_compatible(row: dict) -> bool:
@@ -138,28 +108,45 @@ def prepare(row: dict) -> tuple[dict, dict]:
         raise ValueError("empty_editorial_claims")
     # Select short lexical excerpts only, and do not claim semantic equivalence.
     snippets = choose_excerpts(row["capture_text"], [{"text": s} for s in segments[:MAX_CLAIMS]])
-    new_sources = []
-    for source in evidence.sources:
-        if source.url == row["item_url"]:
-            spans = tuple(EvidenceSpan("p2-"+sha256(t.encode()).hexdigest()[:20],t) for t in snippets)
-            new_sources.append(replace(source, spans=spans, retrieval_verified=False))
-        else:
-            new_sources.append(source)
-    bundle = EvidenceBundle(sources=tuple(new_sources), event_ids=evidence.event_ids)
-    original = prepare_probe(candidate, bundle)
-    partial = len(original["claims"]) > MAX_CLAIMS
-    packet = dict(original)
-    packet["claims"] = original["claims"][:MAX_CLAIMS]
-    packet["selection"] = "first_five_provisional_segments_not_atomic"
-    packet["full_material_coverage"] = not partial
-    packet["independent_p1_attested"] = False
-    packet.pop("request_hash", None)
-    packet["request_hash"] = _hash(packet)
-    if len(json.dumps(packet, ensure_ascii=False).encode("utf-8")) > MAX_PACKET_BYTES:
-        raise ValueError("checker_packet_oversized")
-    return packet, {"material_id":candidate.material_id,"version":candidate.version,
-                    "claims_selected":len(packet["claims"]),"segments_truncated":partial,
-                    "p2_excerpts":len(snippets),"source_item_id":row["item_id"]}
+    # When a packet is too large, remove tail context without splitting quotes.
+    # Keep at least ONE literal linked P2 quote; claims lacking support remain
+    # insufficient and no shadow result grants publication authorization.
+    from .evidence_retrieval import fit_packet_to_budget
+
+    def make_packet(kept: list[str]) -> dict:
+        new_sources = []
+        for source in evidence.sources:
+            if source.url == row["item_url"]:
+                spans = tuple(EvidenceSpan("p2-"+sha256(t.encode()).hexdigest()[:20],t) for t in kept)
+                new_sources.append(replace(source, spans=spans, retrieval_verified=False))
+            else:
+                new_sources.append(source)
+        bundle = EvidenceBundle(sources=tuple(new_sources), event_ids=evidence.event_ids)
+        original = prepare_probe(candidate, bundle)
+        partial = len(original["claims"]) > MAX_CLAIMS
+        packet = dict(original)
+        packet["claims"] = original["claims"][:MAX_CLAIMS]
+        packet["selection"] = "first_five_provisional_segments_not_atomic"
+        packet["full_material_coverage"] = not partial
+        packet["independent_p1_attested"] = False
+        packet.pop("request_hash", None)
+        packet["request_hash"] = _hash(packet)
+        return packet
+
+    packet, kept = fit_packet_to_budget(
+        snippets, make_packet, max_bytes=MAX_PACKET_BYTES,
+        min_snippets=1, request_builder=provider_request,
+    )
+    # Offline P2-only flags; never enter packet/request_hash or provider payload.
+    # Other evidence-source spans are excluded before diagnostic evaluation.
+    from .p2_guard_integration import assess_p2_packet
+    guard = assess_p2_packet(packet, expected_p2_url=row["item_url"])
+    return packet, {"p2_guard":guard, "material_id":candidate.material_id,"version":candidate.version,
+                    "claims_selected":len(packet["claims"]),
+                    "segments_truncated":not packet["full_material_coverage"],
+                    "p2_excerpts":len(kept),
+                    "p2_excerpts_trimmed":len(snippets)-len(kept),
+                    "source_item_id":row["item_id"]}
 
 
 def provider_request(packet: dict) -> dict:

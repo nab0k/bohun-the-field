@@ -1,0 +1,47 @@
+# C3-10: PR-scoped, standard-library-only editor tests.
+# No secrets, model API, database, artifact uploads, or publication.
+name: BOHUN C3-10 offline editor tests (PR 202)
+on:
+  pull_request:
+    types: [synchronize]
+    paths:
+      - 'collectors/editor/**'
+      - '.github/workflows/editor-c3-10-offline-ci.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: c3-10-offline-pr-202
+  cancel-in-progress: false
+
+jobs:
+  editor-tests:
+    if: >-
+      github.repository == 'nab0k/bohun-the-field' &&
+      github.event.pull_request.number == 202 &&
+      github.event.pull_request.head.repo.full_name == 'nab0k/bohun-the-field' &&
+      github.event.pull_request.head.ref == 'chatgpt/C3-10-evidence-retrieval' &&
+      github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONPATH: .
+    steps:
+      - name: Checkout exact PR HEAD (no persisted credentials)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Set up Python 3.13
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13'
+      - name: Verify checked-out revision
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Run entire C3-10 editor offline unit suite
+        run: python -B -m unittest discover -s collectors/editor -t . -p 'test_*.py' -q
