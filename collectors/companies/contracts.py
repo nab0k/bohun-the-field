@@ -32,7 +32,7 @@ TARGETS_SQL = """with c as (
     (select i.value from companies.company_identifier i where i.company_id = c.id and i.scheme = 'LEI' limit 1) as lei,
     (select count(*) from companies.mention_link l where l.company_id = c.id)
       + (select count(*) from companies.signal s where s.company_id = c.id and s.layer in ('A', 'B')) as size,
-    (select max(a.attempted_at) from companies.card_attempt a where a.company_id = c.id and a.run like 'B4CE-04 contracts%') as last
+    (select max(a.attempted_at) from companies.card_attempt a where a.company_id = c.id and a.run like 'B4CE-04 contracts%%') as last
   from companies.company c where c.country in ('US', 'CA') and c.excluded_reason is null)
 select id, name, country, has_card, legal_name, lei, size from c
 where (has_card or size > 0) and (last is null or last < now() - make_interval(days => %(days)s))
