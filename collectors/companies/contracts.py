@@ -41,10 +41,11 @@ TARGETS_SQL = """with c as (
     exists (select 1 from companies.profile_claim p where p.company_id = c.id and p.qa_status = 'APPROVED'
             and p.claim_ref = 'b4:spend' and not (p.claim_value ? 'scope'))
       and not exists (select 1 from companies.card_attempt a where a.company_id = c.id and a.run like 'B4CE-04 contracts%%'
-                      and a.reason like '%%' || %(mark)s) as rescope
+                      and a.outcome <> 'error' and a.reason like '%%' || %(mark)s) as rescope
   from companies.company c where c.country in ('US', 'CA') and c.excluded_reason is null)
 select id, name, country, has_card, has_city, legal_name, lei, size, by_contracts from c
-where (has_card or size > 0) and (last is null or last < now() - make_interval(days => %(days)s) or rescope
+where (has_card or size > 0) and (last is null or last < now() - make_interval(days => %(days)s)
+  or (rescope and last < now() - interval '20 minutes')
   -- a card without a city cannot reach the site catalogue: checked again soon (25.11.2026)
   or (has_card and not has_city and last < now() - interval '20 minutes'))
 order by rescope desc, has_card desc, size desc, id limit %(limit)s"""
