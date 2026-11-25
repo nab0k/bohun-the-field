@@ -115,9 +115,11 @@ def route(c):
     return 'no_route', f'{country}: no free register and no LEI'
 
 
-def build(companies, items, today=None, signal_days=SIGNAL_DAYS):
+def build(companies, items, today=None, signal_days=SIGNAL_DAYS, keep=None):
     """companies: dicts with id, name, country, lei (bool), national_id (bool), last_signal (ISO date or None),
-    has_card (bool). Returns the ordered queue (list of dicts) and counts per tier."""
+    has_card (bool). keep: ids of carded companies to queue even without an event (the refresh schedule chose
+    them, refresh.py). Returns the ordered queue (list of dicts) and counts per tier."""
+    keep = keep or set()
     today = today or date.today()
     mentions = event_mentions(companies, items, today)
     since_signal = (today - timedelta(days=signal_days)).isoformat()
@@ -133,8 +135,8 @@ def build(companies, items, today=None, signal_days=SIGNAL_DAYS):
         if ev:
             last = max(d for d, _ in ev)
             tier, reason = 'event', '; '.join(r for _, r in ev) + f'; route: {reg_reason}'
-        elif c.get('has_card'):
-            continue  # approved card and nothing new: not queued
+        elif c.get('has_card') and c['id'] not in keep:
+            continue  # approved card and nothing new: not queued unless its refresh is due
         else:
             last, tier, reason = None, reg_tier, reg_reason
         queue.append({'company_id': c['id'], 'name': c['name'], 'country': c.get('country'), 'tier': tier,

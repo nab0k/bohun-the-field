@@ -37,7 +37,7 @@ def main():
                       only=refresh_ids, refresh=True)
             report['refresh_outcomes'] = s.get('outcomes')
         if fill_ids:
-            s = A.run(conn, os.environ, limit=len(fill_ids), write=a.write, minutes=max(1, a.minutes // 3), log=quiet,
+            s = A.run(conn, os.environ, limit=len(fill_ids), write=a.write, minutes=max(1, a.minutes // 3), log=quiet, scheduled=True,
                       only=fill_ids)
             report['fill_outcomes'] = s.get('outcomes')
         m = F.metric(conn.execute(F.DUE_SQL).fetchall(), today)

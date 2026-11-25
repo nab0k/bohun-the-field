@@ -69,6 +69,11 @@ class TestBuild(unittest.TestCase):
         q, _ = build(companies, [syn('s', '2026-11-19', 'Crosshill delivers sensors')], TODAY)
         self.assertEqual([(x['company_id'], x['refresh']) for x in q], [('again', True)])
 
+    def test_card_due_for_refresh_is_kept(self):  # worker 25.11.2026: the schedule chose it, no event needed
+        companies = [co('done', 'Patria Oyj', 'FI', has_card=True), co('other', 'Nammo AS', 'NO', has_card=True)]
+        q, _ = build(companies, [], TODAY, keep={'done'})
+        self.assertEqual([(x['company_id'], x['refresh'], x['tier']) for x in q], [('done', True, 'open_register')])
+
     def test_partial_word_is_not_a_mention(self):
         q, _ = build([co('a', 'Patria Oyj', 'FI')], [syn('s', '2026-11-20', 'Patriarch visits Helsinki')], TODAY)
         self.assertEqual(q[0]['tier'], 'open_register')
