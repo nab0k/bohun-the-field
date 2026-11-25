@@ -94,5 +94,16 @@ class Step(unittest.TestCase):
         self.assertFalse(K.same([], found))
 
 
+class Sql(unittest.TestCase):
+    def test_no_stray_percent(self):  # 24.11.2026: "like 'B4CE-04 contracts%'" broke every pass with ProgrammingError
+        import re
+        from collectors.companies import graph as G
+        for mod in (K, G):
+            for name in dir(mod):
+                if name.endswith('_SQL'):
+                    sql = getattr(mod, name)
+                    self.assertEqual(re.findall(r"%(?!\(\w+\)s|%|s\b)", sql.replace('%%', '')), [], f'{mod.__name__}.{name}')
+
+
 if __name__ == '__main__':
     unittest.main()
