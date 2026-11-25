@@ -30,12 +30,16 @@ TARGETS_SQL = """with c as (
     (select p.claim_value #>> '{}' from companies.profile_claim p where p.company_id = c.id and p.qa_status = 'APPROVED'
        and p.claim_ref = 'b4:legal_name' limit 1) as legal_name,
     (select i.value from companies.company_identifier i where i.company_id = c.id and i.scheme = 'LEI' limit 1) as lei,
+    exists (select 1 from companies.profile_claim p where p.company_id = c.id and p.qa_status = 'APPROVED'
+            and p.claim_ref = 'b4:city') as has_city,
     (select count(*) from companies.mention_link l where l.company_id = c.id)
       + (select count(*) from companies.signal s where s.company_id = c.id and s.layer in ('A', 'B')) as size,
     (select max(a.attempted_at) from companies.card_attempt a where a.company_id = c.id and a.run like 'B4CE-04 contracts%%') as last
   from companies.company c where c.country in ('US', 'CA') and c.excluded_reason is null)
-select id, name, country, has_card, legal_name, lei, size from c
-where (has_card or size > 0) and (last is null or last < now() - make_interval(days => %(days)s))
+select id, name, country, has_card, has_city, legal_name, lei, size from c
+where (has_card or size > 0) and (last is null or last < now() - make_interval(days => %(days)s)
+  -- a card without a city cannot reach the site catalogue: checked again soon (25.11.2026)
+  or (has_card and not has_city and last < now() - interval '20 minutes'))
 order by has_card desc, size desc, id limit %(limit)s"""
 SUBS_SQL = """select c.name as supplier, c.country, s.counterpart as prime, s.signal_date::text as date, s.url
 from companies.signal s join companies.company c on c.id = s.company_id
@@ -91,6 +95,19 @@ def sub_claims(rows):
             for n, r in enumerate(rows, 1)}
 
 
+def gleif_city(lei, opener=None):
+    """Headquarters city of an LEI record (GLEIF, no key), or None."""
+    import urllib.request
+    opener = opener or urllib.request.urlopen
+    try:
+        req = urllib.request.Request(f'https://api.gleif.org/api/v1/lei-records/{lei}', headers={'User-Agent': 'BOHUN-research/1.0'})
+        with opener(req, timeout=60) as r:
+            c = json.load(r)['data']['attributes']['entity']['headquartersAddress']['city']
+    except Exception:  # noqa: BLE001
+        return None
+    return c.title() if c and c.isupper() else c
+
+
 def identity(t, d):
     """(scheme, value, url, title, kind) for a company without a card, or None (no card is made)."""
     if t['lei']:
@@ -120,6 +137,8 @@ def payload(t, found, today, card_core=None):
              'assessment': 'registry_supported', 'srcs': [reg_src]},
             {'company_id': co, 'ref': 'b4:regno', 'path': '/identity/registration_number', 'value': {'scheme': scheme, 'value': value},
              'assessment': 'registry_supported', 'srcs': [reg_src]},
+            *([{'company_id': co, 'ref': 'b4:city', 'path': '/identity/city', 'value': card_core['city'],
+                 'assessment': 'registry_supported', 'srcs': [reg_src]}] if card_core.get('city') else []),
             {'company_id': co, 'ref': 'b4:level', 'path': '/classification/defence_level', 'value': {
                 'level': 'L3', 'confidence': 'verified', 'rule': 'R03', 'explanation': card_core['why'],
                 'classifier': 'collectors/companies/contracts.py', 'run': RUN.format(day=today.isoformat())},
@@ -167,6 +186,16 @@ def run(conn, limit=12, write=False, today=None, us_fetch=None, ca_fetch=None, l
                 found = ca_claims(d) if d else {}
                 defence = bool(d and d['defence'])
                 ident_name = (d['vendors'][0] if d and d['vendors'] else None)
+            # the city lets the site add a company that is not in the catalogue yet (25.11.2026: Lockheed Martin skipped)
+            town = (d or {}).get('city') if t['country'] == 'US' else (gleif_city(t['lei']) if t.get('lei') and found else None)
+            if found and t['has_card'] and not t.get('has_city') and town and write:
+                src_url = (d or {}).get('profile') if t['country'] == 'US' else f'https://search.gleif.org/#/record/{t["lei"]}'
+                with conn.transaction():
+                    conn.execute(A.WRITE_SQL, {'j': json.dumps({'sources': [{'company_id': t['id'], 'ref': 'b4:city_src', 'title': 'City of the register record',
+                                                                         'url': src_url, 'kind': 'contract_register' if t['country'] == 'US' else 'legal_entity_identifier_reference'}],
+                                                              'claims': [{'company_id': t['id'], 'ref': 'b4:city', 'path': '/identity/city', 'value': town,
+                                                                          'assessment': 'registry_supported', 'srcs': ['b4:city_src']}]}),
+                                               'day': today.isoformat(), 'note': note})
             if found:
                 subs = conn.execute(SUBS_SQL, {'names': [n.lower() for n in names + ([ident_name] if ident_name else [])]}).fetchall()
                 found.update(sub_claims(subs))
@@ -179,7 +208,7 @@ def run(conn, limit=12, write=False, today=None, us_fetch=None, ca_fetch=None, l
                     else:
                         why = ('US Department of Defense contracts in USAspending' if t['country'] == 'US'
                                else 'contracts with a Canadian defence buyer in Open Government Canada')
-                        core = {'id': idn, 'legal_name': ident_name or t['name'], 'why': why}
+                        core = {'id': idn, 'legal_name': ident_name or t['name'], 'why': why, 'city': town}
                 if found:
                     now = conn.execute(NOW_SQL, {'co': t['id']}).fetchall()
                     if now and same(now, found):

@@ -27,6 +27,19 @@ PLAIN = {'THE', 'IS', 'FOR', 'AND', 'OF', 'TO', 'A', 'AN', 'IN', 'ON', 'WITH', '
 BOILER = re.compile(r'^(the )?purpose of th(is|e) (modification|contract|action|order) is to (award |provide |exercise )?', re.I)
 
 
+def city(recipient_id, opener=urllib.request.urlopen):
+    """The city of the recipient profile (only the city: never the street or the postal code), or None."""
+    if not recipient_id:
+        return None
+    try:
+        req = urllib.request.Request(f'{API}/recipient/{recipient_id}/', headers={'User-Agent': UA['User-Agent']})
+        with opener(req, timeout=60) as r:
+            c = ((json.load(r) or {}).get('location') or {}).get('city_name')
+    except Exception:  # noqa: BLE001 — the city is optional
+        return None
+    return c.title() if c and c.isupper() else c
+
+
 def _post(path, body, opener=urllib.request.urlopen, tries=3, pause=5):
     """POST with retries on 429 / 5xx (the API answers 503 under load now and then)."""
     for n in range(tries):
@@ -106,7 +119,9 @@ def fetch(name, start, end, opener=urllib.request.urlopen, top=8, today=None):
     awards = _post('/search/spending_by_award/', {'filters': flt, 'limit': top, 'sort': 'Award Amount', 'order': 'desc',
                    'fields': ['Award ID', 'Recipient Name', 'Recipient UEI', 'recipient_id', 'Award Amount', 'Awarding Sub Agency',
                               'Start Date', 'End Date', 'Description', 'generated_internal_id']}, opener).get('results') or []
-    return parse(rec, buyers, count, awards, start, end, today)
+    d = parse(rec, buyers, count, awards, start, end, today)
+    d['city'] = city(d.pop('_rid', None), opener)
+    return d
 
 
 def parse(rec, buyers, count, awards, start, end, today=None):
@@ -114,7 +129,7 @@ def parse(rec, buyers, count, awards, start, end, today=None):
     rid = next((a.get('recipient_id') for a in mine if a.get('recipient_id')), None)
     money = [{'name': b['name'], 'amount': round(float(b['amount']), 2)} for b in buyers if b.get('name') and (b.get('amount') or 0) > 0]
     total = round(sum(b['amount'] for b in money), 2)
-    return {'recipient': rec['recipient_name'], 'uei': rec['uei'], 'ueis': len(rec.get('ueis') or [rec['uei']]), 'partial': bool(rec.get('partial')),
+    return {'_rid': rid, 'recipient': rec['recipient_name'], 'uei': rec['uei'], 'ueis': len(rec.get('ueis') or [rec['uei']]), 'partial': bool(rec.get('partial')),
             'profile': f'{SITE}/recipient/{rid}/latest' if rid else f'{SITE}/search', 'period': period(start, end, today),
             'total': total, 'count': int(count), 'buyers': money,
             'awards': [{'ref': a['Award ID'], 'buyer': a.get('Awarding Sub Agency'), 'title': title(a.get('Description'), a['Award ID']),

@@ -70,9 +70,10 @@ class Step(unittest.TestCase):
         found = K.us_claims(US)
         idn = K.identity(t, US)
         self.assertEqual(idn[:2], ('US_UEI', 'DVEJ'))
-        data = K.payload(t, found, date(2026, 11, 24), {'id': idn, 'legal_name': 'SHIELD AI INC', 'why': 'DoD'})
+        data = K.payload(t, found, date(2026, 11, 24), {'id': idn, 'legal_name': 'SHIELD AI INC', 'why': 'DoD', 'city': 'San Diego'})
         refs = {c['ref'] for c in data['claims']}
-        self.assertTrue({'b4:legal_name', 'b4:regno', 'b4:level', 'b4:spend', 'b4:ctr1'} <= refs)
+        self.assertTrue({'b4:legal_name', 'b4:regno', 'b4:city', 'b4:level', 'b4:spend', 'b4:ctr1'} <= refs)
+        self.assertEqual(next(c for c in data['claims'] if c['ref'] == 'b4:city')['value'], 'San Diego')
         self.assertEqual({s['ref'] for s in data['sources']}, {'b4:reg'})  # the profile is both the identity and the record
         lvl = next(c for c in data['claims'] if c['ref'] == 'b4:level')['value']
         self.assertEqual((lvl['level'], lvl['confidence'], lvl['rule']), ('L3', 'verified', 'R03'))
@@ -111,7 +112,7 @@ class Attempts(unittest.TestCase):
                     self.rows.append(params)
                 class R:
                     def fetchall(s):
-                        return [{'id': 'co1', 'name': 'Nobody Inc', 'country': 'US', 'has_card': False, 'legal_name': None, 'lei': None, 'size': 3}] \
+                        return [{'id': 'co1', 'name': 'Nobody Inc', 'country': 'US', 'has_card': False, 'has_city': False, 'legal_name': None, 'lei': None, 'size': 3}] \
                             if 'with c as' in sql else []
                 return R()
 
