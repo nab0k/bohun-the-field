@@ -1,0 +1,172 @@
+{
+  "schema": "bohun-c4-11-five-pilot-dossiers-v1",
+  "created_on": "2026-11-12",
+  "derived_from": "collectors/signals/C4-11_HISTORICAL_RESEARCH_LEADS.json",
+  "not_a_model_backtest": true,
+  "selection_mode": "retrospective_outcome_aware",
+  "historical_replay_verified": false,
+  "pre_registered_signal_labels": false,
+  "model_predictions_count": 0,
+  "independent_historical_samples": false,
+  "standard": "Separate cutoff facts from later outcomes; observation is not prediction",
+  "status": "RESEARCH_ONLY_NOT_EVALUABLE",
+  "cases": [
+    {
+      "lead_id": "C4-11-R01",
+      "subject": "HiTDOC / EDF 2022",
+      "sector": "defence R&D; counter-IED",
+      "cutoff_date": "2023-06-27",
+      "claim_under_test": "Отбор HiTDOC на EDF 2022 приведёт к подписанному грантовому соглашению.",
+      "cutoff_source": {
+        "url": "https://defence-industry-space.ec.europa.eu/funding-and-grants/calls-proposals/result-edf-2022-calls-proposals_en",
+        "publication_date": "2023-06-26",
+        "observation": "41 proposal selected for funding, and the EDF 2022 HiTDOC project listed; project factsheets represent invitations to grant-preparation, with no contractual commitment by Commission.",
+        "verified_as_of_cutoff": false
+      },
+      "later_outcome": {
+        "url": "https://defence-industry-space.ec.europa.eu/european-defence-fund-start-37-new-defence-rd-projects-2023-12-19_en",
+        "publication_date": "2023-12-19",
+        "observation": "Commission explicitly named HiTDOC among the five signed technological challenge grant agreements.",
+        "event_type": "grant_signed",
+        "observed": true
+      },
+      "allowed_cutoff_inference": "Selection is a real funding-pipeline milestone; grant signature remains contingent.",
+      "unsupported_cutoff_inference": "The contract was already signed; counter-IED tools were fielded or delivered.",
+      "disconfirming_test": "Commission explicitly declines grant agreement, project withdrawn or no signature by a preregistered date.",
+      "metric_boundary": "selected_proposal vs signed_grant vs deployed_solution",
+      "evidence_scope": "Two date-labelled Commission web publications, historical content snapshot NOT verified.",
+      "expected_event_label_if_audited": "grant_signed",
+      "signal_label": null,
+      "model_prediction": null,
+      "review_status": "SOURCE_PAIR_VERIFIED_HISTORICAL_REPLAY_PENDING",
+      "independent_signal_label": false,
+      "eligible_for_scoring": false
+    },
+    {
+      "lead_id": "C4-11-R11",
+      "subject": "EDIRPA",
+      "sector": "EU defence procurement policy",
+      "cutoff_date": "2022-07-20",
+      "claim_under_test": "Предложение EDIRPA на €500 млн превратится в принятый регламент с тем же бюджетом.",
+      "cutoff_source": {
+        "url": "https://defence-industry-space.ec.europa.eu/european-commission-proposes-eu500-million-instrument-common-defence-procurement-edirpa-2022-07-19_en",
+        "publication_date": "2022-07-19",
+        "observation": "Commission adopted a proposal for EDIRPA, requesting €500m of EU budget to incentivise common procurement, not a passed Regulation.",
+        "verified_as_of_cutoff": false
+      },
+      "later_outcome": {
+        "url": "https://www.consilium.europa.eu/en/press/press-releases/2023/10/09/edirpa-council-greenlights-the-new-rules-to-boost-common-procurement-in-the-eu-defence-industry/",
+        "publication_date": "2023-10-09",
+        "observation": "Council adopted EDIRPA regulation, but the instrument budget was €300m, not proposed €500m.",
+        "event_type": "regulation_adopted_budget_revised",
+        "observed": true
+      },
+      "allowed_cutoff_inference": "Institutional initiative toward common procurement exists, €500m is only the proposed envelope.",
+      "unsupported_cutoff_inference": "Final EU commitment of €500m; procurement contracts already awarded or goods delivered.",
+      "disconfirming_test": "Proposal dropped, no regulation by fixed horizon; final appropriation differs from proposed amount.",
+      "metric_boundary": "proposal_€500m vs adopted_budget_€300m vs spending vs delivery",
+      "evidence_scope": "Dated original Commission and Council news; archival snapshot at cutoff not certified.",
+      "expected_event_label_if_audited": "adopted_with_reduced_budget",
+      "signal_label": null,
+      "model_prediction": null,
+      "review_status": "SOURCE_PAIR_VERIFIED_HISTORICAL_REPLAY_PENDING",
+      "independent_signal_label": false,
+      "eligible_for_scoring": false
+    },
+    {
+      "lead_id": "C4-11-R12",
+      "subject": "European Peace Facility (EPF) ceiling",
+      "sector": "European defence financial policy",
+      "cutoff_date": "2022-12-13",
+      "claim_under_test": "Политическое соглашение Совета о повышении потолка EPF будет формализовано решением в 2023 году.",
+      "cutoff_source": {
+        "url": "https://www.consilium.europa.eu/en/press/press-releases/2022/12/12/european-peace-facility-council-agrees-2-billion-increase-of-the-financial-ceiling-in-2023/",
+        "publication_date": "2022-12-12",
+        "observation": "Council reached political agreement on €2bn increase measured in 2018 prices, said it would be formalised in early 2023.",
+        "verified_as_of_cutoff": false
+      },
+      "later_outcome": {
+        "url": "https://www.consilium.europa.eu/en/press/press-releases/2023/03/14/european-peace-facility-council-increases-the-financial-ceiling-to-nearly-798-billion-until-2027/",
+        "publication_date": "2023-03-14",
+        "observation": "Council adopted decision, resulting total ceiling €7.979bn in current prices until 2027; implements December 2022 political agreement.",
+        "event_type": "financial_ceiling_decision",
+        "observed": true
+      },
+      "allowed_cutoff_inference": "Political intent to increase off-budget ceiling with a specifically described formal decision pending.",
+      "unsupported_cutoff_inference": "An immediate €2bn disbursement, same-number comparison across price bases, or an immediate transfer of weapons.",
+      "disconfirming_test": "No implementing decision within preregistered horizon, materially different legislative ceiling.",
+      "metric_boundary": "2018_euros vs current_euros; financial_ceiling vs disbursement vs delivery",
+      "evidence_scope": "Date-stamped Council statements. Independent archive timestamp unavailable.",
+      "expected_event_label_if_audited": "ceiling_formalized",
+      "signal_label": null,
+      "model_prediction": null,
+      "review_status": "SOURCE_PAIR_VERIFIED_HISTORICAL_REPLAY_PENDING",
+      "independent_signal_label": false,
+      "eligible_for_scoring": false
+    },
+    {
+      "lead_id": "C4-11-R13",
+      "subject": "Finland NATO accession",
+      "sector": "defence alliances",
+      "cutoff_date": "2022-07-06",
+      "claim_under_test": "Подписание протоколов присоединения Финляндии ведёт к полноценному членству в НАТО.",
+      "cutoff_source": {
+        "url": "https://www.nato.int/en/news-and-events/articles/news/2022/07/05/nato-allies-sign-accession-protocols-for-finland-and-sweden",
+        "publication_date": "2022-07-05",
+        "observation": "Allies signed accession protocols for Finland and Sweden; national ratification and accession remained future steps.",
+        "verified_as_of_cutoff": false
+      },
+      "later_outcome": {
+        "url": "https://www.nato.int/en/news-and-events/articles/news/2023/04/04/finland-joins-nato-as-31st-ally",
+        "publication_date": "2023-04-04",
+        "observation": "Finland deposited instrument of accession and became NATO's 31st member on 4 April 2023.",
+        "event_type": "accession_completed",
+        "observed": true
+      },
+      "allowed_cutoff_inference": "Formal institutional accession process advanced, but ratification was not complete.",
+      "unsupported_cutoff_inference": "Finland already became member on 5 July 2022, or exact accession date was known then.",
+      "disconfirming_test": "Ratification blocked or invitation lapsed before preregistered horizon.",
+      "metric_boundary": "accession_protocol vs ratification vs instrument_deposit",
+      "evidence_scope": "Two dated NATO news releases; contemporary 2022 snapshot not independently certified.",
+      "expected_event_label_if_audited": "membership_completed",
+      "signal_label": null,
+      "model_prediction": null,
+      "review_status": "SOURCE_PAIR_VERIFIED_HISTORICAL_REPLAY_PENDING",
+      "independent_signal_label": false,
+      "eligible_for_scoring": false
+    },
+    {
+      "lead_id": "C4-11-R15",
+      "subject": "FARA future reconnaissance aircraft",
+      "sector": "US Army procurement and defence industry",
+      "cutoff_date": "2023-04-18",
+      "claim_under_test": "Выявленные GAO технические и бюджетные риски FARA указывают на повышенный риск программы, а не гарантируют отмену.",
+      "cutoff_source": {
+        "url": "https://www.gao.gov/products/gao-23-105554",
+        "publication_date": "2023-04-17",
+        "observation": "GAO documented risk in Future Vertical Lift portfolio, non-credible cost estimates, insufficient technology demonstrations. FARA was targeting an aircraft in 2030; 2023 document did not announce cancellation.",
+        "verified_as_of_cutoff": false,
+        "immutable_2023_report_url": "https://www.gao.gov/assets/gao-23-105554.pdf",
+        "warning": "GAO webpage has later-updated recommendation statuses; do not replay today's whole HTML as 2023."
+      },
+      "later_outcome": {
+        "url": "https://www.army.mil/article-amp/273594/army_announces_aviation_investment_rebalance",
+        "publication_date": "2024-02-08",
+        "observation": "US Army announced that FARA development would end at conclusion of FY2024 prototyping; official reason includes affordability and rebalancing toward other assets.",
+        "event_type": "programme_cancellation_announced",
+        "observed": true
+      },
+      "allowed_cutoff_inference": "Acquisition execution risk is substantial and warrants monitoring; probability of cancellation is not quantified.",
+      "unsupported_cutoff_inference": "2023 GAO already proves FARA will be cancelled, or all Future Vertical Lift programs are cancelled.",
+      "disconfirming_test": "Risk mitigation and stable acquisition milestones maintained during preregistered horizon.",
+      "metric_boundary": "GAO_early_risk vs procurement_decision vs prototype vs fielded_aircraft",
+      "evidence_scope": "GAO 2023 report/GAO html with retrospective updates; Army original 2024 press release. Cutoff evidence should be frozen from report, not later updated GAO page.",
+      "expected_event_label_if_audited": "development_end_announced",
+      "signal_label": null,
+      "model_prediction": null,
+      "review_status": "SOURCE_PAIR_VERIFIED_HISTORICAL_REPLAY_PENDING",
+      "independent_signal_label": false,
+      "eligible_for_scoring": false
+    }
+  ]
+}

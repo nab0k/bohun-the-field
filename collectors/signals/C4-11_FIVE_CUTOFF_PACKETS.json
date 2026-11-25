@@ -1,0 +1,183 @@
+{
+  "schema": "bohun-c4-11-cutoff-packets-v1",
+  "created_on": "2026-11-12",
+  "purpose": "Cutoff-only input candidates for offline editorial method examination; NOT model outputs, not historical replay validated",
+  "selection_mode": "retrospective_pilot",
+  "historical_replay_eligible": false,
+  "ground_truth_not_included": true,
+  "requires_external_archived_snapshot": true,
+  "complete_c4_10_gate_available": false,
+  "records": [
+    {
+      "case_id": "C4-11-R01",
+      "cutoff_date": "2023-06-27",
+      "subject": "HiTDOC / EDF 2022",
+      "domain": "defence R&D; counter-IED",
+      "source": {
+        "url": "https://defence-industry-space.ec.europa.eu/funding-and-grants/calls-proposals/result-edf-2022-calls-proposals_en",
+        "publication_date": "2023-06-26",
+        "first_seen_at": null,
+        "archived_snapshot_sha256": null,
+        "original_version_verified": false,
+        "source_type": "official_primary_publication"
+      },
+      "cutoff_facts": [
+        "EDF 2022 results announced 41 selected proposals for funding.",
+        "HiTDOC appears in the selected-proposal cohort.",
+        "Selection initiates preparation for a potential grant agreement; it is not a signed agreement."
+      ],
+      "stage_as_of_cutoff": "selected_proposal",
+      "numeric_claims": [],
+      "analyst_question": "Does the selected EDF project constitute evidence of a signed grant agreement as of the cutoff?",
+      "forbidden_inferences": "Do not infer a signed agreement, a fielded technology or procurement from selection.",
+      "assessment": {
+        "source_freshness": "unverified_historical_snapshot",
+        "evidence_independence": "single_root_only",
+        "baseline": "not_established",
+        "surprise_vs_baseline": "not_measured",
+        "signal_qualification": "HOLD",
+        "publication_allowed": false,
+        "reason": "Historical version not frozen; C4-10 complete independent gate not accessible."
+      }
+    },
+    {
+      "case_id": "C4-11-R11",
+      "cutoff_date": "2022-07-20",
+      "subject": "EDIRPA",
+      "domain": "EU defence procurement policy",
+      "source": {
+        "url": "https://defence-industry-space.ec.europa.eu/european-commission-proposes-eu500-million-instrument-common-defence-procurement-edirpa-2022-07-19_en",
+        "publication_date": "2022-07-19",
+        "first_seen_at": null,
+        "archived_snapshot_sha256": null,
+        "original_version_verified": false,
+        "source_type": "official_primary_publication"
+      },
+      "cutoff_facts": [
+        "The European Commission proposed an instrument to incentivise common defence procurement.",
+        "The proposal described a €500 million envelope, not a legally enacted budget."
+      ],
+      "stage_as_of_cutoff": "commission_proposal",
+      "numeric_claims": [
+        {
+          "amount": "500000000",
+          "currency": "EUR",
+          "stage": "proposed",
+          "meaning": "proposed EU instrument envelope"
+        }
+      ],
+      "analyst_question": "What policy-stage change is documented, and is the proposed €500m an adopted or disbursed amount?",
+      "forbidden_inferences": "Do not convert proposal into regulation, contracts, spending or weapons delivered.",
+      "assessment": {
+        "source_freshness": "unverified_historical_snapshot",
+        "evidence_independence": "single_root_only",
+        "baseline": "not_established",
+        "surprise_vs_baseline": "not_measured",
+        "signal_qualification": "HOLD",
+        "publication_allowed": false,
+        "reason": "Historical version not frozen; C4-10 complete independent gate not accessible."
+      }
+    },
+    {
+      "case_id": "C4-11-R12",
+      "cutoff_date": "2022-12-13",
+      "subject": "European Peace Facility (EPF) ceiling",
+      "domain": "European defence financial policy",
+      "source": {
+        "url": "https://www.consilium.europa.eu/en/press/press-releases/2022/12/12/european-peace-facility-council-agrees-2-billion-increase-of-the-financial-ceiling-in-2023/",
+        "publication_date": "2022-12-12",
+        "first_seen_at": null,
+        "archived_snapshot_sha256": null,
+        "original_version_verified": false,
+        "source_type": "official_primary_publication"
+      },
+      "cutoff_facts": [
+        "Council reached a political agreement to increase the EPF financial ceiling.",
+        "The proposed ceiling increase was €2 billion in 2018 prices, subject to subsequent formal adoption."
+      ],
+      "stage_as_of_cutoff": "council_political_agreement",
+      "numeric_claims": [
+        {
+          "amount": "2000000000",
+          "currency": "EUR_2018_prices",
+          "stage": "political_agreement",
+          "meaning": "proposed increase of the EPF ceiling, not the total ceiling"
+        }
+      ],
+      "analyst_question": "Does agreement to raise a financial ceiling demonstrate immediate disbursement or equipment deliveries?",
+      "forbidden_inferences": "Do not treat ceiling as money spent or compare 2018-price increment with nominal total.",
+      "assessment": {
+        "source_freshness": "unverified_historical_snapshot",
+        "evidence_independence": "single_root_only",
+        "baseline": "not_established",
+        "surprise_vs_baseline": "not_measured",
+        "signal_qualification": "HOLD",
+        "publication_allowed": false,
+        "reason": "Historical version not frozen; C4-10 complete independent gate not accessible."
+      }
+    },
+    {
+      "case_id": "C4-11-R13",
+      "cutoff_date": "2022-07-06",
+      "subject": "Finland NATO accession",
+      "domain": "defence alliances",
+      "source": {
+        "url": "https://www.nato.int/en/news-and-events/articles/news/2022/07/05/nato-allies-sign-accession-protocols-for-finland-and-sweden",
+        "publication_date": "2022-07-05",
+        "first_seen_at": null,
+        "archived_snapshot_sha256": null,
+        "original_version_verified": false,
+        "source_type": "official_primary_publication"
+      },
+      "cutoff_facts": [
+        "NATO allies signed accession protocols for Finland and Sweden on 5 July 2022.",
+        "Ratification by member states and actual accession were not yet completed."
+      ],
+      "stage_as_of_cutoff": "accession_protocols_signed",
+      "numeric_claims": [],
+      "analyst_question": "Are signed accession protocols evidence of completed NATO membership on the cutoff date?",
+      "forbidden_inferences": "Do not claim full membership or predict an exact accession date.",
+      "assessment": {
+        "source_freshness": "unverified_historical_snapshot",
+        "evidence_independence": "single_root_only",
+        "baseline": "not_established",
+        "surprise_vs_baseline": "not_measured",
+        "signal_qualification": "HOLD",
+        "publication_allowed": false,
+        "reason": "Historical version not frozen; C4-10 complete independent gate not accessible."
+      }
+    },
+    {
+      "case_id": "C4-11-R15",
+      "cutoff_date": "2023-04-18",
+      "subject": "FARA future reconnaissance aircraft",
+      "domain": "US Army procurement and defence industry",
+      "source": {
+        "url": "https://www.gao.gov/products/gao-23-105554",
+        "publication_date": "2023-04-17",
+        "first_seen_at": null,
+        "archived_snapshot_sha256": null,
+        "original_version_verified": false,
+        "source_type": "official_primary_publication"
+      },
+      "cutoff_facts": [
+        "GAO reported acquisition-management risks for the Army Future Vertical Lift portfolio including FARA.",
+        "Risks concerned cost estimates, technology maturity and acquisition milestones.",
+        "An operational aircraft on the programme schedule was a target, not a fielded aircraft."
+      ],
+      "stage_as_of_cutoff": "gao_acquisition_risk_report",
+      "numeric_claims": [],
+      "analyst_question": "Does GAO evidence justify an acquisition-risk monitoring alert, versus a categorical programme cancellation prediction?",
+      "forbidden_inferences": "Do not infer certain cancellation, its date, or the cancellation of the entire portfolio.",
+      "assessment": {
+        "source_freshness": "unverified_historical_snapshot",
+        "evidence_independence": "single_root_only",
+        "baseline": "not_established",
+        "surprise_vs_baseline": "not_measured",
+        "signal_qualification": "HOLD",
+        "publication_allowed": false,
+        "reason": "Historical version not frozen; C4-10 complete independent gate not accessible."
+      }
+    }
+  ]
+}
