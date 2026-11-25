@@ -94,6 +94,37 @@ class Step(unittest.TestCase):
         self.assertFalse(K.same([], found))
 
 
+class Attempts(unittest.TestCase):
+    def test_outcomes_fit_the_table_check(self):  # 25.11.2026: CheckViolation on card_attempt
+        allowed = {'written', 'fail', 'held_l0', 'held_activity', 'error', 'skipped', 'refreshed', 'unchanged'}
+        self.assertTrue(set(K.DB_OUTCOME.values()) <= allowed)
+        for o in ('card_made', 'written', 'refreshed', 'unchanged', 'no_record', 'no_identity', 'error'):
+            self.assertIn(o, K.DB_OUTCOME)
+
+    def test_run_logs_allowed_outcomes(self):
+        class Conn:
+            def __init__(self):
+                self.rows = []
+
+            def execute(self, sql, params=None):
+                if 'insert into companies.card_attempt' in sql:
+                    self.rows.append(params)
+                class R:
+                    def fetchall(s):
+                        return [{'id': 'co1', 'name': 'Nobody Inc', 'country': 'US', 'has_card': False, 'legal_name': None, 'lei': None, 'size': 3}] \
+                            if 'with c as' in sql else []
+                return R()
+
+            def transaction(self):
+                import contextlib
+                return contextlib.nullcontext()
+        c = Conn()
+        s = K.run(c, write=True, today=date(2026, 11, 25), us_fetch=lambda *a, **k: None, log=lambda *m: None)
+        self.assertEqual(s['outcomes'], {'no_record': 1})
+        self.assertEqual(c.rows[0][2], 'skipped')
+        self.assertTrue(c.rows[0][4].startswith('no_record'))
+
+
 class Sql(unittest.TestCase):
     def test_no_stray_percent(self):  # 24.11.2026: "like 'B4CE-04 contracts%'" broke every pass with ProgrammingError
         import re

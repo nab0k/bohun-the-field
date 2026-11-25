@@ -47,6 +47,10 @@ RETIRE_SQL = """update companies.profile_claim set qa_status = 'REJECTED', updat
   review_note = review_note || ' | replaced by the contracts refresh of ' || %(day)s
 where company_id = %(co)s and qa_status = 'APPROVED' and claim_ref ~ '^b4:(spend|ctr|sub)'"""
 ATTEMPT_SQL = """insert into companies.card_attempt (company_id, run, outcome, level, reason) values (%s, %s, %s, %s, %s)"""
+# card_attempt.outcome is checked against the autofill outcomes (db/companies/b4ce04_card_attempt.sql + refresh): the
+# contracts outcomes are stored as one of them, the detail goes to the reason (25.11.2026: CheckViolation on every pass)
+DB_OUTCOME = {'card_made': 'written', 'written': 'written', 'refreshed': 'refreshed', 'unchanged': 'unchanged',
+              'no_record': 'skipped', 'no_identity': 'skipped', 'error': 'error'}
 
 
 def fiscal_window(today):
@@ -194,8 +198,13 @@ def run(conn, limit=12, write=False, today=None, us_fetch=None, ca_fetch=None, l
         except Exception as e:  # noqa: BLE001 — a source down for one company never stops the pass
             outcome, reason = 'error', type(e).__name__
         if write:
-            with conn.transaction():
-                conn.execute(ATTEMPT_SQL, (t['id'], run_label, outcome, 'L3' if outcome.startswith('card_made') else None, reason[:500]))
+            try:  # the attempt row only schedules the next check: a failure here never stops the step
+                with conn.transaction():
+                    conn.execute(ATTEMPT_SQL, (t['id'], run_label, DB_OUTCOME.get(outcome, 'error'),
+                                               'L3' if outcome.startswith('card_made') else None, f'{outcome}: {reason}'[:500]))
+            except Exception as e:  # noqa: BLE001
+                summary['outcomes']['attempt_not_logged'] = summary['outcomes'].get('attempt_not_logged', 0) + 1
+                log(f'attempt not logged: {type(e).__name__}')
         summary['outcomes'][outcome] = summary['outcomes'].get(outcome, 0) + 1
         log(f"{t['country']} {t['name'][:40]:40} -> {outcome} {reason}")
     return summary
