@@ -223,6 +223,8 @@ def compare(now_claims, new_claims):
     if not old_p <= new_p:
         return 'unchanged', f'new card would lose {len(old_p - new_p)} programmes'
     if new_p == old_p and new_l == old_l:
+        if prods(new_claims) > prods(now_claims):  # 25.11.2026: a website found later brings the products
+            return 'refreshed', f'products {prods(now_claims)}->{prods(new_claims)}'
         return 'unchanged', 'same level and programmes'
     return 'refreshed', f'{old_l}->{new_l}, programmes {len(old_p)}->{len(new_p)}'
 
