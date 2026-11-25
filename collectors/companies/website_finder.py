@@ -29,7 +29,14 @@ NOT_OWN = ('linkedin.', 'wikipedia.', 'wikidata.', 'facebook.', 'twitter.', 'x.c
            'glassdoor.', 'indeed.', 'europa.eu', 'sam.gov', 'usaspending.', 'bizapedia.', 'buzzfile.',
            'dandb.', 'manta.com', 'mapquest.', 'yelp.', 'google.', 'annuaire', 'pagesjaunes.',
            'gulesider.', 'brreg.', 'prh.fi', 'ytj.fi', 'defence-industry.eu',
-           'gleif.', 'lei-lookup', 'leilex', 'rocketreach.', 'apollo.io', 'pitchbook.', 'owler.', 'craft.co')
+           'gleif.', 'lei-lookup', 'leilex', 'rocketreach.', 'apollo.io', 'pitchbook.', 'owler.', 'craft.co',
+           # probe 25.11: search answers that were never a company's own site
+           'tavily.com', 'leadiq.', 'tracxn.', 'gabin.ai', 'aeodirectory.', 'globaldata.', 'govtribe.', 'investing.',
+           'yahoo.', 'devex.', 'railmarket.', 'satcatalog.', 'topograph.', 'cleat.ai', 'lightsource.ai',
+           'usinenouvelle.', 'gunsweek.', 'spartanat.', 'jth.info', 'interconnect-wiring.', 'maps.apple', 'apple.com',
+           'dnb.', 'signalhire.', 'cbinsights.', 'growjo.', 'zippia.', 'comparably.', 'datanyze.', 'theorg.',
+           'defensenews.', 'army-technology.', 'naval-technology.', 'airforce-technology.', 'janes.', 'reuters.',
+           'businesswire.', 'prnewswire.', 'globenewswire.', 'marketscreener.', 'macrotrends.', 'statista.')
 LEGAL_PAGE = re.compile(r'mentions|legal|impressum|imprint|kontakt|contact|about|a-propos|qui-sommes|om-oss|'
                         r'yhteystied|tietoa|company|unternehmen|privacy|confidentialit', re.I)
 _LINK = re.compile(r'<a\s[^>]*href=["\']([^"\'#]+)["\'][^>]*>(.*?)</a>', re.S | re.I)
@@ -143,12 +150,29 @@ COUNTRY = {'FR': 'France', 'DE': 'Germany', 'NO': 'Norway', 'US': 'USA', 'FI': '
            'BE': 'Belgium', 'NL': 'Netherlands', 'DK': 'Denmark', 'CA': 'Canada'}
 
 
-def candidates(results, n=5):
+def label(url):
+    """Registrable name of the host: 'https://www.lisi-aerospace-am.com/' -> 'lisi-aerospace-am'."""
+    host = (urllib.parse.urlsplit(url).hostname or '').lower().removeprefix('www.')
+    parts = host.split('.')
+    return parts[-3] if len(parts) >= 3 and parts[-2] in ('co', 'com', 'org') else (parts[-2] if len(parts) >= 2 else host)
+
+
+def domain_is_name(c, url):
+    n = core(c.get('legal_name') or c['name'])
+    return bool(n) and label(url).replace('-', '') == n.replace(' ', '')
+
+
+def candidates(results, c=None, n=5):
+    """Own-looking home pages, those whose domain carries a word of the name first (probe 25.11: search put
+    directories before the company's site)."""
     out = []
     for r in results:
         h = home(r.get('url') or '')
         if h and own(h) and h not in out:
             out.append(h)
+    if c:
+        words = [w for w in core(c.get('legal_name') or c['name']).split() if len(w) >= 3]
+        out.sort(key=lambda h: 0 if any(w in label(h).replace('-', '') for w in words) else 1)
     return out[:n]
 
 
@@ -185,7 +209,7 @@ def read(url, opener):
     return {'url': home(final or url), 'text': ' '.join(texts)}
 
 
-def proof(c, text, reg_ids, trusted):
+def proof(c, text, reg_ids, trusted, url=None):
     """Why this site is the company's, or None."""
     t = norm(text)
     flat = digits(text)
@@ -201,6 +225,8 @@ def proof(c, text, reg_ids, trusted):
         return None
     if trusted:
         return 'name on the site; site from the register or Wikidata'
+    if url and domain_is_name(c, url):
+        return 'name on the site, and the domain is the name'
     city = norm(c.get('city'))
     if city and f' {city} ' in f' {t} ':
         return f'name and city ({c.get("city")}) on the site'
@@ -224,13 +250,13 @@ def find(c, search=None, opener=urllib.request.urlopen, log=lambda *_: None):
             return {'website': page['url'], 'via': via, 'proof': why, 'ids': reg['ids'], 'tried': tried}
     if search:
         try:
-            found = candidates(search(query(c)))
+            found = candidates(search(query(c)), c)
         except Exception as e:  # noqa: BLE001
             found = []
             tried.append({'via': 'search', 'result': f'search failed: {type(e).__name__}'})
         for h in found:
             page = read(h, opener)
-            why = proof(c, page.get('text', ''), reg['ids'], False) if 'text' in page else None
+            why = proof(c, page.get('text', ''), reg['ids'], False, h) if 'text' in page else None
             tried.append({'url': h, 'via': 'search', 'result': why or page.get('error') or 'no proof on the site'})
             if why:
                 return {'website': page['url'], 'via': 'search', 'proof': why, 'ids': reg['ids'], 'tried': tried}

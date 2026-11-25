@@ -56,6 +56,25 @@ class Proof(unittest.TestCase):
                                        {'url': 'https://www.lynred.com/en/products'}]), ['https://www.lynred.com/'])
 
 
+class Domain(unittest.TestCase):
+    c = {'name': 'GLOBAL MILITARY PRODUCTS INC', 'legal_name': 'Global Military Products, Inc.', 'country': 'US',
+         'city': 'Wilmington', 'ids': {}}
+
+    def test_domain_that_is_the_name_with_the_name_on_the_site(self):
+        # US register cities are often the Delaware agent's, so the city proof fails for a real site
+        self.assertIn('domain', W.proof(self.c, 'Global Military Products, Tampa FL', [], False,
+                                        'https://globalmilitaryproducts.com/'))
+
+    def test_parent_domain_is_not_the_name(self):
+        c = {'name': 'KONGSBERG DISCOVERY AS', 'country': 'NO', 'city': 'HORTEN', 'ids': {}}
+        self.assertIsNone(W.proof(c, 'Kongsberg Discovery sonar', [], False, 'https://www.kongsberg.com/'))
+
+    def test_domain_with_a_name_word_goes_first(self):
+        got = W.candidates([{'url': 'https://www.globaldata.com/x'}, {'url': 'https://example.org/'},
+                            {'url': 'https://globalmilitaryproducts.com/'}], self.c)
+        self.assertEqual(got[0], 'https://globalmilitaryproducts.com/')
+
+
 class Find(unittest.TestCase):
     def test_search_site_needs_proof_and_wrong_namesake_is_left(self):
         c = {'name': 'KAIRNTECH', 'legal_name': 'KAIRNTECH', 'country': 'FR', 'city': 'MEYLAN', 'ids': {}}
@@ -72,7 +91,9 @@ class Find(unittest.TestCase):
                    opener=opener(pages))
         self.assertEqual(r['website'], 'https://kairntech.com/')
         self.assertIn('844751636', r['proof'])
-        self.assertEqual(r['tried'][0]['result'], 'no proof on the site')
+        alone = W.find(c, search=lambda q: [{'url': 'https://kairn.example/'}], opener=opener(pages))
+        self.assertIsNone(alone['website'])
+        self.assertEqual(alone['tried'][0]['result'], 'no proof on the site')
 
     def test_failures_never_raise(self):
         c = {'name': 'X GmbH', 'country': 'DE', 'city': 'Kiel', 'ids': {'LEI': 'ABC'}}
