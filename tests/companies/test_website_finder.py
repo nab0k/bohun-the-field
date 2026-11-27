@@ -142,13 +142,29 @@ class Step(unittest.TestCase):
     def test_spent_budget_leaves_the_company_for_tomorrow(self):
         conn = FakeConn([self.c], searched=30)
         s = W.run(conn, search=lambda q: [{'url': 'https://kairntech.com/'}], write=True, opener=opener(self.pages))
-        self.assertEqual(conn.writes, [])
         self.assertEqual(s['outcomes']['waiting_for_search'], 1)
+        self.assertEqual(s['outcomes']['searches_left_today'], 0)
+        kind, attempt = conn.writes[0]
+        self.assertEqual(len(conn.writes), 1)
+        self.assertEqual(kind, 'insert')
+        self.assertEqual(attempt['outcome'], 'waiting_for_search')
+        self.assertFalse(attempt['searched'])
+        self.assertIsNone(attempt['website'])
+
+    def test_completed_search_with_no_site_is_not_deferred(self):
+        conn = FakeConn([self.c], searched=29)
+        s = W.run(conn, search=lambda q: [], write=True, opener=opener({}))
+        self.assertEqual(s['outcomes']['not_found'], 1)
+        self.assertEqual(s['outcomes']['searches_left_today'], 0)
+        self.assertEqual(conn.writes[0][1]['outcome'], 'not_found')
+        self.assertTrue(conn.writes[0][1]['searched'])
 
     def test_dry_run_writes_nothing(self):
-        conn = FakeConn([self.c])
-        W.run(conn, search=lambda q: [{'url': 'https://kairntech.com/'}], write=False, opener=opener(self.pages))
-        self.assertEqual(conn.writes, [])
+        for searched in (0, 30):
+            with self.subTest(searched=searched):
+                conn = FakeConn([self.c], searched=searched)
+                W.run(conn, search=lambda q: [{'url': 'https://kairntech.com/'}], write=False, opener=opener(self.pages))
+                self.assertEqual(conn.writes, [])
 
     def test_more_products_refresh_a_card(self):
         from collectors.companies import autofill as A

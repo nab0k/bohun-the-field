@@ -303,7 +303,9 @@ TARGETS_SQL = """select c.id, c.name, c.country,
 from companies.company c
 where (c.website is null or c.website = '') and c.excluded_reason is null
   and not exists (select 1 from companies.website_attempt w where w.company_id = c.id
-                  and w.attempted_at > now() - interval '30 days')
+                  and w.attempted_at > now() - interval '30 days'
+                  and (w.outcome <> 'waiting_for_search'
+                       or w.attempted_at >= date_trunc('day', now(), 'UTC')))
   and (exists (select 1 from companies.profile_claim p where p.company_id = c.id and p.qa_status = 'APPROVED'
                and p.claim_ref = 'b4:level')
        or exists (select 1 from companies.mention_link l where l.company_id = c.id))
@@ -311,7 +313,7 @@ order by has_card desc,
   (select count(*) from companies.mention_link l where l.company_id = c.id) desc, c.id
 limit %(limit)s"""
 SEARCHED_TODAY_SQL = """select count(*) as n from companies.website_attempt
-where searched and attempted_at >= date_trunc('day', now())"""
+where searched and attempted_at >= date_trunc('day', now(), 'UTC')"""
 ATTEMPT_SQL = """insert into companies.website_attempt (company_id, outcome, website, via, proof, searched, reason)
 values (%(company_id)s, %(outcome)s, %(website)s, %(via)s, %(proof)s, %(searched)s, %(reason)s)"""
 # only an empty website is filled: a site someone set is never replaced
@@ -340,9 +342,8 @@ def run(conn, search=None, limit=4, write=False, daily=DAILY_SEARCHES, opener=ur
             r, outcome, reason = {'website': None}, 'error', f'{type(e).__name__}: {str(e)[:120]}'
         left -= len(calls)
         if outcome == 'not_found' and search and not allow:
-            # the free paths gave nothing and today's searches are spent: tried again tomorrow, not in 30 days
-            outcomes['waiting_for_search'] = outcomes.get('waiting_for_search', 0) + 1
-            continue
+            # Defer until the next UTC day so subsequent passes can check other companies.
+            outcome = 'waiting_for_search'
         outcomes[outcome] = outcomes.get(outcome, 0) + 1
         log(c['name'], outcome, r.get('website'))
         if write:
