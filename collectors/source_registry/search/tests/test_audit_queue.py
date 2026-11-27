@@ -48,6 +48,37 @@ class AuditQueue(unittest.TestCase):
         self.assertEqual([c["url"] for c, _ in selected],
                          ["https://publisher.example/on-hold/feed", "https://publisher.example/confirmed/feed"])
 
+    def test_regular_audit_rotates_recent_attempts_without_changing_grants(self):
+        for channel in ("older", "newer", "untried"):
+            url = self.channel(channel, confirmed=True)
+            self.conn.execute("UPDATE admission_decision SET rules_version='a2sa-shadow-0.8' WHERE channel_id=?",
+                              (channel,))
+            self.conn.execute("INSERT INTO candidate_seen VALUES (?,?,?,?,?)", (url, "accept", SINCE, 0, channel))
+        attempts = {"older": NOW - dt.timedelta(days=2), "newer": NOW - dt.timedelta(days=1)}
+        self.assertEqual([channel for _, channel in R.audit_candidates(self.conn, 2, attempts=attempts)],
+                         ["untried", "older"])
+        self.assertEqual(self.conn.execute("SELECT count(*) FROM source_state WHERE status='accepted'").fetchone()[0],
+                         3)
+
+    def test_due_quick_retries_have_reserved_slots_with_disputed_backlog(self):
+        for n in range(8):
+            url = self.channel(f"old-{n}", status="on_hold")
+            self.conn.execute("INSERT INTO candidate_seen VALUES (?,?,?,?,?)",
+                              (url, "disputed", SINCE, 0, f"old-{n}"))
+        for n in range(6):
+            channel = f"quick-{n}"
+            url = self.channel(channel, status="on_hold")
+            at = NOW.isoformat() if n == 5 else SINCE
+            self.conn.execute("INSERT INTO candidate_seen VALUES (?,?,?,?,?)", (url, "hold", at, 0, channel))
+            self.conn.execute(
+                "INSERT INTO admission_decision(candidate_url,channel_id,decision,reasons_json,record_json,"
+                "rules_version,decided_at) VALUES (?,?,'hold','[\"audit_transient\"]','{}',?,?)",
+                (url, channel, A.RULES_VERSION, at))
+        candidates = R.recheck_candidates(self.conn, n=8)
+        self.assertEqual([c["expected_channel_id"] for c in candidates[:4]], [f"quick-{n}" for n in range(4)])
+        self.assertTrue(all(c["priority_recheck"] for c in candidates[:4]))
+        self.assertTrue(all(not c["priority_recheck"] for c in candidates[4:]))
+
     def test_priority_observation_precedes_search_and_reports_a_limit(self):
         self.channel("a")
         self.channel("b")

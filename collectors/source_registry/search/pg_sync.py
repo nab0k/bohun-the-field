@@ -48,6 +48,23 @@ def connect():
         password=os.environ["SUPABASE_DB_PASSWORD"], sslmode="require", connect_timeout=20)
 
 
+def last_audit_attempts(pg):
+    """Use existing cycle receipts to rotate audits that did not change an admission decision."""
+    cur = pg.cursor()
+    cur.execute("""
+        select a.key, max(r.finished_at)
+        from source_discovery.cycle_run r
+        cross join lateral jsonb_each(
+            case when jsonb_typeof(r.trace->'audit_channels')='object'
+                 then r.trace->'audit_channels' else '{}'::jsonb end
+        ) a
+        where r.started_at >= now() - interval '14 days' and r.finished_at is not null
+          and a.value->>'state'='checked'
+        group by a.key
+    """)
+    return dict(cur.fetchall())
+
+
 def load(pg, sqlite_path, registry_only=False):
     """Fill a fresh SQLite registry from the cloud state; return (conn, context)."""
     conn = A.open_db(str(sqlite_path))
