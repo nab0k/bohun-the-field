@@ -118,7 +118,7 @@ def review_candidate(conn, url, channel, layer):
     return candidate
 
 
-def audit_candidates(conn, n=AUDIT_PER_DAY, exclude=()):
+def audit_candidates(conn, n=AUDIT_PER_DAY, exclude=(), attempts=None):
     """0.7 (owner 19.11 "Да, чисти"): accepted sources decided under older rules or without the judge's verdict are
     checked again, oldest first; the owner's own accepts stay. Returns [(candidate, old_channel)]."""
     rows = conn.execute(
@@ -153,7 +153,14 @@ def audit_candidates(conn, n=AUDIT_PER_DAY, exclude=()):
         candidate = review_candidate(conn, url, channel, "audit")
         candidate["decision_url"] = url
         candidates.setdefault(candidate["url"], (candidate, channel))
-    return list(candidates.values())[:n]
+    selected = list(candidates.values())
+    if attempts:
+        def order(review):
+            channel = review[1]
+            return channel in attempts, attempts.get(channel)
+
+        selected.sort(key=order)
+    return selected[:n]
 
 
 def channel_audits(conn, channel_ids=None, limit=AUDIT_PER_DAY):
@@ -225,21 +232,20 @@ def company_candidates(ctx, known, n=COMPANY_PER_DAY):
 
 
 def recheck_candidates(conn, n=RECHECK_PER_DAY, days=RECHECK_AFTER_DAYS, no_judge_hours=NO_JUDGE_AFTER_HOURS):
-    """On-hold sources (stale, too few titles, undated) whose last check is older than `days`: checked again.
-    Sites held for want of a judge verdict (no_judge) come back after `no_judge_hours` and go first.
-    0.8 (owner 20.11 "решай сам"): sources left disputed by older rules come first and are decided again."""
+    """Reserve half the existing quota for due quick retries, then fill it with other reviews."""
     now = dt.datetime.now(dt.timezone.utc)
     cutoff = (now - dt.timedelta(days=days)).isoformat()
     quick = (now - dt.timedelta(hours=no_judge_hours)).isoformat()
     disputed = [u for (u,) in conn.execute("SELECT candidate_url FROM candidate_seen WHERE last_decision='disputed' "
                                            "ORDER BY decided_at LIMIT ?", (n,)).fetchall()]
-    held = [u for (u,) in conn.execute(
-        "SELECT candidate_url FROM (SELECT s.candidate_url, s.decided_at, (SELECT d.reasons_json FROM admission_decision d "
+    held = conn.execute(
+        "SELECT candidate_url, (reasons LIKE '%no_judge%' OR reasons LIKE '%audit_transient%') AS quick "
+        "FROM (SELECT s.candidate_url, s.decided_at, (SELECT d.reasons_json FROM admission_decision d "
         " WHERE d.candidate_url=s.candidate_url ORDER BY d.decision_id DESC LIMIT 1) reasons FROM candidate_seen s "
         " WHERE s.last_decision='hold') WHERE reasons NOT LIKE '%no_news_site%' AND "
         "(decided_at < ? OR ((reasons LIKE '%no_judge%' OR reasons LIKE '%audit_transient%') AND decided_at < ?)) "
-        "ORDER BY (reasons LIKE '%no_judge%' OR reasons LIKE '%audit_transient%') DESC, decided_at LIMIT ?",
-        (cutoff, quick, n)).fetchall()]
+        "ORDER BY quick DESC, decided_at, candidate_url LIMIT ?",
+        (cutoff, quick, n)).fetchall()
     # 0.9 (A1SD-04): sites set aside as general by the keyword count alone are judged again under the new rules
     general = [u for (u,) in conn.execute(
         "SELECT s.candidate_url FROM candidate_seen s JOIN admission_decision d ON d.decision_id=(SELECT max(decision_id) "
@@ -247,14 +253,16 @@ def recheck_candidates(conn, n=RECHECK_PER_DAY, days=RECHECK_AFTER_DAYS, no_judg
         "AND d.reasons_json LIKE '%topic_below_threshold%' AND d.rules_version NOT IN (?,?) "
         "ORDER BY s.decided_at LIMIT ?",
         (A.RULES_VERSION, PREVIOUS_RULES, max(n // 3, 1))).fetchall()]
-    urls = (disputed + [u for u in general if u not in disputed]
-            + [u for u in held if u not in disputed and u not in general])[:n]
+    fast = {u for u, is_quick in held if is_quick}
+    reserved = [u for u, is_quick in held if is_quick][:max(1, n // 2)]
+    urls = list(dict.fromkeys(reserved + disputed + general + [u for u, _ in held]))[:n]
     # prefilter: a recheck goes through the judge again (0.6: a no_judge hold must not pass on keywords alone)
     candidates = {}
     for url in urls:
         row = conn.execute("SELECT channel_id FROM candidate_seen WHERE candidate_url=?", (url,)).fetchone()
         candidate = review_candidate(conn, url, row[0] if row else None, "recheck")
         candidate["decision_url"] = url
+        candidate["priority_recheck"] = url in fast
         candidates.setdefault(candidate["url"], candidate)
     return list(candidates.values())
 
@@ -324,6 +332,8 @@ def main(argv=None):
     new_search = C.LIMITS["new"] - WIKIDATA_NEW
     run_id = "gh-" + os.environ.get("GITHUB_RUN_ID", "local") + "-" + started.strftime("%Y%m%dT%H%M")
     with pg_sync.connect() as pg, tempfile.TemporaryDirectory() as tmp:
+        if a.dry_run:
+            pg.read_only = True
         # A6SH-02: health and usefulness first, so failing/silent sources leave the accepted list before the run
         health_details = {}
         health = {} if a.dry_run else H.update(pg, diagnostics=health_details)
@@ -355,11 +365,20 @@ def main(argv=None):
                 "wikidata": gaps(P.wikidata_jobs(list(europe), ctx["done"])),
                 "similar": gaps(P.similar_jobs(accepted_sites(conn), ctx["done"])) if exa else []}
         todo = C.assign_engines(P.plan_cycle(jobs, C.QUOTAS, ctx["done"]), C.GEMINI_SHARE, jina_share)
+        again = recheck_candidates(conn)
+        priority = channel_audits(conn)
+        regular = audit_candidates(conn, AUDIT_PER_DAY - len(priority), exclude={ch for _, ch in priority},
+                                   attempts=pg_sync.last_audit_attempts(pg))
+        audit = priority + regular
+        prioritized_urls = {c["url"] for c, _ in priority}
+        fast_rechecks = [c for c in again if c["priority_recheck"] and c["url"] not in prioritized_urls]
         plan = {"planned": dict(Counter(j["layer"] for j in todo)),
                 "engines": dict(Counter(j["engine"] for j in todo)), "limits": C.LIMITS,
                 "rules_version": A.RULES_VERSION, "categories_version": cat["version"],
                 "learning": {**learned, "quotas": C.QUOTAS, "asleep": len(asleep)},
-                "state_rows": ctx["state_rows"], "events": len(ctx["events"])}
+                "state_rows": ctx["state_rows"], "events": len(ctx["events"]),
+                "reviews": {"audit": len(audit), "priority_audit": len(priority),
+                            "rechecks": len(again), "priority_rechecks": len(fast_rechecks)}}
         print(json.dumps({"run": run_id, **plan, "health": health}))
         if a.dry_run:
             return
@@ -372,25 +391,26 @@ def main(argv=None):
         http = HTTP(budget, enabled=True)
         engines = C.Engines(tavily=PR.tavily_api, gemini=lambda job: PR.gemini_grounded(job["query"]))
         t0 = time.time()
-        again = recheck_candidates(conn)
-        priority = channel_audits(conn)
-        regular = audit_candidates(conn, AUDIT_PER_DAY - len(priority), exclude={ch for _, ch in priority})
-        audit = priority + regular
-        extra = company_candidates(ctx, known) + again + [c for c, _ in regular]
+        other_rechecks = [c for c in again if not c["priority_recheck"]]
+        extra = company_candidates(ctx, known) + other_rechecks + [c for c, _ in regular]
         cands, found, done, trace, observations, counts, results = C.execute(
             todo, engines, http, conn, known, use_feedsearch=True, extra=extra,
             recheck={A.registry.canonical_url(c["decision_url"]) for c in again},
             audit={A.registry.canonical_url(c["decision_url"]): ch for c, ch in audit},
-            priority=[c for c, _ in priority])
+            priority=fast_rechecks + [c for c, _ in priority])
         outcomes = audit_outcomes(audit, observations, results, trace.get("stop"))
         trace["audit_channels"] = outcomes
         audit_progress = dict(Counter(item["state"] for item in outcomes.values()))
         audit_progress["selected"] = len(audit)
+        trace["recheck_channels"] = audit_outcomes(
+            [(c, c.get("expected_channel_id")) for c in again], observations, results, trace.get("stop"))
+        judge = O.JUDGE
         trace.update(http_requests=budget.requests, seconds=round(time.time() - t0),
                      engines_used=dict(engines.used), engines_off=sorted(engines.off),
                      engine_errors=dict(engines.errors),
-                     judge_used=dict(O.JUDGE.used) if O.JUDGE else {}, judge_errors=dict(O.JUDGE.errors) if O.JUDGE else {},
-                     judge_off=sorted(O.JUDGE.off) if O.JUDGE else [])
+                     judge_used=dict(judge.used) if judge is not None else {},
+                     judge_errors=dict(judge.errors) if judge is not None else {},
+                     judge_off=sorted(judge.off) if judge is not None else [])
         job_stats = trace.pop("job_stats", {})
         trace["health_diagnostics"] = health_details
         measure = C.measure_cycle(cands, found, results, known)
